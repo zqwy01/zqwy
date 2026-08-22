@@ -1,0 +1,441 @@
+:root {
+    --blue: transparent;
+    --page-padding: 6px;
+    --element-radius: 8px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+body {
+    padding-bottom: var(--audio-height, 0px);
+
+    font-family: Arial, sans-serif;
+    color: #222;
+    background: #f2f2f2;
+}
+
+.container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: var(--page-padding);
+}
+
+/* Поиск */
+
+.search-container {
+    display: flex;
+    width: 100%;
+}
+
+.search {
+    width: 100%;
+    min-width: 0;
+    min-height: 72px;
+    padding: 10px 8px;
+
+    font-family: inherit;
+    font-size: 52px;
+    font-weight: normal;
+    line-height: 1;
+    text-align: center;
+
+    color: white;
+    background: var(--blue);
+
+    border: 0;
+    border-radius: var(--element-radius);
+    outline: none;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.search::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Заголовок */
+
+.title-container {
+    display: flex;
+    width: 100%;
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 120px;
+    margin: 0;
+    padding: 12px 8px;
+
+    color: white;
+    background: var(--blue);
+    border-radius: var(--element-radius);
+
+    font-size: 96px;
+    font-weight: normal;
+    line-height: 0.9;
+    text-align: center;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Теги */
+
+.tags-container {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 3px;
+
+    width: 100%;
+    min-width: 0;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scrollbar-width: none;
+}
+
+.tags-container::-webkit-scrollbar {
+    display: none;
+}
+
+.tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 1 1 0;
+
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+
+    margin: 0;
+    padding: 2px 6px;
+
+    color: white;
+    background: var(--blue);
+    border-radius: var(--element-radius);
+
+    font-size: 38px;
+    font-weight: normal;
+    line-height: 0.8;
+    text-align: center;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Основной текст */
+
+.text-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 24px 10px;
+
+    font-size: 26px;
+    line-height: 1.2;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.text-container h3,
+.text-container h4 {
+    width: 100%;
+    min-width: 0;
+
+    line-height: 0.95;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.text-container h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 52px;
+}
+
+.text-container h4 {
+    margin-top: 24px;
+    margin-bottom: 10px;
+    font-size: 42px;
+}
+
+/* Аудиоплеер */
+
+.audio-player-slot {
+    width: 100vw;
+    max-width: 100vw;
+    min-width: 0;
+    min-height: 70px;
+
+    margin-left: calc(50% - 50vw);
+    padding: 0;
+}
+
+.audio-player-container {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    min-height: 54px;
+
+    margin: 0;
+    padding: 6px;
+
+    background: rgba(34, 34, 34, 0.96);
+    border: 2px solid var(--blue);
+    border-radius: var(--element-radius);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+
+    overflow: hidden;
+}
+
+.audio-player-container.is-fixed {
+    position: fixed;
+    z-index: 1000;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    width: 100vw;
+    max-width: 100vw;
+    min-height: 0;
+
+    padding: 6px 8px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+
+    background: rgba(34, 34, 34, 0.98);
+    border: 0;
+    border-top: 2px solid var(--blue);
+    border-radius: 0;
+    box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.audio-player {
+    display: block;
+
+    width: 100%;
+    max-width: 100%;
+    height: 42px;
+}
+
+/* Мобильная версия: ровно 4 тега в ряду */
+
+@media (max-width: 700px) {
+    .tags-container {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 3px;
+
+        width: 100%;
+        overflow: visible;
+    }
+
+    .tag {
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+
+        padding: 2px 4px;
+
+        font-size: 38px;
+        line-height: 0.8;
+    }
+}
+
+/* Очень маленькие экраны */
+
+@media (max-width: 380px) {
+    .search {
+        min-height: 66px;
+        padding: 8px 6px;
+        font-size: 44px;
+    }
+
+    .title {
+        min-height: 100px;
+        padding: 10px 6px;
+        font-size: 80px;
+    }
+
+    .tag {
+        min-height: 0;
+        padding: 2px 3px;
+        font-size: 18px;
+        line-height: 0.8;
+    }
+
+    .text-container {
+        padding: 20px 8px;
+        font-size: 24px;
+    }
+
+    .text-container h3 {
+        font-size: 32px;
+    }
+
+    .text-container h4 {
+        margin-top: 20px;
+        font-size: 18px;
+    }
+
+    .audio-player-container {
+        padding: 5px;
+    }
+
+    .audio-player-container.is-fixed {
+        padding: 5px 6px;
+        padding-bottom: calc(5px + env(safe-area-inset-bottom));
+    }
+
+    .audio-player {
+        height: 40px;
+    }
+}
+
+/* Планшеты */
+
+@media (min-width: 701px) {
+    .tags-container {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .tag {
+        flex: 1 1 0;
+        min-height: 0;
+        padding: 2px 8px;
+        font-size: 48px;
+        line-height: 0.8;
+    }
+
+    .search {
+        min-height: 68px;
+        padding: 10px;
+        font-size: 40px;
+    }
+
+    .title {
+        min-height: 110px;
+        padding: 16px;
+        font-size: 80px;
+    }
+
+    .text-container {
+        padding: 26px 12px;
+        font-size: 18px;
+    }
+
+    .text-container h3 {
+        font-size: 36px;
+    }
+
+    .text-container h4 {
+        font-size: 28px;
+    }
+
+    .audio-player-container {
+        padding: 8px;
+    }
+
+    .audio-player-container.is-fixed {
+        padding: 8px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .audio-player {
+        height: 50px;
+    }
+}
+
+/* Большие экраны */
+
+@media (min-width: 1100px) {
+    .search {
+        min-height: 72px;
+        font-size: 56px;
+    }
+
+    .title {
+        min-height: 130px;
+        font-size: 120px;
+    }
+
+    .tag {
+        min-height: 0;
+        padding: 2px 8px;
+        font-size: 36px;
+        line-height: 0.8;
+    }
+
+    .text-container {
+        font-size: 20px;
+    }
+
+    .text-container h3 {
+        font-size: 48px;
+    }
+
+    .text-container h4 {
+        font-size: 36px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .search {
+        min-height: 78px;
+        font-size: 72px;
+    }
+
+    .title {
+        min-height: 150px;
+        font-size: 160px;
+    }
+
+    .tag {
+        min-height: 0;
+        padding: 2px 8px;
+        font-size: 82px;
+        line-height: 0.8;
+    }
+
+    .text-container {
+        font-size: 22px;
+    }
+
+    .text-container h3 {
+        font-size: 64px;
+    }
+
+    .text-container h4 {
+        font-size: 32px;
+    }
+}

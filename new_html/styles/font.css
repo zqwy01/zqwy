@@ -1,0 +1,100 @@
+@font-face {
+    font-family: "Biela";
+    src: url("fonts/biela.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+
+    font-family: "Biela", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1;
+
+    color: #ffffff;
+
+    /* Запрещает браузеру искусственно делать шрифт жирным */
+    font-synthesis: none;
+}
+
+body * {
+    font-family: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    color: inherit;
+}
+
+/* Сбрасываем стандартную жирность заголовков браузера */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Заголовки */
+
+h1 {
+    line-height: 0.6 !important;
+    margin: 0;
+}
+
+h2 {
+    line-height: 0.8 !important;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+h3 {
+    line-height: 0.6 !important;
+    margin: 0;
+    margin-bottom: 1rem;
+}
+
+h4 {
+    line-height: 0.8 !important;
+    margin: 0;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+h5,
+h6 {
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Дополнительная защита для заголовков в основном тексте */
+
+.text-container h1,
+.text-container h2,
+.text-container h3,
+.text-container h4,
+.text-container h5,
+.text-container h6 {
+    font-family: "Biela", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Выделение текста */
+
+::selection {
+    background: rgba(255, 255, 255, 0.25);
+    color: black;
+
+    text-shadow:
+    -1px -1px 0 white,
+    1px -1px 0 white,
+    -1px  1px 0 white,
+    1px  1px 0 white;
+}

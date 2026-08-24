@@ -4,6 +4,8 @@
     --element-radius: 8px;
 }
 
+/* Базовые настройки */
+
 *,
 *::before,
 *::after {
@@ -20,11 +22,17 @@ body {
 
 body {
     padding-bottom: var(--audio-height, 0px);
-
     font-family: Arial, sans-serif;
     color: #222;
     background: #f2f2f2;
 }
+
+button,
+input {
+    font-family: inherit;
+}
+
+/* Общие контейнеры */
 
 .container {
     width: 100%;
@@ -46,18 +54,17 @@ body {
     min-height: 72px;
     padding: 10px 8px;
 
+    color: #fff;
     font-family: inherit;
     font-size: 52px;
     font-weight: normal;
     line-height: 1;
     text-align: center;
 
-    color: white;
     background: var(--blue);
-
     border: 0;
     border-radius: var(--element-radius);
-    outline: none;
+    outline: 0;
 
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -67,7 +74,7 @@ body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* Заголовок */
+/* Заголовок альбома или трека */
 
 .title-container {
     display: flex;
@@ -85,14 +92,14 @@ body {
     margin: 0;
     padding: 12px 8px;
 
-    color: white;
-    background: var(--blue);
-    border-radius: var(--element-radius);
-
+    color: #fff;
     font-size: 96px;
     font-weight: normal;
     line-height: 0.9;
     text-align: center;
+
+    background: var(--blue);
+    border-radius: var(--element-radius);
 
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -111,7 +118,6 @@ body {
 
     overflow-x: auto;
     overflow-y: hidden;
-
     scrollbar-width: none;
 }
 
@@ -125,29 +131,27 @@ body {
     justify-content: center;
 
     flex: 1 1 0;
-
     width: auto;
     min-width: 0;
     min-height: 0;
-
     margin: 0;
     padding: 2px 6px;
 
-    color: white;
-    background: var(--blue);
-    border-radius: var(--element-radius);
-
+    color: #fff;
     font-size: 38px;
     font-weight: normal;
     line-height: 0.8;
     text-align: center;
-
     white-space: nowrap;
+
+    background: var(--blue);
+    border-radius: var(--element-radius);
+
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Основной текст */
+/* Описание */
 
 .text-container {
     width: 100%;
@@ -166,7 +170,6 @@ body {
 .text-container h4 {
     width: 100%;
     min-width: 0;
-
     line-height: 0.95;
 
     overflow-wrap: anywhere;
@@ -185,14 +188,148 @@ body {
     font-size: 42px;
 }
 
-/* Аудиоплеер */
+.text-container p {
+    margin: 18px 0;
+    line-height: 1.05;
+}
+
+/* Альбом */
+
+.album {
+    width: 100%;
+    padding: 0 var(--page-padding) 24px;
+}
+
+.album-heading {
+    margin: 0 0 10px;
+
+    color: #fff;
+    font-size: 42px;
+    font-weight: normal;
+    line-height: 1;
+}
+
+.track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    width: 100%;
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+.track {
+    display: flex;
+    align-items: stretch;
+
+    width: 100%;
+    min-width: 0;
+
+    background: var(--blue);
+    border-radius: var(--element-radius);
+    overflow: hidden;
+}
+
+/* Кнопка трека */
+
+.track-button {
+    display: flex;
+    align-items: center;
+
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 14px 12px;
+
+    color: #fff;
+    font: inherit;
+    text-align: left;
+
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.track-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.track-button:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+}
+
+/* Номер трека */
+
+.track-number {
+    flex: 0 0 48px;
+    width: 48px;
+
+    opacity: 0.7;
+    font-size: 24px;
+}
+
+/* Название трека */
+
+.track-name {
+    min-width: 0;
+
+    font-size: 28px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Значок запуска */
+
+.track-play {
+    margin-left: auto;
+    padding-left: 12px;
+
+    font-size: 24px;
+}
+
+/* Ссылки на скачивание */
+
+.track-downloads {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 0 12px;
+}
+
+.track-downloads a {
+    color: #fff;
+    font-size: 16px;
+    text-decoration: none;
+}
+
+.track-downloads a:hover {
+    text-decoration: underline;
+}
+
+/* Активный трек */
+
+.track.is-active {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+}
+
+.track.is-active .track-play {
+    color: #fff;
+}
+
+/* Область плеера */
 
 .audio-player-slot {
     width: 100vw;
     max-width: 100vw;
     min-width: 0;
     min-height: 70px;
-
     margin-left: calc(50% - 50vw);
     padding: 0;
 }
@@ -202,14 +339,13 @@ body {
     max-width: none;
     min-width: 0;
     min-height: 54px;
-
     margin: 0;
     padding: 6px;
 
-    background: rgba(34, 34, 34, 0.96);
+    background: rgba(34, 34, 34, 0);
     border: 2px solid var(--blue);
     border-radius: var(--element-radius);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0);
 
     overflow: hidden;
 }
@@ -224,11 +360,10 @@ body {
     width: 100vw;
     max-width: 100vw;
     min-height: 0;
-
     padding: 6px 8px;
     padding-bottom: calc(6px + env(safe-area-inset-bottom));
 
-    background: rgba(34, 34, 34, 0.98);
+    background: rgba(34, 34, 34, 0.88);
     border: 0;
     border-top: 2px solid var(--blue);
     border-radius: 0;
@@ -243,7 +378,7 @@ body {
     height: 42px;
 }
 
-/* Мобильная версия: ровно 4 тега в ряду */
+/* Экраны до 700 px */
 
 @media (max-width: 700px) {
     .tags-container {
@@ -259,11 +394,23 @@ body {
         width: 100%;
         min-width: 0;
         min-height: 0;
-
         padding: 2px 4px;
 
         font-size: 38px;
         line-height: 0.8;
+    }
+
+    .track {
+        display: block;
+    }
+
+    .track-button {
+        width: 100%;
+    }
+
+    .track-downloads {
+        justify-content: flex-end;
+        padding: 0 12px 10px;
     }
 }
 
@@ -303,6 +450,42 @@ body {
         font-size: 18px;
     }
 
+    .album {
+        padding-right: var(--page-padding);
+        padding-left: var(--page-padding);
+    }
+
+    .album-heading {
+        font-size: 30px;
+    }
+
+    .track-button {
+        padding: 10px 8px;
+    }
+
+    .track-number {
+        flex-basis: 34px;
+        width: 34px;
+        font-size: 17px;
+    }
+
+    .track-name {
+        font-size: 20px;
+    }
+
+    .track-play {
+        font-size: 18px;
+    }
+
+    .track-downloads {
+        gap: 6px;
+        padding: 0 8px 8px;
+    }
+
+    .track-downloads a {
+        font-size: 13px;
+    }
+
     .audio-player-container {
         padding: 5px;
     }
@@ -317,7 +500,7 @@ body {
     }
 }
 
-/* Планшеты */
+/* Планшеты и небольшие ноутбуки */
 
 @media (min-width: 701px) {
     .tags-container {
@@ -333,6 +516,7 @@ body {
         flex: 1 1 0;
         min-height: 0;
         padding: 2px 8px;
+
         font-size: 48px;
         line-height: 0.8;
     }
@@ -360,6 +544,14 @@ body {
 
     .text-container h4 {
         font-size: 28px;
+    }
+
+    .album-heading {
+        font-size: 36px;
+    }
+
+    .track-name {
+        font-size: 24px;
     }
 
     .audio-player-container {
@@ -392,7 +584,8 @@ body {
     .tag {
         min-height: 0;
         padding: 2px 8px;
-        font-size: 36px;
+
+        font-size: 64px;
         line-height: 0.8;
     }
 
@@ -407,7 +600,17 @@ body {
     .text-container h4 {
         font-size: 36px;
     }
+
+    .album-heading {
+        font-size: 42px;
+    }
+
+    .track-name {
+        font-size: 28px;
+    }
 }
+
+/* Очень большие экраны */
 
 @media (min-width: 1400px) {
     .search {
@@ -423,6 +626,7 @@ body {
     .tag {
         min-height: 0;
         padding: 2px 8px;
+
         font-size: 82px;
         line-height: 0.8;
     }
@@ -436,6 +640,14 @@ body {
     }
 
     .text-container h4 {
-        font-size: 32px;
+        font-size: 48px;
+    }
+
+    .album-heading {
+        font-size: 52px;
+    }
+
+    .track-name {
+        font-size: 34px;
     }
 }

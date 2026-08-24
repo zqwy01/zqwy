@@ -1,0 +1,116 @@
+.waves-play-btn {
+    position: relative;
+    width: var(--fw);
+    height: var(--fh);
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+
+    --fw: 96px;
+    --fh: 96px;
+    --playFrames: 91;
+    --playDurationMs: 4000ms;
+
+    appearance: none;
+    background: transparent;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 0;
+
+    -webkit-tap-highlight-color: transparent;
+
+    line-height: 0;
+    font-size: 0;
+
+    display: block;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.waves-play-btn:focus,
+.waves-play-btn:focus-visible,
+.waves-play-btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.waves-play-label {
+    display: none;
+}
+
+.waves-art {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: var(--fw);
+    height: var(--fh);
+
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.waves-art-play {
+    z-index: 1;
+
+    width: var(--fw);
+    height: var(--fh);
+
+    opacity: 1;
+
+    background-image: url("../../icons/play.png");
+    background-size: 8736px 96px;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+
+    animation-name: playAnim;
+    animation-duration: var(--playDurationMs);
+    animation-timing-function: steps(90);
+    animation-iteration-count: infinite;
+    animation-fill-mode: none;
+    animation-play-state: paused;
+}
+
+.waves-art-pause {
+    z-index: 2;
+
+    width: var(--fw);
+    height: var(--fh);
+
+    opacity: 1;
+
+    background-image: url("/buttons/pause.png");
+    background-size: 96px 96px;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+}
+
+.waves-play-btn.is-playing .waves-art-play {
+    opacity: 1;
+    animation-play-state: running;
+}
+
+.waves-play-btn.is-playing .waves-art-pause {
+    opacity: 0;
+}
+
+.waves-play-btn:not(.is-playing) .waves-art-play {
+    opacity: 1;
+    animation-play-state: paused;
+}
+
+.waves-play-btn:not(.is-playing) .waves-art-pause {
+    opacity: 1;
+}
+
+@keyframes playAnim {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -8640px 0;
+    }
+}

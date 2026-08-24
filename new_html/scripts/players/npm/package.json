@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "terser": "^5.50.0"
+  }
+}
+
+{
+  "scripts": {
+    "minify:waves": "terser src/waves-buttons.js --module --compress --mangle --comments false --output dist/waves-buttons.min.js"
+}

@@ -11,8 +11,11 @@
   <link rel="stylesheet" href="styles/font.css" />
   <link rel="stylesheet" href="styles/nav.css" />
   <link rel="stylesheet" href="styles/players/wavesurfer.css" />
+  <link rel="stylesheet" href="styles/cover.css" />
+  <link rel="stylesheet" href="styles/tracklist.css" />
 
-  <script src="player_resize.js" defer></script>
+  <script src="scripts/player_resize.js" defer></script>
+  <script src="scripts/tracklist.js" defer></script>
 </head>
 
 <body>
@@ -20,6 +23,8 @@
     <div class="page-background"></div>
 
     <div class="page-content">
+
+      <!-- Поиск -->
       <div class="container search-container">
         <input
           class="search"
@@ -30,114 +35,26 @@
 
       <!-- Название альбома -->
       <div class="container title-container">
-        <h1 class="title">
-          Биела
-        </h1>
+        <h1 class="title">Биела</h1>
       </div>
 
+      <!-- Тэги -->
       <div class="container tags-container">
         <h2 class="tag">Эмбиент</h2>
         <h2 class="tag">Фолк</h2>
         <h2 class="tag">Фонк</h2>
       </div>
 
-      <div class="text-container">
-        <h3>
-          Саундтрек: загадочный, мистический, эзотерический оркестр.
-        </h3>
-
-        <h4>
-          Эпический скандинавский фольклёр
-          Мрачный эпос, таинственное фэнтези, эфирный фолк.
-          Фолкотроника, эмбиент и страшный фонк.
-          Атмосфера
-          Сумеречный скрытный и запретный оккультизм.
-          Слияние восточного и западного мотива.
-          Ритм и настроение
-          Воплощается мифологическая атмосфера и хтонический нигилизм.
-          Ритм — синкопированный.
-          Слияние магической энергии, арканическая ритуальность
-          и спиритуальность.
-        </h4>
-
-
-<!-- Список композиций -->
-<section class="album">
-  <h2 class="album-heading">Треклист</h2>
-
-  <ol class="track-list">
-    <li
-      class="track"
-      data-src="/tracks/biela/tracks/1_zqwy_biela.opus"
-      data-wav="https://archive.org/download/zqwy_biela/1_zqwy_biela.wav"
-      data-mp3="/tracks/biela/mp3/1_zqwy_biela.mp3"
-      >
-      <button class="track-button" type="button">
-        <span class="track-number">01</span>
-        <span class="track-name">Биела</span>
-        <span class="track-play">▶</span>
-      </button>
-
-      <div class="track-downloads">
-        <a href="https://archive.org/download/zqwy_biela/1_zqwy_biela.wav" class="logo-link" aria-label="Скачать WAV">
-          <img src="/icons/download_wav.webp" alt="Скачать WAV" />
-        </a>
-
-        <a href="/tracks/biela/mp3/1_zqwy_biela.mp3" class="logo-link" aria-label="Скачать MP3">
-          <img src="/icons/download_mp3.webp" alt="Скачать MP3" />
-        </a>
+      <!-- Обложка -->
+      <div class="container cover-container">
+        <img
+          class="cover"
+          src="/covers/biela.webp"
+          alt="Обложка альбома «Биела»"
+        />
       </div>
-    </li>
 
-    <li
-      class="track"
-      data-src="https://archive.org/download/zqwy_dystopian_future/2_zqwy_realism.mp3"
-      data-wav="https://archive.org/download/zqwy_biela/2_zqwy_biela.wav"
-      data-mp3="/tracks/biela/mp3/2_zqwy_biela.mp3"
-    >
-      <button class="track-button" type="button">
-        <span class="track-number">02</span>
-        <span class="track-name">Биела проклятая</span>
-        <span class="track-play">▶</span>
-      </button>
-
-      <div class="track-downloads">
-        <a href="https://archive.org/download/zqwy_biela/2_zqwy_biela.wav" class="logo-link" aria-label="Скачать WAV">
-          <img src="/icons/download_wav.webp" alt="Скачать WAV" />
-        </a>
-
-        <a href="/tracks/biela/mp3/2_zqwy_biela.mp3" class="logo-link" aria-label="Скачать MP3">
-          <img src="/icons/download_mp3.webp" alt="Скачать MP3" />
-        </a>
-      </div>
-    </li>
-
-    <li
-      class="track"
-      data-src="/tracks/biela/tracks/3_zqwy_biela.opus"
-      data-wav="https://archive.org/download/zqwy_biela/3_zqwy_biela.wav"
-      data-mp3="/tracks/biela/mp3/3_zqwy_biela.mp3"
-    >
-      <button class="track-button" type="button">
-        <span class="track-number">03</span>
-        <span class="track-name">Биела альтернатива</span>
-        <span class="track-play">▶</span>
-      </button>
-
-      <div class="track-downloads">
-        <a href="https://archive.org/download/zqwy_biela/3_zqwy_biela.wav" class="logo-link" aria-label="Скачать WAV">
-          <img src="/icons/download_wav.webp" alt="Скачать WAV" />
-        </a>
-
-        <a href="/tracks/biela/mp3/3_zqwy_biela.mp3" class="logo-link" aria-label="Скачать MP3">
-          <img src="/icons/download_mp3.webp" alt="Скачать MP3" />
-        </a>
-      </div>
-    </li>
-  </ol>
-</section>
-
-      <!-- Один общий плеер -->
+      <!-- Аудиоплеер -->
       <div class="audio-player-slot" id="audioPlayerSlot">
         <div class="audio-player-container" id="audioPlayer">
           <div
@@ -149,12 +66,164 @@
         </div>
       </div>
 
+
+      <!-- Сворачиваемый список композиций -->
+      <details class="text-container album">
+        <summary class="album-heading">
+          <h2 class="album-title">Треклист</h2>
+          <span class="album-arrow" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="album-content">
+          <ol class="track-list">
+            <li
+              class="track"
+              data-src="/tracks/biela/tracks/1_zqwy_biela.opus"
+              data-wav="https://archive.org/download/zqwy_biela/1_zqwy_biela.wav"
+              data-mp3="/tracks/biela/mp3/1_zqwy_biela.mp3"
+            >
+              <button class="track-button" type="button">
+                <span class="track-number">01</span>
+                <span class="track-name">Биела</span>
+                <span class="track-play">▶</span>
+              </button>
+
+              <div class="track-downloads">
+                <a
+                  href="https://archive.org/download/zqwy_biela/1_zqwy_biela.wav"
+                  class="logo-link"
+                  aria-label="Скачать WAV"
+                >
+                  <img
+                    src="/icons/download_wav.webp"
+                    alt="Скачать WAV"
+                  />
+                </a>
+
+                <a
+                  href="/tracks/biela/mp3/1_zqwy_biela.mp3"
+                  class="logo-link"
+                  aria-label="Скачать MP3"
+                >
+                  <img
+                    src="/icons/download_mp3.webp"
+                    alt="Скачать MP3"
+                  />
+                </a>
+              </div>
+            </li>
+
+            <li
+              class="track"
+              data-src="https://archive.org/download/zqwy_dystopian_future/2_zqwy_realism.mp3"
+              data-wav="https://archive.org/download/zqwy_biela/2_zqwy_biela.wav"
+              data-mp3="/tracks/biela/mp3/2_zqwy_biela.mp3"
+            >
+              <button class="track-button" type="button">
+                <span class="track-number">02</span>
+                <span class="track-name">Биела проклятая</span>
+                <span class="track-play">▶</span>
+              </button>
+
+              <div class="track-downloads">
+                <a
+                  href="https://archive.org/download/zqwy_biela/2_zqwy_biela.wav"
+                  class="logo-link"
+                  aria-label="Скачать WAV"
+                >
+                  <img
+                    src="/icons/download_wav.webp"
+                    alt="Скачать WAV"
+                  />
+                </a>
+
+                <a
+                  href="/tracks/biela/mp3/2_zqwy_biela.mp3"
+                  class="logo-link"
+                  aria-label="Скачать MP3"
+                >
+                  <img
+                    src="/icons/download_mp3.webp"
+                    alt="Скачать MP3"
+                  />
+                </a>
+              </div>
+            </li>
+
+            <li
+              class="track"
+              data-src="/tracks/biela/tracks/3_zqwy_biela.opus"
+              data-wav="https://archive.org/download/zqwy_biela/3_zqwy_biela.wav"
+              data-mp3="/tracks/biela/mp3/3_zqwy_biela.mp3"
+            >
+              <button class="track-button" type="button">
+                <span class="track-number">03</span>
+                <span class="track-name">Биела альтернатива</span>
+                <span class="track-play">▶</span>
+              </button>
+
+              <div class="track-downloads">
+                <a
+                  href="https://archive.org/download/zqwy_biela/3_zqwy_biela.wav"
+                  class="logo-link"
+                  aria-label="Скачать WAV"
+                >
+                  <img
+                    src="/icons/download_wav.webp"
+                    alt="Скачать WAV"
+                  />
+                </a>
+
+                <a
+                  href="/tracks/biela/mp3/3_zqwy_biela.mp3"
+                  class="logo-link"
+                  aria-label="Скачать MP3"
+                >
+                  <img
+                    src="/icons/download_mp3.webp"
+                    alt="Скачать MP3"
+                  />
+                </a>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </details>
+
+      <!-- Описание альбома -->
+      <div class="text-container">
+        <h3>
+          Саундтрек: загадочный, мистический, эзотерический оркестр.
+        </h3>
+
+        <h4>
+          Эпический скандинавский фольклёр.
+          Мрачный эпос, таинственное фэнтези, эфирный фолк.
+          Фолкотроника, эмбиент и страшный фонк.
+
+          Атмосфера — сумеречный, скрытный и запретный оккультизм.
+          Слияние восточного и западного мотива.
+
+          Ритм и настроение.
+          Воплощается мифологическая атмосфера и хтонический нигилизм.
+          Ритм — синкопированный.
+
+          Слияние магической энергии, арканическая ритуальность
+          и спиритуальность.
+        </h4>
+      </div>
+
       <script
         type="module"
         src="./scripts/player-switcher.js"
       ></script>
     </div>
   </main>
+
+  <!-- Версия сайта -->
+  <footer class="site-footer">
+    <span class="site-version">Версия 1.0.0</span>
+  </footer>
 
   <script src="./scripts/album-player.js" defer></script>
 </body>

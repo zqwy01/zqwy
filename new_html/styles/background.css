@@ -15,10 +15,11 @@ body {
     position: fixed;
     inset: -10px;
 
-    background-image: url("https://files.mastodon.social/media_attachments/files/116/744/273/973/882/200/original/08b24cd31d79479e.webp");
+    background-image: url("/covers/biela.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;
+
     filter: blur(8px);
     z-index: 0;
     pointer-events: none;
@@ -30,7 +31,8 @@ body {
     position: absolute;
     inset: 0;
 
-    background: rgba(0, 0, 0, 0.15);
+    /* Затемнение заднего фона */
+    background: rgba(0, 0, 0, 0.90);
     pointer-events: none;
 }
 

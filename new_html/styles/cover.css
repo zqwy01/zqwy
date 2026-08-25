@@ -1,0 +1,23 @@
+.cover-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.cover {
+    display: block;
+
+    /* Размер можно менять здесь */
+    width: clamp(180px, 55vw, 420px);
+
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
+
+    border-radius: var(--element-radius);
+
+    box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+

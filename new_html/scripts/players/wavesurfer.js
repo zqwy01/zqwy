@@ -226,11 +226,11 @@ const wavesurferPlayer = {
                 dragToSeek: true,
                 plugins: [
                     Hover.create({
-                        lineColor: "#ffcc00",
+                        lineColor: "white",
                         lineWidth: 2,
                         labelBackground: "#222222",
                         labelColor: "#ffffff",
-                        labelSize: "24px",
+                        labelSize: "32px",
                     }),
                     Timeline.create({
                         container: timelineContainer,
@@ -239,7 +239,7 @@ const wavesurferPlayer = {
                         primaryLabelInterval: 10,
                         secondaryLabelInterval: 5,
                         style: {
-                            fontSize: "24px",
+                            fontSize: "16px",
                             color: "#757575"
                         }
                     })

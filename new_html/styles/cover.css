@@ -14,10 +14,13 @@
     object-fit: cover;
     object-position: center;
 
+    /* Отключает сглаживание при увеличении */
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+
     border-radius: var(--element-radius);
 
     box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.55),
     0 0 0 2px rgba(255, 255, 255, 0.15);
 }
-

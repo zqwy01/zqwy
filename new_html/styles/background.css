@@ -15,7 +15,7 @@ body {
     position: fixed;
     inset: -10px;
 
-    background-image: url("/covers/biela.webp");
+    background-image: url("/covers/alone/alone.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

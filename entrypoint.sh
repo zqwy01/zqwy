@@ -13,5 +13,3 @@ exec tiddlywiki "$WIKI_DIR" \
     --listen \
     "host=0.0.0.0" \
     "port=${TW_PORT:-1112}" \
-    "username=${TW_USERNAME}" \
-    "password=${TW_PASSWORD}"

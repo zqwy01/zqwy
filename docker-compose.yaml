@@ -6,18 +6,14 @@ services:
     restart: unless-stopped
 
     environment:
-      TZ: ${TZ}
       TW_PORT: 1112
-
     volumes:
       - ./tiddlywiki-data:/var/lib/tiddlywiki
-
     expose:
       - "1112"
-
     networks:
-      - rclone_rp
+      - tiddlywiki_reverse_proxy
 
 networks:
-  rclone_rp:
+  tiddlywiki_reverse_proxy:
     external: true

@@ -30,11 +30,11 @@
 <nav class="bottom-logos">
 
   <a href={{!!url_download_wav}} class="logo-link" aria-label="Download Wav">
-      <img src="./icons/download_wav.webp" alt="download_wav">
+      <img src="./files/icons/download_wav.webp" alt="download_wav">
   </a>
 
   <a href={{!!url_download_mp3}} class="logo-link" aria-label="Download mp3">
-    <img src="./icons/download_mp3.webp" alt="download_mp3">
+    <img src="./files/icons/download_mp3.webp" alt="download_mp3">
   </a>
 
 </nav>

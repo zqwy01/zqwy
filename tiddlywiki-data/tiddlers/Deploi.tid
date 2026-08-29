@@ -1,0 +1,37 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20210222054103000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20260823234209188
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: 
+title: Деплой
+tmap.edges: {"75f8e3bf-bdd5-4ff5-b054-0f61db6495b4":{"to":"8d2113eb-b37c-4abc-93ee-fbe4b6f17020","type":"unknown"}}
+tmap.id: 0893a911-79b5-45da-bdf4-664bcb2108e5
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Что такое деплой?
+
+Деплой это часть процесса цикла разработки программное обеспечения.
+Итог процесса деплоя, завершается тем, что происходит готовая сборка для пользователя, то есть создание артефактов для эксплуатации.

@@ -1,0 +1,34 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20211224184128000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211224194059000
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: контейнеризация
+title: Docker
+tmap.edges: {"90b7e89d-1ef3-47f4-9db9-e91f5c95ad7d":{"to":"22430b2f-a915-4b08-beda-c37fd980e2a1","type":"unknown"},"a5151037-f3e9-4e53-b6e6-c83f729be47b":{"to":"a05aaf7d-78d4-4f93-9b49-91e3589ca2c3","type":"unknown"}}
+tmap.id: f5b487ed-9736-4bcc-b731-8347be68ea3a
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Docker представляется как инструмент для создание и управление образами и соотвественно контейнерами.

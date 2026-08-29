@@ -1,0 +1,8 @@
+[
+    {
+        "title": "$:/plugins/felixhayashi/tiddlymap/graph/views/music_player/filter/nodes",
+        "text": "",
+        "type": "text/vnd.tiddlywiki",
+        "filter": " [field:tmap.id[509922d1-4c5e-4885-b1a2-0c4e711e7e9e]] [field:tmap.id[277f8cce-c909-4bc4-bcd0-9fcb61b7cb6f]] [field:tmap.id[19457934-c30c-4b78-97d4-da28196c1670]] [field:tmap.id[0a07e7bc-ac27-476f-8ffc-9059b2cd766c]] [field:tmap.id[e2fbbfff-15d5-473a-964a-ecadcb7ec961]] [field:tmap.id[3303704c-d199-4dd2-80c0-a46d81559ef7]] [field:tmap.id[e7c3d279-5a54-4593-8375-e219cdb685c2]] [field:tmap.id[c9d26249-7210-4b1e-8a67-7fce39d5d92f]] [field:tmap.id[e33344e3-f869-4240-8c1e-d073482fed87]] [field:tmap.id[d2c04fbe-0003-4406-9ccd-39ee3a6b4767]] [field:tmap.id[a8bc51a0-2c72-42f8-b22e-7e11f9f140c5]]"
+    }
+]

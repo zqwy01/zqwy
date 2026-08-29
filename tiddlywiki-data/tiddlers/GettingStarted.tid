@@ -1,0 +1,44 @@
+alias: 
+author: 
+caption: Step 1<br>Syncing
+cover: 
+created: NaNNaNNaNNaNNaNNaNNaN
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: NaNNaNNaNNaNNaNNaNNaN
+pond5: 
+size_album: 
+size_release: 
+tags: $:/tags/GettingStarted
+title: GettingStarted
+tmap.edges: 
+tmap.id: dbedfb2a-dabf-4344-ba94-a516b6b4a3ba
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Welcome to ~TiddlyWiki and the ~TiddlyWiki community
+
+Visit https://tiddlywiki.com/ to find out more about ~TiddlyWiki and what it can do.
+
+! Syncing Changes to the Server
+
+Before you can start storing important information in ~TiddlyWiki it is important to make sure that your changes are being reliably saved by the server.
+
+# Create a new tiddler using the {{$:/core/images/new-button}} button in the sidebar on the right
+# Click the {{$:/core/images/done-button}} button at the top right of the new tiddler
+# Check the ~TiddlyWiki command line for a message confirming the tiddler has been saved
+# Refresh the page in the browser to and verify that the new tiddler has been correctly saved

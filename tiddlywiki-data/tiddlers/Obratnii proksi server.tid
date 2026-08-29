@@ -1,0 +1,35 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20131213164029000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20131213170001000
+pond5: 
+size_album: 
+size_release: 
+tags: 
+title: Обратный прокси сервер
+tmap.edges: 
+tmap.id: fae858b8-d2f3-47a8-bcd9-ea9f38ac9d4e
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+nginx reverse proxy
+
+полезная утилита nginx proxy manager

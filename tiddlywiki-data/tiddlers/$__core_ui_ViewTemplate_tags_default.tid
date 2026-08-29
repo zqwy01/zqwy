@@ -1,0 +1,14 @@
+created: 20260625180909722
+modified: 20260625180909722
+title: $:/core/ui/ViewTemplate/tags/default
+type: text/vnd.tiddlywiki
+
+\whitespace trim
+<$reveal type="nomatch" stateTitle=<<folded-state>> text="hide" tag="div" retain="yes" animate="yes">
+  <div class="tc-tags-wrapper">
+    <$list filter="[all[current]tags[]sort[title]]" template="$:/core/ui/TagTemplate" storyview="pop"/>
+    <$list filter="[all[shadows+tiddlers]tag[$:/tags/ViewTemplate/Tags]!has[draft.of]]">
+      <$transclude mode="inline"/>
+    </$list>
+  </div>
+</$reveal>

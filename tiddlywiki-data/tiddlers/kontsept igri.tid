@@ -1,0 +1,39 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20200903125119000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20200903131117000
+pond5: 
+size_album: 
+size_release: 
+tags: 
+title: концепт игры
+tmap.edges: 
+tmap.id: 75935ab6-b26b-4c5f-9d68-93994d8d94fe
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+игра: движение по сетке в любую сторону,  игра пошаговая, в черном белом
+
+пошаговость в том что есть характеристики,
+
+игроку необходимо прочитать текст и понять какое действие из 4 необхожимо сделать, каждое действие влияет 
+
+на характеристики персонажа, каждая новая ячейка запускает трек и спрашивает вопрос с определённой информацией, это в том числе информация сюжета

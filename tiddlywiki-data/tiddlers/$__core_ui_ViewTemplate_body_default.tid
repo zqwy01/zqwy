@@ -1,0 +1,11 @@
+code-body: yes
+created: 20260625180632286
+modified: 20260625180632286
+title: $:/core/ui/ViewTemplate/body/default
+type: text/vnd.tiddlywiki
+
+<$transclude>
+
+<$transclude tiddler="$:/language/MissingTiddler/Hint"/>
+
+</$transclude>

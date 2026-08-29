@@ -1,0 +1,254 @@
+/* Play кнопка */
+.waves-play-btn {
+  position: relative;
+
+  width: var(--fw);
+  height: var(--fh);
+  min-width: 0;
+
+  padding: 0;
+  margin: 0;
+
+  --labelMinWidth: 56px;
+
+  --fw: 96px;
+  --fh: 96px;
+  --playFrames: 91;
+
+  --playDurationMs: 3000ms;
+
+  --pauseFrames: 1;
+  --pauseDurationMs: 260ms;
+
+  /* убираем “рамку/outline” максимально жёстко */
+  appearance: none;
+  background: transparent;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0;
+
+  /* чтобы браузерные эффекты не добавляли “видимую рамку” */
+  -webkit-tap-highlight-color: transparent;
+  line-height: 0;
+  font-size: 0;
+  display: block;
+
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* focus ring */
+.waves-play-btn:focus,
+.waves-play-btn:focus-visible,
+.waves-play-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* подпись */
+.waves-play-label {
+  display: none; /* JS тоже скрывает, но пусть будет и тут */
+}
+
+/* Арт-слои */
+.waves-art {
+  width: var(--fw);
+  height: var(--fh);
+
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: none;
+
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+
+  pointer-events: none;
+}
+
+.waves-art-play,
+.waves-art-pause {
+  opacity: 0;
+}
+
+/* play спрайт */
+.waves-art-play {
+  background-image: url("/buttons/play.png");
+  background-size: calc(var(--fw) * var(--playFrames)) var(--fh);
+  background-position: 0px 0px;
+
+  animation: none !important;
+  animation-name: none !important;
+}
+
+/* pause спрайт */
+.waves-art-pause {
+  background-image: url("/buttons/pause.png");
+  background-size: calc(var(--fw) * var(--pauseFrames)) var(--fh);
+}
+
+/* состояние */
+.waves-play-btn.is-playing .waves-art-play {
+  opacity: 1;
+  animation: none !important;
+}
+
+.waves-play-btn:not(.is-playing) .waves-art-play {
+  opacity: 1;
+  animation: none !important;
+}
+
+.waves-play-btn.is-playing .waves-art-pause {
+  opacity: 0;
+  animation: none !important;
+}
+
+.waves-play-btn:not(.is-playing) .waves-art-pause {
+  opacity: 1;
+  animation: pauseAnim var(--pauseDurationMs) steps(var(--pauseFrames)) both;
+}
+
+/* подсветка active */
+.waves-play-btn.is-playing {
+  background: #2b3bff;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+
+@font-face {
+    font-family: "zqwy_biela_font";
+    src: url(./files/fonts/font_biela.woff2) format("woff2");
+
+    font-weight: normal;
+    font-style: normal;
+    font-display: auto;
+}
+
+[data-tiddler-title="Биела"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-width: 0px;
+    background-image: url('https://files.mastodon.social/media_attachments/files/116/744/273/973/882/200/original/08b24cd31d79479e.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+[data-tiddler-title="Биела"] * {
+    color: white;
+    line-height: 1 !important;
+}
+
+[data-tiddler-title="Биела"] *::selection {
+    background: rgba(255, 255, 255, 0.25);
+    color: black;
+    text-shadow:
+        -1px -1px 0 #ffffff,
+        1px -1px 0 #ffffff,
+        -1px 1px 0 #ffffff,
+        1px 1px 0 #ffffff;
+}
+
+[data-tiddler-title="Биела"] hr {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+[data-tiddler-title="Биела"] h1 {
+    font-size: 8rem;
+    font-family: "zqwy_biela_font", Arial, sans-serif;
+    line-height: 0.6 !important;
+    margin: 0;
+}
+
+[data-tiddler-title="Биела"] h2 {
+    font-size: 3rem !important;
+    font-family: "zqwy_biela_font", Arial, sans-serif;
+    line-height: 0.8 !important;
+    word-spacing: -0.8rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+[data-tiddler-title="Биела"] h3 {
+    font-size: 2.5rem !important;
+    font-family: "zqwy_biela_font", sans-serif !important;
+    line-height: 0.6 !important;
+    margin: 0;
+    margin-bottom: 1rem;
+}
+
+[data-tiddler-title="Биела"] h4 {
+    font-size: 2rem;
+    font-family: "zqwy_biela_font", sans-serif !important;
+    line-height: 0.8 !important;
+    word-spacing: -0.25rem;
+    margin: 0;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+[data-tiddler-title="Биела"] .bg-image {
+    background-image: url('https://files.mastodon.social/media_attachments/files/116/744/273/973/882/200/original/08b24cd31d79479e.webp');
+    background-size: cover;
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+    filter: blur(8px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+[data-tiddler-title="Биела"] .content,
+[data-tiddler-title="Биела"] .tc-tags-wrapper,
+[data-tiddler-title="Биела"] .tc-tiddler-title,
+[data-tiddler-title="Биела"] .tc-subtitle {
+    position: relative;
+    z-index: 2;
+}
+
+[data-tiddler-title="Биела"] .tc-tags-wrapper {
+    z-index: 9998;
+    font-family: "zqwy_biela_font", Arial, sans-serif !important;
+    font-size: 1.5rem;
+}
+
+[data-tiddler-title="Биела"] .bottom-logos {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    z-index: 1001;
+}
+
+[data-tiddler-title="Биела"] .logo-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: transform 0.2s ease, background 0.2s ease;
+    z-index: 1001;
+}
+
+[data-tiddler-title="Биела"] .logo-link:hover {
+    transform: translateY(-16px);
+    background: rgba(255,255,255,0.08);
+}
+
+[data-tiddler-title="Биела"] .logo-link img {
+    width: 42px;
+    height: 38px;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}

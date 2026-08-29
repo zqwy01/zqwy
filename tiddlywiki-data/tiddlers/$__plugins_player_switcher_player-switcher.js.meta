@@ -1,0 +1,11 @@
+created: 20260718115248514
+modified: 20260823000230568
+module-type: widget
+name: player-switcher
+plugin-type: plugin
+tags: 
+title: $:/plugins/player_switcher/player-switcher
+tmap.edges: {"ed05363d-04cb-4cae-a0ad-36cebe73e540":{"to":"277f8cce-c909-4bc4-bcd0-9fcb61b7cb6f","type":"unknown"}}
+tmap.id: e2fbbfff-15d5-473a-964a-ecadcb7ec961
+type: application/javascript
+version: 0.0.1 (create script)

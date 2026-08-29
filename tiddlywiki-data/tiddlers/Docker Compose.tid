@@ -1,0 +1,38 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20211224194007000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211224183027000
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: контейнеризация
+title: Docker Compose
+tmap.edges: 
+tmap.id: df06d254-a473-4eed-8102-40e90d2a71b5
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Docker Compose является средством для организации групп контейнеров с помощью декларативного языка программирование .yaml
+
+Созданная конфигурация, выглядит так, но полную его версию возможно изучить с помощью данной команды: 
+- docker compose config
+  - Данная команда демонстрирует полностью, то есть реальную конфигурацию учитывая всё то что не указывается в docker-compose.yaml

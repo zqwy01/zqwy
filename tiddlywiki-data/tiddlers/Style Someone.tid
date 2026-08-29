@@ -1,0 +1,275 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20200816032019000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211031115028000
+pond5: 
+size_album: 
+size_release: 
+tags: $:/tags/Stylesheet
+title: Style Someone
+tmap.edges: 
+tmap.id: ce53a273-7769-4bc6-b59e-ac3fbdf26ec7
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+@font-face {
+    font-family: "Pixelzone";
+    src: url(./fonts/font_biela.woff2) format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: auto;
+}
+
+/* Некто, Бесконечный Коллапс и добавленные тиддлеры */
+[data-tiddler-title="Некто"],
+[data-tiddler-title="Бесконечный Коллапс"],
+[data-tiddler-title="Бертольд Ауэрбах"],
+[data-tiddler-title="Из Своего"],
+[data-tiddler-title="Почему Нет?"],
+[data-tiddler-title="Йом Киппур"],
+[data-tiddler-title="Безумие На Вкусе"],
+[data-tiddler-title="Скрижаль"],
+[data-tiddler-title="Аксолотл"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-width: 0px;
+}
+
+[data-tiddler-title="Некто"] *,
+[data-tiddler-title="Бесконечный Коллапс"] *,
+[data-tiddler-title="Бертольд Ауэрбах"] *,
+[data-tiddler-title="Из Своего"] *,
+[data-tiddler-title="Почему Нет?"] *,
+[data-tiddler-title="Йом Киппур"] *,
+[data-tiddler-title="Безумие На Вкусе"] *,
+[data-tiddler-title="Скрижаль"] *,
+[data-tiddler-title="Аксолотл"] * {
+    color: black;
+    line-height: 1 !important;
+}
+
+[data-tiddler-title="Некто"] ul,
+[data-tiddler-title="Бесконечный Коллапс"] ul,
+[data-tiddler-title="Бертольд Ауэрбах"] ul,
+[data-tiddler-title="Из Своего"] ul,
+[data-tiddler-title="Почему Нет?"] ul,
+[data-tiddler-title="Йом Киппур"] ul,
+[data-tiddler-title="Безумие На Вкусе"] ul,
+[data-tiddler-title="Скрижаль"] ul,
+[data-tiddler-title="Аксолотл"] ul {
+    margin-top: 0.6rem !important;
+    margin-bottom: 0.6rem !important;
+    padding-left: 2.2rem !important;
+    list-style-position: outside !important;
+    list-style-type: square !important;
+}
+
+[data-tiddler-title="Некто"] ol,
+[data-tiddler-title="Бесконечный Коллапс"] ol,
+[data-tiddler-title="Бертольд Ауэрбах"] ol,
+[data-tiddler-title="Из Своего"] ol,
+[data-tiddler-title="Почему Нет?"] ol,
+[data-tiddler-title="Йом Киппур"] ol,
+[data-tiddler-title="Безумие На Вкусе"] ol,
+[data-tiddler-title="Скрижаль"] ol,
+[data-tiddler-title="Аксолотл"] ol {
+    margin-top: 0.6rem !important;
+    margin-bottom: 0.6rem !important;
+    padding-left: 2.2rem !important;
+    list-style-position: outside !important;
+}
+
+[data-tiddler-title="Некто"] li,
+[data-tiddler-title="Бесконечный Коллапс"] li,
+[data-tiddler-title="Бертольд Ауэрбах"] li,
+[data-tiddler-title="Из Своего"] li,
+[data-tiddler-title="Почему Нет?"] li,
+[data-tiddler-title="Йом Киппур"] li,
+[data-tiddler-title="Безумие На Вкусе"] li,
+[data-tiddler-title="Скрижаль"] li,
+[data-tiddler-title="Аксолотл"] li {
+    font-family: "Pixelzone", sans-serif !important;
+    font-size: 1.75rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+[data-tiddler-title="Некто"] h1,
+[data-tiddler-title="Бесконечный Коллапс"] h1,
+[data-tiddler-title="Бертольд Ауэрбах"] h1,
+[data-tiddler-title="Из Своего"] h1,
+[data-tiddler-title="Почему Нет?"] h1,
+[data-tiddler-title="Йом Киппур"] h1,
+[data-tiddler-title="Безумие На Вкусе"] h1,
+[data-tiddler-title="Скрижаль"] h1,
+[data-tiddler-title="Аксолотл"] h1 {
+    font-size: 8rem !important;
+    font-family: "Pixelzone", sans-serif !important;
+    letter-spacing: 2px;
+    line-height: 0.6 !important;
+    word-spacing: -1.4rem;
+    margin: 0;
+}
+
+[data-tiddler-title="Некто"] h2,
+[data-tiddler-title="Бесконечный Коллапс"] h2,
+[data-tiddler-title="Бертольд Ауэрбах"] h2,
+[data-tiddler-title="Из Своего"] h2,
+[data-tiddler-title="Почему Нет?"] h2,
+[data-tiddler-title="Йом Киппур"] h2,
+[data-tiddler-title="Безумие На Вкусе"] h2,
+[data-tiddler-title="Скрижаль"] h2,
+[data-tiddler-title="Аксолотл"] h2 {
+    font-size: 4rem !important;
+    font-family: "Pixelzone", sans-serif !important;
+    letter-spacing: 2px;
+    line-height: 0.6 !important;
+    word-spacing: -0.8rem;
+    margin: 0;
+    margin-bottom: 0.6rem;
+}
+
+[data-tiddler-title="Некто"] h3,
+[data-tiddler-title="Бесконечный Коллапс"] h3,
+[data-tiddler-title="Бертольд Ауэрбах"] h3,
+[data-tiddler-title="Из Своего"] h3,
+[data-tiddler-title="Почему Нет?"] h3,
+[data-tiddler-title="Йом Киппур"] h3,
+[data-tiddler-title="Безумие На Вкусе"] h3,
+[data-tiddler-title="Скрижаль"] h3,
+[data-tiddler-title="Аксолотл"] h3 {
+    font-size: 3rem !important;
+    font-family: "Pixelzone", sans-serif !important;
+    letter-spacing: 2px;
+    line-height: 0.6 !important;
+}
+
+[data-tiddler-title="Некто"] h4,
+[data-tiddler-title="Бесконечный Коллапс"] h4,
+[data-tiddler-title="Бертольд Ауэрбах"] h4,
+[data-tiddler-title="Из Своего"] h4,
+[data-tiddler-title="Почему Нет?"] h4,
+[data-tiddler-title="Йом Киппур"] h4,
+[data-tiddler-title="Безумие На Вкусе"] h4,
+[data-tiddler-title="Скрижаль"] h4,
+[data-tiddler-title="Аксолотл"] h4 {
+    font-size: 2rem !important;
+    font-family: "Pixelzone", sans-serif !important;
+    letter-spacing: 2px;
+    word-spacing: -0.25rem;
+    line-height: 0.6 !important;
+    margin: 0;
+    margin-bottom: 1rem;
+}
+
+[data-tiddler-title="Некто"] .bg-image,
+[data-tiddler-title="Бесконечный Коллапс"] .bg-image,
+[data-tiddler-title="Бертольд Ауэрбах"] .bg-image,
+[data-tiddler-title="Из Своего"] .bg-image,
+[data-tiddler-title="Почему Нет?"] .bg-image,
+[data-tiddler-title="Йом Киппур"] .bg-image,
+[data-tiddler-title="Безумие На Вкусе"] .bg-image,
+[data-tiddler-title="Скрижаль"] .bg-image,
+[data-tiddler-title="Аксолотл"] .bg-image {
+    background-image: url('https://ia601501.us.archive.org/13/items/zqwy_someone/someone_cover_site.webp');
+    background-size: cover;
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+    filter: blur(16px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+[data-tiddler-title="Некто"] .content,
+[data-tiddler-title="Некто"] .tc-tags-wrapper,
+[data-tiddler-title="Некто"] .tc-tiddler-title,
+[data-tiddler-title="Некто"] .tc-subtitle,
+[data-tiddler-title="Бесконечный Коллапс"] .content,
+[data-tiddler-title="Бесконечный Коллапс"] .tc-tags-wrapper,
+[data-tiddler-title="Бесконечный Коллапс"] .tc-tiddler-title,
+[data-tiddler-title="Бесконечный Коллапс"] .tc-subtitle,
+[data-tiddler-title="Бертольд Ауэрбах"] .content,
+[data-tiddler-title="Бертольд Ауэрбах"] .tc-tags-wrapper,
+[data-tiddler-title="Бертольд Ауэрбах"] .tc-tiddler-title,
+[data-tiddler-title="Бертольд Ауэрбах"] .tc-subtitle,
+[data-tiddler-title="Из Своего"] .content,
+[data-tiddler-title="Из Своего"] .tc-tags-wrapper,
+[data-tiddler-title="Из Своего"] .tc-tiddler-title,
+[data-tiddler-title="Из Своего"] .tc-subtitle,
+[data-tiddler-title="Почему Нет?"] .content,
+[data-tiddler-title="Почему Нет?"] .tc-tags-wrapper,
+[data-tiddler-title="Почему Нет?"] .tc-tiddler-title,
+[data-tiddler-title="Почему Нет?"] .tc-subtitle,
+[data-tiddler-title="Йом Киппур"] .content,
+[data-tiddler-title="Йом Киппур"] .tc-tags-wrapper,
+[data-tiddler-title="Йом Киппур"] .tc-tiddler-title,
+[data-tiddler-title="Йом Киппур"] .tc-subtitle,
+[data-tiddler-title="Безумие На Вкусе"] .content,
+[data-tiddler-title="Безумие На Вкусе"] .tc-tags-wrapper,
+[data-tiddler-title="Безумие На Вкусе"] .tc-tiddler-title,
+[data-tiddler-title="Безумие На Вкусе"] .tc-subtitle,
+[data-tiddler-title="Скрижаль"] .content,
+[data-tiddler-title="Скрижаль"] .tc-tags-wrapper,
+[data-tiddler-title="Скрижаль"] .tc-tiddler-title,
+[data-tiddler-title="Скрижаль"] .tc-subtitle,
+[data-tiddler-title="Аксолотл"] .content,
+[data-tiddler-title="Аксолотл"] .tc-tags-wrapper,
+[data-tiddler-title="Аксолотл"] .tc-tiddler-title,
+[data-tiddler-title="Аксолотл"] .tc-subtitle {
+    position: relative;
+    z-index: 2;
+}
+
+[data-tiddler-title="Некто"] .tc-tags-wrapper,
+[data-tiddler-title="Бесконечный Коллапс"] .tc-tags-wrapper,
+[data-tiddler-title="Бертольд Ауэрбах"] .tc-tags-wrapper,
+[data-tiddler-title="Из Своего"] .tc-tags-wrapper,
+[data-tiddler-title="Почему Нет?"] .tc-tags-wrapper,
+[data-tiddler-title="Йом Киппур"] .tc-tags-wrapper,
+[data-tiddler-title="Безумие На Вкусе"] .tc-tags-wrapper,
+[data-tiddler-title="Скрижаль"] .tc-tags-wrapper,
+[data-tiddler-title="Аксолотл"] .tc-tags-wrapper {
+    font-family: "Pixelzone", Arial, sans-serif !important;
+    font-size: 1.5rem;
+    z-index: 9998;
+}
+
+[data-tiddler-title="Некто"] *::selection,
+[data-tiddler-title="Бесконечный Коллапс"] *::selection,
+[data-tiddler-title="Бертольд Ауэрбах"] *::selection,
+[data-tiddler-title="Из Своего"] *::selection,
+[data-tiddler-title="Почему Нет?"] *::selection,
+[data-tiddler-title="Йом Киппур"] *::selection,
+[data-tiddler-title="Безумие На Вкусе"] *::selection,
+[data-tiddler-title="Скрижаль"] *::selection,
+[data-tiddler-title="Аксолотл"] *::selection {
+    background: rgba(255, 255, 255, 0.25);
+    color: black;
+    text-shadow: 
+        -1px -1px 0 #ffffff,  
+        1px -1px 0 #ffffff,
+        -1px 1px 0 #ffffff,
+        1px 1px 0 #ffffff;
+}

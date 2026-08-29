@@ -1,0 +1,10 @@
+code-body: yes
+created: 20260625180953306
+modified: 20260625180953306
+title: $:/core/ui/ViewTemplate/body/rendered-plain-text
+type: text/vnd.tiddlywiki
+
+\whitespace trim
+<$wikify name="text" text={{!!text}} type={{!!type}}>
+<$codeblock code=<<text>> language="css"/>
+</$wikify>

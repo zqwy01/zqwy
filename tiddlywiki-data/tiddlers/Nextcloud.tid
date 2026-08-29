@@ -1,0 +1,39 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20131220235004000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211215004003000
+pond5: 
+size_album: 
+size_release: 
+tags: 
+title: Nextcloud
+tmap.edges: {"59633072-6ac2-493b-8c73-acddc9a37f1e":{"to":"a9f490dd-86d7-4b24-a603-de25ab1d9a5f","type":"unknown"}}
+tmap.id: e20bf9ad-e7b3-466e-9c7c-1666eda4c955
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+В какой-то степени является экосистемой,
+Интересная система, однако.
+
+может использовать следующие базы данных: postgres, mariadb
+
+создаёт следующие столбцы: 
+- oc_bruteforce_attempts

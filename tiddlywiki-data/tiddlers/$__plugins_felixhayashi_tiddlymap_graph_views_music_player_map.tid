@@ -1,0 +1,55 @@
+title: $:/plugins/felixhayashi/tiddlymap/graph/views/music_player/map
+type: text/vnd.tiddlywiki
+
+{
+ "509922d1-4c5e-4885-b1a2-0c4e711e7e9e": {
+  "color": {
+   "background": "rgba(252,198,89,1)"
+  },
+  "x": 50,
+  "y": -250
+ },
+ "277f8cce-c909-4bc4-bcd0-9fcb61b7cb6f": {
+  "color": {
+   "background": "rgba(252,215,148,1)"
+  },
+  "x": -400,
+  "y": -50
+ },
+ "19457934-c30c-4b78-97d4-da28196c1670": {
+  "x": 250,
+  "y": -350
+ },
+ "0a07e7bc-ac27-476f-8ffc-9059b2cd766c": {
+  "x": -150,
+  "y": 50
+ },
+ "e2fbbfff-15d5-473a-964a-ecadcb7ec961": {
+  "x": -650,
+  "y": -50
+ },
+ "3303704c-d199-4dd2-80c0-a46d81559ef7": {
+  "x": -150,
+  "y": -300
+ },
+ "e7c3d279-5a54-4593-8375-e219cdb685c2": {
+  "x": -600,
+  "y": 0
+ },
+ "c9d26249-7210-4b1e-8a67-7fce39d5d92f": {
+  "x": 50,
+  "y": 150
+ },
+ "e33344e3-f869-4240-8c1e-d073482fed87": {
+  "x": -150,
+  "y": -50
+ },
+ "d2c04fbe-0003-4406-9ccd-39ee3a6b4767": {
+  "x": -600,
+  "y": -100
+ },
+ "a8bc51a0-2c72-42f8-b22e-7e11f9f140c5": {
+  "x": -150,
+  "y": -150
+ }
+}

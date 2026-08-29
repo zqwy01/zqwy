@@ -1,0 +1,9 @@
+created: 20260625180837722
+modified: 20260625180837722
+title: $:/core/ui/ViewTemplate/title/system
+type: text/vnd.tiddlywiki
+
+\whitespace trim
+<h2 class="tc-title" title={{$:/language/SystemTiddler/Tooltip}}>
+<span class="tc-system-title-prefix">$:/</span><$text text={{{ [<currentTiddler>removeprefix[$:/]] }}}/>
+</h2>

@@ -1,0 +1,34 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20200725123107000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20200720005023000
+pond5: 
+size_album: 
+size_release: 
+tags: 
+title: Автоматизация
+tmap.edges: 
+tmap.id: 419fa82b-a23e-4ca9-b5b4-323a00ee3482
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Существует n8n.
+Но зачем мне использовать его, когда существует: открытый, удобный и надёжный crontab?

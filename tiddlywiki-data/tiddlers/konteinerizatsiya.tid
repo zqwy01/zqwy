@@ -1,0 +1,37 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20131212223139000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211224184007000
+pond5: 
+size_album: 
+size_release: 
+tags: 
+title: контейнеризация
+tmap.edges: 
+tmap.id: 3c683446-f759-4028-b012-b49c65d6618e
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Контейнеризация это процесс упакование разработки в контейнер.
+Существует множество движков для создание контейнеров: docker, podman.
+
+Для оркестрации: Docker Compose
+Администрирование же контейнеров, полезно использовать интерфейсы, например: LZD

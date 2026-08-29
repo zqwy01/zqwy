@@ -1,0 +1,12 @@
+created: 20260615162914856
+description: Plugin - music player, using wavesurfer library
+modified: 20260823000226001
+module-type: library
+name: wavesurfer
+plugin-type: plugin
+tags: 
+title: $:/plugins/music_player/wavesurfer.js
+tmap.edges: {"0e21a28b-2fcd-43e2-8d44-a967ffdce65d":{"to":"509922d1-4c5e-4885-b1a2-0c4e711e7e9e","type":"unknown"}}
+tmap.id: 3303704c-d199-4dd2-80c0-a46d81559ef7
+type: application/javascript
+version: 0.0.4 (change pause and add loading)

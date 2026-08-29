@@ -1,0 +1,32 @@
+alias: 
+author: 
+caption: 
+cover: https://ia902908.us.archive.org/30/items/zqwy_glioma/zqwy_glioma_cover_site.webp
+created: 20211102055114000
+date: 2024-11-14
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20260826093958062
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: музыка дроун эмбиент медитация
+title: Глиома
+tmap.edges: {"3c8d3012-8051-42ef-a0a4-9c21368f9a7a":{"to":"4cf18f75-a523-418d-8e75-44e1cdadb4ee","type":"unknown"},"d6cf4e9d-1890-45bb-bbad-89741e8027a0":{"to":"36b8a813-5827-45bc-9250-bce081f0743f","type":"unknown"}}
+tmap.id: ced8a403-ea2e-4242-b470-4bcc2e3a292f
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/markdown
+type_content: music
+upc: 
+url_archive: https://archive.org/details/zqwy_glioma
+url_download_mp3: 
+url_download_wav: 
+version: 1 (adding cover) 2 (adding url acrhive, text)

@@ -1,0 +1,32 @@
+alias: 
+author: zqwy
+caption: 
+cover: https://files.mastodon.social/media_attachments/files/116/744/273/973/882/200/original/08b24cd31d79479e.webp
+created: 20131220095114000
+date: 2024-11-03
+description: (160-180 символов)
+distributor: freshtunes
+emoji: 🦌
+epocha: 19
+id: 1
+instruments: 
+isrc: AEA0Q2448892
+modified: 20260826095421446
+pond5: 
+size_album: 1
+size_release: 1
+tags: музыка фолк фонк эмбиент оркестр саундтрек скандинавия
+title: Биела
+tmap.edges: 
+tmap.id: 3f530dca-624f-484d-9da6-2492f742d400
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 1
+type: text/markdown
+type_content: music
+upc: 5063600285227
+url_archive: https://archive.org/details/zqwy_biela
+url_download_mp3: https://archive.org/download/zqwy_biela/1_zqwy_biela.mp3
+url_download_wav: https://archive.org/download/zqwy_biela/1_zqwy_biela.wav
+version: 1.2 (adding footer) 1.3 add scrapping from field 1.3.1 (fix logo url)

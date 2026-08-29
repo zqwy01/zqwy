@@ -1,0 +1,34 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20210803040135000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20210822180108000
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: 
+title: player_switcher
+tmap.edges: {"6f3a83f5-4c43-45a8-9e3a-feb8e72c26be":{"to":"0a07e7bc-ac27-476f-8ffc-9059b2cd766c","type":"switch"},"628e8468-0b03-4871-9faf-5666e8a715db":{"to":"e7c3d279-5a54-4593-8375-e219cdb685c2","type":"set"},"55ae29a1-e8d1-4d9b-8e85-851117e91fbb":{"to":"d2c04fbe-0003-4406-9ccd-39ee3a6b4767","type":"set"},"ff0c90de-4409-4cda-975a-fb8df947f432":{"to":"a8bc51a0-2c72-42f8-b22e-7e11f9f140c5","type":"switch"}}
+tmap.id: 277f8cce-c909-4bc4-bcd0-9fcb61b7cb6f
+tmap.style: {}
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Скрипт [[player-switcher|$:/plugins/player_switcher/player-switcher]] выполняет переключение плееров. Определяет доступность скрипта ($:/plugins/music_player/wavesurfer.js) для подключение и соотвественно подключается, в противном случае используется встроенный в браузере плеер.

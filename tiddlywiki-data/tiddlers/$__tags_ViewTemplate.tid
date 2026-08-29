@@ -1,0 +1,5 @@
+created: 20260625175440521
+list: $:/core/ui/ViewTemplate/title $:/core/ui/ViewTemplate/unfold $:/core/ui/ViewTemplate/subtitle $:/core/ui/ViewTemplate/tags $:/core/ui/ViewTemplate/classic $:/core/ui/ViewTemplate/body $:/core/ui/ViewTemplate/lazy-loading
+modified: 20260625175440521
+title: $:/tags/ViewTemplate
+type: text/vnd.tiddlywiki

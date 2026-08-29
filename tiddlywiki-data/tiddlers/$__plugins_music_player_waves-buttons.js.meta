@@ -1,0 +1,10 @@
+created: 20260717200310958
+modified: 20260822235027304
+module-type: library
+name: waves-buttons
+plugin-type: plugin
+tags: 
+title: $:/plugins/music_player/waves-buttons.js
+tmap.id: 067269e3-9f93-4e30-b2bb-a922476e9cc0
+type: application/javascript
+version: 0.0.3 (adding new style)

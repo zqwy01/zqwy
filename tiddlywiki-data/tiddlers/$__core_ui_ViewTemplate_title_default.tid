@@ -1,0 +1,9 @@
+created: 20260625180505584
+modified: 20260625180635169
+title: $:/core/ui/ViewTemplate/title/default
+type: text/vnd.tiddlywiki
+
+\whitespace trim
+<h1 class="tc-title">
+<$view field="title"/>
+</h1>

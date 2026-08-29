@@ -1,0 +1,23 @@
+services:
+  tiddlywiki:
+    build:
+      context: .
+    container_name: tiddlywiki
+    restart: unless-stopped
+
+    environment:
+      TZ: ${TZ}
+      TW_PORT: 1112
+
+    volumes:
+      - ./tiddlywiki-data:/var/lib/tiddlywiki
+
+    expose:
+      - "1112"
+
+    networks:
+      - rclone_rp
+
+networks:
+  rclone_rp:
+    external: true

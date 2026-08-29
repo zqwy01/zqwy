@@ -1,0 +1,8 @@
+[
+    {
+        "title": "$:/plugins/felixhayashi/tiddlymap/graph/views/Default/filter/nodes",
+        "text": "",
+        "type": "text/vnd.tiddlywiki",
+        "filter": " [field:tmap.id[572a6d5e-be87-4f9d-a2ca-e9ab1d5853a2]] [field:tmap.id[e37246c6-f059-4539-a3d8-111b2e2128f6]]"
+    }
+]

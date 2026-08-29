@@ -1,0 +1,33 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20131213162108000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211231032118000
+pond5: 
+size_album: 
+size_release: 
+tags: 
+title: Веб-сервер
+tmap.edges: 
+tmap.id: 58aeb981-3cb0-4a6c-a2ad-f57fe237e168
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+продолжаю, сравнивать: תginx&apache&caddy; преимущества каждого: первый высоконагружаемый для статического и динамического содержимого; второй универсальный и производителен с динамическим; третий приоритетно работает с http3 и из коробки имеет http2

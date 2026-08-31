@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Алгиз</title>
+
+  <link rel="stylesheet" href="../styles/style.css">
+  <link rel="stylesheet" href="../styles/backgrounds/algiz_background.css">
+  <link rel="stylesheet" href="../styles/font.css">
+  <link rel="stylesheet" href="../styles/nav.css">
+  <link rel="stylesheet" href="../styles/players/wavesurfer.css">
+  <link rel="stylesheet" href="../styles/cover.css">
+  <link rel="stylesheet" href="../styles/tracklist.css">
+
+  <script src="../scripts/player_resize.js" defer></script>
+  <script src="../scripts/tracklist.js" defer></script>
+</head>
+
+<body>
+  <main class="page">
+    <div class="page-background"></div>
+
+    <div class="page-content">
+      <div class="container search-container">
+        <input class="search" type="text" placeholder="Поиск">
+      </div>
+
+      <div class="container title-container">
+        <h1 class="title">Алгиз</h1>
+      </div>
+
+      <div class="container tags-container">
+        
+        <h2 class="tag">эмбиент</h2>
+        <h2 class="tag">пианино</h2>
+        <h2 class="tag">минимализм</h2>
+        <h2 class="tag">скандинавия</h2>
+      </div>
+
+      <div class="container cover-container">
+        <img
+          class="cover"
+          src="../../covers/algiz/algiz.webp"
+          alt="Обложка альбома «Алгиз»"
+        >
+      </div>
+
+      <div class="audio-player-slot" id="audioPlayerSlot">
+        <div class="audio-player-container" id="audioPlayer">
+          <div
+            class="tc-player-switcher"
+            id="albumPlayer"
+            data-src="../../tracks/algiz/tracks/1_zqwy_algiz/1_zqwy_algiz.opus"
+            data-available-players="html5,wavesurfer"
+          ></div>
+        </div>
+      </div>
+
+      <details class="text-container album">
+        <summary class="album-heading">
+          <h2 class="album-title">Треклист</h2>
+          <span class="album-arrow" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="album-content">
+          <ol class="track-list">
+            
+    <li
+      class="track"
+      data-src="../../tracks/algiz/tracks/1_zqwy_algiz/1_zqwy_algiz.opus"
+      data-wav=""
+      data-mp3=""
+    >
+      <button
+        class="track-button"
+        type="button"
+      >
+        <span class="track-number">
+          1
+        </span>
+
+        <span class="track-name">
+          Алгиз
+        </span>
+
+        <span class="track-play">
+          ▶
+        </span>
+      </button>
+
+      <div class="track-downloads">
+        
+        
+      </div>
+    </li>
+          </ol>
+        </div>
+      </details>
+
+      <div class="text-container">
+        
+        <h3>### Как возникла руна Алгиз?<br>
+<br>
+#### Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольких форм влияний. Цикличность порождает рекурсивность, повторность. Это не позволяет сфокусироваться и инертно осмыслять. Души заключенные для связи между белой и темной ланью, защищены от перехвата и подходили для такой работы. Есть бедствие которое несёт белая лань, но помимо неё на гране прибывает - и другая лань. Которая связана с руной одал и также несёт бедствие, эта тёмная лань. Между ними есть защищённая связь для безопасной транспортировки душ. Однако тёмная лань не всегда способна сфокусироваться чтобы наладить связь и не прервать этот цикл передачи. Так, а что же делает тёмная лань по ту сторону? Его суть, подобрать подходящие места для новоприбывших. Пока цикл душ на этой гране, не завершится, его копыта пишут картину этой грани. Это он формирует пустоту, он превращает ничего в то, чем некогда раньше был занята белая лань. И только когда эта душа была отточенна, она возвращается обратно и тем самым насыщает белого, тем чего не хватает тёмному. Лань бежит, стучит копытам: &quot;цок-цок-цок&quot; и видит кот. И это не просто кот, а словно анекдот! Вот он - Кузя... Вот так вот…</h3>
+      </div>
+
+      <script
+        type="module"
+        src="../scripts/player-switcher.js"
+      ></script>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span class="site-version">Версия 1.0.0</span>
+  </footer>
+
+  <script
+    src="../scripts/album-player.js"
+    defer
+  ></script>
+</body>
+</html>

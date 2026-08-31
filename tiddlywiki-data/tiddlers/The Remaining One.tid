@@ -1,4 +1,5 @@
-alias: 
+album_name: the_remaining_one
+alias: tro
 author: 
 caption: 
 cover: 
@@ -10,19 +11,18 @@ epocha:
 id: 
 instruments: 
 isrc: 
-modified: 20260823234141305
+modified: 20260831183213697
 pond5: 
-revision: 
-size_album: 
-size_release: 
-tags: 
+releasename: the_remaining_one
+size_album: 9
+size_release: album
+tags: музыка
 title: The Remaining One
-tmap.edges: 
 tmap.id: 7a15faef-19ad-463b-80f4-0d5de2b5c20c
-tmap.style: 
 track_bpm: 
 track_init_key: 
-track_number: 
+track_list: barchans shiny_sand adaptation everything_noah_does time_shifting aleppo_codex shhhhhh from_atomic never_neverborne
+track_number: 0
 type: text/vnd.tiddlywiki
 type_content: music
 upc: 5063827579949

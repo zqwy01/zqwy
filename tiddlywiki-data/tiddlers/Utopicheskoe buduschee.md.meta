@@ -10,9 +10,8 @@ epocha:
 id: 
 instruments: 
 isrc: 
-modified: 20260824094458228
+modified: 20260831161748764
 pond5: 
-revision: 
 size_album: 
 size_release: 
 tags: музыка дроун эмбиент
@@ -22,6 +21,7 @@ tmap.id: 4cf18f75-a523-418d-8e75-44e1cdadb4ee
 tmap.style: 
 track_bpm: 
 track_init_key: 
+track_list: 
 track_number: 
 type: text/markdown
 type_content: 

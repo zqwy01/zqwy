@@ -1,6 +1,7 @@
 alias: 
 author: zqwy
 caption: 
+cate: 
 cover: 
 created: 20131214033134000
 date: 2025-09-04
@@ -10,8 +11,9 @@ epocha: 19
 id: 230
 instruments: 
 isrc: 
-modified: 20210823120039000
+modified: 20260831161706559
 pond5: 
+releasename: someone
 size_album: 8
 size_release: album
 tags: музыка оркестр кинематография
@@ -21,6 +23,7 @@ tmap.id: 0053ac7a-63e2-411c-9777-3b117dc49d5f
 tmap.style: 
 track_bpm: 
 track_init_key: 
+track_list: infinity_collapse out_its why_not yom_kippur folish_on_delish tablet axolotol
 track_number: 0
 type: text/markdown
 type_content: music

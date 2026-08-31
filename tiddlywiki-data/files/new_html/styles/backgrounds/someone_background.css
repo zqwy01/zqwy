@@ -1,0 +1,40 @@
+html,
+body {
+    margin: 0;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+body {
+    position: relative;
+    isolation: isolate;
+    background: #000;
+}
+
+.page-background {
+    position: fixed;
+    inset: -10px;
+    background-image: url("../../../covers/someone/someone.webp");
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    filter: blur(8px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.page-background::after {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.90);
+    pointer-events: none;
+}
+
+.page-content {
+    position: relative;
+    z-index: 1;
+
+    min-height: 100vh;
+}

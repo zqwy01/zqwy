@@ -10,9 +10,9 @@ epocha:
 id: 
 instruments: 
 isrc: 
-modified: 20260826093958062
+modified: 20260831161724242
 pond5: 
-revision: 
+releasename: glioma
 size_album: 
 size_release: 
 tags: музыка дроун эмбиент медитация
@@ -22,6 +22,7 @@ tmap.id: ced8a403-ea2e-4242-b470-4bcc2e3a292f
 tmap.style: 
 track_bpm: 
 track_init_key: 
+track_list: glioma
 track_number: 
 type: text/markdown
 type_content: music

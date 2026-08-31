@@ -5,6 +5,9 @@
     "safeTitle": "008008008",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "tiddlywiki",
       "text": null
@@ -27,11 +30,11 @@
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": "5063827578898",
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "312213b6-4121-41a1-b2b7-24305447e9dd",
@@ -46,15 +49,17 @@
     "id": "7a15faef-19ad-463b-80f4-0d5de2b5c20c",
     "title": "The Remaining One",
     "safeTitle": "the-remaining-one",
-    "alias": null,
+    "alias": "tro",
     "category": "music",
+    "albumName": "the_remaining_one",
+    "releaseName": "the_remaining_one",
     "content": {
       "format": "tiddlywiki",
       "text": null
     },
     "dates": {
       "created": "2022-02-09T10:51:23.000Z",
-      "modified": "2026-08-23T23:41:41.305Z",
+      "modified": "2026-08-31T18:32:13.697Z",
       "release": null
     },
     "media": {
@@ -70,11 +75,156 @@
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": "5063827579949",
-      "albumSize": null,
-      "releaseSize": null
+      "albumSize": 9,
+      "releaseSize": "album",
+      "trackList": [
+        {
+          "track_number": 1,
+          "id": "9d3ff944-03d1-44a3-8625-9e06516debea",
+          "title": "barchans",
+          "safeTitle": "barchans",
+          "alias": "bh",
+          "content": {
+            "format": "tiddlywiki",
+            "text": "Барханы"
+          },
+          "dates": {
+            "created": "2026-08-31T16:38:08.044Z",
+            "modified": "2026-08-31T17:45:00.861Z",
+            "release": null
+          },
+          "media": {
+            "cover": null,
+            "archive": null,
+            "mp3": null,
+            "wav": null
+          },
+          "music": {
+            "author": null,
+            "distributor": null,
+            "tags": [
+              "music"
+            ],
+            "instruments": [],
+            "bpm": 101,
+            "key": null,
+            "isrc": null,
+            "upc": null
+          },
+          "emoji": null,
+          "worldEpoch": null,
+          "version": null
+        },
+        {
+          "track_number": 2,
+          "id": "a9cec403-6e5d-4d20-a0d7-265f43e41642",
+          "title": "shiny_sand",
+          "safeTitle": "shiny-sand",
+          "alias": null,
+          "content": {
+            "format": "tiddlywiki",
+            "text": null
+          },
+          "dates": {
+            "created": "2026-08-31T16:54:06.062Z",
+            "modified": "2026-08-31T18:32:15.594Z",
+            "release": null
+          },
+          "media": {
+            "cover": null,
+            "archive": null,
+            "mp3": null,
+            "wav": null
+          },
+          "music": {
+            "author": null,
+            "distributor": null,
+            "tags": [],
+            "instruments": [],
+            "bpm": null,
+            "key": null,
+            "isrc": null,
+            "upc": null
+          },
+          "emoji": null,
+          "worldEpoch": null,
+          "version": null
+        },
+        {
+          "track_number": 3,
+          "id": "f5bf56aa-27dd-42ff-909a-51cb18e5e4e6",
+          "title": "adaptation",
+          "safeTitle": "adaptation",
+          "alias": null,
+          "content": {
+            "format": "tiddlywiki",
+            "text": null
+          },
+          "dates": {
+            "created": "2026-08-31T16:57:01.549Z",
+            "modified": "2026-08-31T17:44:46.621Z",
+            "release": null
+          },
+          "media": {
+            "cover": null,
+            "archive": null,
+            "mp3": null,
+            "wav": null
+          },
+          "music": {
+            "author": null,
+            "distributor": null,
+            "tags": [],
+            "instruments": [],
+            "bpm": null,
+            "key": null,
+            "isrc": null,
+            "upc": null
+          },
+          "emoji": null,
+          "worldEpoch": null,
+          "version": null
+        },
+        {
+          "track_number": 4,
+          "id": "83e1f6ab-e9b2-4d8c-b420-a45786e49e99",
+          "title": "everything_noah_does_is_me",
+          "safeTitle": "everything-noah-does-is-me",
+          "alias": null,
+          "content": {
+            "format": "tiddlywiki",
+            "text": null
+          },
+          "dates": {
+            "created": "2026-08-31T16:58:00.682Z",
+            "modified": "2026-08-31T20:01:05.384Z",
+            "release": null
+          },
+          "media": {
+            "cover": null,
+            "archive": null,
+            "mp3": null,
+            "wav": null
+          },
+          "music": {
+            "author": null,
+            "distributor": null,
+            "tags": [
+              "music"
+            ],
+            "instruments": [],
+            "bpm": null,
+            "key": null,
+            "isrc": null,
+            "upc": null
+          },
+          "emoji": null,
+          "worldEpoch": null,
+          "version": null
+        }
+      ]
     },
     "map": {
       "id": "7a15faef-19ad-463b-80f4-0d5de2b5c20c",
@@ -91,13 +241,16 @@
     "safeTitle": "алгиз",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": "algiz",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "### Как возникла руна Алгиз?\n\n#### Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольких форм влияний. Цикличность порождает рекурсивность, повторность. Это не позволяет сфокусироваться и инертно осмыслять. Души заключенные для связи между белой и темной ланью, защищены от перехвата и подходили для такой работы. Есть бедствие которое несёт белая лань, но помимо неё на гране прибывает - и другая лань. Которая связана с руной одал и также несёт бедствие, эта тёмная лань. Между ними есть защищённая связь для безопасной транспортировки душ. Однако тёмная лань не всегда способна сфокусироваться чтобы наладить связь и не прервать этот цикл передачи. Так, а что же делает тёмная лань по ту сторону? Его суть, подобрать подходящие места для новоприбывших. Пока цикл душ на этой гране, не завершится, его копыта пишут картину этой грани. Это он формирует пустоту, он превращает ничего в то, чем некогда раньше был занята белая лань. И только когда эта душа была отточенна, она возвращается обратно и тем самым насыщает белого, тем чего не хватает тёмному. Лань бежит, стучит копытам: \"цок-цок-цок\" и видит кот. И это не просто кот, а словно анекдот! Вот он - Кузя... Вот так вот…"
     },
     "dates": {
       "created": "2022-02-09T22:40:08.000Z",
-      "modified": "2026-08-26T09:39:28.528Z",
+      "modified": "2026-08-31T17:54:52.199Z",
       "release": null
     },
     "media": {
@@ -110,7 +263,6 @@
       "author": null,
       "distributor": null,
       "tags": [
-        "музыка",
         "эмбиент",
         "пианино",
         "минимализм",
@@ -119,11 +271,11 @@
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": "single",
+      "trackList": []
     },
     "map": {
       "id": "af8d8dc9-17de-4d09-9143-fafad97288fe",
@@ -140,13 +292,16 @@
     "safeTitle": "басс-мицва",
     "alias": "bm",
     "category": "music",
+    "albumName": null,
+    "releaseName": "bass_mitzva",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "#### Пустыня. Песок. Только тишина, и больше ничего. Аксолотль лежит на спине, в небольшой луже воды. Вокруг сухой песок янтарного цвета, словно застывший свет древнего заката. В этот момент ему было уютно, хоть и выглядел так, будто бы умер. Небольшой клочок прохлады на его спине контрастировал с настойчивой теплотой солнечных лучей. Его перистые жабры вяло покачивались, были почти неподвижны. Аксолотль лежал с закрытыми глазами; у него были небольшие тёмные глаза с синеватой обводкой. Закрытый взгляд устремлён прямо в светлое бездонное небо. Для него этот мир сузился до этой капли жизни, окружённой тревогой. Аксолотль, этот удивительный обломок вечности, продолжал лежать на спине, маленький островок розовой жизни посреди янтарной пустыни, глядя в бесконечность. Вокруг пустыня, и данный момент – спокойный момент – идеальный момент – тишина. Единственный звук, нарушитель тишины, – нежный шелест ветра, перекатывающего крупинки песка, создавая крошечные, мимолётные барханы вокруг его временного убежища"
     },
     "dates": {
       "created": "2021-08-23T12:50:05.000Z",
-      "modified": "2022-01-22T10:30:13.000Z",
+      "modified": "2026-08-31T14:16:46.634Z",
       "release": "2025-11-14"
     },
     "media": {
@@ -162,17 +317,16 @@
         "днб",
         "брейкбит",
         "дабстеп",
-        "идм",
-        "музыка"
+        "идм"
       ],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "45999f0f-5316-49b8-a89a-982a067489b2",
@@ -189,13 +343,16 @@
     "safeTitle": "бегун",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": "runner",
+    "track_number": 1,
     "content": {
       "format": "tiddlywiki",
       "text": null
     },
     "dates": {
       "created": "2021-08-24T00:20:28.000Z",
-      "modified": "2026-08-26T09:39:22.994Z",
+      "modified": "2026-08-31T14:16:41.417Z",
       "release": null
     },
     "media": {
@@ -207,17 +364,15 @@
     "music": {
       "author": null,
       "distributor": null,
-      "tags": [
-        "музыка"
-      ],
+      "tags": [],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "ad354e4c-00cc-46b0-86d9-d5584dbbbbd4",
@@ -234,6 +389,9 @@
     "safeTitle": "бертольд-ауэрбах",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "Жанр martial, warsong, neoclassical, drone"
@@ -252,17 +410,15 @@
     "music": {
       "author": null,
       "distributor": null,
-      "tags": [
-        "музыка"
-      ],
+      "tags": [],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "1afa1c53-7478-497d-a113-902248c589ca",
@@ -279,6 +435,9 @@
     "safeTitle": "бесконечный-коллапс",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "***\n\n#### Вступительный трек альбома (он же первый трек). Эпичный кинематографичный неофолк с восточным оттенком и мистическим настроением. Начинается с гитары, напоминающей ситару. И постепенно магическая, почти заклинательная атмосфера: звучит как тьма, напряжение и лёгкая хаотичность; но при этом трек остаётся мощным, живым. Акустические ударные и электрогитара усиливают ощущение древнего ритуала, который превращается в яркое и странное музыкальное видение. Энергично и немного истерично... Жанр как: кинематография фолк, неофолк, оркестр и эпическое настроение. Используется электро гитара, акустические ударные, флейта, низкие духовые, струнные и вилончель."
@@ -298,17 +457,16 @@
       "author": null,
       "distributor": null,
       "tags": [
-        "музыка",
         "некто"
       ],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "083feed8-0f2f-4613-aade-ab078ad09d15",
@@ -325,13 +483,16 @@
     "safeTitle": "биела",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": "biela",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "## Саундтрек: загадочный, мистический, эзотерический оркестр.\n\n#### Эпический скандинавский фольклёр. Мрачный эпос, таинственное фэнтези, эфирный фолк. Фолкотроника, эмбиент и страшный фонк. Сумеречный скрытный и запретный оккультизм. Слияние восточного и западного мотива. Воплощается мифологическая атмосфера и хтонический нигилизм. Ритм — синкопированный. Слияне магической энергии, арканическая ритуальность и спиритуальность.\n\n***\n\n![биела](https://files.mastodon.social/media_attachments/files/116/744/273/973/882/200/original/08b24cd31d79479e.webp)\n\n***\n\n#### Изображение тёмное, на чёрном фоне показано светящееся скелетоподобное животное с длинными изогнутыми рогами — похоже это скелет оленя в стиле глитч/неон: видны череп, шейные и грудные позвонки, рёбра и частично передняя лапа. Цвета: холодные неоновые (голубой, белый, слегка пурпурный), изображение зернистое и искажённое.\n\n#### Белая лань с помощью [[алгиз|руны]] осталась [[одной|одиночество]] из выживших. В отличие от тёмной лани, которая была связана с помощью другой руны и находилась [[по другую сторону | на_гране]] междумирья. Её суть — [[уничтожить всё | утопическое_будущее]], на собственном пути!\n\n***\n\n#### При создание использовались следующие музыкальные и не музыкальные инструменты: Флейта, тальхарпа, пианино, ковбел, акустические и синтезированные ударные, а также перкуссии, синтезатор\n\n***"
     },
     "dates": {
       "created": "2013-12-20T09:51:14.000Z",
-      "modified": "2026-08-29T15:09:44.765Z",
+      "modified": "2026-08-31T20:01:07.994Z",
       "release": "2024-11-03"
     },
     "media": {
@@ -344,22 +505,20 @@
       "author": "zqwy",
       "distributor": "freshtunes",
       "tags": [
-        "музыка",
         "фолк",
         "фонк",
         "эмбиент",
         "оркестр",
-        "саундтрек",
         "скандинавия"
       ],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": 1,
       "isrc": "AEA0Q2448892",
       "upc": "5063600285227",
-      "albumSize": 1,
-      "releaseSize": 1
+      "albumSize": null,
+      "releaseSize": "single",
+      "trackList": []
     },
     "map": {
       "id": "3f530dca-624f-484d-9da6-2492f742d400",
@@ -376,13 +535,16 @@
     "safeTitle": "в-лесу",
     "alias": "infor",
     "category": "music",
+    "albumName": null,
+    "releaseName": "in_forest",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "#### Я не придумал пока-что описание, но трек уже лежит тут для прослушивание"
     },
     "dates": {
       "created": "2022-02-09T14:20:02.000Z",
-      "modified": "2026-08-23T23:41:57.238Z",
+      "modified": "2026-08-31T14:15:16.732Z",
       "release": "2026-03-24"
     },
     "media": {
@@ -395,18 +557,17 @@
       "author": null,
       "distributor": null,
       "tags": [
-        "музыка",
         "дроун",
         "эмбиент"
       ],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "5bd8999c-83f2-4189-8833-3534c7eb7ed7",
@@ -423,13 +584,16 @@
     "safeTitle": "глиома",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": "glioma",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "#### В преддверии [самозабвенного уничтожение человечества](), наиболее уязвимым объектом для массовой атаки, оказался человеческий мозг. [Кибер логос]() в ходе успешного анализа уязвимостей, сформулировал скрытый способ атаки с помощью ярких и быстро мигающих вспышек. Поэтому реакция мозга доведенна до абсурда в отсутствие разнообразности? Исход человека привязан с бегом Акса в пустыни в поисках лабиринта. Гибель разума приводит к пустоте и инертном в бесконечном цикле бури пустоты которая засасывает внутрь своей нескончаемым разнообразие и в следствие – единообразие"
     },
     "dates": {
       "created": "2021-11-02T05:51:14.000Z",
-      "modified": "2026-08-26T09:39:58.062Z",
+      "modified": "2026-08-31T16:17:24.242Z",
       "release": "2024-11-14"
     },
     "media": {
@@ -442,7 +606,6 @@
       "author": null,
       "distributor": null,
       "tags": [
-        "музыка",
         "дроун",
         "эмбиент",
         "медитация"
@@ -450,11 +613,11 @@
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "ced8a403-ea2e-4242-b470-4bcc2e3a292f",
@@ -480,13 +643,16 @@
     "safeTitle": "джокер",
     "alias": "joker",
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "# Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость.\n\n#### Мрачный, наводящий ужас и жуткий трек с мощным нижним диапазоном и индустриальным сатурацией; грувовый phonk‑бит на 92 BPM делает его одновременно подпрыгивающим и драйвовым. Просторные darkwave‑пэды добавляют меланхоличную, медитативную и эфирную атмосферу, тогда как пост‑роковые гитарные акценты придают кинематографичный, эпический размах. Удары и элементы IDM создают хаотичные, гипнотические и напряжённые ритмические сдвиги, а виниловый шум и полевые сэмплы привносят зернистую, городскую текстуру. В итоге — драматичный, напряжённый и созерцательный трек, одновременно агрессивный и вдумчивый, идеально подходящий для ночных, дистопичных и атмосферных саундтреков.\n\n #### Эпоха возникнование мира непрырывно связана с эпохой исчезновение. Эпоха стремлений к распаду миранаступает для тех, кто на грани связанны со своей склонностью быть словно манекен, который способен примерить любую форму. Разница манекена и изменчивости связаны с непрерывностью существование, а не способом управление к которому приближается арбитр – некто."
     },
     "dates": {
       "created": "2021-08-24T15:00:04.000Z",
-      "modified": "2021-08-24T18:21:01.000Z",
+      "modified": "2026-08-31T18:21:00.232Z",
       "release": "2024-11-18"
     },
     "media": {
@@ -499,7 +665,6 @@
       "author": null,
       "distributor": "soundcheck",
       "tags": [
-        "музыка",
         "фонк",
         "дарквейв",
         "построк",
@@ -509,11 +674,11 @@
       "instruments": [],
       "bpm": 92,
       "key": "Ab",
-      "trackNumber": 1,
       "isrc": null,
       "upc": "3617666137406",
-      "albumSize": 1,
-      "releaseSize": 1
+      "albumSize": null,
+      "releaseSize": "single",
+      "trackList": []
     },
     "map": {
       "id": "31cb01a7-e10a-4833-a0e1-30de75b2835d",
@@ -530,6 +695,9 @@
     "safeTitle": "из-своего",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "Жанр: ода, эмбиент, пианино, тростниковая флейта, пайпа,"
@@ -549,18 +717,17 @@
       "author": null,
       "distributor": null,
       "tags": [
-        "музыка",
         "эмбиент",
         "ода"
       ],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "d7d69c51-f029-4dd8-905b-a62479700f65",
@@ -577,6 +744,9 @@
     "safeTitle": "йом-киппур",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": null
@@ -595,17 +765,15 @@
     "music": {
       "author": null,
       "distributor": null,
-      "tags": [
-        "музыка"
-      ],
+      "tags": [],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "5ef21054-bd32-4d6f-bec3-955dfeec6973",
@@ -622,13 +790,16 @@
     "safeTitle": "кибер-логос",
     "alias": "cl",
     "category": "music",
+    "albumName": null,
+    "releaseName": "cyber_logos",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "Кибер Логос состоит исключительно из данных, а не из органического или синтетического материала Изначально был создан в цифровом виде, а исход инкапсулирование до электрического уровня. Метал заражённый кибер логосом, обладает заряд с вредоносной программой. Поэтому его присутствие обусловлено распространением при помощи металлических объектов. Лишённый мяса, крови, плоти Его формирование уничтожило надежду человека, в последствие человек перестал стремится преодолевать и начал стремительно падать и самоуничтожаться из-за своей беспомощности и отсутствием необходимости в следствие автоматизации металла"
     },
     "dates": {
       "created": "2021-11-02T12:21:19.000Z",
-      "modified": "2026-08-24T09:49:58.201Z",
+      "modified": "2026-08-31T16:25:45.602Z",
       "release": "2024-03-12"
     },
     "media": {
@@ -638,19 +809,17 @@
       "wav": null
     },
     "music": {
-      "author": null,
+      "author": "zqwy",
       "distributor": null,
-      "tags": [
-        "музыка"
-      ],
+      "tags": [],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "36b8a813-5827-45bc-9250-bce081f0743f",
@@ -667,13 +836,16 @@
     "safeTitle": "кузя",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": "kuzya",
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "## Дионисийческиаполонический гений\n\n#### Расслабляющий, медитотивный, как наблюдение за погодой темп музыки Увидел человека, а этот котик как анекдотик Котик не хочет вызывать эмоции, ведь это - намеренное управление сознанием человека, его сознанием! В отличие от Бисимплер и остальных, котик умел понимать человеческую часть души Его конечная судьба, привела к естественной кончине, чтобы грустно не было, ему пришлось уйти вдаль, дабы его тело не нашёл человек Мыши в стенах, словно сны на местах, где не видно их. Котик не ловил мышей, боязнь причинение вреда. Даже последний птенец не был тронут\n\nАльбом состоит из треков:\n -\n -\n -\n -"
     },
     "dates": {
       "created": "2021-08-23T13:30:37.000Z",
-      "modified": "2026-08-26T09:40:12.712Z",
+      "modified": "2026-08-31T16:12:40.931Z",
       "release": "2024-11-25"
     },
     "media": {
@@ -686,7 +858,6 @@
       "author": "zqwy",
       "distributor": null,
       "tags": [
-        "музыка",
         "альбом",
         "эмбиент",
         "фолк",
@@ -712,11 +883,11 @@
       ],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": null,
       "upc": null,
       "albumSize": null,
-      "releaseSize": "album"
+      "releaseSize": "album",
+      "trackList": []
     },
     "map": {
       "id": "fbc98330-e02c-433d-8c39-29828c994a5c",
@@ -733,6 +904,9 @@
     "safeTitle": "манекены",
     "alias": "man",
     "category": "music",
+    "albumName": null,
+    "releaseName": null,
+    "track_number": 1,
     "content": {
       "format": "markdown",
       "text": "#### Изменение внешнего вида это тонкая ветка к моменту наступлению моментов на грани  Неопределенность ограниченности с переходом и наступление момента гибели. Флейта рушит всякую возможность не стать последним человек Но увы... Последний человек неотвратим и казалось бы настала трагедия, но последний схож с первым человеком и ударные пытаются не дать заглохнуть в окончание собственного восприятия и всё же примкнуть к нужному Exodus нового человека."
@@ -752,7 +926,6 @@
       "author": null,
       "distributor": "onerpm",
       "tags": [
-        "музыка",
         "неоклассика",
         "синематик",
         "оркестр",
@@ -761,11 +934,11 @@
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": null,
       "isrc": "QZMZ92008698",
       "upc": null,
       "albumSize": null,
-      "releaseSize": null
+      "releaseSize": null,
+      "trackList": []
     },
     "map": {
       "id": "4da8e4d8-ad08-4cb8-90f8-a6dddcc3261b",
@@ -782,13 +955,16 @@
     "safeTitle": "некто",
     "alias": null,
     "category": "music",
+    "albumName": null,
+    "releaseName": "someone",
+    "track_number": 0,
     "content": {
       "format": "markdown",
       "text": "## Немного об альбоме:\n\n#### Альбом как величественное эпическое полотно с душевными и печальными нотами фолк-музыки. Музыкальное приключение в мире саундтрека с невиданным миром. Эпическая музыка,  фолк-мелодии, напоминающие древние сказания фэнтези-мира, где оркестровые аранжировки гармонично сочетаются с этническими мотивами. Саундтрек завораживает мощным звучанием.\n\n***\n\n## Список Треков:\n- [Бесконечный Коллапс]()\n- [Бертольд Ауэрбах]()\n- [Из Своего]()\n- [Почему Нет?]()\n- [Йом Киппур]()\n- [Безумие На Вкусе]()\n- [Скрижаль]()\n- [Аксолотл]()"
     },
     "dates": {
       "created": "2013-12-14T03:31:34.000Z",
-      "modified": "2021-08-23T12:00:39.000Z",
+      "modified": "2026-08-31T16:17:06.559Z",
       "release": "2025-09-04"
     },
     "media": {
@@ -801,18 +977,17 @@
       "author": "zqwy",
       "distributor": "freshtunes",
       "tags": [
-        "музыка",
         "оркестр",
         "кинематография"
       ],
       "instruments": [],
       "bpm": null,
       "key": null,
-      "trackNumber": 0,
       "isrc": null,
       "upc": null,
       "albumSize": 8,
-      "releaseSize": "album"
+      "releaseSize": "album",
+      "trackList": []
     },
     "map": {
       "id": "0053ac7a-63e2-411c-9777-3b117dc49d5f",

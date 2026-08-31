@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>{{title}}</title>
+
+  <link rel="stylesheet" href="{{assetPrefix}}styles/style.css">
+  <link rel="stylesheet" href="{{assetPrefix}}styles/backgrounds/{{releaseName}}_background.css">
+  <link rel="stylesheet" href="{{assetPrefix}}styles/font.css">
+  <link rel="stylesheet" href="{{assetPrefix}}styles/nav.css">
+  <link rel="stylesheet" href="{{assetPrefix}}styles/players/wavesurfer.css">
+  <link rel="stylesheet" href="{{assetPrefix}}styles/cover.css">
+  <link rel="stylesheet" href="{{assetPrefix}}styles/tracklist.css">
+
+  <script src="{{assetPrefix}}scripts/player_resize.js" defer></script>
+  <script src="{{assetPrefix}}scripts/tracklist.js" defer></script>
+</head>
+
+<body>
+  <main class="page">
+    <div class="page-background"></div>
+
+    <div class="page-content">
+      <div class="container search-container">
+        <input class="search" type="text" placeholder="Поиск">
+      </div>
+
+      <div class="container title-container">
+        <h1 class="title">{{title}}</h1>
+      </div>
+
+      <div class="container tags-container">
+        {{tags}}
+      </div>
+
+      <div class="container cover-container">
+        <img
+          class="cover"
+          src="{{coverPrefix}}covers/{{releaseName}}/{{releaseName}}.webp"
+          alt="Обложка альбома «{{title}}»"
+        >
+      </div>
+
+      <div class="audio-player-slot" id="audioPlayerSlot">
+        <div class="audio-player-container" id="audioPlayer">
+          <div
+            class="tc-player-switcher"
+            id="albumPlayer"
+            data-src="{{firstTrackSrc}}"
+            data-available-players="html5,wavesurfer"
+          ></div>
+        </div>
+      </div>
+
+      <details class="text-container album">
+        <summary class="album-heading">
+          <h2 class="album-title">Треклист</h2>
+          <span class="album-arrow" aria-hidden="true">⌄</span>
+        </summary>
+
+        <div class="album-content">
+          <ol class="track-list">
+            {{tracks}}
+          </ol>
+        </div>
+      </details>
+
+      <div class="text-container">
+        {{description}}
+      </div>
+
+      <script
+        type="module"
+        src="{{assetPrefix}}scripts/player-switcher.js"
+      ></script>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span class="site-version">Версия 1.0.0</span>
+  </footer>
+
+  <script
+    src="{{assetPrefix}}scripts/album-player.js"
+    defer
+  ></script>
+</body>
+</html>

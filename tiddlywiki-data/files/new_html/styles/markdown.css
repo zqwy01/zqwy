@@ -1,0 +1,89 @@
+/*
+ * Изображения внутри Markdown-описания
+ */
+.description img {
+  display: block;
+  width: 25%;
+  height: auto;
+  margin: 20px auto;
+  cursor: zoom-in;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+/*
+ * Небольшое увеличение при наведении
+ */
+.description img:hover {
+  transform: scale(1.03);
+}
+
+/*
+ * Затемнённый полноэкранный фон
+ */
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+  background: rgba(0, 0, 0, 0.92);
+
+  cursor: zoom-out;
+}
+
+/*
+ * Увеличенное изображение
+ */
+.image-viewer img {
+  display: block;
+
+  max-width: 95vw;
+  max-height: 95vh;
+  width: auto;
+  height: auto;
+
+  object-fit: contain;
+  cursor: default;
+}
+
+/*
+ * Кнопка закрытия
+ */
+.image-viewer-close {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+
+  width: 42px;
+  height: 42px;
+
+  border: 0;
+  border-radius: 50%;
+
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+
+  font-size: 30px;
+  line-height: 38px;
+
+  cursor: pointer;
+}
+
+.image-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/*
+ * На небольших экранах можно оставить картинку
+ * шириной 50%, чтобы она не была слишком маленькой
+ */
+@media (max-width: 600px) {
+  .description img {
+    width: 50%;
+  }
+}

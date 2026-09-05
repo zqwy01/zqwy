@@ -1,15 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { markdownToHtml } from "./markdown.js";
+
 const DEFAULT_COVER = "/images/default-cover.webp";
 
 export function readJson(filePath) {
   try {
-    const content = fs.readFileSync(filePath, "utf8");
-
-    return JSON.parse(content);
+    return JSON.parse(
+      fs.readFileSync(filePath, "utf8")
+    );
   } catch (error) {
-    console.error(`Ошибка чтения JSON-файла:\n${filePath}`);
+    console.error(
+      `Ошибка чтения JSON-файла:\n${filePath}`
+    );
     console.error(error.message);
     process.exit(1);
   }
@@ -19,7 +23,9 @@ export function readTemplate(filePath) {
   try {
     return fs.readFileSync(filePath, "utf8");
   } catch (error) {
-    console.error(`Ошибка чтения HTML-шаблона:\n${filePath}`);
+    console.error(
+      `Ошибка чтения HTML-шаблона:\n${filePath}`
+    );
     console.error(error.message);
     process.exit(1);
   }
@@ -34,7 +40,11 @@ export function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-export function replaceVariable(html, variableName, value) {
+export function replaceVariable(
+  html,
+  variableName,
+  value
+) {
   return html.replaceAll(
     `{{${variableName}}}`,
     String(value ?? "")
@@ -67,14 +77,10 @@ export function getReleaseType(item) {
   const normalized =
     releaseSize.trim().toLowerCase();
 
-  if (
-    normalized === "single" ||
+  return normalized === "single" ||
     normalized === "album"
-  ) {
-    return normalized;
-  }
-
-  return null;
+    ? normalized
+    : null;
 }
 
 export function isAlbum(item) {
@@ -96,7 +102,9 @@ export function createTagsHtml(tags) {
     })
     .map((tag) => {
       return `
-        <h2 class="tag">${escapeHtml(tag)}</h2>`;
+        <h2 class="tag">
+          ${escapeHtml(tag)}
+        </h2>`;
     })
     .join("");
 }
@@ -107,86 +115,60 @@ export function createDescriptionHtml(text) {
   }
 
   return `
-        <h3>${escapeHtml(text).replaceAll(
-          "\n",
-          "<br>\n"
-        )}</h3>`;
+    <div class="description">
+      ${markdownToHtml(text)}
+    </div>`;
 }
 
 export function getTrackNumber(
   item,
   fallbackNumber = 1
 ) {
-  const possibleTrackNumbers = [
+  const values = [
     item?.track_number,
     item?.music?.track_number,
     item?.music?.trackNumber,
     item?.number
   ];
 
-  const trackNumber =
-    possibleTrackNumbers.find((value) => {
-      if (
-        value === null ||
-        value === undefined ||
-        value === ""
-      ) {
-        return false;
-      }
+  const trackNumber = values.find((value) => {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      return false;
+    }
 
-      const number = Number(value);
+    const number = Number(value);
 
-      return (
-        Number.isFinite(number) &&
-        number > 0
-      );
-    });
+    return (
+      Number.isFinite(number) &&
+      number > 0
+    );
+  });
 
-  const normalizedTrackNumber =
+  const result =
     trackNumber !== undefined
       ? Number(trackNumber)
       : Number(fallbackNumber);
 
-  if (
-    Number.isFinite(normalizedTrackNumber) &&
-    normalizedTrackNumber > 0
-  ) {
-    return String(normalizedTrackNumber);
-  }
-
-  return "1";
+  return Number.isFinite(result) && result > 0
+    ? String(result)
+    : "1";
 }
 
-/**
- * Возвращает имя трека.
- *
- * Приоритет:
- * 1. releaseName трека;
- * 2. title трека.
- *
- * safeTitle здесь не используется.
- */
 export function getTrackReleaseName(
   item,
   fallbackName = ""
 ) {
-  const trackReleaseName =
+  return sanitizeFileName(
     item?.releaseName ||
     item?.title ||
-    fallbackName;
-
-  return sanitizeFileName(trackReleaseName);
+    fallbackName
+  );
 }
 
-/**
- * Создаёт путь к аудиофайлу.
- *
- * Для сингла:
- * ../../tracks/biela/tracks/1_zqwy_biela/1_zqwy_biela.opus
- *
- * Для трека альбома:
- * ../../../tracks/the_remaining_one/tracks/1_zqwy_barchans/1_zqwy_barchans.opus
- */
 export function buildTrackSource(
   albumReleaseName,
   trackReleaseName,
@@ -226,10 +208,6 @@ export function getAudioSource(
   const opusSource =
     item?.media?.opus || "";
 
-  /*
-   * Если media.opus содержит полный путь к файлу,
-   * используем его.
-   */
   if (
     opusSource &&
     !opusSource.endsWith("/")
@@ -237,12 +215,6 @@ export function getAudioSource(
     return opusSource;
   }
 
-  /*
-   * Для альбома:
-   *
-   * albumReleaseName = the_remaining_one
-   * trackReleaseName = barchans
-   */
   const trackReleaseName =
     getTrackReleaseName(
       item,
@@ -282,12 +254,10 @@ export function createTrackHtml(
     );
 
   const wavSource =
-    item?.media?.wav ||
-    "";
+    item?.media?.wav || "";
 
   const mp3Source =
-    item?.media?.mp3 ||
-    "";
+    item?.media?.mp3 || "";
 
   const wavLink = wavSource
     ? `
@@ -352,11 +322,6 @@ export function createTracksHtml(
   item,
   tracksPrefix = "../../tracks/"
 ) {
-  /*
-   * Для страницы альбома releaseName — имя альбома.
-   * Для отдельной страницы трека albumReleaseName —
-   * имя альбома, переданное из collectAlbumPages().
-   */
   const albumReleaseName =
     String(
       item?.albumReleaseName ||
@@ -410,11 +375,6 @@ export function createPageHtml(
     item?.title ||
     "Без названия";
 
-  /*
-   * Для альбома это releaseName самого альбома.
-   * Для страницы отдельного трека это albumReleaseName,
-   * добавленный в collectAlbumPages().
-   */
   const albumReleaseName =
     String(
       item?.albumReleaseName ||
@@ -544,13 +504,6 @@ export function collectAlbumPages(album) {
     pages.push({
       item: {
         ...track,
-
-        /*
-         * Не записываем имя альбома в releaseName трека.
-         *
-         * releaseName трека, если он есть, остаётся своим.
-         * Имя альбома передаём отдельно.
-         */
         albumReleaseName
       },
       fileName: getFileName(track)
@@ -612,7 +565,8 @@ export function buildPages({
       typeof item !== "object"
     ) {
       console.error(
-        `Элемент с индексом ${index} не является объектом. Пропущен.`
+        `Элемент с индексом ${index} ` +
+        `не является объектом. Пропущен.`
       );
 
       skippedCount++;
@@ -625,7 +579,8 @@ export function buildPages({
 
       if (!fileName) {
         console.error(
-          `У сингла с индексом ${index} отсутствует имя файла. Пропущен.`
+          `У сингла с индексом ${index} ` +
+          `отсутствует имя файла. Пропущен.`
         );
 
         skippedCount++;
@@ -642,7 +597,9 @@ export function buildPages({
         createdPaths.has(outputPath)
       ) {
         console.error(
-          `Файл уже создан, повторная запись пропущена:\n${outputPath}`
+          `Файл уже создан, ` +
+          `повторная запись пропущена:\n` +
+          outputPath
         );
 
         skippedCount++;
@@ -654,10 +611,8 @@ export function buildPages({
           item,
           outputPath,
           template,
-
           assetPrefix: "../",
           coverPrefix: "../../",
-
           tracksPrefix: "../../tracks/"
         });
 
@@ -693,7 +648,8 @@ export function buildPages({
 
       if (!albumFolderName) {
         console.error(
-          `У альбома с индексом ${index} отсутствует имя директории. Пропущен.`
+          `У альбома с индексом ${index} ` +
+          `отсутствует имя директории. Пропущен.`
         );
 
         skippedCount++;
@@ -719,7 +675,8 @@ export function buildPages({
       for (const page of albumPages) {
         if (!page.fileName) {
           console.error(
-            `У страницы альбома отсутствует имя файла. Пропущена.`
+            "У страницы альбома отсутствует " +
+            "имя файла. Пропущена."
           );
 
           skippedCount++;
@@ -736,7 +693,9 @@ export function buildPages({
           createdPaths.has(outputPath)
         ) {
           console.error(
-            `Файл уже создан, повторная запись пропущена:\n${outputPath}`
+            `Файл уже создан, ` +
+            `повторная запись пропущена:\n` +
+            outputPath
           );
 
           skippedCount++;
@@ -748,10 +707,8 @@ export function buildPages({
             item: page.item,
             outputPath,
             template,
-
             assetPrefix: "../../",
             coverPrefix: "../../",
-
             tracksPrefix: "../../../tracks/"
           });
 
@@ -777,15 +734,12 @@ export function buildPages({
   }
 
   console.log("");
-
   console.log(
     `Готово. Создано файлов: ${createdCount}`
   );
-
   console.log(
     `Пропущено файлов: ${skippedCount}`
   );
-
   console.log(
     `Неудачных операций: ${failedCount}`
   );

@@ -1,6 +1,6 @@
 :root {
     --blue: transparent;
-    --page-padding: 6px;
+    --page-padding: clamp(10px, 2vw, 24px);
     --element-radius: 8px;
 }
 
@@ -22,14 +22,24 @@ body {
 
 body {
     padding-bottom: var(--audio-height, 0px);
-    font-family: Arial, sans-serif;
-    color: #222;
     background: #f2f2f2;
 }
 
-button,
-input {
-    font-family: inherit;
+/* Основная область страницы */
+
+.page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.page-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    padding-right: var(--page-padding);
+    padding-left: var(--page-padding);
 }
 
 /* Общие контейнеры */
@@ -38,7 +48,8 @@ input {
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    padding: var(--page-padding);
+    margin: 0;
+    padding: 0;
 }
 
 /* Поиск */
@@ -54,24 +65,10 @@ input {
     min-height: 72px;
     padding: 10px 8px;
 
-    color: #fff;
-    font-family: inherit;
-    font-size: 52px;
-    font-weight: normal;
-    line-height: 1;
-    text-align: center;
-
     background: var(--blue);
     border: 0;
     border-radius: var(--element-radius);
     outline: 0;
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.search::placeholder {
-    color: rgba(255, 255, 255, 0.8);
 }
 
 /* Заголовок альбома или трека */
@@ -92,33 +89,24 @@ input {
     margin: 0;
     padding: 12px 8px;
 
-    color: #fff;
-    font-size: 96px;
-    font-weight: normal;
-    line-height: 0.9;
-    text-align: center;
-
     background: var(--blue);
     border-radius: var(--element-radius);
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
 }
 
 /* Теги */
 
 .tags-container {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
-    flex-wrap: nowrap;
     gap: 3px;
 
     width: 100%;
+    max-width: 100%;
     min-width: 0;
 
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
+    container-type: inline-size;
+    overflow: hidden;
 }
 
 .tags-container::-webkit-scrollbar {
@@ -130,25 +118,28 @@ input {
     align-items: center;
     justify-content: center;
 
-    flex: 1 1 0;
-    width: auto;
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     min-height: 0;
     margin: 0;
     padding: 2px 6px;
 
-    color: #fff;
-    font-size: 38px;
-    font-weight: normal;
-    line-height: 0.8;
-    text-align: center;
-    white-space: nowrap;
-
     background: var(--blue);
     border-radius: var(--element-radius);
 
     overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+/* Обложка */
+
+.cover-container {
+    display: flex;
+    justify-content: center;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* Описание */
@@ -158,55 +149,26 @@ input {
     max-width: 100%;
     min-width: 0;
     padding: 24px 10px;
-
-    font-size: 26px;
-    line-height: 1.2;
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
 }
 
 .text-container h3,
 .text-container h4 {
     width: 100%;
     min-width: 0;
-    line-height: 0.95;
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.text-container h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 52px;
-}
-
-.text-container h4 {
-    margin-top: 24px;
-    margin-bottom: 10px;
-    font-size: 42px;
-}
-
-.text-container p {
-    margin: 18px 0;
-    line-height: 1.05;
 }
 
 /* Альбом */
 
 .album {
     width: 100%;
-    padding: 0 var(--page-padding) 24px;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0 10px 24px;
 }
 
 .album-heading {
     margin: 0 0 10px;
-
-    color: #fff;
-    font-size: 42px;
-    font-weight: normal;
-    line-height: 1;
 }
 
 .track-list {
@@ -243,10 +205,6 @@ input {
     min-width: 0;
     padding: 14px 12px;
 
-    color: #fff;
-    font: inherit;
-    text-align: left;
-
     background: transparent;
     border: 0;
     cursor: pointer;
@@ -268,19 +226,12 @@ input {
     width: 48px;
 
     opacity: 0.7;
-    font-size: 24px;
 }
 
 /* Название трека */
 
 .track-name {
     min-width: 0;
-
-    font-size: 28px;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* Значок запуска */
@@ -288,8 +239,6 @@ input {
 .track-play {
     margin-left: auto;
     padding-left: 12px;
-
-    font-size: 24px;
 }
 
 /* Ссылки на скачивание */
@@ -302,16 +251,6 @@ input {
     padding: 0 12px;
 }
 
-.track-downloads a {
-    color: #fff;
-    font-size: 16px;
-    text-decoration: none;
-}
-
-.track-downloads a:hover {
-    text-decoration: underline;
-}
-
 /* Активный трек */
 
 .track.is-active {
@@ -319,24 +258,20 @@ input {
     outline-offset: -2px;
 }
 
-.track.is-active .track-play {
-    color: #fff;
-}
-
 /* Область плеера */
 
 .audio-player-slot {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     min-height: 70px;
-    margin-left: calc(50% - 50vw);
+    margin: 0;
     padding: 0;
 }
 
 .audio-player-container {
     width: 100%;
-    max-width: none;
+    max-width: 100%;
     min-width: 0;
     min-height: 54px;
     margin: 0;
@@ -382,22 +317,12 @@ input {
 
 @media (max-width: 700px) {
     .tags-container {
-        display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 3px;
-
-        width: 100%;
-        overflow: visible;
     }
 
     .tag {
-        width: 100%;
-        min-width: 0;
-        min-height: 0;
         padding: 2px 4px;
-
-        font-size: 38px;
-        line-height: 0.8;
     }
 
     .track {
@@ -420,43 +345,24 @@ input {
     .search {
         min-height: 66px;
         padding: 8px 6px;
-        font-size: 44px;
     }
 
     .title {
         min-height: 100px;
         padding: 10px 6px;
-        font-size: 80px;
     }
 
     .tag {
-        min-height: 0;
         padding: 2px 3px;
-        font-size: 18px;
-        line-height: 0.8;
     }
 
     .text-container {
         padding: 20px 8px;
-        font-size: 24px;
-    }
-
-    .text-container h3 {
-        font-size: 32px;
-    }
-
-    .text-container h4 {
-        margin-top: 20px;
-        font-size: 18px;
     }
 
     .album {
-        padding-right: var(--page-padding);
-        padding-left: var(--page-padding);
-    }
-
-    .album-heading {
-        font-size: 30px;
+        padding-right: 8px;
+        padding-left: 8px;
     }
 
     .track-button {
@@ -466,24 +372,11 @@ input {
     .track-number {
         flex-basis: 34px;
         width: 34px;
-        font-size: 17px;
-    }
-
-    .track-name {
-        font-size: 20px;
-    }
-
-    .track-play {
-        font-size: 18px;
     }
 
     .track-downloads {
         gap: 6px;
         padding: 0 8px 8px;
-    }
-
-    .track-downloads a {
-        font-size: 13px;
     }
 
     .audio-player-container {
@@ -504,54 +397,31 @@ input {
 
 @media (min-width: 701px) {
     .tags-container {
-        display: flex;
-        flex-wrap: nowrap;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 4px;
-
-        overflow-x: auto;
-        overflow-y: hidden;
     }
 
     .tag {
-        flex: 1 1 0;
-        min-height: 0;
         padding: 2px 8px;
-
-        font-size: 48px;
-        line-height: 0.8;
     }
 
     .search {
         min-height: 68px;
         padding: 10px;
-        font-size: 40px;
     }
 
     .title {
         min-height: 110px;
         padding: 16px;
-        font-size: 80px;
     }
 
     .text-container {
         padding: 26px 12px;
-        font-size: 18px;
     }
 
-    .text-container h3 {
-        font-size: 36px;
-    }
-
-    .text-container h4 {
-        font-size: 28px;
-    }
-
-    .album-heading {
-        font-size: 36px;
-    }
-
-    .track-name {
-        font-size: 24px;
+    .album {
+        padding-right: 12px;
+        padding-left: 12px;
     }
 
     .audio-player-container {
@@ -573,40 +443,14 @@ input {
 @media (min-width: 1100px) {
     .search {
         min-height: 72px;
-        font-size: 56px;
     }
 
     .title {
         min-height: 130px;
-        font-size: 120px;
     }
 
     .tag {
-        min-height: 0;
         padding: 2px 8px;
-
-        font-size: 64px;
-        line-height: 0.8;
-    }
-
-    .text-container {
-        font-size: 20px;
-    }
-
-    .text-container h3 {
-        font-size: 48px;
-    }
-
-    .text-container h4 {
-        font-size: 36px;
-    }
-
-    .album-heading {
-        font-size: 42px;
-    }
-
-    .track-name {
-        font-size: 28px;
     }
 }
 
@@ -615,39 +459,13 @@ input {
 @media (min-width: 1400px) {
     .search {
         min-height: 78px;
-        font-size: 72px;
     }
 
     .title {
         min-height: 150px;
-        font-size: 160px;
     }
 
     .tag {
-        min-height: 0;
         padding: 2px 8px;
-
-        font-size: 82px;
-        line-height: 0.8;
-    }
-
-    .text-container {
-        font-size: 22px;
-    }
-
-    .text-container h3 {
-        font-size: 64px;
-    }
-
-    .text-container h4 {
-        font-size: 48px;
-    }
-
-    .album-heading {
-        font-size: 52px;
-    }
-
-    .track-name {
-        font-size: 34px;
     }
 }

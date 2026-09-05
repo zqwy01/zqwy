@@ -1,98 +1,41 @@
-@font-face {
-    font-family: "Biela";
-    src: url("fonts/biela.woff2") format("woff2");
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
+@font-face{font-family:"Biela";src:url("fonts/biela.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
 
-html,
-body {
-    margin: 0;
-    padding: 0;
-    font-family: "Biela", sans-serif;
-    font-weight: 400;
-    font-style: normal;
-    line-height: 1;
+html,body{font-family:"Biela",Arial,sans-serif;color:#fff}
 
-    color: #ffffff;
+button,input{font-family:inherit;color:inherit}
 
-    /* Запрещает браузеру искусственно делать шрифт жирным */
-    font-synthesis: none;
-}
+.search{color:#fff;font-family:inherit;font-size:clamp(3rem,6vw,5rem);font-weight:400;line-height:1;text-align:center;overflow-wrap:anywhere;word-break:break-word}
 
-body * {
-    font-family: inherit;
-    font-weight: inherit;
-    font-style: inherit;
-}
+.search::placeholder{color:rgba(255,255,255,.8)}
 
-/* Сбрасываем стандартную жирность заголовков браузера */
+.title{color:#fff;font-size:clamp(6rem,12vw,11rem);font-weight:400;line-height:.9;text-align:center;overflow-wrap:anywhere;word-break:break-word}
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    font-weight: 400;
-    font-style: normal;
-}
+.tag{color:#fff;font-size:clamp(1.15rem,6cqw,4.2rem);font-weight:400;line-height:.9;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Заголовки */
+.text-container{color:#fff;font-size:clamp(1.35rem,2.8vw,1.75rem);line-height:1.2;overflow-wrap:anywhere;word-break:break-word}
 
-h1 {
-    line-height: 0.6 !important;
-    margin: 0;
-}
+.text-container h1,.text-container h2{width:100%;min-width:0;margin-top:0;margin-bottom:10px;color:#fff;font-size:clamp(2.25rem,6vw,4rem);font-weight:400;line-height:.95;overflow-wrap:anywhere;word-break:break-word}
 
-h2 {
-    line-height: 0.8 !important;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-}
+.text-container h3,.text-container h4{width:100%;min-width:0;color:#fff;font-weight:400;line-height:.95;overflow-wrap:anywhere;word-break:break-word}
 
-h3 {
-    line-height: 0.6 !important;
-    margin: 0;
-    margin-bottom: 1rem;
-}
+.text-container h3{margin-top:0;margin-bottom:10px;font-size:clamp(2.5rem,6vw,4.5rem)}
 
-h4 {
-    line-height: 0.8 !important;
-    margin: 0;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-}
+.text-container h4{margin-top:24px;margin-bottom:10px;font-size:clamp(1.5rem,4.5vw,3.25rem)}
 
-h5,
-h6 {
-    margin: 0;
-    font-weight: 400;
-}
+.text-container p{line-height:1.05}
 
-/* Дополнительная защита для заголовков в основном тексте */
+.album-heading{color:#fff;font-size:clamp(2.25rem,5vw,3.5rem);font-weight:400;line-height:1}
 
-.text-container h1,
-.text-container h2,
-.text-container h3,
-.text-container h4,
-.text-container h5,
-.text-container h6 {
-    font-family: "Biela", sans-serif;
-    font-weight: 400;
-    font-style: normal;
-}
+.track-button{color:#fff;font:inherit;text-align:left}
 
-/* Выделение текста */
+.track-number{font-size:clamp(1.25rem,2.2vw,1.75rem)}
 
-::selection {
-    background: rgba(255, 255, 255, 0.25);
-    color: black;
+.track-name{font-size:clamp(1.5rem,3.2vw,2.3rem);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    text-shadow:
-    -1px -1px 0 white,
-    1px -1px 0 white,
-    -1px  1px 0 white,
-    1px  1px 0 white;
-}
+.track-play{font-size:clamp(1.4rem,2.2vw,1.75rem)}
+
+.track-downloads a{color:#fff;font-size:clamp(.95rem,1.3vw,1.15rem);text-decoration:none}
+
+.track-downloads a:hover{text-decoration:underline}
+
+.track.is-active .track-play{color:#fff}

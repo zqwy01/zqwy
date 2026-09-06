@@ -10,7 +10,7 @@ button,input{font-family:inherit;color:inherit}
 
 .title{color:#fff;font-size:clamp(6rem,12vw,11rem);font-weight:400;line-height:.9;text-align:center;overflow-wrap:anywhere;word-break:break-word}
 
-.tag{color:#fff;font-size:clamp(1.1rem,5.5cqw,3.8rem);font-weight:400;line-height:.95;text-align:center;white-space:normal;overflow:visible;overflow-wrap:anywhere;word-break:break-word;text-overflow:clip}
+.tag{color:#fff;font-size:clamp(1.15rem,6cqw,4.2rem);font-weight:400;line-height:.9;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .text-container{color:#fff;font-size:clamp(1.35rem,2.8vw,1.75rem);line-height:1.2;overflow-wrap:anywhere;word-break:break-word}
 

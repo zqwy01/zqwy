@@ -4,6 +4,8 @@
     --element-radius: 8px;
 }
 
+/* Базовые настройки */
+
 *,
 *::before,
 *::after {
@@ -23,17 +25,24 @@ body {
     background: #f2f2f2;
 }
 
-.page,
-.page-content {
+/* Основная область страницы */
+
+.page {
     width: 100%;
     max-width: 100%;
     min-width: 0;
 }
 
 .page-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     margin: 0 auto;
-    padding: 0 var(--page-padding);
+    padding-right: var(--page-padding);
+    padding-left: var(--page-padding);
 }
+
+/* Общие контейнеры */
 
 .container {
     width: 100%;
@@ -43,9 +52,9 @@ body {
     padding: 0;
 }
 
-.search-container,
-.title-container,
-.cover-container {
+/* Поиск */
+
+.search-container {
     display: flex;
     width: 100%;
 }
@@ -55,35 +64,49 @@ body {
     min-width: 0;
     min-height: 72px;
     padding: 10px 8px;
+
     background: var(--blue);
     border: 0;
     border-radius: var(--element-radius);
     outline: 0;
 }
 
+/* Заголовок альбома или трека */
+
+.title-container {
+    display: flex;
+    width: 100%;
+}
+
 .title {
     display: flex;
     align-items: center;
     justify-content: center;
+
     width: 100%;
     min-width: 0;
     min-height: 120px;
     margin: 0;
     padding: 12px 8px;
+
     background: var(--blue);
     border-radius: var(--element-radius);
 }
+
+/* Теги */
 
 .tags-container {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
     gap: 3px;
+
     width: 100%;
     max-width: 100%;
     min-width: 0;
+
     container-type: inline-size;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .tags-container::-webkit-scrollbar {
@@ -94,17 +117,32 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+
     width: 100%;
     max-width: 100%;
     min-width: 0;
     min-height: 0;
     margin: 0;
-    padding: 2px 4px;
+    padding: 2px 6px;
+
     background: var(--blue);
     border-radius: var(--element-radius);
-    overflow: visible;
-    text-align: center;
+
+    overflow: hidden;
 }
+
+/* Обложка */
+
+.cover-container {
+    display: flex;
+    justify-content: center;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* Описание */
 
 .text-container {
     width: 100%;
@@ -118,6 +156,8 @@ body {
     width: 100%;
     min-width: 0;
 }
+
+/* Альбом */
 
 .album {
     width: 100%;
@@ -135,28 +175,36 @@ body {
     display: flex;
     flex-direction: column;
     gap: 4px;
+
     width: 100%;
     margin: 0;
     padding: 0;
+
     list-style: none;
 }
 
 .track {
     display: flex;
     align-items: stretch;
+
     width: 100%;
     min-width: 0;
+
     background: var(--blue);
     border-radius: var(--element-radius);
     overflow: hidden;
 }
 
+/* Кнопка трека */
+
 .track-button {
     display: flex;
     align-items: center;
+
     flex: 1 1 auto;
     min-width: 0;
     padding: 14px 12px;
+
     background: transparent;
     border: 0;
     cursor: pointer;
@@ -171,32 +219,46 @@ body {
     outline-offset: -2px;
 }
 
+/* Номер трека */
+
 .track-number {
     flex: 0 0 48px;
     width: 48px;
+
     opacity: 0.7;
 }
+
+/* Название трека */
 
 .track-name {
     min-width: 0;
 }
+
+/* Значок запуска */
 
 .track-play {
     margin-left: auto;
     padding-left: 12px;
 }
 
+/* Ссылки на скачивание */
+
 .track-downloads {
     display: flex;
     align-items: center;
     gap: 8px;
+
     padding: 0 12px;
 }
+
+/* Активный трек */
 
 .track.is-active {
     outline: 2px solid #fff;
     outline-offset: -2px;
 }
+
+/* Область плеера */
 
 .audio-player-slot {
     width: 100%;
@@ -214,10 +276,12 @@ body {
     min-height: 54px;
     margin: 0;
     padding: 6px;
+
     background: rgba(34, 34, 34, 0);
     border: 2px solid var(--blue);
     border-radius: var(--element-radius);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0);
+
     overflow: hidden;
 }
 
@@ -227,11 +291,13 @@ body {
     right: 0;
     bottom: 0;
     left: 0;
+
     width: 100vw;
     max-width: 100vw;
     min-height: 0;
     padding: 6px 8px;
     padding-bottom: calc(6px + env(safe-area-inset-bottom));
+
     background: rgba(34, 34, 34, 0.88);
     border: 0;
     border-top: 2px solid var(--blue);
@@ -241,10 +307,13 @@ body {
 
 .audio-player {
     display: block;
+
     width: 100%;
     max-width: 100%;
     height: 42px;
 }
+
+/* Экраны до 700 px */
 
 @media (max-width: 700px) {
     .tags-container {
@@ -253,7 +322,7 @@ body {
     }
 
     .tag {
-        padding: 2px 3px;
+        padding: 2px 4px;
     }
 
     .track {
@@ -270,6 +339,8 @@ body {
     }
 }
 
+/* Очень маленькие экраны */
+
 @media (max-width: 380px) {
     .search {
         min-height: 66px;
@@ -282,7 +353,7 @@ body {
     }
 
     .tag {
-        padding: 2px;
+        padding: 2px 3px;
     }
 
     .text-container {
@@ -290,7 +361,8 @@ body {
     }
 
     .album {
-        padding: 0 8px 24px;
+        padding-right: 8px;
+        padding-left: 8px;
     }
 
     .track-button {
@@ -321,6 +393,8 @@ body {
     }
 }
 
+/* Планшеты и небольшие ноутбуки */
+
 @media (min-width: 701px) {
     .tags-container {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -328,7 +402,7 @@ body {
     }
 
     .tag {
-        padding: 3px 5px;
+        padding: 2px 8px;
     }
 
     .search {
@@ -346,7 +420,8 @@ body {
     }
 
     .album {
-        padding: 0 12px 24px;
+        padding-right: 12px;
+        padding-left: 12px;
     }
 
     .audio-player-container {
@@ -363,6 +438,8 @@ body {
     }
 }
 
+/* Большие экраны */
+
 @media (min-width: 1100px) {
     .search {
         min-height: 72px;
@@ -371,7 +448,13 @@ body {
     .title {
         min-height: 130px;
     }
+
+    .tag {
+        padding: 2px 8px;
+    }
 }
+
+/* Очень большие экраны */
 
 @media (min-width: 1400px) {
     .search {
@@ -380,5 +463,9 @@ body {
 
     .title {
         min-height: 150px;
+    }
+
+    .tag {
+        padding: 2px 8px;
     }
 }

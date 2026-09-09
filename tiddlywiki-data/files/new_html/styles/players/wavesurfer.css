@@ -114,3 +114,17 @@
         background-position: -8640px 0;
     }
 }
+
+
+#audioPlayer,
+#albumPlayer,
+.tc-player-switcher,
+.tc-player-switcher-player,
+.wavesurfer-wrapper,
+.wavesurfer-timeline {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}

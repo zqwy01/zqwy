@@ -119,16 +119,15 @@ body {
     min-width: 0;
 }
 
+/* Треклист */
+
 .album {
     width: 100%;
     max-width: 100%;
     min-width: 0;
     margin: 0;
-    padding: 0 10px 24px;
-}
-
-.album-heading {
-    margin: 0 0 10px;
+    padding: 0 10px;
+    overflow: visible;
 }
 
 .track-list {
@@ -144,17 +143,30 @@ body {
 .track {
     display: flex;
     align-items: stretch;
+    position: relative;
+    z-index: 1;
     width: 100%;
     min-width: 0;
     background: var(--blue);
     border-radius: var(--element-radius);
-    overflow: hidden;
+    overflow: visible;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.track:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .track-button {
     display: flex;
     align-items: center;
+    position: relative;
+    z-index: 1;
     flex: 1 1 auto;
+    gap: 0;
+    width: 100%;
     min-width: 0;
     padding: 14px 12px;
     background: transparent;
@@ -163,17 +175,19 @@ body {
 }
 
 .track-button:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: transparent;
 }
 
 .track-button:focus-visible {
     outline: 2px solid #fff;
-    outline-offset: -2px;
+    outline-offset: 2px;
 }
 
 .track-number {
-    flex: 0 0 48px;
-    width: 48px;
+    flex: 0 0 18px !important;
+    width: 18px !important;
+    margin: 0;
+    padding: 0;
     opacity: 0.7;
 }
 
@@ -182,21 +196,33 @@ body {
 }
 
 .track-play {
-    margin-left: auto;
-    padding-left: 12px;
+    display: none;
 }
 
 .track-downloads {
     display: flex;
     align-items: center;
+    position: relative;
+    z-index: 2;
     gap: 8px;
     padding: 0 12px;
 }
 
 .track.is-active {
-    outline: 2px solid #fff;
-    outline-offset: -2px;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
 }
+
+/* Отступ между треклистом и описанием */
+
+.album + .text-container {
+    padding-top: 8px;
+}
+
+.album + .text-container h3 {
+    margin-top: 0;
+}
+
+/* Аудиоплеер */
 
 .audio-player-slot {
     width: 100%;
@@ -218,7 +244,7 @@ body {
     border: 2px solid var(--blue);
     border-radius: var(--element-radius);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0);
-    overflow: hidden;
+    overflow: visible;
 }
 
 .audio-player-container.is-fixed {
@@ -237,6 +263,7 @@ body {
     border-top: 2px solid var(--blue);
     border-radius: 0;
     box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.2);
+    overflow: visible;
 }
 
 .audio-player {
@@ -290,7 +317,7 @@ body {
     }
 
     .album {
-        padding: 0 8px 24px;
+        padding: 0 8px;
     }
 
     .track-button {
@@ -298,8 +325,8 @@ body {
     }
 
     .track-number {
-        flex-basis: 34px;
-        width: 34px;
+        flex-basis: 18px !important;
+        width: 18px !important;
     }
 
     .track-downloads {
@@ -346,7 +373,7 @@ body {
     }
 
     .album {
-        padding: 0 12px 24px;
+        padding: 0 12px;
     }
 
     .audio-player-container {

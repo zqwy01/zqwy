@@ -1,0 +1,65 @@
+.album-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.album-heading::-webkit-details-marker {
+    display: none;
+}
+
+.album-heading::marker {
+    content: "";
+}
+
+.album-title {
+    margin: 0;
+}
+
+.album-arrow {
+    display: inline-block;
+    transition: transform 0.35s ease;
+}
+
+.album[open] .album-arrow {
+    transform: rotate(180deg);
+}
+
+.album-content {
+    overflow: hidden;
+    transform-origin: top;
+}
+
+.album-content.is-opening {
+    animation: album-open 0.35s ease both;
+}
+
+.album-content.is-closing {
+    animation: album-close 0.35s ease both;
+}
+
+@keyframes album-open {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes album-close {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+}

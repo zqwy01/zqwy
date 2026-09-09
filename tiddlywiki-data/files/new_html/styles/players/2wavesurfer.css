@@ -126,5 +126,15 @@
     max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    overflow: hidden;
+}
+
+#audioPlayer {
+    padding-inline: 0;
+    border: 0;
+    overflow: visible;
+}
+
+.wavesurfer-wrapper,
+.wavesurfer-timeline {
+    overflow: visible;
 }

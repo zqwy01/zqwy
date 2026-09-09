@@ -1,9 +1,68 @@
+/* =========================================================
+   Альбом
+   ========================================================= */
+
+.album {
+    position: relative;
+    z-index: 1;
+
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.album[open] {
+    position: relative;
+    z-index: 1000;
+
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.text-container.album {
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* =========================================================
+   Заголовок альбома
+   ========================================================= */
+
 .album-heading {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+
+    position: relative;
+    z-index: 10;
+
+    box-sizing: border-box;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+
+    margin: 0;
+    padding: 0;
+
     cursor: pointer;
     list-style: none;
+    user-select: none;
+
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.album-heading:focus,
+.album-heading:focus-visible,
+.album-heading:active {
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .album-heading::-webkit-details-marker {
@@ -14,12 +73,56 @@
     content: "";
 }
 
+/* =========================================================
+   Название альбома
+   ========================================================= */
+
 .album-title {
+    display: block;
+
+    position: relative;
+    z-index: 11;
+
+    box-sizing: border-box;
+    min-width: 0;
+    width: auto;
+
     margin: 0;
+    padding: 0;
+
+    flex: 0 1 auto;
+
+    overflow-wrap: anywhere;
 }
 
+/* =========================================================
+   Стрелка рядом с названием
+   ========================================================= */
+
 .album-arrow {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+    z-index: 12;
+
+    box-sizing: border-box;
+
+    flex: 0 0 24px;
+
+    width: 24px;
+    height: 24px;
+
+    margin: 0 0 0 8px;
+    padding: 0;
+
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+
+    pointer-events: none;
+    transform-origin: center;
     transition: transform 0.35s ease;
 }
 
@@ -27,39 +130,266 @@
     transform: rotate(180deg);
 }
 
+/* =========================================================
+   Содержимое альбома
+   ========================================================= */
+
 .album-content {
+    display: block;
+
+    position: relative;
+    z-index: 1;
+
+    box-sizing: border-box;
+    width: 100%;
+    height: 0;
+    margin: 0;
+    padding: 0;
+
     overflow: hidden;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
     transform-origin: top;
+
+    transition:
+        height 0.35s ease,
+        opacity 0.25s ease,
+        transform 0.35s ease,
+        visibility 0s linear 0.35s;
+
+    will-change: height, opacity, transform;
+    user-select: text;
 }
 
-.album-content.is-opening {
-    animation: album-open 0.35s ease both;
+.album-content.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+
+    transition:
+        height 0.35s ease,
+        opacity 0.25s ease,
+        transform 0.35s ease,
+        visibility 0s linear 0s;
 }
 
+/*
+ * Во время открытия и закрытия содержимое
+ * должно обрезаться для корректной анимации.
+ */
+.album-content.is-opening,
 .album-content.is-closing {
-    animation: album-close 0.35s ease both;
+    overflow: hidden !important;
 }
 
-@keyframes album-open {
-    from {
-        opacity: 0;
-        transform: translateY(-12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/*
+ * После завершения открытия разрешаем иконкам,
+ * теням и другим элементам выходить за границы строки.
+ */
+.album-content.is-settled {
+    overflow: visible !important;
 }
 
-@keyframes album-close {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* =========================================================
+   Список треков
+   ========================================================= */
 
-    to {
-        opacity: 0;
-        transform: translateY(-12px);
-    }
+.track-list {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding-left: 0;
+
+    list-style: none;
+}
+
+/* =========================================================
+   Треки
+   ========================================================= */
+
+.track,
+.track-row,
+.track-item {
+    position: relative;
+    z-index: 1;
+
+    box-sizing: border-box;
+    isolation: isolate;
+
+    margin: 0;
+
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+
+    user-select: text;
+
+    /*
+     * Иконки не обрезаются самим треком.
+     */
+    overflow: visible;
+}
+
+.track.is-active,
+.track-row.is-active,
+.track-item.is-active {
+    z-index: 2;
+}
+
+/* =========================================================
+   Анимационная рамка
+   ========================================================= */
+
+.track::before,
+.track-row::before,
+.track-item::before {
+    content: "";
+
+    position: absolute;
+
+    /*
+     * Рамка немного отступает от краёв трека.
+     */
+    inset: 1px;
+
+    /*
+     * Рамка находится под текстом и иконками.
+     */
+    z-index: 0;
+
+    box-sizing: border-box;
+
+    border: 1px solid currentColor;
+    border-radius: 6px;
+
+    background: transparent;
+
+    opacity: 0;
+    transform: scale(0.97);
+    transform-origin: center;
+
+    pointer-events: none;
+
+    transition:
+        opacity 0.35s ease,
+        transform 0.35s ease;
+}
+
+.album-content.is-opening .track.is-active::before,
+.album-content.is-opening .track-row.is-active::before,
+.album-content.is-opening .track-item.is-active::before,
+
+.album-content.is-settled .track.is-active::before,
+.album-content.is-settled .track-row.is-active::before,
+.album-content.is-settled .track-item.is-active::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.album-content.is-closing .track.is-active::before,
+.album-content.is-closing .track-row.is-active::before,
+.album-content.is-closing .track-item.is-active::before {
+    opacity: 0;
+    transform: scale(0.97);
+}
+
+/* =========================================================
+   Содержимое строки поверх рамки
+   ========================================================= */
+
+.track > *,
+.track-row > *,
+.track-item > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* =========================================================
+   Иконки
+   ========================================================= */
+
+.track svg,
+.track-row svg,
+.track-item svg,
+.track img,
+.track-row img,
+.track-item img {
+    position: relative;
+    z-index: 1;
+
+    /*
+     * Небольшая тень отделяет иконку от рамки.
+     */
+    filter: drop-shadow(
+        0 0 1px var(
+            --track-icon-shadow,
+            rgba(0, 0, 0, 0.7)
+        )
+    );
+}
+
+/* =========================================================
+   Кнопки и ссылки
+   ========================================================= */
+
+.track-button {
+    position: relative;
+    z-index: 1;
+
+    border: 0;
+    outline: none;
+    box-shadow: none;
+}
+
+.track-button:focus,
+.track-button:focus-visible,
+.track-button:active {
+    border: 0;
+    outline: none;
+    box-shadow: none;
+}
+
+.track a,
+.track-row a,
+.track-item a,
+.track-title,
+.track-name {
+    position: relative;
+    z-index: 1;
+
+    user-select: text;
+}
+
+/* =========================================================
+   Выделение текста
+   ========================================================= */
+
+.track::selection,
+.track *::selection,
+.track-row::selection,
+.track-row *::selection,
+.track-item::selection,
+.track-item *::selection {
+    background: #4f7cff;
+    color: #ffffff;
+}
+
+/* =========================================================
+   Псевдоэлементы не перехватывают клики
+   ========================================================= */
+
+.album::before,
+.album::after,
+
+.track::before,
+.track::after,
+
+.track-row::before,
+.track-row::after,
+
+.track-item::before,
+.track-item::after {
+    pointer-events: none;
 }

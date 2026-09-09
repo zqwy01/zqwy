@@ -234,13 +234,13 @@ const wavesurferPlayer = {
                     }),
                     Timeline.create({
                         container: timelineContainer,
-                        height: 28,
-                        timeInterval: 5,
-                        primaryLabelInterval: 10,
-                        secondaryLabelInterval: 5,
+                        height: 42, //28
+                        timeInterval: 30, //30 20
+                        primaryLabelInterval: 30, //20
+                        //secondaryLabelInterval: 5,
                         style: {
-                            fontSize: "16px",
-                            color: "#757575"
+                            fontSize: "clamp(1.1rem, 3.2vw, 2.2rem)",
+                            color: "White", // "#757575"
                         }
                     })
                 ]

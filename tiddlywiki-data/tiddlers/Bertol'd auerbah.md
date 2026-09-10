@@ -1,1 +1,0 @@
-Жанр martial, warsong, neoclassical, drone

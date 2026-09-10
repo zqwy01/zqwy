@@ -5,6 +5,10 @@ import { markdownToHtml } from "./markdown.js";
 
 const DEFAULT_COVER = "/images/default-cover.webp";
 
+const DEFAULT_ASSET_PREFIX = "../";
+const DEFAULT_COVER_PREFIX = "../../src/";
+const DEFAULT_TRACKS_PREFIX = "../../src/tracks/";
+
 export function readJson(filePath) {
   try {
     return JSON.parse(
@@ -33,11 +37,11 @@ export function readTemplate(filePath) {
 
 export function escapeHtml(value) {
   return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#039;");
 }
 
 export function replaceVariable(
@@ -53,34 +57,34 @@ export function replaceVariable(
 
 export function sanitizeFileName(value) {
   return String(value ?? "")
-    .trim()
-    .replaceAll("/", "-")
-    .replaceAll("\\", "-")
-    .replaceAll(":", "-")
-    .replaceAll("*", "-")
-    .replaceAll("?", "")
-    .replaceAll('"', "")
-    .replaceAll("<", "-")
-    .replaceAll(">", "-")
-    .replaceAll("|", "-");
+  .trim()
+  .replaceAll("/", "-")
+  .replaceAll("\\", "-")
+  .replaceAll(":", "-")
+  .replaceAll("*", "-")
+  .replaceAll("?", "")
+  .replaceAll('"', "")
+  .replaceAll("<", "-")
+  .replaceAll(">", "-")
+  .replaceAll("|", "-");
 }
 
 export function getReleaseType(item) {
   const releaseSize =
-    item?.music?.releaseSize ??
-    item?.releaseSize;
+  item?.music?.releaseSize ??
+  item?.releaseSize;
 
   if (typeof releaseSize !== "string") {
     return null;
   }
 
   const normalized =
-    releaseSize.trim().toLowerCase();
+  releaseSize.trim().toLowerCase();
 
   return normalized === "single" ||
-    normalized === "album"
-    ? normalized
-    : null;
+  normalized === "album"
+  ? normalized
+  : null;
 }
 
 export function isAlbum(item) {
@@ -93,20 +97,20 @@ export function createTagsHtml(tags) {
   }
 
   return tags
-    .filter((tag) => {
-      return (
-        tag !== null &&
-        tag !== undefined &&
-        String(tag).trim() !== ""
-      );
-    })
-    .map((tag) => {
-      return `
-        <h2 class="tag">
-          ${escapeHtml(tag)}
-        </h2>`;
-    })
-    .join("");
+  .filter((tag) => {
+    return (
+      tag !== null &&
+      tag !== undefined &&
+      String(tag).trim() !== ""
+    );
+  })
+  .map((tag) => {
+    return `
+    <h2 class="tag">
+    ${escapeHtml(tag)}
+    </h2>`;
+  })
+  .join("");
 }
 
 export function createDescriptionHtml(text) {
@@ -115,9 +119,9 @@ export function createDescriptionHtml(text) {
   }
 
   return `
-    <div class="description">
-      ${markdownToHtml(text)}
-    </div>`;
+  <div class="description">
+  ${markdownToHtml(text)}
+  </div>`;
 }
 
 export function getTrackNumber(
@@ -149,13 +153,13 @@ export function getTrackNumber(
   });
 
   const result =
-    trackNumber !== undefined
-      ? Number(trackNumber)
-      : Number(fallbackNumber);
+  trackNumber !== undefined
+  ? Number(trackNumber)
+  : Number(fallbackNumber);
 
   return Number.isFinite(result) && result > 0
-    ? String(result)
-    : "1";
+  ? String(result)
+  : "1";
 }
 
 export function getTrackReleaseName(
@@ -173,7 +177,7 @@ export function buildTrackSource(
   albumReleaseName,
   trackReleaseName,
   trackNumber,
-  tracksPrefix = "../../tracks/"
+  tracksPrefix = DEFAULT_TRACKS_PREFIX
 ) {
   if (
     !albumReleaseName ||
@@ -183,7 +187,7 @@ export function buildTrackSource(
   }
 
   const trackFolder =
-    `${trackNumber}_zqwy_${trackReleaseName}`;
+  `${trackNumber}_zqwy_${trackReleaseName}`;
 
   return (
     `${tracksPrefix}` +
@@ -193,33 +197,33 @@ export function buildTrackSource(
   );
 }
 
-export function getAudioSource(
+export function getOpusSource(
   item,
   albumReleaseName = "",
   fallbackNumber = 1,
-  tracksPrefix = "../../tracks/"
+  tracksPrefix = DEFAULT_TRACKS_PREFIX
 ) {
-  const trackNumber =
-    getTrackNumber(
-      item,
-      fallbackNumber
-    );
-
-  const opusSource =
-    item?.media?.opus || "";
+  const storedOpusSource =
+  item?.media?.opus || "";
 
   if (
-    opusSource &&
-    !opusSource.endsWith("/")
+    storedOpusSource &&
+    !storedOpusSource.endsWith("/")
   ) {
-    return opusSource;
+    return storedOpusSource;
   }
 
+  const trackNumber =
+  getTrackNumber(
+    item,
+    fallbackNumber
+  );
+
   const trackReleaseName =
-    getTrackReleaseName(
-      item,
-      albumReleaseName
-    );
+  getTrackReleaseName(
+    item,
+    albumReleaseName
+  );
 
   return buildTrackSource(
     albumReleaseName,
@@ -229,127 +233,187 @@ export function getAudioSource(
   );
 }
 
+export function getAudioSource(
+  item,
+  albumReleaseName = "",
+  fallbackNumber = 1,
+  tracksPrefix = DEFAULT_TRACKS_PREFIX
+) {
+  return getOpusSource(
+    item,
+    albumReleaseName,
+    fallbackNumber,
+    tracksPrefix
+  );
+}
+
 export function createTrackHtml(
   item,
   fallbackNumber = 1,
   albumReleaseName = "",
-  tracksPrefix = "../../tracks/"
+  tracksPrefix = DEFAULT_TRACKS_PREFIX,
+  assetPrefix = DEFAULT_ASSET_PREFIX
 ) {
   const title =
-    item?.title ||
-    "Без названия";
+  item?.title ||
+  "Без названия";
 
-  const trackNumber =
+    const trackNumber =
     getTrackNumber(
       item,
       fallbackNumber
     );
 
-  const audioSource =
-    getAudioSource(
+    const opusSource =
+    getOpusSource(
       item,
       albumReleaseName,
       fallbackNumber,
       tracksPrefix
     );
 
-  const wavSource =
+    const audioSource =
+    opusSource;
+
+    const wavSource =
     item?.media?.wav || "";
 
-  const mp3Source =
+    const mp3Source =
     item?.media?.mp3 || "";
 
-  const wavLink = wavSource
-    ? `
-      <a
-        href="${escapeHtml(wavSource)}"
-        class="logo-link"
-        aria-label="Скачать WAV"
-      >
-        <img
-          src="{{assetPrefix}}icons/download_wav.webp"
-          alt="Скачать WAV"
-        />
-      </a>`
-    : "";
+    const flacSource =
+    item?.media?.flac || "";
 
-  const mp3Link = mp3Source
+    const opusLink = opusSource
     ? `
-      <a
-        href="${escapeHtml(mp3Source)}"
-        class="logo-link"
-        aria-label="Скачать MP3"
-      >
-        <img
-          src="{{assetPrefix}}icons/download_mp3.webp"
-          alt="Скачать MP3"
-        />
-      </a>`
-    : "";
-
-  return `
-    <li
-      class="track"
-      data-src="${escapeHtml(audioSource)}"
-      data-wav="${escapeHtml(wavSource)}"
-      data-mp3="${escapeHtml(mp3Source)}"
+    <a
+    href="${escapeHtml(opusSource)}"
+    class="logo-link"
+    download
+    aria-label="Скачать OPUS"
     >
-      <button
-        class="track-button"
-        type="button"
-      >
-        <span class="track-number">
-          ${trackNumber}
-        </span>
+    <img
+    src="${assetPrefix}icons/download_opus.webp"
+    alt="Скачать OPUS"
+    />
+    </a>`
+    : "";
 
-        <span class="track-name">
-          ${escapeHtml(title)}
-        </span>
+    const flacLink = flacSource
+    ? `
+    <a
+    href="${escapeHtml(flacSource)}"
+    class="logo-link"
+    download
+    aria-label="Скачать FLAC"
+    >
+    <img
+    src="${assetPrefix}icons/download_flac.webp"
+    alt="Скачать FLAC"
+    />
+    </a>`
+    : "";
 
-        <span class="track-play">
-          ▶
-        </span>
-      </button>
+    const wavLink = wavSource
+    ? `
+    <a
+    href="${escapeHtml(wavSource)}"
+    class="logo-link"
+    download
+    aria-label="Скачать WAV"
+    >
+    <img
+    src="${assetPrefix}icons/download_wav.webp"
+    alt="Скачать WAV"
+    />
+    </a>`
+    : "";
 
-      <div class="track-downloads">
-        ${wavLink}
-        ${mp3Link}
-      </div>
+    const mp3Link = mp3Source
+    ? `
+    <a
+    href="${escapeHtml(mp3Source)}"
+    class="logo-link"
+    download
+    aria-label="Скачать MP3"
+    >
+    <img
+    src="${assetPrefix}icons/download_mp3.webp"
+    alt="Скачать MP3"
+    />
+    </a>`
+    : "";
+
+    return `
+    <li
+    class="track"
+    data-src="${escapeHtml(audioSource)}"
+    data-opus="${escapeHtml(opusSource)}"
+    data-flac="${escapeHtml(flacSource)}"
+    data-wav="${escapeHtml(wavSource)}"
+    data-mp3="${escapeHtml(mp3Source)}"
+    >
+    <button
+    class="track-button"
+    type="button"
+    >
+    <span class="track-number">
+    ${trackNumber}
+    </span>
+
+    <span class="track-name">
+    ${escapeHtml(title)}
+    </span>
+
+    <span class="track-play">
+    ▶
+    </span>
+    </button>
+
+    <div class="track-downloads">
+    ${opusLink}
+    ${flacLink}
+    ${wavLink}
+    ${mp3Link}
+    </div>
     </li>`;
 }
 
 export function createTracksHtml(
   item,
-  tracksPrefix = "../../tracks/"
+  tracksPrefix = DEFAULT_TRACKS_PREFIX,
+  assetPrefix = DEFAULT_ASSET_PREFIX
 ) {
   const albumReleaseName =
-    String(
-      item?.albumReleaseName ||
-      item?.releaseName ||
-      ""
-    ).trim();
+  String(
+    item?.albumReleaseName ||
+    item?.releaseName ||
+    ""
+  ).trim();
 
   if (isAlbum(item)) {
     const trackList =
-      item?.music?.trackList || [];
+    item?.music?.trackList || [];
 
     return trackList
-      .map((track, index) => {
-        return createTrackHtml(
-          track,
-          index + 1,
-          albumReleaseName,
-          tracksPrefix
-        );
-      })
-      .join("");
+    .map((track, index) => {
+      return createTrackHtml(
+        track,
+        index + 1,
+        albumReleaseName,
+        tracksPrefix,
+        assetPrefix
+      );
+    })
+    .join("");
   }
 
   return createTrackHtml(
     item,
     1,
     albumReleaseName,
-    tracksPrefix
+    tracksPrefix,
+    assetPrefix
   );
 }
 
@@ -367,117 +431,165 @@ export function getFirstTrack(item) {
 export function createPageHtml(
   item,
   template,
-  assetPrefix,
-  coverPrefix,
-  tracksPrefix = "../../tracks/"
+  assetPrefix = DEFAULT_ASSET_PREFIX,
+  coverPrefix = DEFAULT_COVER_PREFIX,
+  tracksPrefix = DEFAULT_TRACKS_PREFIX
 ) {
   const title =
-    item?.title ||
-    "Без названия";
+  item?.title ||
+  "Без названия";
 
-  const albumReleaseName =
+    const albumReleaseName =
     String(
       item?.albumReleaseName ||
       item?.releaseName ||
       ""
     ).trim();
 
-  const tags =
+    const tags =
     createTagsHtml(
       item?.music?.tags
     );
 
-  const cover =
+    const cover =
     item?.media?.cover ||
     DEFAULT_COVER;
 
-  const description =
+    const description =
     createDescriptionHtml(
       item?.content?.text
     );
 
-  const tracks =
+    const tracks =
     createTracksHtml(
       item,
-      tracksPrefix
+      tracksPrefix,
+      assetPrefix
     );
 
-  const firstTrack =
+    const firstTrack =
     getFirstTrack(item);
 
-  const firstTrackSrc =
-    getAudioSource(
+    const firstTrackSrc =
+    getOpusSource(
       firstTrack,
       albumReleaseName,
       1,
       tracksPrefix
     );
 
-  let html = template;
+    const flacSource =
+    item?.media?.flac || "";
 
-  html = replaceVariable(
-    html,
-    "title",
-    escapeHtml(title)
-  );
+    const opusDownloadLink = firstTrackSrc
+    ? `
+    <a
+    href="${escapeHtml(firstTrackSrc)}"
+    class="download-link"
+    download
+    aria-label="Скачать OPUS"
+    >
+    <img
+    src="${assetPrefix}icons/download_opus.webp"
+    alt="Скачать OPUS"
+    >
+    <span>OPUS</span>
+    </a>`
+    : "";
 
-  html = replaceVariable(
-    html,
-    "releaseName",
-    escapeHtml(albumReleaseName)
-  );
+    const flacDownloadLink = flacSource
+    ? `
+    <a
+    href="${escapeHtml(flacSource)}"
+    class="download-link"
+    download
+    aria-label="Скачать FLAC"
+    >
+    <img
+    src="${assetPrefix}icons/download_flac.webp"
+    alt="Скачать FLAC"
+    >
+    <span>FLAC</span>
+    </a>`
+    : "";
 
-  html = replaceVariable(
-    html,
-    "tags",
-    tags
-  );
+    let html = template;
 
-  html = replaceVariable(
-    html,
-    "cover",
-    escapeHtml(cover)
-  );
+    html = replaceVariable(
+      html,
+      "title",
+      escapeHtml(title)
+    );
 
-  html = replaceVariable(
-    html,
-    "coverPrefix",
-    coverPrefix
-  );
+    html = replaceVariable(
+      html,
+      "releaseName",
+      escapeHtml(albumReleaseName)
+    );
 
-  html = replaceVariable(
-    html,
-    "firstTrackSrc",
-    escapeHtml(firstTrackSrc)
-  );
+    html = replaceVariable(
+      html,
+      "tags",
+      tags
+    );
 
-  html = replaceVariable(
-    html,
-    "tracks",
-    tracks
-  );
+    html = replaceVariable(
+      html,
+      "cover",
+      escapeHtml(cover)
+    );
 
-  html = replaceVariable(
-    html,
-    "description",
-    description
-  );
+    html = replaceVariable(
+      html,
+      "coverPrefix",
+      coverPrefix
+    );
 
-  html = replaceVariable(
-    html,
-    "assetPrefix",
-    assetPrefix
-  );
+    html = replaceVariable(
+      html,
+      "firstTrackSrc",
+      escapeHtml(firstTrackSrc)
+    );
 
-  return html;
+    html = replaceVariable(
+      html,
+      "opusDownloadLink",
+      opusDownloadLink
+    );
+
+    html = replaceVariable(
+      html,
+      "flacDownloadLink",
+      flacDownloadLink
+    );
+
+    html = replaceVariable(
+      html,
+      "tracks",
+      tracks
+    );
+
+    html = replaceVariable(
+      html,
+      "description",
+      description
+    );
+
+    html = replaceVariable(
+      html,
+      "assetPrefix",
+      assetPrefix
+    );
+
+    return html;
 }
 
 export function getFileName(item) {
   const name =
-    item?.releaseName ||
-    item?.alias ||
-    item?.title ||
-    item?.id;
+  item?.releaseName ||
+  item?.alias ||
+  item?.title ||
+  item?.id;
 
   if (!name) {
     return null;
@@ -495,10 +607,10 @@ export function collectAlbumPages(album) {
   ];
 
   const trackList =
-    album?.music?.trackList || [];
+  album?.music?.trackList || [];
 
   const albumReleaseName =
-    album?.releaseName || "";
+  album?.releaseName || "";
 
   for (const track of trackList) {
     pages.push({
@@ -522,13 +634,13 @@ function writePage({
   tracksPrefix
 }) {
   const pageHtml =
-    createPageHtml(
-      item,
-      template,
-      assetPrefix,
-      coverPrefix,
-      tracksPrefix
-    );
+  createPageHtml(
+    item,
+    template,
+    assetPrefix,
+    coverPrefix,
+    tracksPrefix
+  );
 
   fs.writeFileSync(
     outputPath,
@@ -555,7 +667,7 @@ export function buildPages({
   let failedCount = 0;
 
   const createdPaths =
-    new Set();
+  new Set();
 
   for (
     const [index, item] of items.entries()
@@ -575,7 +687,7 @@ export function buildPages({
 
     if (mode === "single") {
       const fileName =
-        getFileName(item);
+      getFileName(item);
 
       if (!fileName) {
         console.error(
@@ -588,10 +700,10 @@ export function buildPages({
       }
 
       const outputPath =
-        path.join(
-          outputDirectory,
-          fileName
-        );
+      path.join(
+        outputDirectory,
+        fileName
+      );
 
       if (
         createdPaths.has(outputPath)
@@ -611,9 +723,17 @@ export function buildPages({
           item,
           outputPath,
           template,
+
+          // /files/dev/pages/file.html
+          // /files/dev/styles/style.css
           assetPrefix: "../",
-          coverPrefix: "../../",
-          tracksPrefix: "../../tracks/"
+
+          // /files/dev/pages/file.html
+          // /files/src/covers/...
+          coverPrefix: "../../src/",
+
+          // /files/src/tracks/...
+          tracksPrefix: "../../src/tracks/"
         });
 
         createdPaths.add(outputPath);
@@ -639,12 +759,12 @@ export function buildPages({
 
     if (mode === "album") {
       const albumFolderName =
-        sanitizeFileName(
-          item?.releaseName ||
-          item?.alias ||
-          item?.title ||
-          item?.id
-        );
+      sanitizeFileName(
+        item?.releaseName ||
+        item?.alias ||
+        item?.title ||
+        item?.id
+      );
 
       if (!albumFolderName) {
         console.error(
@@ -657,10 +777,10 @@ export function buildPages({
       }
 
       const albumDirectory =
-        path.join(
-          outputDirectory,
-          albumFolderName
-        );
+      path.join(
+        outputDirectory,
+        albumFolderName
+      );
 
       fs.mkdirSync(
         albumDirectory,
@@ -670,7 +790,7 @@ export function buildPages({
       );
 
       const albumPages =
-        collectAlbumPages(item);
+      collectAlbumPages(item);
 
       for (const page of albumPages) {
         if (!page.fileName) {
@@ -684,10 +804,10 @@ export function buildPages({
         }
 
         const outputPath =
-          path.join(
-            albumDirectory,
-            page.fileName
-          );
+        path.join(
+          albumDirectory,
+          page.fileName
+        );
 
         if (
           createdPaths.has(outputPath)
@@ -707,9 +827,17 @@ export function buildPages({
             item: page.item,
             outputPath,
             template,
+
+            // /files/dev/pages/album/file.html
+            // /files/dev/styles/style.css
             assetPrefix: "../../",
-            coverPrefix: "../../",
-            tracksPrefix: "../../../tracks/"
+
+            // /files/dev/pages/album/file.html
+            // /files/src/covers/...
+            coverPrefix: "../../../src/",
+
+            // /files/src/tracks/...
+            tracksPrefix: "../../../src/tracks/"
           });
 
           createdPaths.add(outputPath);

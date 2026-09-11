@@ -14,7 +14,7 @@ body {
 .page-background {
     position: fixed;
     inset: -10px;
-    background-image: url("../../../covers/cyber_logos/cyber_logos.webp");
+    background-image: url("../../../src/covers/cyber_logos/cyber_logos.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

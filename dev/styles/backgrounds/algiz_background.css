@@ -14,7 +14,7 @@ body {
 .page-background {
     position: fixed;
     inset: -10px;
-    background-image: url("../../../covers/algiz/algiz.webp");
+    background-image: url("../../../src/covers/algiz/algiz.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

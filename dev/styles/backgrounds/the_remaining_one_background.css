@@ -14,7 +14,7 @@ body {
 .page-background {
     position: fixed;
     inset: -10px;
-    background-image: url("../../../covers/the_remaining_one/the_remaining_one.webp");
+    background-image: url("../../../src/covers/the_remaining_one/the_remaining_one.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

@@ -60,7 +60,7 @@
 
     opacity: 1;
 
-    background-image: url("../../icons/play.png");
+    background-image: url("../../../src/icons/play.png");
     background-size: 8736px 96px;
     background-position: 0 0;
     background-repeat: no-repeat;
@@ -81,7 +81,7 @@
 
     opacity: 1;
 
-    background-image: url("/buttons/pause.png");
+    background-image: url("../../../src/pause.png");
     background-size: 96px 96px;
     background-position: 0 0;
     background-repeat: no-repeat;

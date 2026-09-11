@@ -1,9 +1,9 @@
 import * as wavesButtonsModule from "./waves-buttons.js";
 
 const URLS = {
-    ws: "/files/new_html/scripts/players/wavesurfer/wavesurfer.min.js",
-    hover: "/files/new_html/scripts/players/wavesurfer/hover.min.js",
-    timeline: "/files/new_html/scripts/players/wavesurfer/timeline.min.js"
+    ws: "/files/dev/scripts/players/wavesurfer/wavesurfer.min.js",
+    hover: "/files/dev/scripts/players/wavesurfer/hover.min.js",
+    timeline: "/files/dev/scripts/players/wavesurfer/timeline.min.js"
 };
 
 const promises = {};

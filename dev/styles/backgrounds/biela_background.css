@@ -14,7 +14,7 @@ body {
 .page-background {
     position: fixed;
     inset: -10px;
-    background-image: url("../../../covers/biela/biela.webp");
+    background-image: url("../../../src/covers/biela/biela.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

@@ -14,7 +14,7 @@ body {
 .page-background {
     position: fixed;
     inset: -10px;
-    background-image: url("../../../covers/runner/runner.webp");
+    background-image: url("../../../src/covers/runner/runner.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

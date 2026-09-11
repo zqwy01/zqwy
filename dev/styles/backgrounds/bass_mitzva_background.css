@@ -14,7 +14,7 @@ body {
 .page-background {
     position: fixed;
     inset: -10px;
-    background-image: url("../../../covers/bass_mitzva/bass_mitzva.webp");
+    background-image: url("../../../src/covers/bass_mitzva/bass_mitzva.webp");
     background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;

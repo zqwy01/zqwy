@@ -72,7 +72,7 @@ export function initWavesButtons(buttonsHost, containerWave) {
     function updateVisualState() {
         play.classList.toggle("is-playing", isPlaying), pauseArt.style.opacity = isPlaying ? "0" : "1";
     }
-    const SPRITE_SRC = new URL("../../icons/play.png", import.meta.url).href;
+    const SPRITE_SRC = new URL("../../../src/icons/play.png", import.meta.url).href;
     let spriteReady = !1, spriteImageData = null;
     const spriteCanvas = doc.createElement("canvas"), spriteCtx = spriteCanvas.getContext("2d", {
         willReadFrequently: !0

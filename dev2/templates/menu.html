@@ -1,0 +1,83 @@
+<div
+  class="site-menu-overlay"
+  id="siteMenu"
+  aria-hidden="true"
+>
+  <div class="site-menu-backdrop" data-menu-close></div>
+
+  <section
+    class="site-menu"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="siteMenuTitle"
+  >
+    <div class="site-menu-header">
+      <h2 class="site-menu-title" id="siteMenuTitle">Меню</h2>
+
+      <button
+        class="site-menu-close"
+        type="button"
+        aria-label="Закрыть меню"
+        data-menu-close
+      >
+        ×
+      </button>
+    </div>
+
+    <nav class="site-menu-content" aria-label="Основное меню">
+      <button
+        class="site-menu-button site-menu-search-button"
+        type="button"
+        id="menuSearchButton"
+        aria-expanded="false"
+        aria-controls="menuSearchForm"
+      >
+        <span aria-hidden="true">⌕</span>
+        <span>Поиск</span>
+      </button>
+
+      <form
+        class="menu-search-form"
+        id="menuSearchForm"
+        hidden
+      >
+        <label class="visually-hidden" for="menuSearchInput">
+          Поиск
+        </label>
+
+        <input
+          class="menu-search-input"
+          id="menuSearchInput"
+          name="search"
+          type="search"
+          placeholder="Введите запрос"
+          autocomplete="off"
+        >
+
+        <button
+          class="menu-search-submit"
+          type="submit"
+        >
+          Найти
+        </button>
+      </form>
+
+      <div class="site-menu-divider"></div>
+
+      <button class="site-menu-button" type="button">
+        <span aria-hidden="true">▦</span>
+        <span>Каталог</span>
+      </button>
+
+      <button class="site-menu-button" type="button">
+        <span aria-hidden="true">⚙</span>
+        <span>Настройки</span>
+      </button>
+
+      <button class="site-menu-button" type="button">
+        <span aria-hidden="true">◐</span>
+        <span>Стиль</span>
+      </button>
+    </nav>
+  </section>
+</div>

@@ -1,0 +1,35 @@
+.bottom-logos {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    z-index: 1001;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: transform 0.2s ease, background 0.2s ease;
+    z-index: 1001;
+}
+
+.logo-link:hover {
+    transform: translateY(-16px);
+    background: rgba(255,255,255,0.08);
+}
+
+.logo-link img {
+    width: 42px;
+    height: 38px;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}

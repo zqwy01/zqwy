@@ -1,0 +1,194 @@
+.waves-play-btn {
+    position: relative;
+
+    width: var(--fw);
+    height: var(--fh);
+    min-width: 0;
+
+    margin: 0;
+    padding: 0;
+
+    --fw: 96px;
+    --fh: 96px;
+    --playFrames: 91;
+    --playDurationMs: 4000ms;
+
+    appearance: none;
+    background: transparent;
+    border: 0 !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    outline: none !important;
+
+    -webkit-tap-highlight-color: transparent;
+
+    display: block;
+
+    line-height: 0;
+    font-size: 0;
+
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.waves-play-btn:focus,
+.waves-play-btn:focus-visible,
+.waves-play-btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.waves-play-label {
+    display: none;
+}
+
+.waves-art {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: var(--fw);
+    height: var(--fh);
+
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.waves-art-play {
+    z-index: 1;
+
+    width: var(--fw);
+    height: var(--fh);
+
+    opacity: 1;
+
+    background-image: url("../../../src/icons/play.png");
+    background-size: 8736px 96px;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+
+    animation-name: playAnim;
+    animation-duration: var(--playDurationMs);
+    animation-timing-function: steps(90);
+    animation-iteration-count: infinite;
+    animation-fill-mode: none;
+    animation-play-state: paused;
+}
+
+.waves-art-pause {
+    z-index: 2;
+
+    width: var(--fw);
+    height: var(--fh);
+
+    opacity: 1;
+
+    background-image: url("../../../src/pause.png");
+    background-size: 96px 96px;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+}
+
+.waves-play-btn.is-playing .waves-art-play {
+    opacity: 1;
+    animation-play-state: running;
+}
+
+.waves-play-btn.is-playing .waves-art-pause {
+    opacity: 0;
+}
+
+.waves-play-btn:not(.is-playing) .waves-art-play {
+    opacity: 1;
+    animation-play-state: paused;
+}
+
+.waves-play-btn:not(.is-playing) .waves-art-pause {
+    opacity: 1;
+}
+
+@keyframes playAnim {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -8640px 0;
+    }
+}
+
+
+/*
+ * Внутреннее содержимое плеера.
+ *
+ * #audioPlayer намеренно отсутствует в этом списке.
+ * Это внешний контейнер, его ширина задаётся в player.css.
+ */
+#albumPlayer,
+.tc-player-switcher,
+.tc-player-switcher-player,
+.wavesurfer-wrapper,
+.wavesurfer-timeline {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+
+/*
+ * Исправление для mini-player.
+ *
+ * wavesurfer.css подключается после player.css,
+ * поэтому здесь принудительно оставляем правильную
+ * ширину fixed-контейнера.
+ */
+#audioPlayer.audio-player-container.is-fixed {
+position: fixed;
+
+left: var(--page-padding) !important;
+right: var(--page-padding) !important;
+
+width: auto !important;
+max-width: none !important;
+min-width: 0 !important;
+
+margin-left: 0 !important;
+margin-right: 0 !important;
+
+box-sizing: border-box !important;
+}
+
+
+/*
+ * Внутренние элементы не должны растягиваться
+ * относительно всего окна браузера.
+ */
+#audioPlayer.is-fixed #albumPlayer,
+#audioPlayer.is-fixed .tc-player-switcher,
+#audioPlayer.is-fixed .tc-player-switcher-player,
+#audioPlayer.is-fixed .wavesurfer-wrapper,
+#audioPlayer.is-fixed .wavesurfer-timeline {
+width: 100%;
+max-width: 100%;
+min-width: 0;
+
+box-sizing: border-box;
+}
+
+
+/*
+ * Если WaveSurfer создаёт canvas,
+ * он также должен занимать только ширину контейнера.
+ */
+#audioPlayer canvas,
+#audioPlayer svg,
+#audioPlayer iframe {
+display: block;
+
+max-width: 100%;
+box-sizing: border-box;
+}

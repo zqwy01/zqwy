@@ -1,1 +1,61 @@
-.menu-button-container{position:relative;z-index:10;overflow:visible}@keyframes menu-logo-appear{from{transform:scale(.7)}to{transform:scale(1)}}.menu-button-container .menu-open-button{position:relative;z-index:11;animation:.65s cubic-bezier(.22,1,.36,1) both menu-logo-appear;transition:background-color .2s,transform .2s,box-shadow .5s}.menu-button-container .menu-open-image{display:block}.menu-button-container .menu-open-button:hover{background:rgba(255,255,255,.12);box-shadow:0 0 6px #fff,0 0 14px #fff,0 0 28px rgba(255,255,255,.95),0 0 46px rgba(255,255,255,.8)}.menu-button-container .menu-open-button:active{box-shadow:0 0 5px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.8)}
+/* Контейнер меню находится выше соседнего текста */
+
+.menu-button-container {
+    position: relative;
+    z-index: 10;
+    overflow: visible;
+}
+
+
+/* Появление логотипа при загрузке */
+
+@keyframes menu-logo-appear {
+    from {
+        transform: scale(0.7);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+.menu-button-container .menu-open-button {
+    position: relative;
+    z-index: 11;
+
+    animation: menu-logo-appear 0.65s cubic-bezier(.22, 1, .36, 1) both;
+
+    transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.5s ease;
+}
+
+
+/* Логотип */
+
+.menu-button-container .menu-open-image {
+    display: block;
+}
+
+
+/* Яркое белое свечение при наведении */
+
+.menu-button-container .menu-open-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+
+    box-shadow:
+    0 0 6px rgba(255, 255, 255, 1),
+    0 0 14px rgba(255, 255, 255, 1),
+    0 0 28px rgba(255, 255, 255, 0.95),
+    0 0 46px rgba(255, 255, 255, 0.8);
+}
+
+
+/* Состояние при нажатии */
+
+.menu-button-container .menu-open-button:active {
+    box-shadow:
+    0 0 5px rgba(255, 255, 255, 0.9),
+    0 0 14px rgba(255, 255, 255, 0.8);
+}

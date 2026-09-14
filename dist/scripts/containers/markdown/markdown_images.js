@@ -1,1 +1,51 @@
-document.addEventListener("click",e=>{const t=e.target.closest(".description img");if(!t)return;const n=document.createElement("div");n.className="image-viewer";const o=document.createElement("img");o.src=t.src,o.alt=t.alt||"";const c=document.createElement("button");function d(){n.remove(),document.body.style.overflow="",document.removeEventListener("keydown",i)}function i(e){"Escape"===e.key&&d()}c.className="image-viewer-close",c.type="button",c.setAttribute("aria-label","Закрыть изображение"),c.textContent="×",n.appendChild(o),n.appendChild(c),document.body.appendChild(n),document.body.style.overflow="hidden",c.addEventListener("click",e=>{e.stopPropagation(),d()}),n.addEventListener("click",e=>{e.target===n&&d()}),document.addEventListener("keydown",i)});
+document.addEventListener("click", (event) => {
+  const image = event.target.closest(".description img");
+
+  if (!image) {
+    return;
+  }
+
+  const viewer = document.createElement("div");
+  viewer.className = "image-viewer";
+
+  const enlargedImage = document.createElement("img");
+  enlargedImage.src = image.src;
+  enlargedImage.alt = image.alt || "";
+
+  const closeButton = document.createElement("button");
+  closeButton.className = "image-viewer-close";
+  closeButton.type = "button";
+  closeButton.setAttribute("aria-label", "Закрыть изображение");
+  closeButton.textContent = "×";
+
+  viewer.appendChild(enlargedImage);
+  viewer.appendChild(closeButton);
+  document.body.appendChild(viewer);
+
+  document.body.style.overflow = "hidden";
+
+  function closeViewer() {
+    viewer.remove();
+    document.body.style.overflow = "";
+    document.removeEventListener("keydown", handleKeydown);
+  }
+
+  function handleKeydown(event) {
+    if (event.key === "Escape") {
+      closeViewer();
+    }
+  }
+
+  closeButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeViewer();
+  });
+
+  viewer.addEventListener("click", (event) => {
+    if (event.target === viewer) {
+      closeViewer();
+    }
+  });
+
+  document.addEventListener("keydown", handleKeydown);
+});

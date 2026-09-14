@@ -1,1 +1,243 @@
-document.querySelectorAll(".album").forEach(e=>{const s=e.querySelector(".album-heading"),t=e.querySelector(".album-content"),i=e.querySelectorAll(".track");if(!s||!t)return;let o=!1,n=null;function l(){null!==n&&(window.clearTimeout(n),n=null)}function c(){t.removeEventListener("transitionend",d)}function a(){l(),c(),t.style.height="auto",t.style.overflow="hidden",t.classList.remove("is-opening"),t.classList.remove("is-closing"),t.classList.add("is-settled"),o=!1}function r(){l(),c(),t.style.height="0px",t.style.overflow="hidden",t.classList.remove("is-opening"),t.classList.remove("is-closing"),t.classList.remove("is-settled"),e.open=!1,o=!1}function d(e){e.target===t&&"height"===e.propertyName&&(t.classList.contains("is-open")?a():r())}function h(){t.addEventListener("transitionend",d),n=window.setTimeout(()=>{t.classList.contains("is-open")?a():r()},450)}i.forEach(e=>{const s=e.querySelector(".track-button");s&&s.addEventListener("click",s=>{s.stopPropagation(),i.forEach(e=>{e.classList.remove("is-active")}),e.classList.add("is-active")})}),s.addEventListener("click",s=>{s.preventDefault(),o||(e.open?function(){o=!0,l(),c(),t.classList.remove("is-opening"),t.classList.remove("is-settled"),t.classList.add("is-closing"),t.style.overflow="hidden";const e=t.getBoundingClientRect().height;t.style.height=`${e}px`,t.offsetHeight,t.classList.remove("is-open"),h(),requestAnimationFrame(()=>{t.style.height="0px"})}():function(){o=!0,l(),c(),e.open=!0,t.classList.remove("is-settled"),t.classList.remove("is-closing"),t.classList.remove("is-open"),t.classList.add("is-opening"),t.style.height="0px",t.style.overflow="hidden",t.offsetHeight,t.classList.add("is-open");const s=t.scrollHeight;h(),requestAnimationFrame(()=>{t.style.height=`${s}px`})}())}),e.open?(t.classList.add("is-open"),t.classList.add("is-settled"),t.style.height="auto",t.style.overflow="visible"):(t.classList.remove("is-open"),t.classList.remove("is-opening"),t.classList.remove("is-closing"),t.classList.remove("is-settled"),t.style.height="0px",t.style.overflow="hidden")});
+document.querySelectorAll(".album").forEach((album) => {
+    const summary = album.querySelector(".album-heading");
+    const content = album.querySelector(".album-content");
+    const tracks = album.querySelectorAll(".track");
+
+    if (!summary || !content) {
+        return;
+    }
+
+    const ANIMATION_DURATION = 350;
+
+    let isAnimating = false;
+    let animationTimer = null;
+
+    /*
+     * Выбор активного трека
+     */
+    tracks.forEach((track) => {
+        const button = track.querySelector(".track-button");
+
+        if (!button) {
+            return;
+        }
+
+        button.addEventListener("click", (event) => {
+            /*
+             * Кнопка выбирает трек,
+             * но не переключает details.
+             */
+            event.stopPropagation();
+
+            tracks.forEach((item) => {
+                item.classList.remove("is-active");
+            });
+
+            track.classList.add("is-active");
+        });
+    });
+
+    /*
+     * Клик по заголовку альбома
+     */
+    summary.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        if (isAnimating) {
+            return;
+        }
+
+        if (album.open) {
+            closeAlbum();
+        } else {
+            openAlbum();
+        }
+    });
+
+    function clearAnimationTimer() {
+        if (animationTimer !== null) {
+            window.clearTimeout(animationTimer);
+            animationTimer = null;
+        }
+    }
+
+    function removeTransitionListener() {
+        content.removeEventListener(
+            "transitionend",
+            handleTransitionEnd
+        );
+    }
+
+    function finishOpening() {
+        clearAnimationTimer();
+        removeTransitionListener();
+
+        content.style.height = "auto";
+        content.style.overflow = "hidden";
+
+        content.classList.remove("is-opening");
+        content.classList.remove("is-closing");
+        content.classList.add("is-settled");
+
+        isAnimating = false;
+    }
+
+    function finishClosing() {
+        clearAnimationTimer();
+        removeTransitionListener();
+
+        content.style.height = "0px";
+        content.style.overflow = "hidden";
+
+        content.classList.remove("is-opening");
+        content.classList.remove("is-closing");
+        content.classList.remove("is-settled");
+
+        /*
+         * Закрываем details только после завершения
+         * анимации высоты.
+         */
+        album.open = false;
+
+        isAnimating = false;
+    }
+
+    function handleTransitionEnd(event) {
+        /*
+         * Нас интересует только переход высоты самого
+         * album-content, а не переходы его дочерних элементов.
+         */
+        if (
+            event.target !== content ||
+            event.propertyName !== "height"
+        ) {
+            return;
+        }
+
+        if (content.classList.contains("is-open")) {
+            finishOpening();
+        } else {
+            finishClosing();
+        }
+    }
+
+    function waitForTransitionEnd() {
+        content.addEventListener(
+            "transitionend",
+            handleTransitionEnd
+        );
+
+        /*
+         * Запасной таймер, если transitionend
+         * не сработает.
+         */
+        animationTimer = window.setTimeout(() => {
+            if (content.classList.contains("is-open")) {
+                finishOpening();
+            } else {
+                finishClosing();
+            }
+        }, ANIMATION_DURATION + 100);
+    }
+
+    function openAlbum() {
+        isAnimating = true;
+
+        clearAnimationTimer();
+        removeTransitionListener();
+
+        /*
+         * Открываем details до измерения содержимого.
+         * Благодаря этому album[open] получает высокий z-index.
+         */
+        album.open = true;
+
+        content.classList.remove("is-settled");
+        content.classList.remove("is-closing");
+        content.classList.remove("is-open");
+
+        content.classList.add("is-opening");
+
+        content.style.height = "0px";
+        content.style.overflow = "hidden";
+
+        /*
+         * Применяем начальное состояние height: 0.
+         */
+        content.offsetHeight;
+
+        /*
+         * Делаем содержимое видимым,
+         * но пока оставляем overflow: hidden.
+         */
+        content.classList.add("is-open");
+
+        const targetHeight = content.scrollHeight;
+
+        waitForTransitionEnd();
+
+        requestAnimationFrame(() => {
+            content.style.height = `${targetHeight}px`;
+        });
+    }
+
+    function closeAlbum() {
+        isAnimating = true;
+
+        clearAnimationTimer();
+        removeTransitionListener();
+
+        /*
+         * Перед закрытием запрещаем выход содержимого
+         * за текущие границы панели.
+         */
+        content.classList.remove("is-opening");
+        content.classList.remove("is-settled");
+        content.classList.add("is-closing");
+
+        content.style.overflow = "hidden";
+
+        /*
+         * Если height был auto, фиксируем текущую высоту.
+         */
+        const currentHeight = content.getBoundingClientRect().height;
+
+        content.style.height = `${currentHeight}px`;
+
+        /*
+         * Применяем текущую высоту до начала анимации.
+         */
+        content.offsetHeight;
+
+        /*
+         * Запускаем исчезновение содержимого
+         * и рамки активного трека.
+         */
+        content.classList.remove("is-open");
+
+        waitForTransitionEnd();
+
+        requestAnimationFrame(() => {
+            content.style.height = "0px";
+        });
+    }
+
+    /*
+     * Начальное состояние
+     */
+    if (album.open) {
+        content.classList.add("is-open");
+        content.classList.add("is-settled");
+
+        content.style.height = "auto";
+        content.style.overflow = "visible";
+    } else {
+        content.classList.remove("is-open");
+        content.classList.remove("is-opening");
+        content.classList.remove("is-closing");
+        content.classList.remove("is-settled");
+
+        content.style.height = "0px";
+        content.style.overflow = "hidden";
+    }
+});

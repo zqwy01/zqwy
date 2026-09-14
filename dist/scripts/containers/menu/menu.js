@@ -1,1 +1,455 @@
-(()=>{"use strict";const e=document.querySelector("#siteMenu"),t=document.querySelector("#siteMenu .site-menu"),n=document.querySelector("#menuOpenButton"),o=document.querySelector("#menuButtonContainer"),s=document.querySelector("#menuInlineSearch"),i=document.querySelector("#menuInlineSearchInput");if(!(e&&t&&n&&o))return;const u=e.querySelectorAll("[data-menu-close]"),c=t.querySelector(".site-menu-header"),r=o.parentNode,a=o.nextSibling;let d=null,l="";function m(){const e=document.documentElement.clientWidth,t=n.getBoundingClientRect().width;return Math.max(80,e-2*function(){const e=getComputedStyle(document.documentElement).getPropertyValue("--page-padding").trim(),t=parseFloat(e);return Number.isFinite(t)?t:16}()-t-8)}function p(){if(!i||!s)return;const e=function(e){if(!i)return 180;const t=getComputedStyle(i),n=document.createElement("canvas").getContext("2d");return n?(n.font=[t.fontStyle,t.fontVariant,t.fontWeight,t.fontSize,t.fontFamily].join(" "),n.measureText(e).width):180}(i.value||i.placeholder||""),t=Math.max(180,e+32),n=m(),o=Math.min(t,n);s.style.setProperty("--search-width",`${o}px`)}function f(){d=document.activeElement,l=document.body.style.overflow,t&&c&&(t.insertBefore(o,c),o.classList.add("menu-button-container-inside")),o.classList.add("menu-search-is-open"),e.classList.add("is-open"),e.setAttribute("aria-hidden","false"),n.setAttribute("aria-expanded","true"),n.setAttribute("aria-label","Закрыть меню"),document.body.classList.add("menu-is-open"),document.body.style.overflow="hidden",p(),window.setTimeout(()=>{i&&i.focus()},250)}function y(){e.classList.contains("is-open")&&(e.classList.remove("is-open"),e.setAttribute("aria-hidden","true"),o.classList.remove("menu-search-is-open"),n.setAttribute("aria-expanded","false"),n.setAttribute("aria-label","Открыть меню"),document.body.classList.remove("menu-is-open"),document.body.style.overflow=l,i&&(i.value=""),s&&s.style.setProperty("--search-width","180px"),r&&document.contains(r)&&(a&&a.parentNode===r?r.insertBefore(o,a):r.appendChild(o),o.classList.remove("menu-button-container-inside")),d&&"function"==typeof d.focus&&document.contains(d)?d.focus():n.focus(),d=null)}n.addEventListener("click",()=>{e.classList.contains("is-open")?y():f()}),u.forEach(e=>{e.addEventListener("click",y)}),i&&(i.addEventListener("input",p),i.addEventListener("keydown",e=>{"Escape"===e.key&&(i.value="",p(),i.focus())})),s&&s.addEventListener("submit",e=>{e.preventDefault();const t=i?i.value.trim():"";t?console.log("Поисковый запрос:",t):i&&i.focus()}),document.addEventListener("keydown",t=>{"Escape"===t.key&&e.classList.contains("is-open")&&y()}),window.addEventListener("resize",()=>{e.classList.contains("is-open")&&p()})})();
+(() => {
+    "use strict";
+
+    /*
+     * Внешний overlay меню
+     */
+    const siteMenu = document.querySelector(
+        "#siteMenu"
+    );
+
+    /*
+     * Внутренняя панель меню.
+     * Именно сюда переносится логотип и поиск.
+     */
+    const menuPanel = document.querySelector(
+        "#siteMenu .site-menu"
+    );
+
+    const menuOpenButton = document.querySelector(
+        "#menuOpenButton"
+    );
+
+    const menuButtonContainer = document.querySelector(
+        "#menuButtonContainer"
+    );
+
+    const menuInlineSearch = document.querySelector(
+        "#menuInlineSearch"
+    );
+
+    const searchInput = document.querySelector(
+        "#menuInlineSearchInput"
+    );
+
+    if (
+        !siteMenu ||
+        !menuPanel ||
+        !menuOpenButton ||
+        !menuButtonContainer
+    ) {
+        return;
+    }
+
+    const menuCloseButtons =
+    siteMenu.querySelectorAll(
+        "[data-menu-close]"
+    );
+
+    const menuHeader = menuPanel.querySelector(
+        ".site-menu-header"
+    );
+
+    /*
+     * Исходное место блока с логотипом и поиском
+     */
+    const originalParent =
+    menuButtonContainer.parentNode;
+
+    const originalNextSibling =
+    menuButtonContainer.nextSibling;
+
+    let previousFocusedElement = null;
+    let previousBodyOverflow = "";
+    let menuButtonPlaceholder = null;
+
+    function getPagePadding() {
+        const value = getComputedStyle(
+            document.documentElement
+        )
+        .getPropertyValue("--page-padding")
+        .trim();
+
+        const padding = parseFloat(value);
+
+        return Number.isFinite(padding)
+        ? padding
+        : 16;
+    }
+
+    function getAvailableSearchWidth() {
+        const viewportWidth =
+        document.documentElement.clientWidth;
+
+        const logoWidth =
+        menuOpenButton.getBoundingClientRect().width;
+
+        return Math.max(
+            80,
+            viewportWidth
+            - getPagePadding() * 2
+            - logoWidth
+            - 8
+        );
+    }
+
+    function getTextWidth(text) {
+        if (!searchInput) {
+            return 180;
+        }
+
+        const styles = getComputedStyle(
+            searchInput
+        );
+
+        const canvas = document.createElement(
+            "canvas"
+        );
+
+        const context = canvas.getContext(
+            "2d"
+        );
+
+        if (!context) {
+            return 180;
+        }
+
+        context.font = [
+            styles.fontStyle,
+            styles.fontVariant,
+            styles.fontWeight,
+            styles.fontSize,
+            styles.fontFamily
+        ].join(" ");
+
+        return context.measureText(text).width;
+    }
+
+    function updateSearchWidth() {
+        if (
+            !searchInput ||
+            !menuInlineSearch
+        ) {
+            return;
+        }
+
+        const text =
+        searchInput.value ||
+        searchInput.placeholder ||
+        "";
+
+    const textWidth = getTextWidth(text);
+
+    const desiredWidth = Math.max(
+        180,
+        textWidth + 32
+    );
+
+    const availableWidth =
+    getAvailableSearchWidth();
+
+    const searchWidth = Math.min(
+        desiredWidth,
+        availableWidth
+    );
+
+    menuInlineSearch.style.setProperty(
+        "--search-width",
+        `${searchWidth}px`
+    );
+    }
+
+    /*
+     * Переносим блок внутрь меню.
+     *
+     * Placeholder остаётся на старом месте
+     * и не даёт странице сдвинуться.
+     */
+    function moveMenuButtonInsideMenu() {
+        if (
+            !menuPanel ||
+            !menuHeader ||
+            !originalParent
+        ) {
+            return;
+        }
+
+        menuButtonPlaceholder =
+        document.createElement("div");
+
+        menuButtonPlaceholder.className =
+        "menu-button-placeholder";
+
+        menuButtonPlaceholder.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        originalParent.insertBefore(
+            menuButtonPlaceholder,
+            menuButtonContainer
+        );
+
+        /*
+         * Важно: используем menuPanel,
+         * а не siteMenu.
+         */
+        menuPanel.insertBefore(
+            menuButtonContainer,
+            menuHeader
+        );
+
+        menuButtonContainer.classList.add(
+            "menu-button-container-inside"
+        );
+    }
+
+    /*
+     * Возвращаем блок обратно
+     * и удаляем placeholder.
+     */
+    function moveMenuButtonBack() {
+        if (
+            !originalParent ||
+            !document.contains(originalParent)
+        ) {
+            return;
+        }
+
+        if (
+            menuButtonPlaceholder &&
+            menuButtonPlaceholder.parentNode ===
+            originalParent
+        ) {
+            originalParent.insertBefore(
+                menuButtonContainer,
+                menuButtonPlaceholder
+            );
+
+            menuButtonPlaceholder.remove();
+            menuButtonPlaceholder = null;
+        } else if (
+            originalNextSibling &&
+            originalNextSibling.parentNode ===
+            originalParent
+        ) {
+            originalParent.insertBefore(
+                menuButtonContainer,
+                originalNextSibling
+            );
+        } else {
+            originalParent.appendChild(
+                menuButtonContainer
+            );
+        }
+
+        menuButtonContainer.classList.remove(
+            "menu-button-container-inside"
+        );
+    }
+
+    function openMenu() {
+        previousFocusedElement =
+        document.activeElement;
+
+        previousBodyOverflow =
+        document.body.style.overflow;
+
+        moveMenuButtonInsideMenu();
+
+        menuButtonContainer.classList.add(
+            "menu-search-is-open"
+        );
+
+        siteMenu.classList.add("is-open");
+
+        siteMenu.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        menuOpenButton.setAttribute(
+            "aria-expanded",
+            "true"
+        );
+
+        menuOpenButton.setAttribute(
+            "aria-label",
+            "Закрыть меню"
+        );
+
+        document.body.classList.add(
+            "menu-is-open"
+        );
+
+        document.body.style.overflow = "hidden";
+
+        updateSearchWidth();
+
+        window.setTimeout(() => {
+            if (searchInput) {
+                searchInput.focus();
+            }
+        }, 250);
+    }
+
+    function closeMenu() {
+        if (
+            !siteMenu.classList.contains("is-open")
+        ) {
+            return;
+        }
+
+        siteMenu.classList.remove("is-open");
+
+        siteMenu.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        menuButtonContainer.classList.remove(
+            "menu-search-is-open"
+        );
+
+        menuOpenButton.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+        menuOpenButton.setAttribute(
+            "aria-label",
+            "Открыть меню"
+        );
+
+        document.body.classList.remove(
+            "menu-is-open"
+        );
+
+        document.body.style.overflow =
+        previousBodyOverflow;
+
+        if (searchInput) {
+            searchInput.value = "";
+        }
+
+        if (menuInlineSearch) {
+            menuInlineSearch.style.setProperty(
+                "--search-width",
+                "180px"
+            );
+        }
+
+        moveMenuButtonBack();
+
+        if (
+            previousFocusedElement &&
+            typeof previousFocusedElement.focus ===
+            "function" &&
+            document.contains(previousFocusedElement)
+        ) {
+            previousFocusedElement.focus();
+        } else {
+            menuOpenButton.focus();
+        }
+
+        previousFocusedElement = null;
+    }
+
+    /*
+     * Открытие и закрытие по логотипу
+     */
+    menuOpenButton.addEventListener(
+        "click",
+        () => {
+            if (
+                siteMenu.classList.contains("is-open")
+            ) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+    );
+
+    /*
+     * Закрытие по кнопке и backdrop
+     */
+    menuCloseButtons.forEach((button) => {
+        button.addEventListener(
+            "click",
+            closeMenu
+        );
+    });
+
+    /*
+     * Поиск
+     */
+    if (searchInput) {
+        searchInput.addEventListener(
+            "input",
+            updateSearchWidth
+        );
+
+        searchInput.addEventListener(
+            "keydown",
+            (event) => {
+                if (event.key === "Escape") {
+                    searchInput.value = "";
+                    updateSearchWidth();
+                    searchInput.focus();
+                }
+            }
+        );
+    }
+
+    if (menuInlineSearch) {
+        menuInlineSearch.addEventListener(
+            "submit",
+            (event) => {
+                event.preventDefault();
+
+                const query = searchInput
+                ? searchInput.value.trim()
+                : "";
+
+                if (query) {
+                    console.log(
+                        "Поисковый запрос:",
+                        query
+                    );
+                } else if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+        );
+    }
+
+    /*
+     * Закрытие клавишей Escape
+     */
+    document.addEventListener(
+        "keydown",
+        (event) => {
+            if (
+                event.key === "Escape" &&
+                siteMenu.classList.contains("is-open")
+            ) {
+                closeMenu();
+            }
+        }
+    );
+
+    /*
+     * Пересчёт ширины поиска
+     */
+    window.addEventListener(
+        "resize",
+        () => {
+            if (
+                siteMenu.classList.contains("is-open")
+            ) {
+                updateSearchWidth();
+            }
+        }
+    );
+})();

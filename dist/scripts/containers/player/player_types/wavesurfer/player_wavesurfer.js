@@ -1,1 +1,355 @@
-import*as wavesButtonsModule from"./wavesurfer_controls.js";const WAVESURFER_DIR=new URL("./wavesurfer_plugins/",import.meta.url),URLS={ws:new URL("wavesurfer.min.js",WAVESURFER_DIR).href,hover:new URL("hover.min.js",WAVESURFER_DIR).href,timeline:new URL("timeline.min.js",WAVESURFER_DIR).href},promises={};function loadScript(e,r){const t=r();return t?Promise.resolve(t):(promises[e]||(promises[e]=new Promise((t,a)=>{const n=()=>a(new Error(`Script load failed: ${e}`)),o=()=>{const n=r();n?t(n):a(new Error(`Module is not available: ${e}`))};let s=document.querySelector(`script[src="${e}"]`);if(s)return s.addEventListener("load",o),void s.addEventListener("error",n);s=document.createElement("script"),s.src=e,s.async=!0,s.onload=o,s.onerror=n,document.head.appendChild(s)})),promises[e])}const loadWaveSurfer=()=>loadScript(URLS.ws,()=>window.WaveSurfer),loadWaveSurferHover=()=>loadScript(URLS.hover,()=>window.WaveSurfer?.Hover),loadWaveSurferTimeline=()=>loadScript(URLS.timeline,()=>window.WaveSurfer?.Timeline);function addStyles(){if(document.getElementById("wavesurfer-player-styles"))return;const e=document.createElement("style");e.id="wavesurfer-player-styles",e.textContent="\n    .wavesurfer-wrapper{position:relative;display:block;width:100%}\n    .wavesurfer-frame{position:relative;width:100%;height:100px}\n    .wavesurfer-wave{width:100%;height:100px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}\n    .wavesurfer-wave:active{cursor:grabbing}\n    .wavesurfer-timeline{width:100%;min-height:28px;margin-top:4px;overflow:hidden}\n    .wavesurfer-timeline canvas{display:block;width:100%}\n    .waves-overlay{position:absolute;left:50%;top:50%;z-index:10;width:220px;max-width:92%;padding:12px 14px;box-sizing:border-box;border-radius:12px;background:rgba(0,0,0,.65);color:#fff;text-align:center;opacity:0;pointer-events:none;transform:translate(-50%,-50%);transition:opacity 160ms ease,transform 160ms ease}\n    .waves-overlay.show{opacity:1;transform:translate(-50%,-50%) scale(1.02)}\n    .waves-overlay-row{display:flex;align-items:center;justify-content:space-between;gap:10px}\n    .waves-overlay-text,.waves-overlay-percent{font-size:44px;line-height:.6}\n    .waves-overlay-percent{white-space:nowrap}\n    .waves-overlay-bar{width:100%;height:8px;margin-top:10px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.25)}\n    .waves-overlay-bar-fill{width:0;height:100%;border-radius:999px;background:#fff;transition:width 120ms linear}\n    .wavesurfer-message{margin-top:8px;color:#b00020}\n    ",document.head.appendChild(e)}function createOverlay(e){const r=e.createElement("div");r.className="waves-overlay";const t=e.createElement("div");t.className="waves-overlay-row";const a=e.createElement("div");a.className="waves-overlay-text";const n=e.createElement("div");n.className="waves-overlay-percent";const o=e.createElement("div");o.className="waves-overlay-bar";const s=e.createElement("div");return s.className="waves-overlay-bar-fill",t.append(a,n),o.appendChild(s),r.append(t,o),{element:r,text:a,percent:n,bar:o,fill:s}}function showOverlay(e,r,t=""){e.element.classList.add("show"),e.text.textContent=r,e.percent.textContent=t,e.bar.style.visibility=t?"visible":"hidden",t&&(e.fill.style.width=`${t}%`)}function hideOverlay(e){e.element.classList.remove("show")}const wavesurferPlayer={label:"WaveSurfer",isAvailable:()=>"undefined"!=typeof window&&"undefined"!=typeof document,async render({container:e,src:r}){addStyles();const t=e.ownerDocument,a=e._waveSurferInstance;if(a){try{a.destroy()}catch(e){console.warn("Unable to destroy WaveSurfer:",e)}e._waveSurferInstance=null}e.replaceChildren();const n=t.createElement("div");n.className="wavesurfer-wrapper";const o=t.createElement("div");o.className="wavesurfer-frame";const s=t.createElement("div");s.className="wavesurfer-wave";const l=t.createElement("div");l.className="wavesurfer-timeline";const i=createOverlay(t),c=t.createElement("div");c.className="wavesurfer-buttons";const d=t.createElement("div");d.className="wavesurfer-message",o.append(s,i.element),n.append(o,l,c,d),e.appendChild(n);const v=e=>{showOverlay(i,e),d.textContent=""};if(!r)return void v("Нет источника аудио");let u,f,w;try{[u,f,w]=await Promise.all([loadWaveSurfer(),loadWaveSurferHover(),loadWaveSurferTimeline()])}catch(e){return v("WaveSurfer не загрузился"),void console.error(e)}let m=null;const p=wavesButtonsModule?.initWavesButtons||wavesButtonsModule?.default?.initWavesButtons||wavesButtonsModule?.default;if("function"==typeof p)try{m=p(c,s),m?.setEnabled?.(!1)}catch(e){console.error("Buttons initialization failed:",e)}let y;try{y=u.create({container:s,waveColor:"#757575",progressColor:"#ffffff",height:100,cursorColor:"#ffffff",cursorWidth:3,barWidth:1,barGap:1,barHeight:.8,fillParent:!0,responsive:!0,dragToSeek:!0,plugins:[f.create({lineColor:"white",lineWidth:2,labelBackground:"#222222",labelColor:"#ffffff",labelSize:"32px"}),w.create({container:l,height:42,timeInterval:30,primaryLabelInterval:30,style:{fontSize:"clamp(1.1rem, 3.2vw, 2.2rem)",color:"White"}})]})}catch(e){return v("Ошибка создания WaveSurfer"),void console.error(e)}e._waveSurferInstance=y;const h={type:"wavesurfer",playPause:()=>y.playPause(),stop(){y.stop(),y.seekTo(0)},seekTo:e=>y.seekTo(e),getDuration:()=>y.getDuration(),getCurrentTime:()=>y.getCurrentTime(),setVolume:e=>y.setVolume(e),setPlaybackRate(e){const r=Number(e)||1;console.log("Установка скорости WaveSurfer:",r),y.setPlaybackRate(r)},isPlaying:()=>y.isPlaying(),destroy:()=>y.destroy()};m?.setBackend?.(h);let b=setTimeout(()=>{v("WaveSurfer не успел подготовиться"),m?.setEnabled?.(!1)},9e3);y.on("loading",e=>{const r=Math.max(0,Math.min(100,Number(e)||0));showOverlay(i,"Загрузка аудио...",`${Math.round(r)}%`),i.fill.style.width=`${r}%`}),y.on("decode",()=>{showOverlay(i,"Подготовка..."),i.bar.style.visibility="visible",i.fill.style.width="100%"}),y.on("ready",()=>{clearTimeout(b),b=null,m?.setEnabled?.(!0),showOverlay(i,"Готово"),i.bar.style.visibility="hidden",setTimeout(()=>{y.isPlaying()||hideOverlay(i)},450)}),y.on("play",()=>hideOverlay(i)),y.on("pause",()=>{showOverlay(i,"⏸ Пауза. Еноты думают. 🦝")}),y.on("finish",()=>{showOverlay(i,"⏹ Завершено"),setTimeout(()=>hideOverlay(i),1200)}),y.on("error",e=>{clearTimeout(b),b=null,m?.setEnabled?.(!1),v("WaveSurfer не смог загрузить аудио"),console.error(e)});try{showOverlay(i,"Загрузка аудио...","0"),await y.load(r)}catch(e){v("Ошибка при загрузке аудио"),console.error(e)}}};export default wavesurferPlayer;
+import * as wavesButtonsModule from "./wavesurfer_controls.js";
+
+const WAVESURFER_DIR = new URL(
+    "./wavesurfer_plugins/",
+    import.meta.url
+);
+
+const URLS = {
+    ws: new URL("wavesurfer.min.js", WAVESURFER_DIR).href,
+    hover: new URL("hover.min.js", WAVESURFER_DIR).href,
+    timeline: new URL("timeline.min.js", WAVESURFER_DIR).href
+};
+
+
+const promises = {};
+
+function loadScript(url, getValue) {
+    const value = getValue();
+
+    if (value) return Promise.resolve(value);
+    if (promises[url]) return promises[url];
+
+    promises[url] = new Promise((resolve, reject) => {
+        const fail = () => reject(new Error(`Script load failed: ${url}`));
+        const check = () => {
+            const result = getValue();
+            result
+            ? resolve(result)
+            : reject(new Error(`Module is not available: ${url}`));
+        };
+
+        let script = document.querySelector(`script[src="${url}"]`);
+
+        if (script) {
+            script.addEventListener("load", check);
+            script.addEventListener("error", fail);
+            return;
+        }
+
+        script = document.createElement("script");
+        script.src = url;
+        script.async = true;
+        script.onload = check;
+        script.onerror = fail;
+        document.head.appendChild(script);
+    });
+
+    return promises[url];
+}
+
+const loadWaveSurfer = () =>
+loadScript(URLS.ws, () => window.WaveSurfer);
+
+const loadWaveSurferHover = () =>
+loadScript(URLS.hover, () => window.WaveSurfer?.Hover);
+
+const loadWaveSurferTimeline = () =>
+loadScript(URLS.timeline, () => window.WaveSurfer?.Timeline);
+
+function addStyles() {
+    if (document.getElementById("wavesurfer-player-styles")) return;
+
+    const style = document.createElement("style");
+
+    style.id = "wavesurfer-player-styles";
+    style.textContent = `
+    .wavesurfer-wrapper{position:relative;display:block;width:100%}
+    .wavesurfer-frame{position:relative;width:100%;height:100px}
+    .wavesurfer-wave{width:100%;height:100px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
+    .wavesurfer-wave:active{cursor:grabbing}
+    .wavesurfer-timeline{width:100%;min-height:28px;margin-top:4px;overflow:hidden}
+    .wavesurfer-timeline canvas{display:block;width:100%}
+    .waves-overlay{position:absolute;left:50%;top:50%;z-index:10;width:220px;max-width:92%;padding:12px 14px;box-sizing:border-box;border-radius:12px;background:rgba(0,0,0,.65);color:#fff;text-align:center;opacity:0;pointer-events:none;transform:translate(-50%,-50%);transition:opacity 160ms ease,transform 160ms ease}
+    .waves-overlay.show{opacity:1;transform:translate(-50%,-50%) scale(1.02)}
+    .waves-overlay-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .waves-overlay-text,.waves-overlay-percent{font-size:44px;line-height:.6}
+    .waves-overlay-percent{white-space:nowrap}
+    .waves-overlay-bar{width:100%;height:8px;margin-top:10px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.25)}
+    .waves-overlay-bar-fill{width:0;height:100%;border-radius:999px;background:#fff;transition:width 120ms linear}
+    .wavesurfer-message{margin-top:8px;color:#b00020}
+    `;
+
+    document.head.appendChild(style);
+}
+
+function createOverlay(doc) {
+    const overlay = doc.createElement("div");
+    overlay.className = "waves-overlay";
+
+    const row = doc.createElement("div");
+    row.className = "waves-overlay-row";
+
+    const text = doc.createElement("div");
+    text.className = "waves-overlay-text";
+
+    const percent = doc.createElement("div");
+    percent.className = "waves-overlay-percent";
+
+    const bar = doc.createElement("div");
+    bar.className = "waves-overlay-bar";
+
+    const fill = doc.createElement("div");
+    fill.className = "waves-overlay-bar-fill";
+
+    row.append(text, percent);
+    bar.appendChild(fill);
+    overlay.append(row, bar);
+
+    return { element: overlay, text, percent, bar, fill };
+}
+
+function showOverlay(overlay, text, percent = "") {
+    overlay.element.classList.add("show");
+    overlay.text.textContent = text;
+    overlay.percent.textContent = percent;
+    overlay.bar.style.visibility = percent ? "visible" : "hidden";
+
+    if (percent) overlay.fill.style.width = `${percent}%`;
+}
+
+function hideOverlay(overlay) {
+    overlay.element.classList.remove("show");
+}
+
+const wavesurferPlayer = {
+    label: "WaveSurfer",
+
+    isAvailable() {
+        return typeof window !== "undefined" &&
+        typeof document !== "undefined";
+    },
+
+    async render({ container, src }) {
+        addStyles();
+
+        const doc = container.ownerDocument;
+        const oldInstance = container._waveSurferInstance;
+
+        if (oldInstance) {
+            try {
+                oldInstance.destroy();
+            } catch (error) {
+                console.warn("Unable to destroy WaveSurfer:", error);
+            }
+
+            container._waveSurferInstance = null;
+        }
+
+        container.replaceChildren();
+
+        const wrapper = doc.createElement("div");
+        wrapper.className = "wavesurfer-wrapper";
+
+        const frame = doc.createElement("div");
+        frame.className = "wavesurfer-frame";
+
+        const waveContainer = doc.createElement("div");
+        waveContainer.className = "wavesurfer-wave";
+
+        const timelineContainer = doc.createElement("div");
+        timelineContainer.className = "wavesurfer-timeline";
+
+        const overlay = createOverlay(doc);
+
+        const buttonsHost = doc.createElement("div");
+        buttonsHost.className = "wavesurfer-buttons";
+
+        const message = doc.createElement("div");
+        message.className = "wavesurfer-message";
+
+        frame.append(waveContainer, overlay.element);
+        wrapper.append(frame, timelineContainer, buttonsHost, message);
+        container.appendChild(wrapper);
+
+        const showError = text => {
+            showOverlay(overlay, text);
+            message.textContent = "";
+        };
+
+        if (!src) {
+            showError("Нет источника аудио");
+            return;
+        }
+
+        let WaveSurfer;
+        let Hover;
+        let Timeline;
+
+        try {
+            [WaveSurfer, Hover, Timeline] = await Promise.all([
+                loadWaveSurfer(),
+                loadWaveSurferHover(),
+                loadWaveSurferTimeline()
+            ]);
+        } catch (error) {
+            showError("WaveSurfer не загрузился");
+            console.error(error);
+            return;
+        }
+
+        let buttons = null;
+
+        const initButtons =
+        wavesButtonsModule?.initWavesButtons ||
+        wavesButtonsModule?.default?.initWavesButtons ||
+        wavesButtonsModule?.default;
+
+        if (typeof initButtons === "function") {
+            try {
+                buttons = initButtons(buttonsHost, waveContainer);
+                buttons?.setEnabled?.(false);
+            } catch (error) {
+                console.error("Buttons initialization failed:", error);
+            }
+        }
+
+        let ws;
+
+        try {
+            ws = WaveSurfer.create({
+                container: waveContainer,
+                waveColor: "#757575",
+                progressColor: "#ffffff",
+                height: 100,
+                cursorColor: "#ffffff",
+                cursorWidth: 3,
+                barWidth: 1,
+                barGap: 1,
+                barHeight: 0.8,
+                fillParent: true,
+                responsive: true,
+                dragToSeek: true,
+                plugins: [
+                    Hover.create({
+                        lineColor: "white",
+                        lineWidth: 2,
+                        labelBackground: "#222222",
+                        labelColor: "#ffffff",
+                        labelSize: "32px",
+                    }),
+                    Timeline.create({
+                        container: timelineContainer,
+                        height: 42, //28
+                        timeInterval: 30, //30 20
+                        primaryLabelInterval: 30, //20
+                        //secondaryLabelInterval: 5,
+                        style: {
+                            fontSize: "clamp(1.1rem, 3.2vw, 2.2rem)",
+                            color: "White", // "#757575"
+                        }
+                    })
+                ]
+            });
+        } catch (error) {
+            showError("Ошибка создания WaveSurfer");
+            console.error(error);
+            return;
+        }
+
+        container._waveSurferInstance = ws;
+
+        const backend = {
+            type: "wavesurfer",
+
+            playPause: () => ws.playPause(),
+
+            stop() {
+                ws.stop();
+                ws.seekTo(0);
+            },
+
+            seekTo: ratio => ws.seekTo(ratio),
+            getDuration: () => ws.getDuration(),
+            getCurrentTime: () => ws.getCurrentTime(),
+            setVolume: value => ws.setVolume(value),
+
+            setPlaybackRate(value) {
+                const rate = Number(value) || 1;
+                console.log("Установка скорости WaveSurfer:", rate);
+                ws.setPlaybackRate(rate);
+            },
+
+            isPlaying: () => ws.isPlaying(),
+            destroy: () => ws.destroy()
+        };
+
+        buttons?.setBackend?.(backend);
+
+        let timeout = setTimeout(() => {
+            showError("WaveSurfer не успел подготовиться");
+            buttons?.setEnabled?.(false);
+        }, 9000);
+
+        ws.on("loading", percent => {
+            const value = Math.max(0, Math.min(100, Number(percent) || 0));
+
+            showOverlay(
+                overlay,
+                "Загрузка аудио...",
+                `${Math.round(value)}%`
+            );
+
+            overlay.fill.style.width = `${value}%`;
+        });
+
+        ws.on("decode", () => {
+            showOverlay(overlay, "Подготовка...");
+            overlay.bar.style.visibility = "visible";
+            overlay.fill.style.width = "100%";
+        });
+
+        ws.on("ready", () => {
+            clearTimeout(timeout);
+            timeout = null;
+
+            buttons?.setEnabled?.(true);
+            showOverlay(overlay, "Готово");
+            overlay.bar.style.visibility = "hidden";
+
+            setTimeout(() => {
+                if (!ws.isPlaying()) hideOverlay(overlay);
+            }, 450);
+        });
+
+        ws.on("play", () => hideOverlay(overlay));
+
+        ws.on("pause", () => {
+            showOverlay(overlay, "⏸ Пауза. Еноты думают. 🦝");
+        });
+
+        ws.on("finish", () => {
+            showOverlay(overlay, "⏹ Завершено");
+            setTimeout(() => hideOverlay(overlay), 1200);
+        });
+
+        ws.on("error", error => {
+            clearTimeout(timeout);
+            timeout = null;
+
+            buttons?.setEnabled?.(false);
+            showError("WaveSurfer не смог загрузить аудио");
+            console.error(error);
+        });
+
+        try {
+            showOverlay(overlay, "Загрузка аудио...", "0");
+            await ws.load(src);
+        } catch (error) {
+            showError("Ошибка при загрузке аудио");
+            console.error(error);
+        }
+    }
+};
+
+export default wavesurferPlayer;

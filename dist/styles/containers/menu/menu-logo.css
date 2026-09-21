@@ -1,5 +1,3 @@
-/* Контейнер меню находится выше соседнего текста */
-
 .menu-button-container {
     position: relative;
     z-index: 10;

@@ -1,15 +1,31 @@
+/* Базовая настройка размеров */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+
+    font-family: "Biela", Arial, sans-serif;
+    color: #fff;
+}
+
+body {
+    overflow-x: visible;
+}
+
 @font-face {
     font-family: "Biela";
     src: url("./biela.woff2") format("woff2");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
-}
-
-html,
-body {
-    font-family: "Biela", Arial, sans-serif;
-    color: #fff;
 }
 
 button,
@@ -20,6 +36,7 @@ select {
     color: inherit;
 }
 
+/* Заголовки */
 h1,
 h2 {
     width: 100%;
@@ -32,7 +49,7 @@ h2 {
     font-family: inherit;
     font-size: clamp(2.25rem, 6vw, 4rem);
     font-weight: 400;
-    line-height: 0.79;
+    line-height: 0.9;
 
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -49,7 +66,7 @@ h3 {
     font-family: inherit;
     font-size: clamp(2.5rem, 6vw, 4.5rem);
     font-weight: 400;
-    line-height: 0.79;
+    line-height: 0.9;
 
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -66,13 +83,18 @@ h4 {
     font-family: inherit;
     font-size: clamp(1.5rem, 4.5vw, 3.25rem);
     font-weight: 400;
-    line-height: 0.79;
+    line-height: 0.9;
 
     overflow-wrap: anywhere;
     word-break: break-word;
 }
 
+/* Поиск */
 .search {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
     color: #fff;
     font-family: inherit;
     font-size: clamp(3rem, 6vw, 5rem);
@@ -88,7 +110,12 @@ h4 {
     color: rgba(255, 255, 255, 0.79);
 }
 
+/* Главный заголовок */
 .title {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
     color: #fff;
     font-family: inherit;
     font-size: clamp(6rem, 12vw, 11rem);
@@ -100,12 +127,27 @@ h4 {
     word-break: break-word;
 }
 
+/* Теги */
 .tag {
+    display: block;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    margin: 0;
+    padding: 0 12px;
+
+    box-sizing: border-box;
+
     color: #fff;
     font-family: inherit;
-    font-size: clamp(1.1rem, 5.5cqw, 3.8rem);
+
+    /* Увеличенный, но адаптивный размер */
+    font-size: clamp(1.4rem, 6vw, 4.5rem);
+
     font-weight: 400;
-    line-height: 0.79;
+    line-height: 0.9;
     text-align: center;
 
     white-space: normal;
@@ -115,7 +157,27 @@ h4 {
     text-overflow: clip;
 }
 
+/*
+    Если у тега есть отдельный родительский контейнер,
+    эти стили предотвращают обрезание текста.
+*/
+.tag-wrapper,
+.tag-container,
+.tags,
+.tags-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    overflow: visible;
+}
+
+/* Основной текст */
 .text-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
     color: #fff;
     font-family: inherit;
     font-size: clamp(1.35rem, 2.8vw, 1.75rem);
@@ -129,15 +191,27 @@ h4 {
     line-height: 1.05;
 }
 
+/* Название альбома */
 .album-heading {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
     color: #fff;
     font-family: inherit;
     font-size: clamp(2.25rem, 5vw, 3.5rem);
     font-weight: 400;
     line-height: 1;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
+/* Треки */
 .track-button {
+    max-width: 100%;
+    min-width: 0;
+
     color: #fff;
     font: inherit;
     text-align: left;
@@ -148,6 +222,9 @@ h4 {
 }
 
 .track-name {
+    max-width: 100%;
+    min-width: 0;
+
     font-size: clamp(1.5rem, 3.2vw, 2.3rem);
     line-height: 1.1;
 
@@ -174,22 +251,27 @@ h4 {
     color: #fff;
 }
 
+/* Меню */
 .menu-button-container,
 .site-menu {
+    max-width: 100%;
+    min-width: 0;
+
     font-family: inherit;
     font-size: clamp(1.5rem, 4.5vw, 3.25rem);
     font-weight: 400;
-    line-height: 0.79;
+    line-height: 0.9;
 }
 
 .menu-open-button {
     font-family: inherit;
     font-size: 16px;
     font-weight: 400;
-    line-height: 0;
+    line-height: 1;
 }
 
 .menu-search-input {
+    max-width: 100%;
     font: inherit;
 }
 
@@ -201,6 +283,9 @@ h4 {
 }
 
 .site-menu-button {
+    max-width: 100%;
+    min-width: 0;
+
     font: inherit;
     color: inherit;
     text-align: left;
@@ -213,7 +298,14 @@ h4 {
     line-height: 1;
 }
 
+/* Мобильная версия */
 @media (max-width: 380px) {
+    .tag {
+        padding-right: 8px;
+        padding-left: 8px;
+        font-size: clamp(1.3rem, 7vw, 2.8rem);
+    }
+
     .site-menu {
         font-size: 15px;
     }
@@ -226,3 +318,23 @@ h4 {
         font-size: 18px;
     }
 }
+
+/*
+    ВРЕМЕННО ДЛЯ ОТЛАДКИ
+
+    Раскомментируй этот блок, чтобы увидеть границы
+    самого тега и его родительских контейнеров.
+*/
+
+/*
+.tag {
+    outline: 2px solid red;
+}
+
+.tag-wrapper,
+.tag-container,
+.tags,
+.tags-container {
+    outline: 2px solid lime;
+}
+*/

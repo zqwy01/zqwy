@@ -1,48 +1,61 @@
 .menu-button-container {
-    position: relative;
-    z-index: 10;
-    overflow: visible;
+  position: relative;
+  z-index: 10;
+
+  overflow: visible;
 }
 
 .menu-button-container .menu-open-button {
-    position: relative;
-    z-index: 11;
+  z-index: 3;
 
-    transition:
-        background-color 0.2s ease,
-        box-shadow 0.5s ease;
+  transform: translate3d(
+    calc(-50% - var(--search-push)),
+    0,
+    0
+  );
 
-    transform: none;
+  animation: none;
+
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.5s ease,
+    transform 0.35s ease;
 }
-
-/* Логотип без анимации увеличения */
 
 .menu-button-container .menu-open-image {
-    display: block;
-    animation: none;
-    transform: none;
-}
+  display: block;
 
-/* Свечение при наведении */
+  transform: translate3d(0, 0, 0);
+  animation: none;
+
+  pointer-events: none;
+  transition: none;
+}
 
 .menu-button-container .menu-open-button:hover {
-    background: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.12);
 
-    box-shadow:
-        0 0 6px rgba(255, 255, 255, 1),
-        0 0 14px rgba(255, 255, 255, 1),
-        0 0 28px rgba(255, 255, 255, 0.95),
-        0 0 46px rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 0 6px rgba(255, 255, 255, 1),
+    0 0 14px rgba(255, 255, 255, 1),
+    0 0 28px rgba(255, 255, 255, 0.95),
+    0 0 46px rgba(255, 255, 255, 0.8);
 
-    transform: none;
+  transform: translate3d(
+    calc(-50% - var(--search-push)),
+    0,
+    0
+  );
 }
 
-/* Состояние при нажатии */
+.menu-button-container .menu-open-button:active {
+  box-shadow:
+    0 0 5px rgba(255, 255, 255, 0.9),
+    0 0 14px rgba(255, 255, 255, 0.8);
 
-.menu-container .menu-open-button:active {
-    box-shadow:
-        0 0 5px rgba(255, 255, 255, 0.9),
-        0 0 14px rgba(255, 255, 255, 0.8);
-
-    transform: none;
+  transform: translate3d(
+    calc(-50% - var(--search-push)),
+    0,
+    0
+  ) scale(0.96);
 }

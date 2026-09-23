@@ -1,6 +1,7 @@
 .tags-container {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+
     align-items: stretch;
     gap: 3px;
 
@@ -12,12 +13,14 @@
     overflow: visible;
 }
 
+/* Скрываем полосу прокрутки в WebKit-браузерах */
 .tags-container::-webkit-scrollbar {
     display: none;
 }
 
+/* Основной стиль тега */
 .tag {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
 
@@ -26,18 +29,53 @@
     min-width: 0;
     min-height: 0;
 
+    box-sizing: border-box;
     margin: 0;
     padding: 2px 4px;
 
     background: var(--blue);
     border-radius: var(--element-radius);
-    overflow: visible;
+
     text-align: center;
-    white-space: nowrap;
+    line-height: 1.2;
+
+    /*
+     * Запрещаем перенос текста
+     */
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    word-wrap: normal !important;
+    hyphens: none !important;
+
+    /*
+     * Если текст слишком длинный —
+     * показываем многоточие, а не переносим последнюю букву
+     */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Адаптация тегов для мобильных устройств */
+/*
+ * Если внутри .tag находятся span, a или другой элемент,
+ * запрещаем перенос и для них
+ */
+.tag *,
+.tag a,
+.tag span {
+    max-width: 100%;
 
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    word-wrap: normal !important;
+    hyphens: none !important;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Мобильные устройства */
 @media (max-width: 700px) {
     .tags-container {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -49,14 +87,19 @@
     }
 }
 
+/* Очень маленькие экраны */
 @media (max-width: 380px) {
+    .tags-container {
+        gap: 2px;
+    }
+
     .tag {
         padding: 2px;
+        font-size: 12px;
     }
 }
 
-/* Адаптация тегов для больших экранов */
-
+/* Большие экраны */
 @media (min-width: 701px) {
     .tags-container {
         grid-template-columns: repeat(4, minmax(0, 1fr));

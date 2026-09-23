@@ -1,1 +1,11 @@
-::selection{background-color:#fff;color:#000;text-shadow:none}::-moz-selection{background-color:#fff;color:#000;text-shadow:none}
+::selection {
+    background-color: #ffffff;
+    color: #000000;
+    text-shadow: none;
+}
+
+::-moz-selection {
+    background-color: #ffffff;
+    color: #000000;
+    text-shadow: none;
+}

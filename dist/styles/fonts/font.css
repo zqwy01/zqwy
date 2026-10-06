@@ -5,6 +5,14 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Единые отступы */
+    --heading-gap: 10px;
+    --heading-line-height: 0.86;
+    --element-gap: 24px;
+    --paragraph-gap: 16px;
+}
+
 html,
 body {
     width: 100%;
@@ -20,6 +28,30 @@ body {
     overflow-x: visible;
 }
 
+/* Убираем стандартные отступы браузера */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+figure {
+    margin-top: 0;
+}
+
+button,
+input,
+textarea,
+select {
+    margin: 0;
+    font-family: inherit;
+    color: inherit;
+}
+
+/* Шрифт */
 @font-face {
     font-family: "Biela";
     src: url("./biela.woff2") format("woff2");
@@ -28,62 +60,56 @@ body {
     font-display: swap;
 }
 
-button,
-input,
-textarea,
-select {
-    font-family: inherit;
-    color: inherit;
-}
-
 /* Заголовки */
 h1,
-h2 {
-    width: 100%;
-    min-width: 0;
-
-    margin-top: 0;
-    margin-bottom: 10px;
-
-    color: inherit;
-    font-family: inherit;
-    font-size: clamp(2.25rem, 6vw, 4rem);
-    font-weight: 400;
-    line-height: 0.9;
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-h3 {
-    width: 100%;
-    min-width: 0;
-
-    margin-top: 0;
-    margin-bottom: 10px;
-
-    color: inherit;
-    font-family: inherit;
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
-    font-weight: 400;
-    line-height: 0.9;
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
+h2,
+h3,
 h4 {
     width: 100%;
+    max-width: 100%;
     min-width: 0;
 
-    margin-top: 24px;
-    margin-bottom: 10px;
+    margin: 0 0 var(--heading-gap);
 
     color: inherit;
     font-family: inherit;
-    font-size: clamp(1.5rem, 4.5vw, 3.25rem);
     font-weight: 400;
-    line-height: 0.9;
+    line-height: var(--heading-line-height);
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Заголовки первого и второго уровня */
+h1,
+h2 {
+    font-size: clamp(2.25rem, 6vw, 4rem);
+}
+
+/* Заголовок третьего уровня */
+h3 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+/* Заголовок четвертого уровня */
+h4 {
+    font-size: clamp(1.5rem, 4.5vw, 3.25rem);
+}
+
+/* Остальные стандартные заголовки */
+h5,
+h6 {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    margin: 0 0 var(--heading-gap);
+
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 400;
+    line-height: var(--heading-line-height);
 
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -91,9 +117,14 @@ h4 {
 
 /* Поиск */
 .search {
+    display: block;
+
     width: 100%;
     max-width: 100%;
     min-width: 0;
+
+    margin: 0;
+    padding: 0;
 
     color: #fff;
     font-family: inherit;
@@ -101,6 +132,9 @@ h4 {
     font-weight: 400;
     line-height: 1;
     text-align: center;
+
+    border: 0;
+    outline: 0;
 
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -116,11 +150,14 @@ h4 {
     max-width: 100%;
     min-width: 0;
 
+    margin: 0;
+    padding: 0;
+
     color: #fff;
     font-family: inherit;
     font-size: clamp(6rem, 12vw, 11rem);
     font-weight: 400;
-    line-height: 0.9;
+    line-height: var(--heading-line-height);
     text-align: center;
 
     overflow-wrap: anywhere;
@@ -138,16 +175,11 @@ h4 {
     margin: 0;
     padding: 0 12px;
 
-    box-sizing: border-box;
-
     color: #fff;
     font-family: inherit;
-
-    /* Увеличенный, но адаптивный размер */
     font-size: clamp(1.4rem, 6vw, 4.5rem);
-
     font-weight: 400;
-    line-height: 0.9;
+    line-height: var(--heading-line-height);
     text-align: center;
 
     white-space: normal;
@@ -169,6 +201,9 @@ h4 {
     max-width: 100%;
     min-width: 0;
 
+    margin: 0;
+    padding: 0;
+
     overflow: visible;
 }
 
@@ -177,6 +212,9 @@ h4 {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+
+    margin: 0;
+    padding: 0;
 
     color: #fff;
     font-family: inherit;
@@ -188,33 +226,94 @@ h4 {
 }
 
 .text-container p {
+    margin: 0 0 var(--paragraph-gap);
     line-height: 1.05;
 }
 
-/* Название альбома */
+.text-container p:last-child {
+    margin-bottom: 0;
+}
+
+/* Общий контейнер контента */
+.content > * {
+    margin-top: 0;
+    margin-bottom: var(--element-gap);
+}
+
+.content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* =========================================================
+   Шрифты и отступы треклиста
+   ========================================================= */
+
+/* Стрелка альбома */
+.album-arrow {
+    margin: 0 0 0 8px;
+    padding: 0;
+
+    line-height: 1;
+}
+
+/* Заголовок альбома */
 .album-heading {
     width: 100%;
     max-width: 100%;
     min-width: 0;
 
+    margin: 0;
+    padding: 0;
+
     color: #fff;
     font-family: inherit;
     font-size: clamp(2.25rem, 5vw, 3.5rem);
     font-weight: 400;
-    line-height: 1;
+    line-height: var(--heading-line-height);
 
     overflow-wrap: anywhere;
     word-break: break-word;
 }
 
-/* Треки */
+/* Название альбома */
+.album-title {
+    margin: 0;
+    padding: 0;
+}
+
+/* Контент альбома */
+.album-content {
+    margin: 0;
+    padding: 0;
+}
+
+/* Список треков */
+.track-list {
+    margin: 0;
+    padding-left: 0;
+}
+
+/* Строки треков */
+.track,
+.track-row,
+.track-item {
+    margin: 0;
+}
+
+/* Кнопка трека */
 .track-button {
     max-width: 100%;
     min-width: 0;
 
+    margin: 0;
+    padding: 0;
+
     color: #fff;
     font: inherit;
     text-align: left;
+
+    background: transparent;
+    border: 0;
 }
 
 .track-number {
@@ -224,6 +323,9 @@ h4 {
 .track-name {
     max-width: 100%;
     min-width: 0;
+
+    margin: 0;
+    padding: 0;
 
     font-size: clamp(1.5rem, 3.2vw, 2.3rem);
     line-height: 1.1;
@@ -235,6 +337,11 @@ h4 {
 
 .track-play {
     font-size: clamp(1.4rem, 2.2vw, 1.75rem);
+}
+
+.track-downloads {
+    margin: 0;
+    padding: 0;
 }
 
 .track-downloads a {
@@ -257,13 +364,19 @@ h4 {
     max-width: 100%;
     min-width: 0;
 
+    margin: 0;
+    padding: 0;
+
     font-family: inherit;
     font-size: clamp(1.5rem, 4.5vw, 3.25rem);
     font-weight: 400;
-    line-height: 0.9;
+    line-height: var(--heading-line-height);
 }
 
 .menu-open-button {
+    margin: 0;
+    padding: 0;
+
     font-family: inherit;
     font-size: 16px;
     font-weight: 400;
@@ -272,10 +385,17 @@ h4 {
 
 .menu-search-input {
     max-width: 100%;
+
+    margin: 0;
+    padding: 0;
+
     font: inherit;
 }
 
 .site-menu-close {
+    margin: 0;
+    padding: 0;
+
     font-family: inherit;
     font-size: 36px;
     font-weight: 400;
@@ -285,6 +405,9 @@ h4 {
 .site-menu-button {
     max-width: 100%;
     min-width: 0;
+
+    margin: 0;
+    padding: 0;
 
     font: inherit;
     color: inherit;
@@ -300,6 +423,13 @@ h4 {
 
 /* Мобильная версия */
 @media (max-width: 380px) {
+    :root {
+        --heading-gap: 8px;
+        --heading-line-height: 0.86;
+        --element-gap: 18px;
+        --paragraph-gap: 12px;
+    }
+
     .tag {
         padding-right: 8px;
         padding-left: 8px;
@@ -336,5 +466,15 @@ h4 {
 .tags,
 .tags-container {
     outline: 2px solid lime;
+}
+
+.album-heading,
+.album-title,
+.album-content,
+.track-list,
+.track,
+.track-row,
+.track-item {
+    outline: 1px solid yellow;
 }
 */

@@ -28,6 +28,42 @@
 
 
 /* =========================================================
+   Сброс стандартных отступов
+   ========================================================= */
+
+.album-heading {
+    margin: 0;
+    padding: 0;
+}
+
+.album-title {
+    margin: 0;
+    padding: 0;
+}
+
+.album-arrow {
+    margin: 0 0 0 8px;
+    padding: 0;
+}
+
+.album-content {
+    margin: 0;
+    padding: 0;
+}
+
+.track-list {
+    margin: 0;
+    padding: 0;
+}
+
+.track,
+.track-row,
+.track-item {
+    margin: 0;
+}
+
+
+/* =========================================================
    Заголовок альбома
    ========================================================= */
 
@@ -42,9 +78,6 @@
     width: auto;
     max-width: 100%;
     min-width: 0;
-
-    margin: 0;
-    padding: 0;
 
     cursor: pointer;
     list-style: none;
@@ -91,9 +124,6 @@
     min-width: 0;
     width: auto;
 
-    margin: 0;
-    padding: 0;
-
     flex: 0 1 auto;
 
     overflow-wrap: anywhere;
@@ -121,9 +151,6 @@
 
     width: 24px;
     height: 24px;
-
-    margin: 0 0 0 8px;
-    padding: 0;
 
     line-height: 1;
     text-align: center;
@@ -157,9 +184,6 @@
     box-sizing: border-box;
     width: 100%;
     height: 0;
-
-    margin: 0;
-    padding: 0;
 
     overflow: hidden;
 
@@ -223,9 +247,6 @@
     box-sizing: border-box;
     width: 100%;
 
-    margin: 0;
-    padding-left: 0;
-
     list-style: none;
 
     user-select: text !important;
@@ -246,8 +267,6 @@
     box-sizing: border-box;
     isolation: isolate;
 
-    margin: 0;
-
     border: 0 !important;
     outline: none !important;
     box-shadow: none !important;
@@ -256,7 +275,8 @@
     -webkit-user-select: text !important;
 
     /*
-     * Иконки не обрезаются самим треком.
+     * Иконки и другие элементы могут
+     * визуально выходить за границы строки.
      */
     overflow: visible;
 }
@@ -285,7 +305,12 @@
     content: "";
 
     position: absolute;
-    inset: 1px;
+
+    /*
+     * Рамка немного выходит за пределы
+     * самого блока и охватывает выступающие элементы.
+     */
+    inset: -2px;
 
     z-index: 0;
 

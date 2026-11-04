@@ -9,6 +9,14 @@
   const TAU = Math.PI * 2;
   const WIN_PCT = 65;
 
+  // Depth gained by one correctly timed strike / destroyed hazard.
+  const PROGRESS = {
+    perfect: 0.44,
+    good: 0.27,
+    hazardPerfect: 0.5,
+    hazardGood: 0.36
+  };
+
   // Gameplay tuning. Kept here so tools/selftest.mjs can exercise it.
   const DIFFICULTY = {
     silence:   { every: 0, speed: 0,  max: 0,  spawnFrom: 999 },
@@ -145,7 +153,7 @@
   }
 
   return {
-    TAU, WIN_PCT, DIFFICULTY,
+    TAU, WIN_PCT, PROGRESS, DIFFICULTY,
     clamp, lerp, dist, dist2, angleTo, formatTime,
     sectionAt, lowerBoundBeat, nearestBeat, judge, shouldSpawn,
     hazardKind, hazardSpeed, mulberry32, hash32, chooseSpawnAngle,

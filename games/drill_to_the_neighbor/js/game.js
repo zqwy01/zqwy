@@ -29,7 +29,7 @@
   const GOOD_WINDOW = 0.17;
   const WARN_DELAY = META.beatPeriod || 0.666667;
   const HAZARD_R = { thorn: 7, stone: 10 };
-  const PROGRESS = { perfect: 0.44, good: 0.27, hazardPerfect: 0.5, hazardGood: 0.36 };
+  const PROGRESS = Core.PROGRESS;
 
   const SECTION_SUB = {
     silence: 'СЛУШАЙ ТИШИНУ. ПЕРВЫЙ УДАР — НА 0:06.',
@@ -247,7 +247,9 @@
 
     stageSize = Math.round(W * scale);
     const left = Math.round((vw - stageSize) / 2);
-    const top = Math.round(topReserve + Math.max(0, (availH - stageSize) / 2));
+    // Keep the field close under the HUD. The spare height is used by the
+    // touch controls at the bottom of the viewport.
+    const top = Math.round(topReserve + Math.max(0, (availH - stageSize) * 0.08));
 
     stage.style.width = stageSize + 'px';
     stage.style.height = stageSize + 'px';
@@ -452,6 +454,7 @@
     S.starting = true;
     audio.stopNow();
     resetRun();
+    S.sectionIndex = 0;
     applyPhase('playing');
     if (SECTIONS[0]) announceSection(SECTIONS[0], true);
     updateBestLine();
@@ -470,10 +473,8 @@
   function pauseRun() {
     if (S.phase !== 'playing') return;
     audio.pause();
-    S.pausedArtTime = S.songTime;
+    S.pausedArtTime = audio.pausedAt || S.songTime;
     applyPhase('paused');
-    showToast('', '', 1);
-    toast.classList.remove('show');
   }
 
   async function resumeRun() {
@@ -602,16 +603,20 @@
   function updateBeat(t) {
     const period = META.beatPeriod || 0.666667;
     const phase0 = META.beatPhase || 0.6347;
+    const firstBeat = META.firstBeat || 6.635;
     const f = (t - phase0) / period;
     const frac = f - Math.floor(f);
-    S.beatPulse = Math.pow(1 - clamp(frac, 0, 1), 3.1);
 
-    const beatNo = Math.floor((t - (META.firstBeat || 6.635)) / period + 0.0001) + 9;
+    // The grid extends backwards in time; do not pulse during the intro silence.
+    const silent = t < firstBeat - 0.18;
+    S.beatPulse = silent ? 0 : Math.pow(1 - clamp(frac, 0, 1), 3.1);
+
+    const beatNo = Math.floor((t - firstBeat) / period + 0.0001) + 9;
     const inBar = ((beatNo - 9) % 4 + 4) % 4;
-    S.barPulse = inBar === 0 ? S.beatPulse : 0;
+    S.barPulse = silent || inBar !== 0 ? 0 : S.beatPulse;
 
     const found = Core.lowerBoundBeat(BEATS, t);
-    S.nextBeat = found < BEATS.length ? BEATS[found] : null;
+    S.nextBeat = silent ? null : (found < BEATS.length ? BEATS[found] : null);
   }
 
   function spawnWarning(beat, section) {

@@ -1,0 +1,68 @@
+/*
+ * Metadata block on a track page.
+ *
+ * A definition list that collapses row by row: fields with no value are not
+ * emitted at all, so a sparsely documented track shows a short block instead
+ * of a column of empty labels. The two columns are the label and the value;
+ * the label column keeps a fixed width so values line up between rows.
+ */
+
+.track-fields {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.track-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.track-field-label {
+  flex: 0 0 12rem;
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.track-field-value {
+  margin: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Two descriptions on one track are allowed, but the alternate language is
+   visually secondary so it does not compete with the primary text. */
+.description-alt {
+  margin-top: 0.75rem;
+  font-size: 0.95em;
+  opacity: 0.75;
+}
+
+/* Link back to the release the track belongs to. */
+.release-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  opacity: 0.75;
+  text-decoration: none;
+}
+
+.release-link:hover,
+.release-link:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+@media (max-width: 40rem) {
+  .track-field-label {
+    flex-basis: 100%;
+  }
+}

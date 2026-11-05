@@ -264,6 +264,7 @@
       if (!s) continue;
       const on = s.id === id;
       s.classList.toggle('active', on);
+      s.classList.toggle('hidden', !on);
       s.setAttribute('aria-hidden', on ? 'false' : 'true');
     }
     overlay.classList.toggle('hidden', !id);

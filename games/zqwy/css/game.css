@@ -619,139 +619,8 @@ button {
 }
 
 /* ------------------------------------------------------------------ */
-/* Смерть и сюжетные карточки                                          */
+/* Общие анимации появления                                            */
 /* ------------------------------------------------------------------ */
-
-.death {
-  z-index: 40;
-  background:
-    radial-gradient(circle at 50% 45%, rgba(105, 40, 16, 0.34), transparent 48%),
-    rgba(3, 5, 6, 0.88);
-}
-
-.death-inner {
-  width: min(88%, 330px);
-  text-align: center;
-  animation: rise-in 360ms ease both;
-}
-
-.death-sigil {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 16px;
-  border: 1px solid rgba(224, 138, 78, 0.55);
-  border-radius: 50%;
-  box-shadow: 0 0 42px rgba(208, 118, 60, 0.3), inset 0 0 24px rgba(208, 118, 60, 0.18);
-}
-
-.death-sigil::before,
-.death-sigil::after {
-  position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(224, 138, 78, 0.32);
-  border-radius: 50%;
-  content: '';
-}
-
-.death-sigil::after {
-  inset: 19px;
-  border-style: dashed;
-  animation: slow-spin 14s linear infinite;
-}
-
-@keyframes slow-spin {
-  to { transform: rotate(360deg); }
-}
-
-.death-inner h2 {
-  margin: 7px 0 9px;
-  color: #efe5d2;
-  font-size: 23px;
-  font-weight: 700;
-  line-height: 1.15;
-}
-
-.death-inner p {
-  margin: 0 auto 20px;
-  max-width: 290px;
-  color: rgba(218, 211, 194, 0.72);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.story {
-  z-index: 35;
-  background: rgba(4, 6, 7, 0.62);
-}
-
-.story-card {
-  position: relative;
-  width: min(90%, 340px);
-  max-height: 86%;
-  overflow-y: auto;
-  padding: 20px 20px 18px;
-  border: 1px solid rgba(196, 204, 193, 0.2);
-  background:
-    linear-gradient(135deg, rgba(208, 118, 60, 0.08), transparent 34%),
-    #0e1213;
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
-  animation: rise-in 300ms ease both;
-}
-
-.story-card::before,
-.story-card::after {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: rgba(229, 161, 104, 0.48);
-  content: '';
-}
-
-.story-card::before {
-  top: 7px;
-  left: 7px;
-  border-top: 1px solid;
-  border-left: 1px solid;
-}
-
-.story-card::after {
-  right: 7px;
-  bottom: 7px;
-  border-right: 1px solid;
-  border-bottom: 1px solid;
-}
-
-.story-card h2 {
-  margin: 6px 0 14px;
-  color: #efe6d3;
-  font-size: 23px;
-  line-height: 1.1;
-}
-
-.story-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.story-lines p {
-  margin: 0;
-  color: rgba(220, 213, 196, 0.78);
-  font-size: 13px;
-  line-height: 1.46;
-  animation: line-in 360ms ease both;
-}
-
-.story-lines p:nth-child(2) { animation-delay: 90ms; }
-.story-lines p:nth-child(3) { animation-delay: 180ms; }
-.story-lines p:nth-child(4) { animation-delay: 270ms; }
-
-@keyframes line-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(10px) scale(0.99); }
@@ -1223,7 +1092,8 @@ button {
 }
 
 .cv-el.command,
-.cv-el.seq {
+.cv-el.seq,
+.cv-el.control {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1237,7 +1107,8 @@ button {
 }
 
 .cv-el.command .el-title,
-.cv-el.seq .el-title {
+.cv-el.seq .el-title,
+.cv-el.control .el-title {
   color: #e6dfce;
   font-size: 12px;
   font-weight: 700;
@@ -1246,11 +1117,55 @@ button {
 }
 
 .cv-el.command .el-sub,
-.cv-el.seq .el-sub {
+.cv-el.seq .el-sub,
+.cv-el.control .el-sub {
   color: rgba(159, 166, 152, 0.62);
   font-size: 7.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.cv-el.control {
+  min-width: 78px;
+  border-left-color: var(--green);
+}
+
+.cv-el.control .el-title {
+  padding-right: 20px;
+}
+
+.cv-el.control .el-key {
+  align-self: flex-start;
+  min-width: 30px;
+  margin-top: 2px;
+  padding: 2px 6px;
+  border: 1px solid rgba(127, 155, 132, 0.45);
+  border-radius: 2px;
+  background: rgba(127, 155, 132, 0.09);
+  color: #cfe0d1;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.cv-el.control .el-key:hover,
+.cv-el.control .el-key:focus-visible {
+  border-color: var(--rust-bright);
+  color: #f3e5d0;
+  outline: none;
+}
+
+.cv-el.control .el-key.listening {
+  border-color: var(--rust-bright);
+  background: rgba(208, 118, 60, 0.2);
+  color: #f6e7d2;
+  animation: cursor-blink 0.85s steps(1) infinite;
+}
+
+.cv-el.control .el-run {
+  border-color: rgba(127, 155, 132, 0.3);
+  color: rgba(198, 216, 200, 0.78);
+  background: rgba(127, 155, 132, 0.06);
 }
 
 .cv-el.card {
@@ -1432,6 +1347,19 @@ button {
   color: var(--rust-bright);
 }
 
+.add-chip.control {
+  border-color: rgba(127, 155, 132, 0.35);
+  color: rgba(193, 212, 195, 0.82);
+}
+
+.drawer-group-label {
+  flex: 0 0 100%;
+  padding-top: 4px;
+  color: rgba(158, 164, 151, 0.46);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+
 .add-chip:disabled {
   opacity: 0.32;
   cursor: default;
@@ -1548,27 +1476,15 @@ button {
   .trial-abort {
     bottom: calc(128px + var(--safe-bottom));
   }
-
-  .term-hint span:nth-child(n + 2) {
-    display: none;
-  }
 }
 
 @media (max-height: 700px) {
   .log {
-    font-size: 12.5px;
+    font-size: var(--term-font);
   }
 
   .rt-name {
     font-size: 19px;
-  }
-
-  .story-card {
-    padding: 16px;
-  }
-
-  .story-card h2 {
-    font-size: 20px;
   }
 }
 
@@ -1593,7 +1509,7 @@ button {
   }
 
   .log {
-    font-size: 12px;
+    font-size: var(--term-font);
   }
 
   .cv-el.card {
@@ -1917,57 +1833,97 @@ body.split-dragging {
 }
 
 /* ------------------------------------------------------------------ */
-/* Сюжет, смерть и испытание в терминале                               */
+/* Настройки терминала                                                 */
 /* ------------------------------------------------------------------ */
 
-#view-story,
-#view-death {
-  justify-content: center;
+#view-settings {
+  gap: 8px;
+  padding-bottom: 2px;
   overflow-y: auto;
-  padding: 8px 2px;
 }
 
-.term-script {
+#view-settings .sheet-head {
+  flex: 0 0 auto;
+}
+
+.settings-body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  gap: 12px;
+  min-height: 0;
+  padding-bottom: 4px;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid rgba(196, 204, 193, 0.12);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.setting-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(210, 207, 192, 0.76);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+
+.setting-head b {
+  flex: 0 0 auto;
+  color: var(--rust-bright);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.setting-range {
   width: 100%;
-  max-width: 390px;
-  margin: 0 auto;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--rust);
+  cursor: pointer;
 }
 
-.term-script h2 {
-  margin: 6px 0 12px;
-  color: #efe6d3;
-  font-size: 21px;
-  line-height: 1.1;
+.setting-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
-.term-script .story-lines {
-  margin-bottom: 14px;
+.setting-presets button {
+  padding: 4px 8px;
+  border: 1px solid rgba(196, 204, 193, 0.18);
+  border-radius: 2px;
+  background: transparent;
+  color: rgba(212, 208, 193, 0.66);
+  font-size: 9px;
 }
 
-.death-script {
-  align-items: center;
-  text-align: center;
+.setting-presets button:hover,
+.setting-presets button:focus-visible {
+  border-color: rgba(229, 161, 104, 0.55);
+  color: #f2e6d4;
+  outline: none;
 }
 
-.death-script .death-sigil {
-  width: 54px;
-  height: 54px;
-  margin-bottom: 12px;
+.setting-presets button.active {
+  border-color: var(--rust);
+  background: rgba(96, 51, 26, 0.5);
+  color: #f7e8d4;
 }
 
-.death-script h2 {
-  font-size: 20px;
+#settings-reset {
+  align-self: flex-start;
 }
 
-.death-script p {
-  margin: 0 auto 16px;
-  color: rgba(218, 211, 194, 0.72);
-  font-size: 12px;
-  line-height: 1.45;
-}
+/* ------------------------------------------------------------------ */
+/* Испытание в терминале                                               */
+/* ------------------------------------------------------------------ */
 
 .trial-console {
   display: flex;

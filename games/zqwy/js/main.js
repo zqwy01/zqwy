@@ -51,16 +51,18 @@
     commandForm: $('command-form'),
     commandInput: $('command-input'),
     viewMain: $('view-main'),
+    terminal: $('terminal'),
+    settingsOpen: $('settings-open'),
 
-    deathView: $('view-death'),
-    deathText: $('death-text'),
-    deathContinue: $('death-continue'),
-
-    storyView: $('view-story'),
-    storySpeaker: $('story-speaker'),
-    storyTitle: $('story-title'),
-    storyLines: $('story-lines'),
-    storyContinue: $('story-continue'),
+    settingsView: $('view-settings'),
+    settingsClose: $('settings-close'),
+    settingSpeed: $('setting-speed'),
+    settingSpeedValue: $('setting-speed-value'),
+    settingSpeedPresets: $('setting-speed-presets'),
+    settingFont: $('setting-font'),
+    settingFontValue: $('setting-font-value'),
+    settingFontPresets: $('setting-font-presets'),
+    settingsReset: $('settings-reset'),
 
     trialView: $('view-trial'),
     trialStage: $('trial-stage'),
@@ -125,8 +127,7 @@
     map: dom.mapView,
     canvas: dom.canvasView,
     card: dom.cardView,
-    story: dom.storyView,
-    death: dom.deathView,
+    settings: dom.settingsView,
     trial: dom.trialView
   };
 
@@ -136,6 +137,12 @@
 
   const DEFAULT_SEED = 'zqwy-labyrinth-01';
   const SAVE_VERSION = 1;
+  const TERM_SETTINGS_KEY = 'zqwy.labyrinth.terminal.v1';
+  const DEFAULT_TERM_SETTINGS = { speed: 70, fontSize: 14 };
+  const SPEED_MIN = 12;
+  const SPEED_MAX = 220;
+  const FONT_MIN = 11;
+  const FONT_MAX = 22;
 
   let world = null;
   let state = null;
@@ -159,6 +166,7 @@
   let canvasDrag = null;
   let canvasZoom = 1;
   let canvasPinch = null;
+  let controlBindingId = null;
 
   let splitRatio = 0.56;
   let splitDrag = null;
@@ -168,9 +176,12 @@
   let trial = null;
   let trialRaf = 0;
 
+  let termSettings = { ...DEFAULT_TERM_SETTINGS };
   let logBusy = false;
   let logToken = 0;
+  let logSkip = false;
   const logQueue = [];
+  const logIdleCallbacks = [];
 
   /* ------------------------------------------------------------------ */
   /* Сохранение                                                          */
@@ -239,7 +250,7 @@
 
   function normalizeCanvasElement(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    if (!['command', 'card', 'map', 'seq'].includes(raw.kind)) return null;
+    if (!['command', 'card', 'map', 'seq', 'control'].includes(raw.kind)) return null;
     const element = {
       id: typeof raw.id === 'string' ? raw.id : makeId('cv'),
       kind: raw.kind,
@@ -247,13 +258,23 @@
       command: typeof raw.command === 'string' ? raw.command : null,
       label: typeof raw.label === 'string' ? raw.label : '',
       sub: typeof raw.sub === 'string' ? raw.sub : '',
+      action: typeof raw.action === 'string' ? raw.action : null,
+      key: typeof raw.key === 'string' ? raw.key : null,
       nx: Number.isFinite(raw.nx) ? clamp(raw.nx, 0.04, 0.96) : 0.5,
       ny: Number.isFinite(raw.ny) ? clamp(raw.ny, 0.04, 0.96) : 0.5,
       commands: Array.isArray(raw.commands) ? raw.commands.filter((c) => typeof c === 'string') : null,
       requires: Array.isArray(raw.requires) ? raw.requires.filter((id) => knownItemId(id)) : []
     };
     if (element.kind === 'seq' && (!element.commands || !element.commands.length)) return null;
-    if (element.kind !== 'seq' && element.itemId) {
+    if (element.kind === 'control') {
+      const meta = CONTROL_ACTIONS[element.action];
+      if (!meta) return null;
+      element.label = meta.label;
+      element.command = meta.command || null;
+      element.sub = 'кнопка управления';
+      element.requires = [];
+    }
+    if (element.kind !== 'seq' && element.kind !== 'control' && element.itemId) {
       const item = C.items[element.itemId];
       if (!element.command) element.command = item.command || null;
       if (!element.label) element.label = item.name;
@@ -308,6 +329,9 @@
   function setTerminalView(name) {
     if (!VIEWS[name]) name = 'main';
     termView = name;
+    if (name !== 'main' && document.activeElement === dom.commandInput) {
+      dom.commandInput.blur();
+    }
     for (const key of Object.keys(VIEWS)) {
       VIEWS[key].classList.toggle('hidden', key !== name);
     }
@@ -555,7 +579,7 @@
     const ambient = C.ambientRoomLines[
       window.World.hashString(`${state.seed}:ambient:${room.id}`) % C.ambientRoomLines.length
     ];
-    appendLog(ambient, 'story', true);
+    appendLog(ambient, 'story', true, 'ЛАБИРИНТ');
   }
 
   function updateRoomDetection() {
@@ -602,14 +626,18 @@
     const room = roomId ? world.roomById(roomId) : null;
     const roomPhrase = room ? `в комнате «${room.name}»` : 'в переходе между комнатами';
     const count = backpack.items.length;
-    dom.deathText.textContent = count
+    const deathText = count
       ? `Ты снова у Скрижали. Рюкзак остался ${roomPhrase}: ${count} ${plural(count, ['предмет', 'предмета', 'предметов'])}. Он никуда не денется.`
       : `Ты снова у Скрижали. Рюкзак остался ${roomPhrase} — пустой, но никуда не денется.`;
 
-    setTerminalView('death');
+    setTerminalView('main');
     dom.btnAction.classList.add('hidden');
-    appendLog(C.story.death.lines[1], 'story', true);
+    keys = Object.create(null);
+    appendLog(C.story.death.lines[0], 'story', true, C.story.death.speaker || 'СКРИЖАЛЬ');
+    appendLog(deathText, 'sys', false, 'система');
+    lastFrame = now();
     saveGame();
+    updatePrompt();
   }
 
   function collectItemPickup(pickup) {
@@ -751,8 +779,8 @@
     dom.btnAction.classList.remove('hidden');
   }
 
-  function interact() {
-    if (isPaused() || isTyping()) return;
+  function interact(force) {
+    if ((!force && isPaused()) || isTyping()) return;
     const target = findInteractable();
     if (!target) return;
     if (target.type === 'item') {
@@ -790,27 +818,23 @@
     if (storyActive || !storyQueue.length) return;
     const entry = storyQueue.shift();
     const story = C.story[entry.key];
+    if (!story) {
+      if (entry.onClose) entry.onClose();
+      pumpStory();
+      return;
+    }
     storyActive = true;
     state.storySeen[entry.key] = true;
     saveGame();
 
-    dom.storySpeaker.textContent = story.speaker || 'ЛАБИРИНТ';
-    dom.storyTitle.textContent = story.title || '';
-    dom.storyLines.textContent = '';
+    appendLog(story.title, 'sys', true, 'сцена');
+    const speaker = story.speaker || 'ЛАБИРИНТ';
     for (const line of story.lines) {
-      const p = document.createElement('p');
-      p.textContent = line;
-      dom.storyLines.appendChild(p);
+      appendLog(line, 'story', false, speaker);
     }
 
-    setTerminalView('story');
-    dom.btnAction.classList.add('hidden');
-    keys = Object.create(null);
-
-    dom.storyContinue.onclick = () => {
-      setTerminalView('main');
+    whenLogsIdle(() => {
       storyActive = false;
-      saveGame();
       if (entry.onClose) {
         try {
           entry.onClose();
@@ -819,27 +843,116 @@
         }
       }
       pumpStory();
-    };
+    });
   }
-
-  /* ------------------------------------------------------------------ */
-  /* Смерть                                                              */
-  /* ------------------------------------------------------------------ */
-
-  dom.deathContinue.addEventListener('click', () => {
-    setTerminalView('main');
-    lastFrame = now();
-    updatePrompt();
-    appendLog('Ты у Скрижали.', 'sys', true);
-  });
 
   /* ------------------------------------------------------------------ */
   /* Терминал                                                            */
   /* ------------------------------------------------------------------ */
 
-  function appendLog(text, type, instant) {
+  function readTermSettings() {
+    try {
+      const raw = window.localStorage.getItem(TERM_SETTINGS_KEY);
+      if (!raw) return { ...DEFAULT_TERM_SETTINGS };
+      const parsed = JSON.parse(raw);
+      return {
+        speed: Number.isFinite(parsed.speed) ? parsed.speed : DEFAULT_TERM_SETTINGS.speed,
+        fontSize: Number.isFinite(parsed.fontSize) ? parsed.fontSize : DEFAULT_TERM_SETTINGS.fontSize
+      };
+    } catch (error) {
+      return { ...DEFAULT_TERM_SETTINGS };
+    }
+  }
+
+  function normalizeTermSettings() {
+    termSettings.speed = termSettings.speed <= 0
+      ? 0
+      : clamp(Math.round(termSettings.speed), SPEED_MIN, SPEED_MAX);
+    termSettings.fontSize = clamp(Math.round(termSettings.fontSize), FONT_MIN, FONT_MAX);
+  }
+
+  function applyTermSettings(persist) {
+    normalizeTermSettings();
+    dom.terminal.style.setProperty('--term-font', `${termSettings.fontSize}px`);
+    dom.settingSpeed.value = String(termSettings.speed);
+    dom.settingSpeedValue.textContent = termSettings.speed <= 0
+      ? 'сразу'
+      : `${termSettings.speed} зн/с`;
+    dom.settingFont.value = String(termSettings.fontSize);
+    dom.settingFontValue.textContent = `${termSettings.fontSize} px`;
+
+    dom.settingSpeedPresets.querySelectorAll('[data-speed]').forEach((button) => {
+      button.classList.toggle('active', Number(button.dataset.speed) === termSettings.speed);
+    });
+    dom.settingFontPresets.querySelectorAll('[data-font]').forEach((button) => {
+      button.classList.toggle('active', Number(button.dataset.font) === termSettings.fontSize);
+    });
+
+    if (persist) {
+      try {
+        window.localStorage.setItem(TERM_SETTINGS_KEY, JSON.stringify(termSettings));
+      } catch (error) {
+        /* Приватный режим: настройки не сохранятся. */
+      }
+    }
+  }
+
+  function openSettings() {
+    if (isTrialBlocking()) return;
+    ensureTerminalShare(0.5);
+    applyTermSettings(false);
+    setTerminalView('settings');
+    keys = Object.create(null);
+  }
+
+  function closeSettings() {
+    setTerminalView('main');
+    updatePrompt();
+  }
+
+  dom.settingsOpen.addEventListener('click', openSettings);
+  dom.settingsClose.addEventListener('click', closeSettings);
+  dom.settingSpeed.addEventListener('input', () => {
+    termSettings.speed = Number(dom.settingSpeed.value);
+    applyTermSettings(true);
+  });
+  dom.settingFont.addEventListener('input', () => {
+    termSettings.fontSize = Number(dom.settingFont.value);
+    applyTermSettings(true);
+  });
+  dom.settingSpeedPresets.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-speed]');
+    if (!button) return;
+    termSettings.speed = Number(button.dataset.speed);
+    applyTermSettings(true);
+  });
+  dom.settingFontPresets.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-font]');
+    if (!button) return;
+    termSettings.fontSize = Number(button.dataset.font);
+    applyTermSettings(true);
+  });
+  dom.settingsReset.addEventListener('click', () => {
+    termSettings = { ...DEFAULT_TERM_SETTINGS };
+    applyTermSettings(true);
+  });
+
+  function defaultLabelForType(type) {
+    if (type === 'sys') return 'система';
+    if (type === 'story') return 'сцена';
+    if (type === 'reply') return 'терминал';
+    if (type === 'cmd') return '›';
+    return '';
+  }
+
+  function appendLog(text, type, instant, label) {
     if (text === null || text === undefined || text === '') return;
-    logQueue.push({ text: String(text), type: type || 'sys', instant: Boolean(instant) });
+    logQueue.push({
+      text: String(text),
+      type: type || 'sys',
+      instant: Boolean(instant) || termSettings.speed <= 0,
+      label: label === undefined ? defaultLabelForType(type || 'sys') : label
+    });
     pumpLog();
   }
 
@@ -850,25 +963,55 @@
     dom.log.textContent = '';
   }
 
+  function whenLogsIdle(callback) {
+    logIdleCallbacks.push(callback);
+    pumpLog();
+  }
+
+  function flushLogIdle() {
+    if (logBusy || logQueue.length) return;
+    while (logIdleCallbacks.length) {
+      const callback = logIdleCallbacks.shift();
+      try {
+        callback();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+
   function pumpLog() {
     if (logBusy) return;
     const entry = logQueue.shift();
-    if (!entry) return;
+    if (!entry) {
+      flushLogIdle();
+      return;
+    }
     logBusy = true;
 
     const line = document.createElement('div');
     line.className = `log-line ${entry.type}`;
+    if (entry.label) {
+      const label = document.createElement('span');
+      label.className = 'log-label';
+      label.textContent = entry.label;
+      line.appendChild(label);
+    }
+    const body = document.createElement('span');
+    body.className = 'log-text';
+    line.appendChild(body);
     dom.log.appendChild(line);
     dom.log.scrollTop = dom.log.scrollHeight;
 
     const finish = () => {
+      line.querySelectorAll('.cursor').forEach((node) => node.remove());
       logBusy = false;
       dom.log.scrollTop = dom.log.scrollHeight;
       pumpLog();
     };
 
     if (entry.instant || entry.text.length < 3) {
-      line.textContent = entry.text;
+      body.textContent = entry.text;
       finish();
       return;
     }
@@ -876,27 +1019,44 @@
     const token = ++logToken;
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
-    line.appendChild(cursor);
+    body.appendChild(cursor);
     let index = 0;
+    let budget = 0;
+    const tick = 16;
+    logSkip = false;
 
     const step = () => {
       if (token !== logToken) {
-        line.textContent = entry.text;
+        body.textContent = entry.text;
         finish();
         return;
       }
-      index = Math.min(entry.text.length, index + 2);
-      line.textContent = entry.text.slice(0, index);
+      if (logSkip) {
+        body.textContent = entry.text;
+        finish();
+        return;
+      }
+      budget += termSettings.speed * tick / 1000;
+      const add = Math.floor(budget);
+      if (add > 0) {
+        budget -= add;
+        index = Math.min(entry.text.length, index + add);
+        body.textContent = entry.text.slice(0, index);
+      }
       if (index >= entry.text.length) {
         finish();
         return;
       }
-      line.appendChild(cursor);
+      body.appendChild(cursor);
       dom.log.scrollTop = dom.log.scrollHeight;
-      window.setTimeout(step, 16);
+      window.setTimeout(step, tick);
     };
     step();
   }
+
+  dom.log.addEventListener('click', () => {
+    if (logBusy) logSkip = true;
+  });
 
   function isTyping() {
     return document.activeElement === dom.commandInput;
@@ -979,11 +1139,15 @@
     const text = String(raw === null || raw === undefined ? '' : raw).trim();
     const cmd = text.toLowerCase().replace(/\s+/g, ' ');
     let reply = '';
+    let replyInstant = false;
 
     if (!text) return '';
 
     if (cmd === 'помоги' || cmd === 'помощь') {
-      reply = C.terminal.help;
+      reply = ['Доступные команды:'].concat(
+        C.terminal.help.map((entry) => `• ${entry.command} — ${entry.description}`)
+      ).join('\n');
+      replyInstant = true;
     } else if (cmd === 'привет') {
       reply = 'Терминал отвечает с задержкой, будто подбирает слова. Привет.';
     } else if (cmd === 'ты куда пропал') {
@@ -1029,10 +1193,18 @@
       reply = mapMark();
     } else if (cmd === 'очаровать') {
       reply = 'Очарование: способность ещё не подключена. Это временная нейтральная заглушка — эффект появится позже.';
+    } else if (cmd === 'настройки' || cmd === 'настройка') {
+      if (source === 'terminal') {
+        openSettings();
+        reply = '';
+      } else {
+        reply = 'Настройки терминала открываются из основной вкладки.';
+      }
     } else if (cmd === 'очисти') {
       if (source === 'terminal') {
         clearLog();
         C.terminal.greeting.forEach((line) => appendLog(line, 'sys', true));
+        C.terminal.controls.forEach((line) => appendLog(line, 'sys', true));
       }
       return '';
     } else {
@@ -1043,9 +1215,9 @@
       if (source === 'canvas') {
         setCanvasReply(text, reply);
         appendLog(text, 'cmd', true);
-        appendLog(reply, 'reply', true);
+        appendLog(reply, 'reply', replyInstant);
       } else {
-        appendLog(reply, 'reply');
+        appendLog(reply, 'reply', replyInstant);
       }
     }
     return reply;
@@ -1181,7 +1353,7 @@
   }
 
   function openInventory() {
-    if (isStoryOrDeathOrTrial()) return;
+    if (isTrialBlocking()) return;
     ensureTerminalShare(0.42);
     renderInventory();
     setTerminalView('inventory');
@@ -1216,7 +1388,7 @@
   }
 
   function openMap() {
-    if (isStoryOrDeathOrTrial()) return;
+    if (isTrialBlocking()) return;
     ensureTerminalShare(0.42);
     updateMapNote();
     setTerminalView('map');
@@ -1294,6 +1466,142 @@
       commands: null,
       requires: []
     };
+  }
+
+  /* Кнопки управления на canvas: каждую можно переназначить на любую
+     клавишу. Действия повторяют команды и основные жесты игры. */
+  const CONTROL_ACTIONS = {
+    up: { label: 'вверх', command: 'вверх', defaultKey: 'KeyW' },
+    down: { label: 'вниз', command: 'вниз', defaultKey: 'KeyS' },
+    left: { label: 'влево', command: 'влево', defaultKey: 'KeyA' },
+    right: { label: 'вправо', command: 'вправо', defaultKey: 'KeyD' },
+    interact: { label: 'действие', command: null, defaultKey: 'KeyE' },
+    look: { label: 'осмотреться', command: 'осмотреться', defaultKey: 'KeyL' },
+    stop: { label: 'стоп', command: 'стоп', defaultKey: 'KeyX' },
+    inventory: { label: 'рюкзак', command: 'рюкзак', defaultKey: 'KeyB' },
+    map: { label: 'карта', command: 'карта', defaultKey: 'KeyM' },
+    canvas: { label: 'canvas', command: 'canvas', defaultKey: 'KeyC' }
+  };
+
+  function keyLabel(code) {
+    if (!code) return '—';
+    const names = {
+      ArrowUp: '↑',
+      ArrowDown: '↓',
+      ArrowLeft: '←',
+      ArrowRight: '→',
+      Space: 'ПРОБЕЛ',
+      Enter: 'ENTER',
+      Escape: 'ESC',
+      Tab: 'TAB',
+      ShiftLeft: 'SHIFT',
+      ShiftRight: 'SHIFT',
+      ControlLeft: 'CTRL',
+      ControlRight: 'CTRL',
+      AltLeft: 'ALT',
+      AltRight: 'ALT',
+      Backspace: 'BACKSPACE'
+    };
+    if (names[code]) return names[code];
+    if (code.startsWith('Key')) return code.slice(3);
+    if (code.startsWith('Digit')) return code.slice(5);
+    if (code.startsWith('Numpad')) return `NUM ${code.slice(6)}`;
+    return code.toUpperCase();
+  }
+
+  function makeElementForControl(action) {
+    const meta = CONTROL_ACTIONS[action];
+    if (!meta) return null;
+    return {
+      id: makeId('cv'),
+      kind: 'control',
+      itemId: null,
+      command: meta.command || null,
+      action,
+      key: meta.defaultKey,
+      label: meta.label,
+      sub: 'кнопка управления',
+      nx: 0.5,
+      ny: 0.5,
+      commands: null,
+      requires: []
+    };
+  }
+
+  function addControlElement(action) {
+    const element = makeElementForControl(action);
+    if (!element) return;
+    const duplicate = state.canvasElements.find((el) => el.kind === 'control' && el.action === action);
+    if (duplicate) {
+      toast(`Кнопка «${element.label}» уже на canvas`);
+      renderCanvasDrawer();
+      return;
+    }
+    const spot = nextCanvasSpot();
+    element.nx = spot.nx;
+    element.ny = spot.ny;
+    state.canvasElements.push(element);
+    saveGame();
+    renderCanvasElements();
+    renderCanvasDrawer();
+    setCanvasReply(element.label, `Кнопка добавлена. Клавиша: ${keyLabel(element.key)}. Нажми на клавишу, чтобы переназначить.`);
+  }
+
+  function assignControlKey(element, code) {
+    if (!element || element.kind !== 'control') return;
+    if (code === 'Escape') {
+      controlBindingId = null;
+      renderCanvasElements();
+      setCanvasReply('клавиша', 'Назначение отменено.');
+      return;
+    }
+    for (const other of state.canvasElements) {
+      if (other !== element && other.kind === 'control' && other.key === code) {
+        other.key = null;
+      }
+    }
+    element.key = code;
+    controlBindingId = null;
+    saveGame();
+    renderCanvasElements();
+    setCanvasReply(element.label, `Назначена клавиша ${keyLabel(code)}.`);
+  }
+
+  function startControlBinding(element) {
+    controlBindingId = element.id;
+    renderCanvasElements();
+    dom.canvasHint.textContent = 'Нажми нужную клавишу. Esc — отмена.';
+    setCanvasReply('клавиша', `Выбери клавишу для кнопки «${element.label}».`);
+  }
+
+  function runControlElement(element) {
+    if (!element || element.kind !== 'control') return;
+    const meta = CONTROL_ACTIONS[element.action];
+    if (!meta) return;
+
+    if (element.action === 'interact') {
+      interact(true);
+      setCanvasReply('действие', 'Взаимодействие выполнено, если рядом был объект.');
+      return;
+    }
+
+    if (element.action === 'inventory') {
+      closeCanvas();
+      handleCommand('рюкзак', 'terminal');
+      return;
+    }
+    if (element.action === 'map') {
+      closeCanvas();
+      handleCommand('карта', 'terminal');
+      return;
+    }
+    if (element.action === 'canvas') {
+      closeCanvas();
+      return;
+    }
+
+    const reply = handleCommand(meta.command, 'canvas');
+    setCanvasReply(element.label, reply || 'Готово.');
   }
 
   function nextCanvasSpot() {
@@ -1399,6 +1707,31 @@
       sub.className = 'el-sub';
       sub.textContent = (element.commands || []).join(' → ');
       node.appendChild(sub);
+    } else if (element.kind === 'control') {
+      const title = document.createElement('div');
+      title.className = 'el-title';
+      title.textContent = element.label || 'кнопка';
+      node.appendChild(title);
+
+      const key = document.createElement('button');
+      key.type = 'button';
+      key.className = 'el-key';
+      key.textContent = keyLabel(element.key);
+      key.title = 'Назначить клавишу';
+      if (element.id === controlBindingId) key.classList.add('listening');
+      key.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      key.addEventListener('click', (event) => {
+        event.stopPropagation();
+        startControlBinding(element);
+      });
+      node.appendChild(key);
+
+      const sub = document.createElement('div');
+      sub.className = 'el-sub';
+      sub.textContent = 'кнопка управления';
+      node.appendChild(sub);
     } else {
       const title = document.createElement('div');
       title.className = 'el-title';
@@ -1436,7 +1769,9 @@
       ? 'произнести'
       : element.kind === 'map'
         ? 'развернуть'
-        : 'выполнить';
+        : element.kind === 'control'
+          ? 'нажать'
+          : 'выполнить';
     node.appendChild(run);
 
     const remove = document.createElement('button');
@@ -1515,6 +1850,8 @@
       if (event.target.closest('.el-remove')) return;
       if (canvasLinkMode) {
         chooseLinkTarget(element);
+      } else if (element.kind === 'control') {
+        runControlElement(element);
       } else {
         executeCanvasElement(element);
       }
@@ -1571,6 +1908,29 @@
       if (already) chip.textContent += ' · уже здесь';
       chip.addEventListener('click', () => {
         addCommandElement(command);
+        closeCanvasDrawer();
+      });
+      dom.canvasAddList.appendChild(chip);
+    }
+
+    const controlHead = document.createElement('span');
+    controlHead.className = 'drawer-group-label';
+    controlHead.textContent = 'УПРАВЛЕНИЕ';
+    dom.canvasAddList.appendChild(controlHead);
+
+    for (const action of Object.keys(CONTROL_ACTIONS)) {
+      const meta = CONTROL_ACTIONS[action];
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'add-chip control';
+      chip.textContent = `${meta.label} · ${keyLabel(meta.defaultKey)}`;
+      const already = state.canvasElements.some((element) =>
+        element.kind === 'control' && element.action === action
+      );
+      chip.disabled = already;
+      if (already) chip.textContent += ' · уже здесь';
+      chip.addEventListener('click', () => {
+        addControlElement(action);
         closeCanvasDrawer();
       });
       dom.canvasAddList.appendChild(chip);
@@ -1724,8 +2084,9 @@
   }
 
   function openCanvas() {
-    if (isStoryOrDeathOrTrial()) return;
+    if (isTrialBlocking()) return;
     ensureTerminalShare(0.46);
+    controlBindingId = null;
     renderCanvasElements();
     setTerminalView('canvas');
     setCanvasZoom(canvasZoom, false);
@@ -1739,6 +2100,8 @@
       linkFirstId = null;
       dom.canvasLinkToggle.classList.remove('active');
     }
+    controlBindingId = null;
+    dom.canvasHint.textContent = 'Перетаскивай элементы. Нажми, чтобы выполнить. Колесо или щипок — масштаб. Кнопки управления можно переназначить.';
     closeCanvasDrawer();
     setTerminalView('main');
     saveGame();
@@ -2259,7 +2622,7 @@
   function startTrial() {
     if (state.flags.trialDone) return;
     if (trial && trial.active) return;
-    if (isStoryOrDeathOrTrial()) return;
+    if (isTrialBlocking()) return;
     state.flags.trialAttempted = true;
     keys = Object.create(null);
 
@@ -2334,8 +2697,8 @@
   /* Публичные проверки состояния                                        */
   /* ------------------------------------------------------------------ */
 
-  function isStoryOrDeathOrTrial() {
-    return termView === 'story' || termView === 'death' || termView === 'trial';
+  function isTrialBlocking() {
+    return termView === 'trial';
   }
 
   function isPaused() {
@@ -2442,6 +2805,29 @@
   };
 
   window.addEventListener('keydown', (event) => {
+    if (controlBindingId) {
+      event.preventDefault();
+      const element = state.canvasElements.find((el) => el.id === controlBindingId);
+      if (!element) {
+        controlBindingId = null;
+        return;
+      }
+      assignControlKey(element, event.code);
+      return;
+    }
+
+    if (termView === 'canvas' && event.code !== 'Escape' &&
+        !isTyping() && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const control = state.canvasElements.find((element) =>
+        element.kind === 'control' && element.key === event.code
+      );
+      if (control) {
+        event.preventDefault();
+        runControlElement(control);
+        return;
+      }
+    }
+
     const move = MOVE_KEYS[event.code];
     if (move) {
       if (!isTyping()) {
@@ -2464,6 +2850,7 @@
       else if (termView === 'canvas') closeCanvas();
       else if (termView === 'inventory') closeInventory();
       else if (termView === 'map') closeMap();
+      else if (termView === 'settings') closeSettings();
       else if (termView === 'trial' && trial && trial.resultKind) {
         dom.trialResultBtn.click();
       }
@@ -2476,15 +2863,15 @@
       event.preventDefault();
       interact();
     } else if (event.code === 'KeyB') {
-      if (isStoryOrDeathOrTrial()) return;
+      if (isTrialBlocking()) return;
       if (termView === 'inventory') closeInventory();
       else if (termView === 'main') openInventory();
     } else if (event.code === 'KeyM') {
-      if (isStoryOrDeathOrTrial()) return;
+      if (isTrialBlocking()) return;
       if (termView === 'map') closeMap();
       else if (termView === 'main') openMap();
     } else if (event.code === 'KeyC') {
-      if (isStoryOrDeathOrTrial()) return;
+      if (isTrialBlocking()) return;
       if (termView === 'card') closeCardDetail();
       else if (termView === 'canvas') closeCanvas();
       else if (termView === 'main') openCanvas();
@@ -2616,11 +3003,10 @@
           overlays: {
             termView,
             cardOrigin,
-            story: termView === 'story',
-            death: termView === 'death',
             trial: termView === 'trial',
             inventory: termView === 'inventory',
             map: termView === 'map',
+            settings: termView === 'settings',
             canvas: termView === 'canvas' || termView === 'card',
             card: termView === 'card',
             trialStage: !dom.trialStage.classList.contains('hidden')
@@ -2629,7 +3015,10 @@
             view: termView,
             split: readSplitPreference(),
             gameRows: dom.app.style.gridTemplateRows,
-            zoom: canvasZoom
+            zoom: canvasZoom,
+            speed: termSettings.speed,
+            fontSize: termSettings.fontSize,
+            controls: state.canvasElements.filter((el) => el.kind === 'control')
           }
         }));
       },
@@ -2706,6 +3095,9 @@
   }
 
   function boot() {
+    termSettings = readTermSettings();
+    applyTermSettings(false);
+
     const saved = readSave();
     const seed = saved && typeof saved.seed === 'string' ? saved.seed : DEFAULT_SEED;
     world = window.World.generate(seed);
@@ -2719,6 +3111,7 @@
     images = window.Renderer.prepareImages();
 
     C.terminal.greeting.forEach((line) => appendLog(line, 'sys', true));
+    C.terminal.controls.forEach((line) => appendLog(line, 'sys', true));
     initDivider();
     setCanvasZoom(1, false);
     renderCanvasElements();

@@ -15,30 +15,6 @@
       <section id="play" class="play" aria-label="Лабиринт">
         <canvas id="world-canvas"></canvas>
 
-        <div class="hud">
-          <div class="hud-place">
-            <div id="hud-room" class="hud-room">Скрижаль</div>
-            <div class="hud-sub"><span id="hud-tag">точка возвращения</span><span class="hud-dot">·</span><span>глубина <b id="hud-depth">0</b></span></div>
-          </div>
-          <div class="hud-actions">
-            <button id="btn-inventory" class="hud-btn" type="button" aria-label="Открыть рюкзак">рюкзак <span id="hud-items" class="badge">0</span></button>
-            <button id="btn-map" class="hud-btn" type="button" aria-label="Открыть карту">карта</button>
-            <button id="btn-canvas" class="hud-btn hud-btn-accent" type="button" aria-label="Открыть canvas">canvas</button>
-          </div>
-        </div>
-
-        <div id="room-title" class="room-title" aria-live="polite">
-          <span id="room-title-name" class="rt-name"></span>
-          <span id="room-title-tag" class="rt-tag"></span>
-        </div>
-
-        <div id="toast-layer" class="toast-layer" aria-live="polite"></div>
-
-        <div id="prompt" class="prompt hidden">
-          <span id="prompt-text">взять</span>
-          <kbd>E</kbd>
-        </div>
-
         <div class="touch-ui">
           <div class="dpad" aria-label="Управление движением">
             <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Вверх">▲</button>
@@ -46,39 +22,13 @@
             <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Вправо">▶</button>
             <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Вниз">▼</button>
           </div>
-          <button id="btn-action" class="round-action hidden" type="button">взять</button>
+          <button id="btn-action" class="round-action hidden" type="button" aria-label="Взаимодействие">✦</button>
         </div>
 
         <div class="vignette" aria-hidden="true"></div>
 
-        <div id="death-overlay" class="overlay death hidden" role="dialog" aria-modal="true" aria-labelledby="death-title">
-          <div class="death-inner">
-            <div class="death-sigil" aria-hidden="true"></div>
-            <span class="eyebrow">СКРИЖАЛЬ</span>
-            <h2 id="death-title">Дыхание оборвалось</h2>
-            <p id="death-text">Ты снова у Скрижали. Рюкзак остался там, где ты был.</p>
-            <button id="death-continue" class="primary-btn" type="button">Идти</button>
-          </div>
-        </div>
-
-        <div id="story-overlay" class="overlay story hidden" role="dialog" aria-modal="true" aria-labelledby="story-title">
-          <div class="story-card">
-            <span id="story-speaker" class="eyebrow">СКРИЖАЛЬ</span>
-            <h2 id="story-title">Скрижаль</h2>
-            <div id="story-lines" class="story-lines"></div>
-            <button id="story-continue" class="primary-btn" type="button">Дальше</button>
-          </div>
-        </div>
-
-        <div id="trial-overlay" class="overlay trial hidden" role="dialog" aria-modal="true" aria-label="Испытание Круга Очарования">
+        <div id="trial-stage" class="trial-stage hidden" aria-label="Испытание Круга Очарования">
           <canvas id="trial-canvas"></canvas>
-          <div class="trial-hud">
-            <div class="trial-stat"><span class="trial-label">печати</span><b id="trial-seals">0 / 2</b></div>
-            <div class="trial-stat"><span class="trial-label">искры</span><b id="trial-sparks">3</b></div>
-            <div class="trial-stat"><span class="trial-label">круг</span><b id="trial-time">0.0</b></div>
-          </div>
-          <div id="trial-hint" class="trial-hint">Двигайся. Печать закроется — нажми ПРОБЕЛ.</div>
-          <button id="trial-abort" class="ghost-btn trial-abort" type="button">покинуть круг</button>
           <div class="trial-touch" aria-label="Управление в круге">
             <div class="dpad">
               <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Вверх">▲</button>
@@ -86,97 +36,185 @@
               <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Вправо">▶</button>
               <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Вниз">▼</button>
             </div>
-            <button id="trial-seal" class="round-action" type="button" aria-label="Закрыть печать">печать</button>
-          </div>
-          <div id="trial-result" class="trial-result hidden" role="dialog" aria-modal="true">
-            <span id="trial-result-eyebrow" class="eyebrow">КРУГ</span>
-            <h2 id="trial-result-title">Круг принял</h2>
-            <p id="trial-result-text"></p>
-            <button id="trial-result-btn" class="primary-btn" type="button">Дальше</button>
+            <button id="trial-seal" class="round-action" type="button" aria-label="Закрыть печать">✦</button>
           </div>
         </div>
       </section>
+
+      <div id="divider" class="divider" role="separator" aria-orientation="horizontal" aria-valuemin="20" aria-valuemax="80" aria-valuenow="56" tabindex="0" aria-label="Разделитель игровой области и терминала">
+        <span class="divider-grip" aria-hidden="true"></span>
+      </div>
 
       <section id="terminal" class="terminal" aria-label="Терминал">
-        <header class="term-head">
-          <span class="term-name">ITS TERMINAL</span>
-          <span class="term-status"><i aria-hidden="true"></i>связь</span>
-        </header>
-        <div id="log" class="log" role="log" aria-live="polite"></div>
-        <form id="command-form" class="term-input" autocomplete="off">
-          <label for="command-input" class="prompt-glyph">&gt;</label>
-          <input id="command-input" name="command" type="text" placeholder="Введите команду" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
-          <button class="term-send" type="submit" aria-label="Отправить команду">↵</button>
-        </form>
-        <div class="term-hint"><span>WASD / стрелки — идти</span><span>E — действие</span><span>Enter — команда</span><span>C · canvas</span><span>B · рюкзак</span><span>M · карта</span></div>
+        <div id="term-views" class="term-views">
+          <div id="view-main" class="term-view">
+            <div id="log" class="log" role="log" aria-live="polite"></div>
+            <div id="term-context" class="term-context" aria-live="polite"></div>
+            <form id="command-form" class="term-input" autocomplete="off">
+              <label for="command-input" class="prompt-glyph">&gt;</label>
+              <input id="command-input" name="command" type="text" placeholder="Введите команду" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
+              <button id="settings-open" class="term-settings" type="button" aria-label="Настройки терминала">⚙</button>
+              <button class="term-send" type="submit" aria-label="Отправить команду">↵</button>
+            </form>
+          </div>
+
+          <div id="view-inventory" class="term-view hidden" aria-label="Рюкзак">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ПЕРЕНОСИМОЕ</span>
+                <h2 id="inv-title">Рюкзак</h2>
+              </div>
+              <button class="close-btn" id="inventory-close" type="button" aria-label="Закрыть рюкзак">×</button>
+            </header>
+            <div id="inventory-list" class="inventory-list"></div>
+            <p id="inventory-note" class="sheet-note">Предметы можно вынести на canvas и запускать их команды быстрым нажатием.</p>
+          </div>
+
+          <div id="view-map" class="term-view hidden" aria-label="Карта">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ЛОКАЛЬНЫЙ УЧАСТОК</span>
+                <h2 id="map-title">Карта</h2>
+              </div>
+              <button class="close-btn" id="map-close" type="button" aria-label="Закрыть карту">×</button>
+            </header>
+            <canvas id="map-canvas"></canvas>
+            <p class="sheet-note" id="map-note">Пока это только память о пройденном.</p>
+          </div>
+
+          <div id="view-canvas" class="term-view hidden" aria-label="Canvas">
+            <header class="canvas-head">
+              <div>
+                <span class="eyebrow">РАБОЧАЯ ПОВЕРХНОСТЬ</span>
+                <h2 id="canvas-title">canvas</h2>
+              </div>
+              <button id="canvas-exit" class="exit-btn" type="button">Выйти из canvas</button>
+            </header>
+
+            <div class="canvas-toolbar">
+              <button id="canvas-add-toggle" class="tool-btn" type="button" aria-expanded="false">+ элемент</button>
+              <button id="canvas-link-toggle" class="tool-btn" type="button">связать</button>
+              <div class="canvas-zoom" role="group" aria-label="Масштаб canvas">
+                <button id="canvas-zoom-out" class="zoom-btn" type="button" aria-label="Уменьшить масштаб">−</button>
+                <button id="canvas-zoom-reset" class="zoom-btn zoom-value" type="button" aria-label="Сбросить масштаб"><span id="canvas-zoom-label">100%</span></button>
+                <button id="canvas-zoom-in" class="zoom-btn" type="button" aria-label="Увеличить масштаб">+</button>
+              </div>
+            </div>
+            <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. Колесо или щипок — масштаб. Кнопки управления можно переназначить.</span>
+
+            <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность canvas">
+              <div id="canvas-stage" class="canvas-stage">
+                <div class="canvas-grid" aria-hidden="true"></div>
+                <div id="canvas-elements" class="canvas-elements"></div>
+                <div id="canvas-empty" class="canvas-empty">
+                  <span>здесь пока пусто</span>
+                  <small>Добавь найденную карту или команду из панели «+ элемент».</small>
+                </div>
+              </div>
+            </div>
+
+            <div id="canvas-drawer" class="canvas-drawer hidden">
+              <div class="drawer-head">
+                <span>ДОБАВИТЬ НА CANVAS</span>
+                <button id="canvas-drawer-close" class="mini-close" type="button" aria-label="Закрыть панель">×</button>
+              </div>
+              <div id="canvas-add-list" class="canvas-add-list"></div>
+            </div>
+
+            <div class="canvas-response" aria-live="polite">
+              <span id="canvas-response-command" class="cr-command">готово</span>
+              <span id="canvas-response-reply" class="cr-reply">Нажми на размещённый элемент, чтобы выполнить его команду.</span>
+            </div>
+          </div>
+
+          <div id="view-card" class="term-view hidden" aria-label="Просмотр карты">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">КАРТА</span>
+                <h2 id="card-title">Карта</h2>
+              </div>
+              <button class="close-btn" id="card-close" type="button" aria-label="Вернуться к canvas">×</button>
+            </header>
+            <div class="card-detail">
+              <div class="card-detail-art">
+                <img id="card-art" alt="">
+              </div>
+              <div class="card-detail-copy">
+                <div id="card-command" class="inv-command"></div>
+                <p id="card-description"></p>
+                <div id="card-state" class="card-state"></div>
+                <div class="card-detail-actions">
+                  <button id="card-run" class="primary-btn" type="button">произнести</button>
+                  <button id="card-place" class="ghost-btn" type="button">на canvas</button>
+                  <button id="card-back" class="ghost-btn" type="button">← к canvas</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-settings" class="term-view hidden" aria-label="Настройки терминала">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ТЕРМИНАЛ</span>
+                <h2>Настройки</h2>
+              </div>
+              <button class="close-btn" id="settings-close" type="button" aria-label="Закрыть настройки">×</button>
+            </header>
+            <div class="settings-body">
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span>скорость появления текста</span>
+                  <b id="setting-speed-value">70 зн/с</b>
+                </div>
+                <input id="setting-speed" class="setting-range" type="range" min="12" max="220" step="2" value="70" aria-label="Скорость появления текста">
+                <div class="setting-presets" id="setting-speed-presets">
+                  <button type="button" data-speed="0">сразу</button>
+                  <button type="button" data-speed="30">медленно</button>
+                  <button type="button" data-speed="70">обычно</button>
+                  <button type="button" data-speed="130">быстро</button>
+                </div>
+              </section>
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span>размер шрифта</span>
+                  <b id="setting-font-value">14 px</b>
+                </div>
+                <input id="setting-font" class="setting-range" type="range" min="11" max="22" step="1" value="14" aria-label="Размер шрифта терминала">
+                <div class="setting-presets" id="setting-font-presets">
+                  <button type="button" data-font="12">12</button>
+                  <button type="button" data-font="14">14</button>
+                  <button type="button" data-font="16">16</button>
+                  <button type="button" data-font="18">18</button>
+                </div>
+              </section>
+              <p class="sheet-note" id="setting-note">Скорость и размер шрифта сохраняются в этом браузере. Нажми на сообщение в логе, чтобы сразу показать его целиком.</p>
+              <button id="settings-reset" class="ghost-btn" type="button">вернуть по умолчанию</button>
+            </div>
+          </div>
+
+          <div id="view-trial" class="term-view hidden" aria-label="Испытание Круга Очарования">
+            <div id="trial-console" class="trial-console">
+              <div class="trial-head">
+                <span class="eyebrow">КРУГ ОЧАРОВАНИЯ</span>
+              </div>
+              <div class="trial-hud">
+                <div class="trial-stat"><span class="trial-label">печати</span><b id="trial-seals">0 / 2</b></div>
+                <div class="trial-stat"><span class="trial-label">искры</span><b id="trial-sparks">3</b></div>
+                <div class="trial-stat"><span class="trial-label">круг</span><b id="trial-time">0.0</b></div>
+              </div>
+              <div id="trial-hint" class="trial-hint">Двигайся. Печать закроется — нажми ПРОБЕЛ.</div>
+              <button id="trial-abort" class="ghost-btn trial-abort" type="button">покинуть круг</button>
+            </div>
+            <div id="trial-result" class="trial-result hidden" aria-live="polite">
+              <span id="trial-result-eyebrow" class="eyebrow">КРУГ</span>
+              <h2 id="trial-result-title">Круг принял</h2>
+              <p id="trial-result-text"></p>
+              <button id="trial-result-btn" class="primary-btn" type="button">Дальше</button>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
-
-    <div id="inventory-overlay" class="overlay page hidden" role="dialog" aria-modal="true" aria-labelledby="inv-title">
-      <div class="page-sheet">
-        <header class="sheet-head">
-          <div>
-            <span class="eyebrow">ПЕРЕНОСИМОЕ</span>
-            <h2 id="inv-title">Рюкзак</h2>
-          </div>
-          <button class="close-btn" id="inventory-close" type="button" aria-label="Закрыть рюкзак">×</button>
-        </header>
-        <div id="inventory-list" class="inventory-list"></div>
-        <p class="sheet-note">Предметы можно вынести на canvas и запускать их команды быстрым нажатием.</p>
-      </div>
-    </div>
-
-    <div id="map-overlay" class="overlay page hidden" role="dialog" aria-modal="true" aria-labelledby="map-title">
-      <div class="page-sheet map-sheet">
-        <header class="sheet-head">
-          <div>
-            <span class="eyebrow">ЛОКАЛЬНЫЙ УЧАСТОК</span>
-            <h2 id="map-title">Карта</h2>
-          </div>
-          <button class="close-btn" id="map-close" type="button" aria-label="Закрыть карту">×</button>
-        </header>
-        <canvas id="map-canvas"></canvas>
-        <p class="sheet-note" id="map-note">Пока это только память о пройденном.</p>
-      </div>
-    </div>
-
-    <div id="canvas-overlay" class="overlay canvas-page hidden" role="dialog" aria-modal="true" aria-labelledby="canvas-title">
-      <header class="canvas-head">
-        <div>
-          <span class="eyebrow">РАБОЧАЯ ПОВЕРХНОСТЬ</span>
-          <h2 id="canvas-title">canvas</h2>
-        </div>
-        <button id="canvas-exit" class="exit-btn" type="button">Выйти из canvas</button>
-      </header>
-
-      <div class="canvas-toolbar">
-        <button id="canvas-add-toggle" class="tool-btn" type="button" aria-expanded="false">+ элемент</button>
-        <button id="canvas-link-toggle" class="tool-btn" type="button">связать</button>
-        <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить команду.</span>
-      </div>
-
-      <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность canvas">
-        <div class="canvas-grid" aria-hidden="true"></div>
-        <div id="canvas-elements" class="canvas-elements"></div>
-        <div id="canvas-empty" class="canvas-empty">
-          <span>здесь пока пусто</span>
-          <small>Добавь найденную карту или команду из панели «+ элемент».</small>
-        </div>
-      </div>
-
-      <div id="canvas-drawer" class="canvas-drawer hidden">
-        <div class="drawer-head">
-          <span>ДОБАВИТЬ НА CANVAS</span>
-          <button id="canvas-drawer-close" class="mini-close" type="button" aria-label="Закрыть панель">×</button>
-        </div>
-        <div id="canvas-add-list" class="canvas-add-list"></div>
-      </div>
-
-      <div class="canvas-response" aria-live="polite">
-        <span id="canvas-response-command" class="cr-command">готово</span>
-        <span id="canvas-response-reply" class="cr-reply">Нажми на размещённый элемент, чтобы выполнить его команду.</span>
-      </div>
-    </div>
   </div>
 
   <noscript>

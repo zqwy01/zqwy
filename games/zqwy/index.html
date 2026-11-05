@@ -53,7 +53,6 @@
             <form id="command-form" class="term-input" autocomplete="off">
               <label for="command-input" class="prompt-glyph">&gt;</label>
               <input id="command-input" name="command" type="text" placeholder="Введите команду" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
-              <button id="settings-open" class="term-settings" type="button" aria-label="Настройки терминала">⚙</button>
               <button class="term-send" type="submit" aria-label="Отправить команду">↵</button>
             </form>
           </div>
@@ -67,7 +66,7 @@
               <button class="close-btn" id="inventory-close" type="button" aria-label="Закрыть рюкзак">×</button>
             </header>
             <div id="inventory-list" class="inventory-list"></div>
-            <p id="inventory-note" class="sheet-note">Предметы можно вынести на canvas и запускать их команды быстрым нажатием.</p>
+            <p id="inventory-note" class="sheet-note">Предметы можно вынести на стол и запускать их команды быстрым нажатием.</p>
           </div>
 
           <div id="view-map" class="term-view hidden" aria-label="Карта">
@@ -82,40 +81,53 @@
             <p class="sheet-note" id="map-note">Пока это только память о пройденном.</p>
           </div>
 
-          <div id="view-canvas" class="term-view hidden" aria-label="Canvas">
+          <div id="view-canvas" class="term-view hidden" aria-label="Стол">
             <header class="canvas-head">
               <div>
                 <span class="eyebrow">РАБОЧАЯ ПОВЕРХНОСТЬ</span>
-                <h2 id="canvas-title">canvas</h2>
+                <h2 id="canvas-title">стол</h2>
               </div>
-              <button id="canvas-exit" class="exit-btn" type="button">Выйти из canvas</button>
+              <button id="canvas-exit" class="exit-btn" type="button">Выйти из-за стола</button>
             </header>
 
             <div class="canvas-toolbar">
               <button id="canvas-add-toggle" class="tool-btn" type="button" aria-expanded="false">+ элемент</button>
               <button id="canvas-link-toggle" class="tool-btn" type="button">связать</button>
-              <div class="canvas-zoom" role="group" aria-label="Масштаб canvas">
+              <button id="canvas-keys-toggle" class="tool-btn" type="button" aria-expanded="false">клавиши</button>
+              <div class="canvas-zoom" role="group" aria-label="Масштаб стола">
                 <button id="canvas-zoom-out" class="zoom-btn" type="button" aria-label="Уменьшить масштаб">−</button>
-                <button id="canvas-zoom-reset" class="zoom-btn zoom-value" type="button" aria-label="Сбросить масштаб"><span id="canvas-zoom-label">100%</span></button>
+                <button id="canvas-zoom-reset" class="zoom-btn zoom-value" type="button" aria-label="Сбросить масштаб и положение"><span id="canvas-zoom-label">100%</span></button>
                 <button id="canvas-zoom-in" class="zoom-btn" type="button" aria-label="Увеличить масштаб">+</button>
               </div>
             </div>
-            <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. Колесо или щипок — масштаб. Кнопки управления можно переназначить.</span>
+            <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. ЛКМ по пустому месту — двигать стол. Колесо или щипок — масштаб. Клавиши можно переназначить.</span>
 
-            <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность canvas">
+            <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность стола">
               <div id="canvas-stage" class="canvas-stage">
                 <div class="canvas-grid" aria-hidden="true"></div>
                 <div id="canvas-elements" class="canvas-elements"></div>
                 <div id="canvas-empty" class="canvas-empty">
                   <span>здесь пока пусто</span>
-                  <small>Добавь найденную карту или команду из панели «+ элемент».</small>
+                  <small>Добавь найденную вещь, команду или кнопку управления из панели «+ элемент».</small>
                 </div>
               </div>
             </div>
 
+            <div id="canvas-keys" class="canvas-keys hidden">
+              <div class="keys-head">
+                <span>СХЕМА УПРАВЛЕНИЯ</span>
+                <div id="canvas-keys-tabs" class="keys-tabs" role="tablist" aria-label="Устройство">
+                  <button type="button" class="active" data-device="keyboard" role="tab" aria-selected="true">клавиатура</button>
+                  <button type="button" data-device="gamepad" role="tab" aria-selected="false">геймпад</button>
+                  <button type="button" data-device="phone" role="tab" aria-selected="false">телефон</button>
+                </div>
+              </div>
+              <div id="canvas-keys-body" class="keys-body"></div>
+            </div>
+
             <div id="canvas-drawer" class="canvas-drawer hidden">
               <div class="drawer-head">
-                <span>ДОБАВИТЬ НА CANVAS</span>
+                <span>ДОБАВИТЬ НА СТОЛ</span>
                 <button id="canvas-drawer-close" class="mini-close" type="button" aria-label="Закрыть панель">×</button>
               </div>
               <div id="canvas-add-list" class="canvas-add-list"></div>
@@ -133,7 +145,7 @@
                 <span class="eyebrow">КАРТА</span>
                 <h2 id="card-title">Карта</h2>
               </div>
-              <button class="close-btn" id="card-close" type="button" aria-label="Вернуться к canvas">×</button>
+              <button class="close-btn" id="card-close" type="button" aria-label="Вернуться к столу">×</button>
             </header>
             <div class="card-detail">
               <div class="card-detail-art">
@@ -145,8 +157,8 @@
                 <div id="card-state" class="card-state"></div>
                 <div class="card-detail-actions">
                   <button id="card-run" class="primary-btn" type="button">произнести</button>
-                  <button id="card-place" class="ghost-btn" type="button">на canvas</button>
-                  <button id="card-back" class="ghost-btn" type="button">← к canvas</button>
+                  <button id="card-place" class="ghost-btn" type="button">на стол</button>
+                  <button id="card-back" class="ghost-btn" type="button">← к столу</button>
                 </div>
               </div>
             </div>
@@ -163,23 +175,13 @@
             <div class="settings-body">
               <section class="setting-group">
                 <div class="setting-head">
-                  <span>скорость появления текста</span>
-                  <b id="setting-speed-value">70 зн/с</b>
-                </div>
-                <input id="setting-speed" class="setting-range" type="range" min="0" max="220" step="2" value="70" aria-label="Скорость появления текста">
-                <div class="setting-presets" id="setting-speed-presets">
-                  <button type="button" data-speed="0">сразу</button>
-                  <button type="button" data-speed="30">медленно</button>
-                  <button type="button" data-speed="70">обычно</button>
-                  <button type="button" data-speed="130">быстро</button>
-                </div>
-              </section>
-              <section class="setting-group">
-                <div class="setting-head">
-                  <span>размер шрифта</span>
+                  <span>общий размер шрифта</span>
                   <b id="setting-font-value">14 px</b>
                 </div>
-                <input id="setting-font" class="setting-range" type="range" min="11" max="22" step="1" value="14" aria-label="Размер шрифта терминала">
+                <div class="setting-control-row">
+                  <input id="setting-font-number" class="setting-number" type="number" min="10" max="24" step="1" value="14" inputmode="numeric" aria-label="Общий размер шрифта в пикселях">
+                  <input id="setting-font" class="setting-range" type="range" min="10" max="24" step="1" value="14" aria-label="Общий размер шрифта">
+                </div>
                 <div class="setting-presets" id="setting-font-presets">
                   <button type="button" data-font="12">12</button>
                   <button type="button" data-font="14">14</button>
@@ -187,7 +189,42 @@
                   <button type="button" data-font="18">18</button>
                 </div>
               </section>
-              <p class="sheet-note" id="setting-note">Скорость и размер шрифта сохраняются в этом браузере. Нажми на сообщение в логе, чтобы сразу показать его целиком.</p>
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span>размер по разделам</span>
+                  <b>необязательно</b>
+                </div>
+                <div class="setting-override" data-override="terminal">
+                  <span class="setting-override-name">терминал</span>
+                  <input id="setting-font-terminal-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта терминала; 0 — как общий">
+                  <input id="setting-font-terminal" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта терминала">
+                  <button type="button" class="setting-auto" data-font-clear="terminal">авто</button>
+                </div>
+                <div class="setting-override" data-override="table">
+                  <span class="setting-override-name">стол</span>
+                  <input id="setting-font-table-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта стола; 0 — как общий">
+                  <input id="setting-font-table" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта стола">
+                  <button type="button" class="setting-auto" data-font-clear="table">авто</button>
+                </div>
+                <p class="setting-note-inline">0 — наследовать общий размер. Предметы и клавиши на столе масштабируются вместе с разделом.</p>
+              </section>
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span>скорость появления текста</span>
+                  <b id="setting-speed-value">70 зн/с</b>
+                </div>
+                <div class="setting-control-row">
+                  <input id="setting-speed-number" class="setting-number" type="number" min="0" max="220" step="2" value="70" inputmode="numeric" aria-label="Скорость появления текста в знаках в секунду">
+                  <input id="setting-speed" class="setting-range" type="range" min="0" max="220" step="2" value="70" aria-label="Скорость появления текста">
+                </div>
+                <div class="setting-presets" id="setting-speed-presets">
+                  <button type="button" data-speed="0">сразу</button>
+                  <button type="button" data-speed="30">медленно</button>
+                  <button type="button" data-speed="70">обычно</button>
+                  <button type="button" data-speed="130">быстро</button>
+                </div>
+              </section>
+              <p class="sheet-note" id="setting-note">Общий размер применяется ко всему интерфейсу. Разделы могут наследовать его или задать своё значение. Нажми на сообщение в логе, чтобы сразу показать его целиком.</p>
               <button id="settings-reset" class="ghost-btn" type="button">вернуть по умолчанию</button>
             </div>
           </div>
@@ -204,12 +241,6 @@
               </div>
               <div id="trial-hint" class="trial-hint">Двигайся. Печать закроется — нажми ПРОБЕЛ.</div>
               <button id="trial-abort" class="ghost-btn trial-abort" type="button">покинуть круг</button>
-            </div>
-            <div id="trial-result" class="trial-result hidden" aria-live="polite">
-              <span id="trial-result-eyebrow" class="eyebrow">КРУГ</span>
-              <h2 id="trial-result-title">Круг принял</h2>
-              <p id="trial-result-text"></p>
-              <button id="trial-result-btn" class="primary-btn" type="button">Дальше</button>
             </div>
           </div>
         </div>

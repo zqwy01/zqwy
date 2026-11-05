@@ -52,16 +52,21 @@
     commandInput: $('command-input'),
     viewMain: $('view-main'),
     terminal: $('terminal'),
-    settingsOpen: $('settings-open'),
 
     settingsView: $('view-settings'),
     settingsClose: $('settings-close'),
     settingSpeed: $('setting-speed'),
+    settingSpeedNumber: $('setting-speed-number'),
     settingSpeedValue: $('setting-speed-value'),
     settingSpeedPresets: $('setting-speed-presets'),
     settingFont: $('setting-font'),
+    settingFontNumber: $('setting-font-number'),
     settingFontValue: $('setting-font-value'),
     settingFontPresets: $('setting-font-presets'),
+    settingFontTerminal: $('setting-font-terminal'),
+    settingFontTerminalNumber: $('setting-font-terminal-number'),
+    settingFontTable: $('setting-font-table'),
+    settingFontTableNumber: $('setting-font-table-number'),
     settingsReset: $('settings-reset'),
 
     trialView: $('view-trial'),
@@ -73,11 +78,6 @@
     trialTime: $('trial-time'),
     trialHint: $('trial-hint'),
     trialAbort: $('trial-abort'),
-    trialResult: $('trial-result'),
-    trialResultEyebrow: $('trial-result-eyebrow'),
-    trialResultTitle: $('trial-result-title'),
-    trialResultText: $('trial-result-text'),
-    trialResultBtn: $('trial-result-btn'),
     trialSealBtn: $('trial-seal'),
 
     inventoryView: $('view-inventory'),
@@ -108,6 +108,10 @@
     canvasZoomOut: $('canvas-zoom-out'),
     canvasZoomReset: $('canvas-zoom-reset'),
     canvasZoomLabel: $('canvas-zoom-label'),
+    canvasKeys: $('canvas-keys'),
+    canvasKeysToggle: $('canvas-keys-toggle'),
+    canvasKeysTabs: $('canvas-keys-tabs'),
+    canvasKeysBody: $('canvas-keys-body'),
 
     cardView: $('view-card'),
     cardTitle: $('card-title'),
@@ -135,14 +139,20 @@
   /* Состояние                                                           */
   /* ------------------------------------------------------------------ */
 
-  const DEFAULT_SEED = 'zqwy-labyrinth-01';
   const SAVE_VERSION = 1;
   const TERM_SETTINGS_KEY = 'zqwy.labyrinth.terminal.v1';
-  const DEFAULT_TERM_SETTINGS = { speed: 70, fontSize: 14 };
+  const DEFAULT_TERM_SETTINGS = {
+    speed: 70,
+    fontSize: 14,
+    fontOverrides: { terminal: 0, table: 0 }
+  };
   const SPEED_MIN = 12;
   const SPEED_MAX = 220;
-  const FONT_MIN = 11;
-  const FONT_MAX = 22;
+  const FONT_MIN = 10;
+  const FONT_MAX = 24;
+  const FONT_BASE = 14;
+  const OVERRIDE_MAX = 28;
+  const UNLOCK_IDS = ['backpack', 'map', 'table'];
 
   let world = null;
   let state = null;
@@ -165,8 +175,15 @@
   let linkFirstId = null;
   let canvasDrag = null;
   let canvasZoom = 1;
+  let canvasPanX = 0;
+  let canvasPanY = 0;
   let canvasPinch = null;
-  let controlBindingId = null;
+  let workspacePan = null;
+  let elementBindingId = null;
+  let canvasDevice = 'keyboard';
+  const gamepadKeys = Object.create(null);
+  let gamepadPrev = [];
+  let gamepadIndex = null;
 
   let splitRatio = 0.56;
   let splitDrag = null;
@@ -202,8 +219,68 @@
       mapMarks: [],
       canvasElements: [],
       storySeen: {},
+      unlocks: { backpack: false, map: false, table: false },
       deaths: 0
     };
+  }
+
+  function newSeed() {
+    const stamp = Date.now().toString(36);
+    const noise = Math.random().toString(36).slice(2, 9);
+    return `zqwy-${stamp}-${noise}`;
+  }
+
+  /* Новый запуск создаёт другой Лабиринт: seed не переиспользуется,
+     сохранение стирается, а чанки нового мира строятся заново. */
+  function startNewGame() {
+    const seed = newSeed();
+    try {
+      window.localStorage.removeItem(C.saveKey);
+    } catch (error) {
+      /* Приватный режим: сохранение просто не было создано. */
+    }
+
+    storyQueue.length = 0;
+    storyActive = false;
+    if (trialRaf) window.cancelAnimationFrame(trialRaf);
+    trialRaf = 0;
+    trial = null;
+    hideTrialStage();
+
+    state = defaultState(seed);
+    world = window.World.generate(seed);
+    state.player.x = world.spawn.x;
+    state.player.y = world.spawn.y;
+    state.player.facingX = 0;
+    state.player.facingY = -1;
+    state.player.moving = false;
+    state.currentRoomId = world.spawn.roomId;
+    state.visited[world.spawn.roomId] = true;
+
+    keys = Object.create(null);
+    for (const key of Object.keys(gamepadKeys)) gamepadKeys[key] = false;
+    canvasLinkMode = false;
+    linkFirstId = null;
+    elementBindingId = null;
+    canvasDrag = null;
+    canvasPinch = null;
+    workspacePan = null;
+    canvasZoom = 1;
+    canvasPanX = 0;
+    canvasPanY = 0;
+    dom.canvasLinkToggle.classList.remove('active');
+    closeCanvasDrawer();
+
+    snapCamera();
+    clearLog();
+    C.terminal.greeting.forEach((line) => appendLog(line, 'sys', true));
+    C.terminal.controls.forEach((line) => appendLog(line, 'sys', true));
+    appendLog(`Новый Лабиринт. Seed: ${seed}`, 'sys', true);
+    setTerminalView('main');
+    applyCanvasTransform();
+    renderCanvasElements();
+    updatePrompt();
+    saveGame();
   }
 
   function readSave() {
@@ -236,6 +313,7 @@
         mapMarks: state.mapMarks,
         canvasElements: state.canvasElements,
         storySeen: state.storySeen,
+        unlocks: state.unlocks,
         deaths: state.deaths
       };
       window.localStorage.setItem(C.saveKey, JSON.stringify(data));
@@ -319,7 +397,51 @@
         .filter(Boolean);
     }
     if (saved.storySeen && typeof saved.storySeen === 'object') state.storySeen = saved.storySeen;
+    if (saved.unlocks && typeof saved.unlocks === 'object') {
+      for (const id of UNLOCK_IDS) {
+        if (saved.unlocks[id]) state.unlocks[id] = true;
+      }
+    }
+    /* Мягкая миграция старых сохранений: то, что уже было получено,
+       не отбираем, но и не открываем всё заранее. */
+    if (state.storySeen.tablet) {
+      state.unlocks.backpack = true;
+      state.unlocks.table = true;
+    }
+    if (state.items.length) state.unlocks.backpack = true;
+    if (state.items.includes('map_fragment')) state.unlocks.map = true;
+    if (state.canvasElements.length) state.unlocks.table = true;
     if (Number.isFinite(saved.deaths)) state.deaths = saved.deaths;
+  }
+
+  function hasUnlock(id) {
+    return Boolean(state && state.unlocks && state.unlocks[id]);
+  }
+
+  function unlock(id, quiet) {
+    if (!state || !state.unlocks || state.unlocks[id]) return false;
+    if (!UNLOCK_IDS.includes(id)) return false;
+    state.unlocks[id] = true;
+    const meta = C.terminal.unlocks[id];
+    if (!quiet) {
+      appendLog(`Открыто: ${meta ? meta.title : id}.`, 'sys', true);
+    }
+    saveGame();
+    if (termView === 'inventory') renderInventory();
+    if (termView === 'canvas') {
+      renderCanvasElements();
+      renderCanvasDrawer();
+    }
+    return true;
+  }
+
+  function unlockHint(id) {
+    const meta = C.terminal.unlocks[id];
+    return meta ? meta.hint : 'Это откроется позже.';
+  }
+
+  function denyLocked(id) {
+    return `Пока недоступно. ${unlockHint(id)}`;
   }
 
   /* ------------------------------------------------------------------ */
@@ -517,10 +639,10 @@
   function updateMovement(dt) {
     let mx = 0;
     let my = 0;
-    if (keys.up) my -= 1;
-    if (keys.down) my += 1;
-    if (keys.left) mx -= 1;
-    if (keys.right) mx += 1;
+    if (keys.up || gamepadKeys.up) my -= 1;
+    if (keys.down || gamepadKeys.down) my += 1;
+    if (keys.left || gamepadKeys.left) mx -= 1;
+    if (keys.right || gamepadKeys.right) mx += 1;
 
     if (!mx && !my) {
       state.player.moving = false;
@@ -572,7 +694,14 @@
     }
 
     if (C.story[room.role]) {
-      queueStory(room.role);
+      if (room.role === 'tablet') {
+        queueStory(room.role, () => {
+          unlock('backpack');
+          unlock('table');
+        });
+      } else {
+        queueStory(room.role);
+      }
       return;
     }
 
@@ -647,6 +776,8 @@
     const item = C.items[pickup.itemId];
     toast(`В рюкзаке: ${item ? item.name : pickup.itemId}`);
     appendLog(`Взято: ${item ? item.name : pickup.itemId}.`, 'reply', true);
+    unlock('backpack');
+    if (pickup.itemId === 'map_fragment') unlock('map');
     saveGame();
     updatePrompt();
   }
@@ -656,7 +787,7 @@
     state.flags.cardTaken = true;
     if (!state.items.includes('card_angel')) state.items.push('card_angel');
     toast('Получена карта «Очарование»');
-    appendLog('Карта «Очарование» лежит в рюкзаке. Её можно вынести на canvas.', 'reply');
+    appendLog('Карта «Очарование» лежит в рюкзаке. Её можно вынести на стол.', 'reply');
     saveGame();
     updatePrompt();
   }
@@ -788,7 +919,10 @@
     } else if (target.type === 'backpack') {
       retrieveBackpack(target.backpack);
     } else if (target.type === 'tablet') {
-      queueStory('tablet', null, true);
+      queueStory('tablet', () => {
+        unlock('backpack');
+        unlock('table');
+      }, true);
     } else if (target.type === 'card') {
       takeCard();
     } else if (target.type === 'trial') {
@@ -851,16 +985,28 @@
   /* ------------------------------------------------------------------ */
 
   function readTermSettings() {
+    const fallback = {
+      speed: DEFAULT_TERM_SETTINGS.speed,
+      fontSize: DEFAULT_TERM_SETTINGS.fontSize,
+      fontOverrides: { ...DEFAULT_TERM_SETTINGS.fontOverrides }
+    };
     try {
       const raw = window.localStorage.getItem(TERM_SETTINGS_KEY);
-      if (!raw) return { ...DEFAULT_TERM_SETTINGS };
+      if (!raw) return fallback;
       const parsed = JSON.parse(raw);
+      const overrides = parsed && parsed.fontOverrides && typeof parsed.fontOverrides === 'object'
+        ? parsed.fontOverrides
+        : {};
       return {
-        speed: Number.isFinite(parsed.speed) ? parsed.speed : DEFAULT_TERM_SETTINGS.speed,
-        fontSize: Number.isFinite(parsed.fontSize) ? parsed.fontSize : DEFAULT_TERM_SETTINGS.fontSize
+        speed: Number.isFinite(parsed.speed) ? parsed.speed : fallback.speed,
+        fontSize: Number.isFinite(parsed.fontSize) ? parsed.fontSize : fallback.fontSize,
+        fontOverrides: {
+          terminal: Number.isFinite(overrides.terminal) ? overrides.terminal : 0,
+          table: Number.isFinite(overrides.table) ? overrides.table : 0
+        }
       };
     } catch (error) {
-      return { ...DEFAULT_TERM_SETTINGS };
+      return fallback;
     }
   }
 
@@ -869,24 +1015,73 @@
       ? 0
       : clamp(Math.round(termSettings.speed), SPEED_MIN, SPEED_MAX);
     termSettings.fontSize = clamp(Math.round(termSettings.fontSize), FONT_MIN, FONT_MAX);
+    if (!termSettings.fontOverrides || typeof termSettings.fontOverrides !== 'object') {
+      termSettings.fontOverrides = { terminal: 0, table: 0 };
+    }
+    for (const section of ['terminal', 'table']) {
+      const value = Number(termSettings.fontOverrides[section]);
+      termSettings.fontOverrides[section] = Number.isFinite(value)
+        ? clamp(Math.round(value), 0, OVERRIDE_MAX)
+        : 0;
+    }
+  }
+
+  function scaleFor(override) {
+    const size = override > 0 ? override : termSettings.fontSize;
+    return size / FONT_BASE;
   }
 
   function applyTermSettings(persist) {
     normalizeTermSettings();
-    dom.terminal.style.setProperty('--term-font', `${termSettings.fontSize}px`);
-    dom.settingSpeed.value = String(termSettings.speed);
-    dom.settingSpeedValue.textContent = termSettings.speed <= 0
-      ? 'сразу'
-      : `${termSettings.speed} зн/с`;
-    dom.settingFont.value = String(termSettings.fontSize);
-    dom.settingFontValue.textContent = `${termSettings.fontSize} px`;
 
-    dom.settingSpeedPresets.querySelectorAll('[data-speed]').forEach((button) => {
-      button.classList.toggle('active', Number(button.dataset.speed) === termSettings.speed);
-    });
-    dom.settingFontPresets.querySelectorAll('[data-font]').forEach((button) => {
-      button.classList.toggle('active', Number(button.dataset.font) === termSettings.fontSize);
-    });
+    /* Один общий размер шрифта для всего интерфейса. Разделы могут
+       переопределить его локально, не меняя остальные области. */
+    document.documentElement.style.setProperty(
+      '--ui-scale',
+      String(scaleFor(0))
+    );
+    dom.terminal.style.setProperty(
+      '--ui-scale',
+      String(scaleFor(termSettings.fontOverrides.terminal))
+    );
+    dom.canvasView.style.setProperty(
+      '--ui-scale',
+      String(scaleFor(termSettings.fontOverrides.table))
+    );
+
+    if (dom.settingSpeed) {
+      dom.settingSpeed.value = String(termSettings.speed);
+      dom.settingSpeedNumber.value = String(termSettings.speed);
+      dom.settingSpeedValue.textContent = termSettings.speed <= 0
+        ? 'сразу'
+        : `${termSettings.speed} зн/с`;
+    }
+    if (dom.settingFont) {
+      dom.settingFont.value = String(termSettings.fontSize);
+      dom.settingFontNumber.value = String(termSettings.fontSize);
+      dom.settingFontValue.textContent = `${termSettings.fontSize} px`;
+    }
+
+    const setOverrideInputs = (key) => {
+      const value = termSettings.fontOverrides[key];
+      const slider = key === 'terminal' ? dom.settingFontTerminal : dom.settingFontTable;
+      const number = key === 'terminal' ? dom.settingFontTerminalNumber : dom.settingFontTableNumber;
+      if (slider) slider.value = String(value);
+      if (number) number.value = String(value);
+    };
+    setOverrideInputs('terminal');
+    setOverrideInputs('table');
+
+    if (dom.settingSpeedPresets) {
+      dom.settingSpeedPresets.querySelectorAll('[data-speed]').forEach((button) => {
+        button.classList.toggle('active', Number(button.dataset.speed) === termSettings.speed);
+      });
+    }
+    if (dom.settingFontPresets) {
+      dom.settingFontPresets.querySelectorAll('[data-font]').forEach((button) => {
+        button.classList.toggle('active', Number(button.dataset.font) === termSettings.fontSize);
+      });
+    }
 
     if (persist) {
       try {
@@ -895,6 +1090,21 @@
         /* Приватный режим: настройки не сохранятся. */
       }
     }
+  }
+
+  function setSpeed(value) {
+    termSettings.speed = Number(value);
+    applyTermSettings(true);
+  }
+
+  function setFontSize(value) {
+    termSettings.fontSize = Number(value);
+    applyTermSettings(true);
+  }
+
+  function setFontOverride(section, value) {
+    termSettings.fontOverrides[section] = Number(value);
+    applyTermSettings(true);
   }
 
   function openSettings() {
@@ -910,38 +1120,51 @@
     updatePrompt();
   }
 
-  dom.settingsOpen.addEventListener('click', openSettings);
   dom.settingsClose.addEventListener('click', closeSettings);
-  dom.settingSpeed.addEventListener('input', () => {
-    termSettings.speed = Number(dom.settingSpeed.value);
-    applyTermSettings(true);
+  dom.settingSpeed.addEventListener('input', () => setSpeed(dom.settingSpeed.value));
+  dom.settingSpeedNumber.addEventListener('change', () => setSpeed(dom.settingSpeedNumber.value));
+  dom.settingFont.addEventListener('input', () => setFontSize(dom.settingFont.value));
+  dom.settingFontNumber.addEventListener('change', () => setFontSize(dom.settingFontNumber.value));
+  dom.settingFontTerminal.addEventListener('input', () => {
+    setFontOverride('terminal', dom.settingFontTerminal.value);
   });
-  dom.settingFont.addEventListener('input', () => {
-    termSettings.fontSize = Number(dom.settingFont.value);
-    applyTermSettings(true);
+  dom.settingFontTerminalNumber.addEventListener('change', () => {
+    setFontOverride('terminal', dom.settingFontTerminalNumber.value);
   });
-  dom.settingSpeedPresets.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-speed]');
-    if (!button) return;
-    termSettings.speed = Number(button.dataset.speed);
-    applyTermSettings(true);
+  dom.settingFontTable.addEventListener('input', () => {
+    setFontOverride('table', dom.settingFontTable.value);
   });
-  dom.settingFontPresets.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-font]');
-    if (!button) return;
-    termSettings.fontSize = Number(button.dataset.font);
-    applyTermSettings(true);
+  dom.settingFontTableNumber.addEventListener('change', () => {
+    setFontOverride('table', dom.settingFontTableNumber.value);
+  });
+  dom.settingsView.addEventListener('click', (event) => {
+    const clear = event.target.closest('[data-font-clear]');
+    if (clear) {
+      setFontOverride(clear.dataset.fontClear, 0);
+      return;
+    }
+    const speedButton = event.target.closest('[data-speed]');
+    if (speedButton) {
+      setSpeed(speedButton.dataset.speed);
+      return;
+    }
+    const fontButton = event.target.closest('[data-font]');
+    if (fontButton) setFontSize(fontButton.dataset.font);
   });
   dom.settingsReset.addEventListener('click', () => {
-    termSettings = { ...DEFAULT_TERM_SETTINGS };
+    termSettings = {
+      speed: DEFAULT_TERM_SETTINGS.speed,
+      fontSize: DEFAULT_TERM_SETTINGS.fontSize,
+      fontOverrides: { ...DEFAULT_TERM_SETTINGS.fontOverrides }
+    };
     applyTermSettings(true);
   });
 
   function defaultLabelForType(type) {
     if (type === 'sys') return 'система';
     if (type === 'story') return 'сцена';
-    if (type === 'reply') return 'терминал';
-    if (type === 'cmd') return '›';
+    if (type === 'reply') return 'система';
+    if (type === 'cmd') return 'Zemic:';
     return '';
   }
 
@@ -1134,6 +1357,49 @@
     return `Шаг ${directionName}. Камень отзывается глухо.`;
   }
 
+  function commandGroup(name) {
+    const needle = String(name || '').trim().toLowerCase();
+    if (!needle) return null;
+    return C.terminal.helpGroups.find((group) =>
+      String(group.id).toLowerCase() === needle ||
+      String(group.title).toLowerCase() === needle
+    ) || null;
+  }
+
+  function groupUnlocked(group) {
+    return !group.unlock || hasUnlock(group.unlock);
+  }
+
+  function helpOverview() {
+    const lines = ['Группы команд:'];
+    for (const group of C.terminal.helpGroups) {
+      if (groupUnlocked(group)) {
+        lines.push(`• ${group.title} — ${group.description}`);
+      } else {
+        lines.push(`• ${group.title} — закрыто. ${unlockHint(group.unlock)}`);
+      }
+    }
+    lines.push('Подробнее: «помоги движение». Так видно только нужный список.');
+    return lines.join('\n');
+  }
+
+  function helpGroup(group) {
+    if (!groupUnlocked(group)) {
+      return C.terminal.helpLocked
+        .replace('{title}', group.title)
+        .replace('{hint}', unlockHint(group.unlock));
+    }
+    const lines = [
+      C.terminal.helpGroup
+        .replace('{title}', group.title)
+        .replace('{description}', group.description)
+    ];
+    for (const entry of group.commands) {
+      lines.push(`• ${entry.command} — ${entry.description}`);
+    }
+    return lines.join('\n');
+  }
+
   function handleCommand(raw, source) {
     source = source || 'terminal';
     const text = String(raw === null || raw === undefined ? '' : raw).trim();
@@ -1144,9 +1410,12 @@
     if (!text) return '';
 
     if (cmd === 'помоги' || cmd === 'помощь') {
-      reply = ['Доступные команды:'].concat(
-        C.terminal.help.map((entry) => `• ${entry.command} — ${entry.description}`)
-      ).join('\n');
+      reply = helpOverview();
+      replyInstant = true;
+    } else if (cmd.startsWith('помоги ') || cmd.startsWith('помощь ')) {
+      const requested = cmd.replace(/^помо[гщ][ьи]\s+/, '');
+      const group = commandGroup(requested);
+      reply = group ? helpGroup(group) : `${C.terminal.unknownGroup}«${requested}»`;
       replyInstant = true;
     } else if (cmd === 'привет') {
       reply = 'Терминал отвечает с задержкой, будто подбирает слова. Привет.';
@@ -1175,22 +1444,39 @@
     } else if (cmd === 'осмотреться') {
       reply = currentRoomDescription();
     } else if (cmd === 'рюкзак') {
-      reply = inventorySummary();
-      if (source === 'terminal') openInventory();
+      if (!hasUnlock('backpack')) {
+        reply = denyLocked('backpack');
+      } else {
+        reply = inventorySummary();
+        if (source === 'terminal') openInventory();
+      }
     } else if (cmd === 'карта') {
-      if (state.items.includes('map_fragment')) {
+      if (!hasUnlock('map')) {
+        reply = denyLocked('map');
+      } else if (state.items.includes('map_fragment')) {
         reply = 'Обрывок карты разворачивается. Виден весь участок и твои метки.';
         if (source === 'terminal') openMap();
       } else {
         reply = 'У тебя нет обрывка карты. Дорогу пока приходится помнить самому.';
       }
-    } else if (cmd === 'canvas') {
-      reply = source === 'terminal'
-        ? 'Рабочая поверхность открыта. Предметы и команды можно разложить самому.'
-        : 'Ты уже на canvas.';
-      if (source === 'terminal') openCanvas();
+    } else if (cmd === 'стол') {
+      if (!hasUnlock('table')) {
+        reply = denyLocked('table');
+      } else {
+        reply = source === 'terminal'
+          ? 'Стол открыт. Предметы, команды и клавиши можно разложить самому.'
+          : 'Ты уже за столом.';
+        if (source === 'terminal') openCanvas();
+      }
     } else if (cmd === 'пометить') {
-      reply = mapMark();
+      if (!hasUnlock('map')) {
+        reply = denyLocked('map');
+      } else {
+        reply = mapMark();
+      }
+    } else if (cmd === 'действие') {
+      interact(true);
+      reply = 'Взаимодействие выполнено, если рядом был объект.';
     } else if (cmd === 'очаровать') {
       reply = 'Очарование: способность ещё не подключена. Это временная нейтральная заглушка — эффект появится позже.';
     } else if (cmd === 'настройки' || cmd === 'настройка') {
@@ -1198,8 +1484,11 @@
         openSettings();
         reply = '';
       } else {
-        reply = 'Настройки терминала открываются из основной вкладки.';
+        reply = 'Настройки открываются из основной вкладки терминала.';
       }
+    } else if (cmd === 'новая игра') {
+      startNewGame();
+      return '';
     } else if (cmd === 'очисти') {
       if (source === 'terminal') {
         clearLog();
@@ -1332,7 +1621,7 @@
         const place = document.createElement('button');
         place.type = 'button';
         place.className = 'inv-btn';
-        place.textContent = 'на canvas';
+        place.textContent = 'на стол';
         place.addEventListener('click', () => {
           closeInventory();
           addItemElement(item.id, true);
@@ -1347,13 +1636,17 @@
     if (dom.inventoryNote) {
       const backpacks = state.backpacks.length;
       dom.inventoryNote.textContent = backpacks
-        ? `В Лабиринте осталось рюкзаков: ${backpacks}. Предметы на canvas остаются на месте, но недоступны, пока рюкзак не возвращён.`
-        : 'Предметы можно вынести на canvas и запускать их команды быстрым нажатием.';
+        ? `В Лабиринте осталось рюкзаков: ${backpacks}. Предметы на столе остаются на месте, но недоступны, пока рюкзак не возвращён.`
+        : 'Предметы можно вынести на стол и запускать их команды быстрым нажатием.';
     }
   }
 
   function openInventory() {
     if (isTrialBlocking()) return;
+    if (!hasUnlock('backpack')) {
+      appendLog(denyLocked('backpack'), 'sys', true);
+      return;
+    }
     ensureTerminalShare(0.42);
     renderInventory();
     setTerminalView('inventory');
@@ -1373,7 +1666,7 @@
 
   function updateMapNote() {
     if (state.items.includes('map_fragment')) {
-      dom.mapNote.textContent = 'Обрывок карты разворачивается целиком: видны все комнаты участка и оставленные рюкзаки.';
+      dom.mapNote.textContent = 'Обрывок карты разворачивается: видны комнаты вокруг и оставленные рюкзаки.';
     } else {
       dom.mapNote.textContent = 'Пока это только память о пройденном и о соседних комнатах.';
     }
@@ -1389,6 +1682,10 @@
 
   function openMap() {
     if (isTrialBlocking()) return;
+    if (!hasUnlock('map')) {
+      appendLog(denyLocked('map'), 'sys', true);
+      return;
+    }
     ensureTerminalShare(0.42);
     updateMapNote();
     setTerminalView('map');
@@ -1448,6 +1745,7 @@
       sub,
       nx: 0.5,
       ny: 0.5,
+      key: null,
       commands: null,
       requires: [item.id]
     };
@@ -1463,24 +1761,25 @@
       sub: 'команда',
       nx: 0.5,
       ny: 0.5,
+      key: null,
       commands: null,
       requires: []
     };
   }
 
-  /* Кнопки управления на canvas: каждую можно переназначить на любую
+  /* Кнопки управления на столе: каждую можно переназначить на любую
      клавишу. Действия повторяют команды и основные жесты игры. */
   const CONTROL_ACTIONS = {
-    up: { label: 'вверх', command: 'вверх', defaultKey: 'KeyW' },
-    down: { label: 'вниз', command: 'вниз', defaultKey: 'KeyS' },
-    left: { label: 'влево', command: 'влево', defaultKey: 'KeyA' },
-    right: { label: 'вправо', command: 'вправо', defaultKey: 'KeyD' },
-    interact: { label: 'действие', command: null, defaultKey: 'KeyE' },
-    look: { label: 'осмотреться', command: 'осмотреться', defaultKey: 'KeyL' },
-    stop: { label: 'стоп', command: 'стоп', defaultKey: 'KeyX' },
-    inventory: { label: 'рюкзак', command: 'рюкзак', defaultKey: 'KeyB' },
-    map: { label: 'карта', command: 'карта', defaultKey: 'KeyM' },
-    canvas: { label: 'canvas', command: 'canvas', defaultKey: 'KeyC' }
+    up: { label: 'вверх', command: 'вверх', defaultKey: 'KeyW', device: 'keyboard' },
+    down: { label: 'вниз', command: 'вниз', defaultKey: 'KeyS', device: 'keyboard' },
+    left: { label: 'влево', command: 'влево', defaultKey: 'KeyA', device: 'keyboard' },
+    right: { label: 'вправо', command: 'вправо', defaultKey: 'KeyD', device: 'keyboard' },
+    interact: { label: 'действие', command: 'действие', defaultKey: 'KeyE', device: 'keyboard' },
+    look: { label: 'осмотреться', command: 'осмотреться', defaultKey: 'KeyL', device: 'keyboard' },
+    stop: { label: 'стоп', command: 'стоп', defaultKey: 'KeyX', device: 'keyboard' },
+    inventory: { label: 'рюкзак', command: 'рюкзак', defaultKey: 'KeyB', device: 'keyboard' },
+    map: { label: 'карта', command: 'карта', defaultKey: 'KeyM', device: 'keyboard' },
+    canvas: { label: 'стол', command: 'стол', defaultKey: 'KeyC', device: 'keyboard' }
   };
 
   function keyLabel(code) {
@@ -1494,18 +1793,33 @@
       Enter: 'ENTER',
       Escape: 'ESC',
       Tab: 'TAB',
+      CapsLock: 'CAPS',
       ShiftLeft: 'SHIFT',
       ShiftRight: 'SHIFT',
       ControlLeft: 'CTRL',
       ControlRight: 'CTRL',
       AltLeft: 'ALT',
       AltRight: 'ALT',
-      Backspace: 'BACKSPACE'
+      MetaLeft: 'META',
+      MetaRight: 'META',
+      Backspace: 'BACKSPACE',
+      Backquote: '`',
+      Minus: '-',
+      Equal: '=',
+      BracketLeft: '[',
+      BracketRight: ']',
+      Backslash: '\\',
+      Semicolon: ';',
+      Quote: "'",
+      Comma: ',',
+      Period: '.',
+      Slash: '/'
     };
     if (names[code]) return names[code];
     if (code.startsWith('Key')) return code.slice(3);
     if (code.startsWith('Digit')) return code.slice(5);
     if (code.startsWith('Numpad')) return `NUM ${code.slice(6)}`;
+    if (code.startsWith('F') && Number(code.slice(1)) > 0) return code;
     return code.toUpperCase();
   }
 
@@ -1533,7 +1847,7 @@
     if (!element) return;
     const duplicate = state.canvasElements.find((el) => el.kind === 'control' && el.action === action);
     if (duplicate) {
-      toast(`Кнопка «${element.label}» уже на canvas`);
+      toast(`Кнопка «${element.label}» уже на столе`);
       renderCanvasDrawer();
       return;
     }
@@ -1547,31 +1861,34 @@
     setCanvasReply(element.label, `Кнопка добавлена. Клавиша: ${keyLabel(element.key)}. Нажми на клавишу, чтобы переназначить.`);
   }
 
-  function assignControlKey(element, code) {
-    if (!element || element.kind !== 'control') return;
+  function assignElementKey(element, code) {
+    if (!element) return;
     if (code === 'Escape') {
-      controlBindingId = null;
+      elementBindingId = null;
       renderCanvasElements();
+      renderKeyScheme();
       setCanvasReply('клавиша', 'Назначение отменено.');
       return;
     }
     for (const other of state.canvasElements) {
-      if (other !== element && other.kind === 'control' && other.key === code) {
-        other.key = null;
-      }
+      if (other !== element && other.key === code) other.key = null;
     }
     element.key = code;
-    controlBindingId = null;
+    elementBindingId = null;
     saveGame();
     renderCanvasElements();
-    setCanvasReply(element.label, `Назначена клавиша ${keyLabel(code)}.`);
+    renderCanvasDrawer();
+    renderKeyScheme();
+    setCanvasReply(element.label || element.command, `Назначена клавиша ${keyLabel(code)}.`);
   }
 
-  function startControlBinding(element) {
-    controlBindingId = element.id;
+  function startElementBinding(element) {
+    if (!element) return;
+    elementBindingId = element.id;
     renderCanvasElements();
+    renderKeyScheme();
     dom.canvasHint.textContent = 'Нажми нужную клавишу. Esc — отмена.';
-    setCanvasReply('клавиша', `Выбери клавишу для кнопки «${element.label}».`);
+    setCanvasReply('клавиша', `Выбери клавишу для «${element.label || element.command}».`);
   }
 
   function runControlElement(element) {
@@ -1579,29 +1896,47 @@
     const meta = CONTROL_ACTIONS[element.action];
     if (!meta) return;
 
-    if (element.action === 'interact') {
-      interact(true);
-      setCanvasReply('действие', 'Взаимодействие выполнено, если рядом был объект.');
-      return;
-    }
-
     if (element.action === 'inventory') {
-      closeCanvas();
-      handleCommand('рюкзак', 'terminal');
+      if (termView === 'inventory') {
+        closeInventory();
+      } else {
+        if (termView === 'canvas') closeCanvas();
+        handleCommand('рюкзак', 'terminal');
+      }
       return;
     }
     if (element.action === 'map') {
-      closeCanvas();
-      handleCommand('карта', 'terminal');
+      if (termView === 'map') {
+        closeMap();
+      } else {
+        if (termView === 'canvas') closeCanvas();
+        handleCommand('карта', 'terminal');
+      }
       return;
     }
     if (element.action === 'canvas') {
-      closeCanvas();
+      if (termView === 'canvas') {
+        closeCanvas();
+      } else if (termView === 'main') {
+        handleCommand('стол', 'terminal');
+      }
       return;
     }
 
     const reply = handleCommand(meta.command, 'canvas');
     setCanvasReply(element.label, reply || 'Готово.');
+  }
+
+  /* Любой элемент стола можно выполнить или связать. Клавиша — это
+     общий механизм, а не свойство только кнопок управления. */
+  function runElement(element) {
+    if (!element) return;
+    if (canvasLinkMode) {
+      chooseLinkTarget(element);
+      return;
+    }
+    if (element.kind === 'control') runControlElement(element);
+    else executeCanvasElement(element);
   }
 
   function nextCanvasSpot() {
@@ -1620,7 +1955,7 @@
     if (!item) return;
     const existing = state.canvasElements.find((element) => element.itemId === itemId);
     if (existing) {
-      toast(`«${item.name}» уже на canvas`);
+      toast(`«${item.name}» уже на столе`);
       if (openAfter) openCanvas();
       return;
     }
@@ -1637,7 +1972,7 @@
       renderCanvasDrawer();
     }
     setCanvasReply(item.name, 'Элемент добавлен. Нажми на него, чтобы выполнить команду.');
-    toast(`На canvas: ${item.name}`);
+    toast(`На столе: ${item.name}`);
   }
 
   function addCommandElement(command) {
@@ -1713,21 +2048,6 @@
       title.textContent = element.label || 'кнопка';
       node.appendChild(title);
 
-      const key = document.createElement('button');
-      key.type = 'button';
-      key.className = 'el-key';
-      key.textContent = keyLabel(element.key);
-      key.title = 'Назначить клавишу';
-      if (element.id === controlBindingId) key.classList.add('listening');
-      key.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      key.addEventListener('click', (event) => {
-        event.stopPropagation();
-        startControlBinding(element);
-      });
-      node.appendChild(key);
-
       const sub = document.createElement('div');
       sub.className = 'el-sub';
       sub.textContent = 'кнопка управления';
@@ -1742,6 +2062,24 @@
       sub.textContent = element.sub || 'команда';
       node.appendChild(sub);
     }
+
+    /* Клавиша есть у любого элемента стола: команда, предмет, карта,
+       связка и кнопка управления. */
+    const key = document.createElement('button');
+    key.type = 'button';
+    key.className = 'el-key';
+    key.textContent = keyLabel(element.key);
+    key.title = 'Назначить клавишу';
+    key.setAttribute('aria-label', `Назначить клавишу для «${element.label || element.command || 'элемента'}»`);
+    if (element.id === elementBindingId) key.classList.add('listening');
+    key.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    key.addEventListener('click', (event) => {
+      event.stopPropagation();
+      startElementBinding(element);
+    });
+    node.appendChild(key);
 
     if (element.kind === 'card' && element.itemId) {
       const open = document.createElement('button');
@@ -1772,12 +2110,19 @@
         : element.kind === 'control'
           ? 'нажать'
           : 'выполнить';
+    run.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    run.addEventListener('click', (event) => {
+      event.stopPropagation();
+      runElement(element);
+    });
     node.appendChild(run);
 
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'el-remove';
-    remove.setAttribute('aria-label', 'Убрать с canvas');
+    remove.setAttribute('aria-label', 'Убрать со стола');
     remove.textContent = '×';
     remove.addEventListener('pointerdown', (event) => {
       event.stopPropagation();
@@ -1848,13 +2193,7 @@
         return;
       }
       if (event.target.closest('.el-remove')) return;
-      if (canvasLinkMode) {
-        chooseLinkTarget(element);
-      } else if (element.kind === 'control') {
-        runControlElement(element);
-      } else {
-        executeCanvasElement(element);
-      }
+      runElement(element);
     };
 
     node.addEventListener('pointerup', finish);
@@ -1877,47 +2216,67 @@
   function renderCanvasDrawer() {
     dom.canvasAddList.textContent = '';
 
-    for (const itemId of state.items) {
-      const item = C.items[itemId];
-      if (!item) continue;
-      if (!item.command && !item.art) continue;
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'add-chip item';
-      chip.textContent = item.name;
-      const already = state.canvasElements.some((element) => element.itemId === itemId);
-      chip.disabled = already;
-      if (already) chip.textContent += ' · уже здесь';
-      chip.addEventListener('click', () => {
-        addItemElement(itemId, false);
-        closeCanvasDrawer();
-      });
-      dom.canvasAddList.appendChild(chip);
+    function addGroupLabel(title, locked) {
+      const label = document.createElement('span');
+      label.className = `drawer-group-label${locked ? ' locked' : ''}`;
+      label.textContent = title;
+      dom.canvasAddList.appendChild(label);
     }
 
-    const baseCommands = ['осмотреться', 'рюкзак', 'привет'];
-    for (const command of baseCommands) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'add-chip';
-      chip.textContent = command;
-      const already = state.canvasElements.some((element) =>
-        element.kind === 'command' && element.command === command
-      );
-      chip.disabled = already;
-      if (already) chip.textContent += ' · уже здесь';
-      chip.addEventListener('click', () => {
-        addCommandElement(command);
-        closeCanvasDrawer();
-      });
-      dom.canvasAddList.appendChild(chip);
+    const placeableItems = state.items
+      .map((itemId) => C.items[itemId])
+      .filter((item) => item && (item.command || item.art));
+    if (placeableItems.length) {
+      addGroupLabel('ПРЕДМЕТЫ', false);
+      for (const item of placeableItems) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'add-chip item';
+        chip.textContent = item.name;
+        const already = state.canvasElements.some((element) => element.itemId === item.id);
+        chip.disabled = already;
+        if (already) chip.textContent += ' · уже на столе';
+        chip.addEventListener('click', () => {
+          addItemElement(item.id, false);
+          closeCanvasDrawer();
+        });
+        dom.canvasAddList.appendChild(chip);
+      }
     }
 
-    const controlHead = document.createElement('span');
-    controlHead.className = 'drawer-group-label';
-    controlHead.textContent = 'УПРАВЛЕНИЕ';
-    dom.canvasAddList.appendChild(controlHead);
+    /* Команды сгруппированы так же, как в «помоги»: одна группа —
+       один короткий список. Закрытые группы видны, но не добавляются. */
+    for (const group of C.terminal.helpGroups) {
+      const unlocked = groupUnlocked(group);
+      addGroupLabel(group.title, !unlocked);
+      if (!unlocked) {
+        const locked = document.createElement('span');
+        locked.className = 'canvas-tip';
+        locked.textContent = `закрыто · ${unlockHint(group.unlock)}`;
+        dom.canvasAddList.appendChild(locked);
+        continue;
+      }
+      for (const entry of group.commands) {
+        if (entry.bindable === false) continue;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'add-chip';
+        chip.textContent = entry.command;
+        chip.title = entry.description;
+        const already = state.canvasElements.some((element) =>
+          element.kind === 'command' && element.command === entry.command
+        );
+        chip.disabled = already;
+        if (already) chip.textContent += ' · уже на столе';
+        chip.addEventListener('click', () => {
+          addCommandElement(entry.command);
+          closeCanvasDrawer();
+        });
+        dom.canvasAddList.appendChild(chip);
+      }
+    }
 
+    addGroupLabel('УПРАВЛЕНИЕ', false);
     for (const action of Object.keys(CONTROL_ACTIONS)) {
       const meta = CONTROL_ACTIONS[action];
       const chip = document.createElement('button');
@@ -1928,7 +2287,7 @@
         element.kind === 'control' && element.action === action
       );
       chip.disabled = already;
-      if (already) chip.textContent += ' · уже здесь';
+      if (already) chip.textContent += ' · уже на столе';
       chip.addEventListener('click', () => {
         addControlElement(action);
         closeCanvasDrawer();
@@ -1936,7 +2295,7 @@
       dom.canvasAddList.appendChild(chip);
     }
 
-    if (!dom.canvasAddList.children.length) {
+    if (!placeableItems.length && !state.canvasElements.length) {
       const note = document.createElement('span');
       note.className = 'canvas-tip';
       note.textContent = 'Пока нечего добавить. Найди предметы в Лабиринте.';
@@ -2022,6 +2381,7 @@
       sub: commands.join(' → '),
       commands,
       requires,
+      key: null,
       nx: (first.nx + second.nx) / 2,
       ny: (first.ny + second.ny) / 2
     };
@@ -2046,14 +2406,361 @@
     dom.canvasAddToggle.setAttribute('aria-expanded', 'false');
   }
 
+  function applyCanvasTransform() {
+    if (!dom.canvasStage) return;
+    dom.canvasStage.style.transform =
+      `translate(${canvasPanX.toFixed(1)}px, ${canvasPanY.toFixed(1)}px) scale(${canvasZoom.toFixed(4)})`;
+  }
+
+  function setCanvasPan(x, y) {
+    canvasPanX = x;
+    canvasPanY = y;
+    applyCanvasTransform();
+  }
+
   function setCanvasZoom(value, announce) {
     canvasZoom = clamp(value, 0.55, 2.4);
-    dom.canvasStage.style.transform = `scale(${canvasZoom.toFixed(4)})`;
+    applyCanvasTransform();
     dom.canvasZoomLabel.textContent = `${Math.round(canvasZoom * 100)}%`;
     if (announce) {
       setCanvasReply('масштаб', `${Math.round(canvasZoom * 100)}%. Колесо или щипок тоже меняют масштаб.`);
     }
   }
+
+  function resetCanvasView(announce) {
+    canvasZoom = 1;
+    canvasPanX = 0;
+    canvasPanY = 0;
+    applyCanvasTransform();
+    dom.canvasZoomLabel.textContent = '100%';
+    if (announce) {
+      setCanvasReply('масштаб', 'Масштаб и положение стола сброшены.');
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Схема управления: клавиатура, геймпад, телефон                       */
+  /* ------------------------------------------------------------------ */
+
+  const GAMEPAD_BUTTONS = {
+    0: { label: 'A', action: 'interact' },
+    1: { label: 'B', action: 'stop' },
+    2: { label: 'X', action: 'map' },
+    3: { label: 'Y', action: 'inventory' },
+    4: { label: 'LB', action: 'look' },
+    5: { label: 'RB', action: 'canvas' },
+    8: { label: 'SELECT', action: 'stop' },
+    9: { label: 'START', action: 'settings' }
+  };
+
+  function actionLabel(action) {
+    if (action === 'settings') return 'настройки';
+    const meta = CONTROL_ACTIONS[action];
+    return meta ? meta.label : action;
+  }
+
+  function keyAssignments() {
+    const assignments = new Map();
+    const base = {
+      KeyW: 'шаг вверх',
+      KeyS: 'шаг вниз',
+      KeyA: 'шаг влево',
+      KeyD: 'шаг вправо',
+      ArrowUp: 'шаг вверх',
+      ArrowDown: 'шаг вниз',
+      ArrowLeft: 'шаг влево',
+      ArrowRight: 'шаг вправо',
+      KeyE: 'действие',
+      KeyB: 'рюкзак',
+      KeyM: 'карта',
+      KeyC: 'стол'
+    };
+    for (const code of Object.keys(base)) assignments.set(code, base[code]);
+    for (const element of state.canvasElements) {
+      if (!element.key) continue;
+      const label = element.label || element.command ||
+        (element.kind === 'control' ? actionLabel(element.action) : 'элемент');
+      assignments.set(element.key, label);
+    }
+    return assignments;
+  }
+
+  function makeKeycap(code, assignments) {
+    const cap = document.createElement('div');
+    cap.className = 'keycap';
+    cap.dataset.key = code;
+    if (['Backspace', 'CapsLock', 'ShiftLeft', 'ShiftRight', 'Enter', 'Tab'].includes(code)) {
+      cap.classList.add('wide');
+    }
+    if (['ControlLeft', 'ControlRight', 'AltLeft', 'AltRight'].includes(code)) {
+      cap.classList.add('small');
+    }
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) {
+      cap.classList.add('arrow');
+    }
+    if (code === 'Space') cap.classList.add('space');
+    const name = document.createElement('span');
+    name.className = 'keycap-name';
+    name.textContent = keyLabel(code);
+    cap.appendChild(name);
+    if (assignments.has(code)) {
+      cap.classList.add('assigned');
+      const assign = document.createElement('span');
+      assign.className = 'keycap-assign';
+      assign.textContent = assignments.get(code);
+      cap.appendChild(assign);
+    }
+    return cap;
+  }
+
+  function renderKeyboardScheme(body) {
+    const assignments = keyAssignments();
+    const layout = document.createElement('div');
+    layout.className = 'keyboard-scheme';
+
+    const rows = [
+      ['Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0', 'Minus', 'Equal', 'Backspace'],
+      ['Tab', 'KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU', 'KeyI', 'KeyO', 'KeyP', 'BracketLeft', 'BracketRight', 'Backslash'],
+      ['CapsLock', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote', 'Enter'],
+      ['ShiftLeft', 'KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash', 'ShiftRight'],
+      ['ControlLeft', 'AltLeft', 'MetaLeft', 'Space', 'MetaRight', 'AltRight', 'ControlRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight']
+    ];
+    const used = new Set();
+    for (const row of rows) {
+      const rowNode = document.createElement('div');
+      rowNode.className = 'keyboard-row';
+      for (const code of row) {
+        used.add(code);
+        rowNode.appendChild(makeKeycap(code, assignments));
+      }
+      layout.appendChild(rowNode);
+    }
+
+    const extra = Array.from(assignments.keys()).filter((code) => !used.has(code));
+    if (extra.length) {
+      const extraHead = document.createElement('div');
+      extraHead.className = 'keyboard-extra-head';
+      extraHead.textContent = 'ДРУГИЕ КЛАВИШИ';
+      layout.appendChild(extraHead);
+      const extraRow = document.createElement('div');
+      extraRow.className = 'keyboard-extra';
+      for (const code of extra) {
+        const chip = document.createElement('div');
+        chip.className = 'key-extra-chip';
+        const name = document.createElement('b');
+        name.textContent = keyLabel(code);
+        chip.appendChild(name);
+        const assign = document.createElement('span');
+        assign.textContent = assignments.get(code);
+        chip.appendChild(assign);
+        extraRow.appendChild(chip);
+      }
+      layout.appendChild(extraRow);
+    }
+    body.appendChild(layout);
+  }
+
+  function appendGamepadButton(parent, label, action, className) {
+    const button = document.createElement('div');
+    button.className = `gp-button ${className || ''}`;
+    const letter = document.createElement('b');
+    letter.textContent = label;
+    button.appendChild(letter);
+    const name = document.createElement('small');
+    name.textContent = actionLabel(action);
+    button.appendChild(name);
+    parent.appendChild(button);
+  }
+
+  function renderGamepadScheme(body) {
+    const scheme = document.createElement('div');
+    scheme.className = 'gamepad-scheme';
+
+    const shoulders = document.createElement('div');
+    shoulders.className = 'gp-shoulders';
+    appendGamepadButton(shoulders, 'LB', 'look', 'shoulder');
+    appendGamepadButton(shoulders, 'RB', 'canvas', 'shoulder');
+    scheme.appendChild(shoulders);
+
+    const pad = document.createElement('div');
+    pad.className = 'gp-body';
+
+    const left = document.createElement('div');
+    left.className = 'gp-left';
+    const dpad = document.createElement('div');
+    dpad.className = 'gp-dpad';
+    appendGamepadButton(dpad, '↑', 'up', 'gp-up');
+    appendGamepadButton(dpad, '←', 'left', 'gp-left');
+    appendGamepadButton(dpad, '→', 'right', 'gp-right');
+    appendGamepadButton(dpad, '↓', 'down', 'gp-down');
+    left.appendChild(dpad);
+    const stick = document.createElement('div');
+    stick.className = 'gp-stick';
+    stick.textContent = 'левый стик · движение';
+    left.appendChild(stick);
+    pad.appendChild(left);
+
+    const center = document.createElement('div');
+    center.className = 'gp-center';
+    appendGamepadButton(center, 'SELECT', 'stop', 'small-pill');
+    appendGamepadButton(center, 'START', 'settings', 'small-pill');
+    pad.appendChild(center);
+
+    const right = document.createElement('div');
+    right.className = 'gp-right';
+    const face = document.createElement('div');
+    face.className = 'gp-face';
+    appendGamepadButton(face, 'Y', 'inventory', 'face-y');
+    appendGamepadButton(face, 'X', 'map', 'face-x');
+    appendGamepadButton(face, 'B', 'stop', 'face-b');
+    appendGamepadButton(face, 'A', 'interact', 'face-a');
+    right.appendChild(face);
+    const rightStick = document.createElement('div');
+    rightStick.className = 'gp-stick';
+    rightStick.textContent = 'правый стик · обзор';
+    right.appendChild(rightStick);
+    pad.appendChild(right);
+
+    scheme.appendChild(pad);
+    body.appendChild(scheme);
+  }
+
+  function renderPhoneScheme(body) {
+    const scheme = document.createElement('div');
+    scheme.className = 'phone-scheme';
+    const frame = document.createElement('div');
+    frame.className = 'phone-frame';
+    const screen = document.createElement('div');
+    screen.className = 'phone-screen';
+
+    const top = document.createElement('div');
+    top.className = 'phone-top';
+    top.textContent = 'СЕНСОРНОЕ УПРАВЛЕНИЕ';
+    screen.appendChild(top);
+
+    const field = document.createElement('div');
+    field.className = 'phone-field';
+
+    const dpad = document.createElement('div');
+    dpad.className = 'phone-dpad';
+    appendGamepadButton(dpad, '↑', 'up', 'phone-up');
+    appendGamepadButton(dpad, '←', 'left', 'phone-left');
+    appendGamepadButton(dpad, '→', 'right', 'phone-right');
+    appendGamepadButton(dpad, '↓', 'down', 'phone-down');
+    field.appendChild(dpad);
+
+    const actions = document.createElement('div');
+    actions.className = 'phone-actions';
+    appendGamepadButton(actions, 'A', 'interact', 'phone-main');
+    appendGamepadButton(actions, 'B', 'stop', 'phone-stop');
+    field.appendChild(actions);
+    screen.appendChild(field);
+
+    const quick = document.createElement('div');
+    quick.className = 'phone-quick';
+    for (const action of ['inventory', 'map', 'canvas']) {
+      const chip = document.createElement('div');
+      chip.className = 'phone-quick-btn';
+      const name = document.createElement('b');
+      name.textContent = actionLabel(action);
+      chip.appendChild(name);
+      quick.appendChild(chip);
+    }
+    screen.appendChild(quick);
+
+    const hint = document.createElement('div');
+    hint.className = 'phone-hint';
+    hint.textContent = 'свайп по экрану — идти · кнопки внизу — разделы';
+    screen.appendChild(hint);
+
+    frame.appendChild(screen);
+    scheme.appendChild(frame);
+    body.appendChild(scheme);
+  }
+
+  function renderKeyScheme() {
+    if (!dom.canvasKeysBody) return;
+    dom.canvasKeysBody.textContent = '';
+    if (dom.canvasKeysTabs) {
+      dom.canvasKeysTabs.querySelectorAll('[data-device]').forEach((button) => {
+        const active = button.dataset.device === canvasDevice;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+    if (canvasDevice === 'gamepad') renderGamepadScheme(dom.canvasKeysBody);
+    else if (canvasDevice === 'phone') renderPhoneScheme(dom.canvasKeysBody);
+    else renderKeyboardScheme(dom.canvasKeysBody);
+  }
+
+  function runAction(action) {
+    if (action === 'settings') {
+      if (termView === 'main') openSettings();
+      return;
+    }
+    if (termView === 'canvas') {
+      const element = state.canvasElements.find((el) =>
+        el.kind === 'control' && el.action === action && elementAvailable(el)
+      );
+      if (element) {
+        runControlElement(element);
+        return;
+      }
+    }
+    if (termView !== 'main') return;
+    const meta = CONTROL_ACTIONS[action];
+    if (meta) handleCommand(meta.command, 'terminal');
+  }
+
+  /* Геймпад опрашивается в общем цикле. Кнопки работают как обычные
+     действия, а D-pad и левый стик двигают Zemic. */
+  function pollGamepad() {
+    if (!navigator.getGamepads || document.hidden) return;
+    let pad = null;
+    try {
+      const pads = navigator.getGamepads();
+      for (let i = 0; i < pads.length; i++) {
+        if (pads[i]) {
+          pad = pads[i];
+          gamepadIndex = i;
+          break;
+        }
+      }
+    } catch (error) {
+      return;
+    }
+
+    const directions = { up: false, down: false, left: false, right: false };
+    const next = [];
+    if (pad) {
+      const axisX = pad.axes.length > 0 ? pad.axes[0] : 0;
+      const axisY = pad.axes.length > 1 ? pad.axes[1] : 0;
+      const dead = 0.38;
+      const pressed = (index) => Boolean(pad.buttons[index] && pad.buttons[index].pressed);
+      directions.up = pressed(12) || axisY < -dead;
+      directions.down = pressed(13) || axisY > dead;
+      directions.left = pressed(14) || axisX < -dead;
+      directions.right = pressed(15) || axisX > dead;
+
+      const canAct = termView === 'main' || termView === 'canvas' || (trial && trial.active);
+      for (const key of Object.keys(GAMEPAD_BUTTONS)) {
+        const index = Number(key);
+        const info = GAMEPAD_BUTTONS[key];
+        const isPressed = pressed(index);
+        next[index] = isPressed;
+        if (!isPressed || gamepadPrev[index] || !canAct) continue;
+        if (trial && trial.active) {
+          if (info.action === 'interact') attemptSeal();
+          continue;
+        }
+        runAction(info.action);
+      }
+    }
+
+    for (const key of Object.keys(directions)) gamepadKeys[key] = directions[key];
+    gamepadPrev = next;
+  }
+
 
   function openCardDetail(itemId, origin) {
     const item = C.items[itemId];
@@ -2068,12 +2775,12 @@
     dom.cardDescription.textContent = item.description;
     dom.cardState.textContent = cardOrigin === 'inventory'
       ? 'состояние: в рюкзаке'
-      : 'состояние: размещена на canvas';
+      : 'состояние: размещена на столе';
     dom.cardRun.dataset.itemId = itemId;
     dom.cardRun.disabled = !item.command;
     dom.cardPlace.dataset.itemId = itemId;
-    dom.cardBack.textContent = cardOrigin === 'inventory' ? '← к рюкзаку' : '← к canvas';
-    dom.cardClose.setAttribute('aria-label', cardOrigin === 'inventory' ? 'Вернуться к рюкзаку' : 'Вернуться к canvas');
+    dom.cardBack.textContent = cardOrigin === 'inventory' ? '← к рюкзаку' : '← к столу';
+    dom.cardClose.setAttribute('aria-label', cardOrigin === 'inventory' ? 'Вернуться к рюкзаку' : 'Вернуться к столу');
     setTerminalView('card');
     keys = Object.create(null);
   }
@@ -2085,11 +2792,16 @@
 
   function openCanvas() {
     if (isTrialBlocking()) return;
+    if (!hasUnlock('table')) {
+      appendLog(denyLocked('table'), 'sys', true);
+      return;
+    }
     ensureTerminalShare(0.46);
-    controlBindingId = null;
+    elementBindingId = null;
     renderCanvasElements();
+    renderKeyScheme();
     setTerminalView('canvas');
-    setCanvasZoom(canvasZoom, false);
+    applyCanvasTransform();
     setCanvasReply('готово', 'Перетаскивай элементы. Нажми на элемент, чтобы выполнить его команду.');
     keys = Object.create(null);
   }
@@ -2100,8 +2812,8 @@
       linkFirstId = null;
       dom.canvasLinkToggle.classList.remove('active');
     }
-    controlBindingId = null;
-    dom.canvasHint.textContent = 'Перетаскивай элементы. Нажми, чтобы выполнить. Колесо или щипок — масштаб. Кнопки управления можно переназначить.';
+    elementBindingId = null;
+    dom.canvasHint.textContent = 'Перетаскивай элементы. Нажми, чтобы выполнить. ЛКМ по пустому месту — двигать стол. Колесо или щипок — масштаб.';
     closeCanvasDrawer();
     setTerminalView('main');
     saveGame();
@@ -2125,12 +2837,25 @@
   });
   dom.canvasZoomIn.addEventListener('click', () => setCanvasZoom(canvasZoom + 0.15, true));
   dom.canvasZoomOut.addEventListener('click', () => setCanvasZoom(canvasZoom - 0.15, true));
-  dom.canvasZoomReset.addEventListener('click', () => setCanvasZoom(1, true));
+  dom.canvasZoomReset.addEventListener('click', () => resetCanvasView(true));
   dom.canvasAddToggle.addEventListener('click', () => {
     if (dom.canvasDrawer.classList.contains('hidden')) openCanvasDrawer();
     else closeCanvasDrawer();
   });
   dom.canvasDrawerClose.addEventListener('click', closeCanvasDrawer);
+  dom.canvasKeysToggle.addEventListener('click', () => {
+    const willOpen = dom.canvasKeys.classList.contains('hidden');
+    dom.canvasKeys.classList.toggle('hidden', !willOpen);
+    dom.canvasKeysToggle.classList.toggle('active', willOpen);
+    dom.canvasKeysToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) renderKeyScheme();
+  });
+  dom.canvasKeysTabs.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-device]');
+    if (!button) return;
+    canvasDevice = button.dataset.device;
+    renderKeyScheme();
+  });
   dom.canvasLinkToggle.addEventListener('click', () => {
     canvasLinkMode = !canvasLinkMode;
     linkFirstId = null;
@@ -2144,7 +2869,7 @@
       : 'Режим связки выключен.');
   });
 
-  /* Масштаб canvas: колесо и сенсорный щипок. */
+  /* Масштаб и панорамирование стола: колесо, щипок и ЛКМ по пустому месту. */
   dom.canvasWorkspace.addEventListener('wheel', (event) => {
     if (event.deltaY === 0) return;
     event.preventDefault();
@@ -2165,6 +2890,8 @@
     if (canvasPointers.size === 2) {
       event.stopPropagation();
       canvasDrag = null;
+      workspacePan = null;
+      dom.canvasWorkspace.classList.remove('panning');
       dom.canvasElements.querySelectorAll('.cv-el.dragging').forEach((node) => {
         node.classList.remove('dragging');
       });
@@ -2172,10 +2899,32 @@
         distance: pinchingDistance(),
         zoom: canvasZoom
       };
+      return;
     }
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target.closest('.cv-el')) return;
+    if (dom.canvasDrawer && dom.canvasDrawer.contains(event.target)) return;
+    if (dom.canvasKeys && dom.canvasKeys.contains(event.target)) return;
+    workspacePan = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: canvasPanX,
+      panY: canvasPanY
+    };
+    dom.canvasWorkspace.classList.add('panning');
+    event.preventDefault();
   }, { capture: true });
 
   window.addEventListener('pointermove', (event) => {
+    if (workspacePan && workspacePan.pointerId === event.pointerId) {
+      event.preventDefault();
+      setCanvasPan(
+        workspacePan.panX + (event.clientX - workspacePan.startX),
+        workspacePan.panY + (event.clientY - workspacePan.startY)
+      );
+      return;
+    }
     if (!canvasPointers.has(event.pointerId)) return;
     canvasPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (!canvasPinch || canvasPointers.size < 2) return;
@@ -2189,6 +2938,10 @@
   const clearCanvasPointer = (event) => {
     canvasPointers.delete(event.pointerId);
     if (canvasPointers.size < 2) canvasPinch = null;
+    if (workspacePan && workspacePan.pointerId === event.pointerId) {
+      workspacePan = null;
+      dom.canvasWorkspace.classList.remove('panning');
+    }
   };
   window.addEventListener('pointerup', clearCanvasPointer);
   window.addEventListener('pointercancel', clearCanvasPointer);
@@ -2297,7 +3050,6 @@
 
     if (outcome === 'death') {
       hideTrialStage();
-      dom.trialResult.classList.add('hidden');
       trial = null;
       die('spark');
       return;
@@ -2308,14 +3060,21 @@
       state.flags.trialAttempted = true;
       saveGame();
       hideTrialStage();
-      trial.resultKind = 'success';
-      ensureTerminalShare(0.5);
-      dom.trialResultEyebrow.textContent = 'КРУГ';
-      dom.trialResultTitle.textContent = 'Круг принял';
-      dom.trialResultText.textContent = `Печати сомкнулись. Искры остались позади. В центре круга проступает карта.`;
-      dom.trialResultBtn.textContent = 'Забрать';
-      setTerminalView('trial');
-      dom.trialResult.classList.remove('hidden');
+      const closed = trial.sealsClosed;
+      trial = null;
+      ensureTerminalShare(0.46);
+      setTerminalView('main');
+      appendLog(
+        `Печатей закрыто: ${closed}. Круг принял. В центре проступает карта.`,
+        'sys',
+        true
+      );
+      queueStory('trialSuccess', () => {
+        toast('В центре круга лежит карта');
+        updatePrompt();
+      });
+      saveGame();
+      updatePrompt();
       return;
     }
 
@@ -2323,19 +3082,20 @@
       state.flags.trialAttempted = true;
       saveGame();
       hideTrialStage();
-      trial.resultKind = 'fail';
-      ensureTerminalShare(0.5);
-      dom.trialResultEyebrow.textContent = 'КРУГ';
-      dom.trialResultTitle.textContent = 'Круг не принял';
-      dom.trialResultText.textContent = `Печатей закрыто: ${trial.sealsClosed}. Нужно не меньше ${C.trial.sealsRequired}. Ты можешь войти в круг снова — ничего не потеряно.`;
-      dom.trialResultBtn.textContent = 'Выйти';
-      setTerminalView('trial');
-      dom.trialResult.classList.remove('hidden');
+      const closed = trial.sealsClosed;
+      trial = null;
+      ensureTerminalShare(0.46);
+      setTerminalView('main');
+      appendLog(
+        `Печатей закрыто: ${closed}. Нужно не меньше ${C.trial.sealsRequired}. Круг не принял, но можно войти снова — ничего не потеряно.`,
+        'sys',
+        true
+      );
+      updatePrompt();
       return;
     }
 
     hideTrialStage();
-    dom.trialResult.classList.add('hidden');
     trial = null;
     setTerminalView('main');
     toast('Круг остыл. Можно войти снова');
@@ -2392,10 +3152,10 @@
 
     let mx = 0;
     let my = 0;
-    if (keys.up) my -= 1;
-    if (keys.down) my += 1;
-    if (keys.left) mx -= 1;
-    if (keys.right) mx += 1;
+    if (keys.up || gamepadKeys.up) my -= 1;
+    if (keys.down || gamepadKeys.down) my += 1;
+    if (keys.left || gamepadKeys.left) mx -= 1;
+    if (keys.right || gamepadKeys.right) mx += 1;
     if (mx || my) {
       const length = Math.hypot(mx, my);
       mx /= length;
@@ -2651,7 +3411,6 @@
       resultKind: null
     };
 
-    dom.trialResult.classList.add('hidden');
     ensureTerminalShare(0.36);
     showTrialStage();
     setTerminalView('trial');
@@ -2671,27 +3430,6 @@
   });
 
   dom.trialSealBtn.addEventListener('click', attemptSeal);
-
-  dom.trialResultBtn.addEventListener('click', () => {
-    if (!trial) return;
-    const result = trial.resultKind;
-    dom.trialResult.classList.add('hidden');
-    hideTrialStage();
-    trial = null;
-    setTerminalView('main');
-    updatePrompt();
-    if (result === 'success') {
-      appendLog('Печати погасли. В центре круга осталась карта.', 'story', true);
-      queueStory('trialSuccess', () => {
-        toast('В центре круга лежит карта');
-        updatePrompt();
-      });
-    } else {
-      toast('Круг остыл. Можно войти снова');
-      appendLog('Круг не принял печать. Можно попробовать снова.', 'reply', true);
-    }
-    saveGame();
-  });
 
   /* ------------------------------------------------------------------ */
   /* Публичные проверки состояния                                        */
@@ -2805,25 +3543,23 @@
   };
 
   window.addEventListener('keydown', (event) => {
-    if (controlBindingId) {
+    if (elementBindingId) {
       event.preventDefault();
-      const element = state.canvasElements.find((el) => el.id === controlBindingId);
+      const element = state.canvasElements.find((el) => el.id === elementBindingId);
       if (!element) {
-        controlBindingId = null;
+        elementBindingId = null;
         return;
       }
-      assignControlKey(element, event.code);
+      assignElementKey(element, event.code);
       return;
     }
 
     if (termView === 'canvas' && event.code !== 'Escape' &&
         !isTyping() && !event.ctrlKey && !event.metaKey && !event.altKey) {
-      const control = state.canvasElements.find((element) =>
-        element.kind === 'control' && element.key === event.code
-      );
-      if (control) {
+      const bound = state.canvasElements.find((element) => element.key === event.code);
+      if (bound) {
         event.preventDefault();
-        runControlElement(control);
+        runElement(bound);
         return;
       }
     }
@@ -2851,9 +3587,6 @@
       else if (termView === 'inventory') closeInventory();
       else if (termView === 'map') closeMap();
       else if (termView === 'settings') closeSettings();
-      else if (termView === 'trial' && trial && trial.resultKind) {
-        dom.trialResultBtn.click();
-      }
       return;
     }
 
@@ -2938,6 +3671,7 @@
   function loop(time) {
     const dt = Math.min(0.05, (time - lastFrame) / 1000 || 0);
     lastFrame = time;
+    pollGamepad();
 
     if (!isPaused()) {
       updateMovement(dt);
@@ -2984,6 +3718,7 @@
         return JSON.parse(JSON.stringify({
           player: state.player,
           camera: state.camera,
+          seed: state.seed,
           currentRoomId: state.currentRoomId,
           flags: state.flags,
           items: state.items,
@@ -2991,7 +3726,17 @@
           visited: state.visited,
           mapMarks: state.mapMarks,
           storySeen: state.storySeen,
+          unlocks: state.unlocks,
+          deaths: state.deaths,
           canvasElements: state.canvasElements,
+          world: {
+            seed: world.seed,
+            chunks: world.chunkCount,
+            rooms: world.rooms.length,
+            chunkSize: world.CHUNK,
+            chunkW: world.chunkW,
+            chunkH: world.chunkH
+          },
           trial: trial ? {
             active: trial.active,
             elapsed: trial.elapsed,
@@ -3009,15 +3754,19 @@
             settings: termView === 'settings',
             canvas: termView === 'canvas' || termView === 'card',
             card: termView === 'card',
-            trialStage: !dom.trialStage.classList.contains('hidden')
+            trialStage: !dom.trialStage.classList.contains('hidden'),
+            scheme: !dom.canvasKeys.classList.contains('hidden')
           },
           terminal: {
             view: termView,
             split: readSplitPreference(),
             gameRows: dom.app.style.gridTemplateRows,
             zoom: canvasZoom,
+            pan: { x: canvasPanX, y: canvasPanY },
+            device: canvasDevice,
             speed: termSettings.speed,
             fontSize: termSettings.fontSize,
+            fontOverrides: termSettings.fontOverrides,
             controls: state.canvasElements.filter((el) => el.kind === 'control')
           }
         }));
@@ -3080,7 +3829,6 @@
         return true;
       },
       closeAll() {
-        dom.trialResult.classList.add('hidden');
         hideTrialStage();
         setTerminalView('main');
         storyActive = false;
@@ -3089,6 +3837,25 @@
         trialRaf = 0;
         trial = null;
         updatePrompt();
+      },
+      newGame() {
+        startNewGame();
+        return state.seed;
+      },
+      setScheme(device) {
+        canvasDevice = ['keyboard', 'gamepad', 'phone'].includes(device) ? device : 'keyboard';
+        renderKeyScheme();
+        return canvasDevice;
+      },
+      bindKey(elementId, code) {
+        const element = state.canvasElements.find((el) => el.id === elementId);
+        if (!element || typeof code !== 'string') return false;
+        assignElementKey(element, code);
+        return true;
+      },
+      panBy(x, y) {
+        setCanvasPan(canvasPanX + Number(x || 0), canvasPanY + Number(y || 0));
+        return { x: canvasPanX, y: canvasPanY };
       },
       save: saveGame
     };
@@ -3099,7 +3866,7 @@
     applyTermSettings(false);
 
     const saved = readSave();
-    const seed = saved && typeof saved.seed === 'string' ? saved.seed : DEFAULT_SEED;
+    const seed = saved && typeof saved.seed === 'string' ? saved.seed : newSeed();
     world = window.World.generate(seed);
     state = defaultState(seed);
     if (saved) hydrateState(saved);
@@ -3113,8 +3880,9 @@
     C.terminal.greeting.forEach((line) => appendLog(line, 'sys', true));
     C.terminal.controls.forEach((line) => appendLog(line, 'sys', true));
     initDivider();
-    setCanvasZoom(1, false);
+    resetCanvasView(false);
     renderCanvasElements();
+    renderKeyScheme();
     setTerminalView('main');
     installDebugApi();
 

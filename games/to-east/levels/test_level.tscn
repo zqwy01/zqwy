@@ -1,0 +1,149 @@
+[gd_scene format=3 uid="uid://ck1klesi6toll"]
+
+[ext_resource type="PackedScene" uid="uid://c4is8h4q0d7u2" path="res://levels/world.tscn" id="1_46lwt"]
+[ext_resource type="Script" uid="uid://dv7alt03wn32y" path="res://levels/control.gd" id="1_o6mel"]
+[ext_resource type="Theme" uid="uid://xy2avuofknoq" path="res://themes/Basic_Theme.tres" id="2_gmgay"]
+[ext_resource type="FontFile" uid="uid://6ieb7r3loqhc" path="res://fonts/zqwy_version_3_final.ttf" id="2_x25rp"]
+[ext_resource type="FontFile" uid="uid://b3338qrnpbty1" path="res://fonts/output.ttf" id="4_w7r7j"]
+[ext_resource type="Script" uid="uid://g1duqg2g2cvt" path="res://levels/rich_text_label.gd" id="5_e7anx"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_gmgay"]
+noise_type = 3
+fractal_type = 3
+fractal_octaves = 10
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_w7r7j"]
+width = 2048
+height = 2048
+noise = SubResource("FastNoiseLite_gmgay")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_o6mel"]
+texture = SubResource("NoiseTexture2D_w7r7j")
+texture_region_size = Vector2i(128, 128)
+0:0/size_in_atlas = Vector2i(16, 16)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_e7anx"]
+tile_size = Vector2i(128, 128)
+sources/1 = SubResource("TileSetAtlasSource_o6mel")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_srpys"]
+viewport_path = NodePath("CanvasLayer/Control/VSplitContainer/Panel_Top/TextureRect/SubViewport")
+
+[node name="TestLevel" type="Node2D" unique_id=1569520373]
+
+[node name="TileMapLayer2" type="TileMapLayer" parent="." unique_id=1151083578]
+visible = false
+texture_repeat = 1
+position = Vector2(0, 1)
+tile_map_data = PackedByteArray(0, 0, 0, 0, 255, 255, 1, 0, 0, 0, 0, 0, 0, 0)
+tile_set = SubResource("TileSet_e7anx")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1518741228]
+
+[node name="Control" type="Control" parent="CanvasLayer" unique_id=1452265434]
+propagate_maximum_size = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_o6mel")
+
+[node name="VSplitContainer" type="VSplitContainer" parent="CanvasLayer/Control" unique_id=1532394880]
+propagate_maximum_size = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offsets = PackedInt32Array(1, 1)
+drag_area_highlight_in_editor = true
+split_offset = 1
+
+[node name="Panel_Top" type="Panel" parent="CanvasLayer/Control/VSplitContainer" unique_id=851490000]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Control/VSplitContainer/Panel_Top" unique_id=1416519161]
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -90.0
+offset_top = -160.0
+offset_right = 90.0
+offset_bottom = 160.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("ViewportTexture_srpys")
+stretch_mode = 6
+
+[node name="SubViewport" type="SubViewport" parent="CanvasLayer/Control/VSplitContainer/Panel_Top/TextureRect" unique_id=898007821]
+disable_3d = true
+scaling_3d_mode = 5
+canvas_item_default_texture_repeat = 3
+size = Vector2i(180, 320)
+
+[node name="World" parent="CanvasLayer/Control/VSplitContainer/Panel_Top/TextureRect/SubViewport" unique_id=1498435707 instance=ExtResource("1_46lwt")]
+
+[node name="Panel_Bottom" type="Panel" parent="CanvasLayer/Control/VSplitContainer" unique_id=1164352409]
+self_modulate = Color(0, 0, 0, 1)
+texture_filter = 5
+layout_mode = 2
+size_flags_vertical = 3
+tooltip_text = "Its Terminal"
+theme = ExtResource("2_gmgay")
+
+[node name="VSplitContainer" type="VSplitContainer" parent="CanvasLayer/Control/VSplitContainer/Panel_Bottom" unique_id=618374811]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offsets = PackedInt32Array(64, 1)
+split_offset = 64
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/Control/VSplitContainer/Panel_Bottom/VSplitContainer" unique_id=1876439847]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_right = 0
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CanvasLayer/Control/VSplitContainer/Panel_Bottom/VSplitContainer/MarginContainer" unique_id=113586824]
+clip_contents = false
+layout_mode = 2
+theme_override_fonts/normal_font = ExtResource("2_x25rp")
+theme_override_font_sizes/normal_font_size = 16
+scroll_following = true
+scroll_following_visible_characters = true
+vertical_alignment = 2
+script = ExtResource("5_e7anx")
+text_speed = 0.08
+
+[node name="LineEdit" type="LineEdit" parent="CanvasLayer/Control/VSplitContainer/Panel_Bottom/VSplitContainer" unique_id=1381716037]
+texture_filter = 5
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_fonts/font = ExtResource("4_w7r7j")
+theme_override_font_sizes/font_size = 16
+placeholder_text = "Введите команду"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CanvasLayer/Control" unique_id=220164976]
+visible = false
+texture_filter = 5
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Control/ScrollContainer" unique_id=2055456530]
+layout_mode = 2

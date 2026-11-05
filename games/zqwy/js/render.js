@@ -427,10 +427,14 @@
     const toScreenX = (tx) => offsetX + tx * ts;
     const toScreenY = (ty) => offsetY + ty * ts;
 
-    const startX = Math.max(0, Math.floor(-offsetX / ts) - 1);
-    const endX = Math.min(world.width - 1, Math.ceil((view.w - offsetX) / ts) + 1);
-    const startY = Math.max(0, Math.floor(-offsetY / ts) - 1);
-    const endY = Math.min(world.height - 1, Math.ceil((view.h - offsetY) / ts) + 1);
+    const startX = Math.floor(-offsetX / ts) - 1;
+    const endX = Math.ceil((view.w - offsetX) / ts) + 1;
+    const startY = Math.floor(-offsetY / ts) - 1;
+    const endY = Math.ceil((view.h - offsetY) / ts) + 1;
+
+    /* Мир не ограничен сеткой: видимые тайлы могут лежать в любом
+       чанке. ensureRange создаёт их до отрисовки. */
+    world.ensureRange(startX, startY, endX, endY);
 
     for (let y = startY; y <= endY; y++) {
       for (let x = startX; x <= endX; x++) {
@@ -515,19 +519,47 @@
     ctx.fillRect(0, 0, w, h);
 
     const hasMap = state.items.includes('map_fragment');
-    const grid = C.world.GRID;
-    const marginX = w * 0.08;
-    const marginTop = h * 0.07;
-    const marginBottom = h * 0.13;
-    const cellW = (w - marginX * 2) / grid;
-    const cellH = (h - marginTop - marginBottom) / grid;
-    const boxW = cellW * 0.64;
-    const boxH = cellH * 0.58;
+    const current = world.roomAtTile(Math.floor(state.player.x), Math.floor(state.player.y)) ||
+      world.roomById(world.spawn.roomId);
+
+    /* Карта показывает окрестности текущей комнаты. Мир бесконечен,
+       поэтому окно всегда переезжает вместе с игроком. */
+    const cols = 7;
+    const rows = 5;
+    const anchorX = current ? current.cx : 0;
+    const anchorY = current ? current.cy : 0;
+    const cellX0 = anchorX - Math.floor(cols / 2);
+    const cellY0 = anchorY - Math.floor(rows / 2);
+
+    world.ensureRange(
+      cellX0 * world.stepX,
+      cellY0 * world.stepY,
+      (cellX0 + cols) * world.stepX - 1,
+      (cellY0 + rows) * world.stepY - 1
+    );
+
+    const marginX = w * 0.06;
+    const marginTop = Math.max(18, h * 0.09);
+    const marginBottom = h * 0.16;
+    const cellW = (w - marginX * 2) / cols;
+    const cellH = (h - marginTop - marginBottom) / rows;
+    const boxW = Math.min(cellW * 0.72, 52);
+    const boxH = Math.min(cellH * 0.64, 34);
 
     const pos = (cx, cy) => ({
-      x: marginX + (cx + 0.5) * cellW,
-      y: marginTop + (cy + 0.5) * cellH
+      x: marginX + (cx - cellX0 + 0.5) * cellW,
+      y: marginTop + (cy - cellY0 + 0.5) * cellH
     });
+
+    const inWindow = (room) => room &&
+      room.cx >= cellX0 && room.cx < cellX0 + cols &&
+      room.cy >= cellY0 && room.cy < cellY0 + rows;
+
+    const cellRooms = new Map();
+    for (const room of world.rooms) {
+      if (inWindow(room)) cellRooms.set(`${room.cx},${room.cy}`, room);
+    }
+    const roomAtCell = (cx, cy) => cellRooms.get(`${cx},${cy}`) || null;
 
     const revealed = (room) => {
       if (!room) return false;
@@ -536,107 +568,112 @@
       return room.links.some((id) => state.visited[id]);
     };
 
-    for (const edge of world.edges) {
-      if (!edge.a || !edge.b) continue;
+    /* Лёгкая сетка помогает читать окно даже там, где комнат ещё нет. */
+    ctx.strokeStyle = 'rgba(160, 170, 160, 0.055)';
+    ctx.lineWidth = 1;
+    for (let cx = cellX0; cx < cellX0 + cols; cx++) {
+      for (let cy = cellY0; cy < cellY0 + rows; cy++) {
+        const p = pos(cx, cy);
+        ctx.strokeRect(p.x - boxW / 2, p.y - boxH / 2, boxW, boxH);
+      }
+    }
+
+    for (const edge of world.getEdges()) {
+      if (!inWindow(edge.a) || !inWindow(edge.b)) continue;
       const A = pos(edge.a.cx, edge.a.cy);
       const B = pos(edge.b.cx, edge.b.cy);
       const ok = revealed(edge.a) && revealed(edge.b);
-      ctx.strokeStyle = ok ? 'rgba(186, 194, 184, 0.35)' : 'rgba(186, 194, 184, 0.08)';
-      ctx.lineWidth = ok ? 1.4 : 1;
-      ctx.setLineDash(ok ? [] : [3, 5]);
+      if (!ok) continue;
+      ctx.strokeStyle = 'rgba(186, 194, 184, 0.35)';
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.moveTo(A.x, A.y);
       ctx.lineTo(B.x, B.y);
       ctx.stroke();
     }
-    ctx.setLineDash([]);
 
-    const roomById = (id) => world.roomById(id);
-    const current = world.roomAtTile(Math.floor(state.player.x), Math.floor(state.player.y));
-    const depthOf = (room) => (room ? room.depth : 0);
+    for (let cy = cellY0; cy < cellY0 + rows; cy++) {
+      for (let cx = cellX0; cx < cellX0 + cols; cx++) {
+        const room = roomAtCell(cx, cy);
+        if (!room) continue;
+        const p = pos(cx, cy);
+        const seen = Boolean(state.visited[room.id]);
+        const rev = revealed(room);
+        const isCurrent = current && current.id === room.id;
+        const x = p.x - boxW / 2;
+        const y = p.y - boxH / 2;
 
-    for (const room of world.rooms) {
-      const p = pos(room.cx, room.cy);
-      const seen = state.visited[room.id];
-      const rev = revealed(room);
-      const isCurrent = current && current.id === room.id;
-      const x = p.x - boxW / 2;
-      const y = p.y - boxH / 2;
-
-      if (rev) {
-        ctx.fillStyle = seen ? 'rgba(49, 59, 58, 0.92)' : 'rgba(29, 36, 36, 0.7)';
-        if (room.role === 'tablet') ctx.fillStyle = 'rgba(92, 55, 33, 0.92)';
-        if (room.role === 'trial') ctx.fillStyle = 'rgba(77, 55, 34, 0.9)';
-        roundedRect(ctx, x, y, boxW, boxH, 3);
-        ctx.fill();
-        ctx.strokeStyle = isCurrent ? '#d78345' : (seen ? 'rgba(203, 209, 194, 0.55)' : 'rgba(203, 209, 194, 0.18)');
-        ctx.lineWidth = isCurrent ? 2 : 1;
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = 'rgba(22, 27, 27, 0.45)';
-        roundedRect(ctx, x, y, boxW, boxH, 3);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(160, 170, 160, 0.08)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      if (rev && (seen || hasMap)) {
-        ctx.fillStyle = isCurrent ? '#f0d7b8' : 'rgba(218, 222, 208, 0.75)';
-        ctx.font = `600 ${Math.max(7.5, Math.min(10, w / 45))}px Andika, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const words = room.name.split(' ');
-        let line = '';
-        let lineY = p.y - (words.length > 1 ? 5 : 0);
-        for (let i = 0; i < words.length; i++) {
-          const test = line ? line + ' ' + words[i] : words[i];
-          if (ctx.measureText(test).width > boxW - 5 && line) {
-            ctx.fillText(line, p.x, lineY);
-            line = words[i];
-            lineY += 9;
-          } else {
-            line = test;
-          }
+        if (rev) {
+          ctx.fillStyle = seen ? 'rgba(49, 59, 58, 0.92)' : 'rgba(29, 36, 36, 0.7)';
+          if (room.role === 'tablet') ctx.fillStyle = 'rgba(92, 55, 33, 0.92)';
+          if (room.role === 'trial') ctx.fillStyle = 'rgba(77, 55, 34, 0.9)';
+          roundedRect(ctx, x, y, boxW, boxH, 3);
+          ctx.fill();
+          ctx.strokeStyle = isCurrent
+            ? '#d78345'
+            : (seen ? 'rgba(203, 209, 194, 0.55)' : 'rgba(203, 209, 194, 0.18)');
+          ctx.lineWidth = isCurrent ? 2 : 1;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = 'rgba(22, 27, 27, 0.35)';
+          roundedRect(ctx, x, y, boxW, boxH, 3);
+          ctx.fill();
         }
-        if (line) ctx.fillText(line, p.x, lineY);
-        ctx.font = `7px Andika, sans-serif`;
-        ctx.fillStyle = 'rgba(207, 190, 164, 0.55)';
-        ctx.fillText(`глубина ${depthOf(room)}`, p.x, y + boxH - 7);
-      }
 
-      if (room.role === 'tablet' && rev) {
-        ctx.fillStyle = '#e08a4e';
-        ctx.beginPath();
-        ctx.arc(p.x + boxW * 0.29, p.y - boxH * 0.29, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (room.role === 'trial' && rev) {
-        ctx.strokeStyle = 'rgba(224, 138, 78, 0.8)';
-        ctx.beginPath();
-        ctx.arc(p.x - boxW * 0.29, p.y - boxH * 0.29, 3.2, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      if (rev && state.mapMarks && state.mapMarks.includes(room.id)) {
-        ctx.fillStyle = '#e8dfcf';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y + boxH * 0.28, 2.4, 0, Math.PI * 2);
-        ctx.fill();
+        if (rev && (seen || hasMap || isCurrent)) {
+          ctx.fillStyle = isCurrent ? '#f0d7b8' : 'rgba(218, 222, 208, 0.75)';
+          ctx.font = `600 ${Math.max(7, Math.min(10, boxW / 3.4))}px Andika, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const words = room.name.split(' ');
+          let line = '';
+          let lineY = p.y - (words.length > 1 ? boxH * 0.18 : 0);
+          for (let i = 0; i < words.length; i++) {
+            const test = line ? `${line} ${words[i]}` : words[i];
+            if (ctx.measureText(test).width > boxW - 4 && line) {
+              ctx.fillText(line, p.x, lineY);
+              line = words[i];
+              lineY += Math.max(7, boxW / 3.4);
+            } else {
+              line = test;
+            }
+          }
+          if (line) ctx.fillText(line, p.x, lineY);
+        }
+
+        if (room.role === 'tablet' && rev) {
+          ctx.fillStyle = '#e08a4e';
+          ctx.beginPath();
+          ctx.arc(p.x + boxW * 0.31, p.y - boxH * 0.31, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (room.role === 'trial' && rev) {
+          ctx.strokeStyle = 'rgba(224, 138, 78, 0.8)';
+          ctx.beginPath();
+          ctx.arc(p.x - boxW * 0.31, p.y - boxH * 0.31, 2.8, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (rev && state.mapMarks && state.mapMarks.includes(room.id)) {
+          ctx.fillStyle = '#e8dfcf';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y + boxH * 0.32, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
 
     for (const b of state.backpacks) {
-      const room = roomById(b.roomId);
-      if (!room || !revealed(room)) continue;
+      const room = world.roomById(b.roomId);
+      if (!inWindow(room) || !revealed(room)) continue;
       const p = pos(room.cx, room.cy);
       ctx.fillStyle = '#c4763d';
-      roundedRect(ctx, p.x - 4, p.y - 5, 8, 9, 2);
+      roundedRect(ctx, p.x - 4, p.y + boxH * 0.5 - 4, 8, 9, 2);
       ctx.fill();
       ctx.strokeStyle = '#e8bd8b';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(p.x - 2.5, p.y - 1);
-      ctx.lineTo(p.x + 2.5, p.y - 1);
+      ctx.moveTo(p.x - 2.5, p.y + boxH * 0.5 - 0.5);
+      ctx.lineTo(p.x + 2.5, p.y + boxH * 0.5 - 0.5);
       ctx.stroke();
     }
 
@@ -654,9 +691,18 @@
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = 'rgba(213, 211, 196, 0.68)';
     ctx.font = `10px Andika, sans-serif`;
-    ctx.fillText(hasMap ? 'ОБРЫВОК КАРТЫ · виден весь участок' : 'ПАМЯТЬ · только пройденное и соседнее', marginX, h - marginBottom * 0.55);
+    ctx.fillText(
+      hasMap ? 'ОБРЫВОК КАРТЫ · видны окрестности целиком' : 'ПАМЯТЬ · пройденное и соседние комнаты',
+      marginX,
+      h - marginBottom * 0.55
+    );
     ctx.fillStyle = 'rgba(213, 211, 196, 0.4)';
     ctx.fillText('● ты   ▪ рюкзак   ○ метка', marginX, h - marginBottom * 0.2);
+    if (current) {
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(222, 205, 178, 0.72)';
+      ctx.fillText(current.name, w - marginX, h - marginBottom * 0.55);
+    }
 
     return { w, h };
   }

@@ -418,14 +418,9 @@
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, view.w, view.h);
 
-    const halfW = view.w / (2 * ts);
-    const halfH = view.h / (2 * ts);
-    let cx = cam.x;
-    let cy = cam.y;
-    if (world.width <= halfW * 2) cx = world.width / 2;
-    else cx = Math.max(halfW, Math.min(world.width - halfW, cx));
-    if (world.height <= halfH * 2) cy = world.height / 2;
-    else cy = Math.max(halfH, Math.min(world.height - halfH, cy));
+    /* Камера строго по центру Zemic, без прижатия к краям мира. */
+    const cx = cam.x;
+    const cy = cam.y;
 
     const offsetX = view.w / 2 - cx * ts;
     const offsetY = view.h / 2 - cy * ts;

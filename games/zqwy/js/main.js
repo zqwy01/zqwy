@@ -40,34 +40,32 @@
   /* ------------------------------------------------------------------ */
 
   const dom = {
+    app: $('app'),
+    stage: $('stage'),
     worldCanvas: $('world-canvas'),
-    hudRoom: $('hud-room'),
-    hudTag: $('hud-tag'),
-    hudDepth: $('hud-depth'),
-    hudItems: $('hud-items'),
-    btnInventory: $('btn-inventory'),
-    btnMap: $('btn-map'),
-    btnCanvas: $('btn-canvas'),
-    roomTitle: $('room-title'),
-    roomTitleName: $('room-title-name'),
-    roomTitleTag: $('room-title-tag'),
-    toastLayer: $('toast-layer'),
-    prompt: $('prompt'),
-    promptText: $('prompt-text'),
     btnAction: $('btn-action'),
+    divider: $('divider'),
+
     log: $('log'),
+    termContext: $('term-context'),
     commandForm: $('command-form'),
     commandInput: $('command-input'),
-    deathOverlay: $('death-overlay'),
+    viewMain: $('view-main'),
+
+    deathView: $('view-death'),
     deathText: $('death-text'),
     deathContinue: $('death-continue'),
-    storyOverlay: $('story-overlay'),
+
+    storyView: $('view-story'),
     storySpeaker: $('story-speaker'),
     storyTitle: $('story-title'),
     storyLines: $('story-lines'),
     storyContinue: $('story-continue'),
-    trialOverlay: $('trial-overlay'),
+
+    trialView: $('view-trial'),
+    trialStage: $('trial-stage'),
     trialCanvas: $('trial-canvas'),
+    trialConsole: $('trial-console'),
     trialSeals: $('trial-seals'),
     trialSparks: $('trial-sparks'),
     trialTime: $('trial-time'),
@@ -79,19 +77,24 @@
     trialResultText: $('trial-result-text'),
     trialResultBtn: $('trial-result-btn'),
     trialSealBtn: $('trial-seal'),
-    inventoryOverlay: $('inventory-overlay'),
+
+    inventoryView: $('view-inventory'),
     inventoryList: $('inventory-list'),
     inventoryClose: $('inventory-close'),
-    mapOverlay: $('map-overlay'),
+    inventoryNote: $('inventory-note'),
+
+    mapView: $('view-map'),
     mapCanvas: $('map-canvas'),
     mapNote: $('map-note'),
     mapClose: $('map-close'),
-    canvasOverlay: $('canvas-overlay'),
+
+    canvasView: $('view-canvas'),
     canvasExit: $('canvas-exit'),
     canvasAddToggle: $('canvas-add-toggle'),
     canvasLinkToggle: $('canvas-link-toggle'),
     canvasHint: $('canvas-hint'),
     canvasWorkspace: $('canvas-workspace'),
+    canvasStage: $('canvas-stage'),
     canvasElements: $('canvas-elements'),
     canvasEmpty: $('canvas-empty'),
     canvasDrawer: $('canvas-drawer'),
@@ -99,7 +102,32 @@
     canvasAddList: $('canvas-add-list'),
     canvasResponseCommand: $('canvas-response-command'),
     canvasResponseReply: $('canvas-response-reply'),
-    inventoryNote: document.querySelector('#inventory-overlay .sheet-note')
+    canvasZoomIn: $('canvas-zoom-in'),
+    canvasZoomOut: $('canvas-zoom-out'),
+    canvasZoomReset: $('canvas-zoom-reset'),
+    canvasZoomLabel: $('canvas-zoom-label'),
+
+    cardView: $('view-card'),
+    cardTitle: $('card-title'),
+    cardArt: $('card-art'),
+    cardCommand: $('card-command'),
+    cardDescription: $('card-description'),
+    cardState: $('card-state'),
+    cardRun: $('card-run'),
+    cardPlace: $('card-place'),
+    cardBack: $('card-back'),
+    cardClose: $('card-close')
+  };
+
+  const VIEWS = {
+    main: dom.viewMain,
+    inventory: dom.inventoryView,
+    map: dom.mapView,
+    canvas: dom.canvasView,
+    card: dom.cardView,
+    story: dom.storyView,
+    death: dom.deathView,
+    trial: dom.trialView
   };
 
   /* ------------------------------------------------------------------ */
@@ -116,10 +144,12 @@
   let lastFrame = 0;
   let keys = Object.create(null);
   let invulnUntil = 0;
-  let roomTitleTimer = 0;
   let promptLabel = '';
   let activePrompt = null;
   let audio = null;
+
+  let termView = 'main';
+  let cardOrigin = 'canvas';
 
   let storyActive = false;
   const storyQueue = [];
@@ -127,6 +157,13 @@
   let canvasLinkMode = false;
   let linkFirstId = null;
   let canvasDrag = null;
+  let canvasZoom = 1;
+  let canvasPinch = null;
+
+  let splitRatio = 0.56;
+  let splitDrag = null;
+  const SPLIT_KEY = 'zqwy.labyrinth.split.v1';
+  const DIVIDER_H = 10;
 
   let trial = null;
   let trialRaf = 0;
@@ -265,6 +302,133 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Области интерфейса: игра, терминал, разделитель                     */
+  /* ------------------------------------------------------------------ */
+
+  function setTerminalView(name) {
+    if (!VIEWS[name]) name = 'main';
+    termView = name;
+    for (const key of Object.keys(VIEWS)) {
+      VIEWS[key].classList.toggle('hidden', key !== name);
+    }
+    if (name === 'inventory') renderInventory();
+    if (name === 'map') {
+      window.requestAnimationFrame(() => {
+        drawMapNow();
+        window.requestAnimationFrame(drawMapNow);
+      });
+    }
+    if (name === 'canvas') renderCanvasElements();
+    if (name === 'main') updatePrompt();
+  }
+
+  function ensureTerminalShare(minShare) {
+    if (1 - splitRatio < minShare) applySplit(1 - minShare, true);
+  }
+
+  function readSplitPreference() {
+    try {
+      const raw = window.localStorage.getItem(SPLIT_KEY);
+      const value = raw === null ? NaN : Number(raw);
+      return Number.isFinite(value) ? value : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function splitBounds() {
+    const height = Math.max(1, dom.app.clientHeight - DIVIDER_H);
+    const minPlay = Math.min(170, height * 0.5);
+    const minTerminal = Math.min(150, height * 0.5);
+    let low = Math.max(0.18, minPlay / height);
+    let high = Math.min(0.82, 1 - minTerminal / height);
+    if (low > high) {
+      low = 0.42;
+      high = 0.58;
+    }
+    return { low, high, height };
+  }
+
+  function applySplit(value, persist) {
+    const bounds = splitBounds();
+    splitRatio = clamp(value, bounds.low, bounds.high);
+    dom.app.style.gridTemplateRows = `minmax(0, ${splitRatio}fr) ${DIVIDER_H}px minmax(0, ${1 - splitRatio}fr)`;
+    const percent = Math.round(splitRatio * 100);
+    dom.divider.setAttribute('aria-valuenow', String(percent));
+    if (persist) {
+      try {
+        window.localStorage.setItem(SPLIT_KEY, String(splitRatio));
+      } catch (error) {
+        /* Приватный режим: размер просто не сохранится. */
+      }
+    }
+  }
+
+  function splitFromPointer(clientY) {
+    const rect = dom.app.getBoundingClientRect();
+    const height = Math.max(1, rect.height - DIVIDER_H);
+    applySplit((clientY - rect.top) / height, true);
+  }
+
+  function initDivider() {
+    const saved = readSplitPreference();
+    applySplit(Number.isFinite(saved) ? saved : splitRatio, false);
+
+    dom.divider.addEventListener('pointerdown', (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      event.preventDefault();
+      splitDrag = event.pointerId;
+      dom.divider.classList.add('dragging');
+      document.body.classList.add('split-dragging');
+      try {
+        dom.divider.setPointerCapture(event.pointerId);
+      } catch (error) {
+        /* ignored */
+      }
+      splitFromPointer(event.clientY);
+    });
+
+    dom.divider.addEventListener('pointermove', (event) => {
+      if (splitDrag !== event.pointerId) return;
+      event.preventDefault();
+      splitFromPointer(event.clientY);
+    });
+
+    const finish = (event) => {
+      if (splitDrag !== event.pointerId) return;
+      splitDrag = null;
+      dom.divider.classList.remove('dragging');
+      document.body.classList.remove('split-dragging');
+      try {
+        dom.divider.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        /* ignored */
+      }
+      applySplit(splitRatio, true);
+    };
+    dom.divider.addEventListener('pointerup', finish);
+    dom.divider.addEventListener('pointercancel', finish);
+
+    dom.divider.addEventListener('keydown', (event) => {
+      if (event.code === 'ArrowUp') {
+        event.preventDefault();
+        applySplit(splitRatio - 0.03, true);
+      } else if (event.code === 'ArrowDown') {
+        event.preventDefault();
+        applySplit(splitRatio + 0.03, true);
+      } else if (event.code === 'Home') {
+        event.preventDefault();
+        applySplit(0.56, true);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      applySplit(splitRatio, false);
+      if (termView === 'map') drawMapNow();
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Мир: движение, комнаты, рюкзаки                                     */
   /* ------------------------------------------------------------------ */
 
@@ -354,34 +518,11 @@
     if (canStandAt(state.player.x, ny)) state.player.y = ny;
   }
 
-  function updateCamera(dt) {
-    const amount = 1 - Math.pow(0.0015, dt);
-    state.camera.x = lerp(state.camera.x, state.player.x, amount);
-    state.camera.y = lerp(state.camera.y, state.player.y, amount);
-  }
-
-  function setHudRoom(room) {
-    if (!room) return;
-    dom.hudRoom.textContent = room.name;
-    dom.hudTag.textContent = room.tag || (room.depth ? 'лабиринт' : 'точка возвращения');
-    dom.hudDepth.textContent = String(room.depth);
-  }
-
-  function refreshHud() {
-    dom.hudItems.textContent = String(state.items.length);
-    const room = currentRoom();
-    if (room) setHudRoom(room);
-  }
-
-  function showRoomTitle(room) {
-    dom.roomTitleName.textContent = room.name;
-    dom.roomTitleTag.textContent = room.tag || (room.role === 'procedural' ? 'лабиринт' : '');
-    dom.roomTitle.classList.add('show');
-    if (roomTitleTimer) window.clearTimeout(roomTitleTimer);
-    roomTitleTimer = window.setTimeout(() => {
-      dom.roomTitle.classList.remove('show');
-      roomTitleTimer = 0;
-    }, 2400);
+  function updateCamera() {
+    /* Камера без сглаживания и без прижатия к краям мира:
+       Zemic всегда остаётся ровно в центре видимой области. */
+    state.camera.x = state.player.x;
+    state.camera.y = state.player.y;
   }
 
   function enterRoom(room) {
@@ -389,13 +530,12 @@
     const firstVisit = !state.visited[room.id];
     state.currentRoomId = room.id;
     state.visited[room.id] = true;
-    setHudRoom(room);
-    showRoomTitle(room);
     if (audio) audio.setCue(room.music);
 
     if (!firstVisit) return;
 
     saveGame();
+    appendLog(`— ${room.name} —`, 'sys', true);
 
     if (room.role === 'trial') {
       queueStory('trial', () => {
@@ -466,11 +606,9 @@
       ? `Ты снова у Скрижали. Рюкзак остался ${roomPhrase}: ${count} ${plural(count, ['предмет', 'предмета', 'предметов'])}. Он никуда не денется.`
       : `Ты снова у Скрижали. Рюкзак остался ${roomPhrase} — пустой, но никуда не денется.`;
 
-    dom.deathOverlay.classList.remove('hidden');
-    dom.prompt.classList.add('hidden');
+    setTerminalView('death');
     dom.btnAction.classList.add('hidden');
     appendLog(C.story.death.lines[1], 'story', true);
-    refreshHud();
     saveGame();
   }
 
@@ -481,7 +619,6 @@
     const item = C.items[pickup.itemId];
     toast(`В рюкзаке: ${item ? item.name : pickup.itemId}`);
     appendLog(`Взято: ${item ? item.name : pickup.itemId}.`, 'reply', true);
-    refreshHud();
     saveGame();
     updatePrompt();
   }
@@ -492,7 +629,6 @@
     if (!state.items.includes('card_angel')) state.items.push('card_angel');
     toast('Получена карта «Очарование»');
     appendLog('Карта «Очарование» лежит в рюкзаке. Её можно вынести на canvas.', 'reply');
-    refreshHud();
     saveGame();
     updatePrompt();
   }
@@ -514,11 +650,10 @@
       toast('Пустой рюкзак возвращён');
       appendLog('Рюкзак возвращён. Внутри ничего не было.', 'reply');
     }
-    refreshHud();
     saveGame();
     updatePrompt();
-    if (!dom.inventoryOverlay.classList.contains('hidden')) renderInventory();
-    if (!dom.canvasOverlay.classList.contains('hidden')) renderCanvasElements();
+    if (termView === 'inventory') renderInventory();
+    if (termView === 'canvas' || termView === 'card') renderCanvasElements();
   }
 
   function findInteractable() {
@@ -594,7 +729,7 @@
     if (isPaused() || isTyping()) {
       activePrompt = null;
       promptLabel = '';
-      dom.prompt.classList.add('hidden');
+      dom.termContext.textContent = '';
       dom.btnAction.classList.add('hidden');
       return;
     }
@@ -603,18 +738,16 @@
     const label = promptFor(target);
     if (!label) {
       promptLabel = '';
-      dom.promptText.textContent = '';
-      dom.btnAction.textContent = '';
-      dom.prompt.classList.add('hidden');
+      dom.termContext.textContent = '';
       dom.btnAction.classList.add('hidden');
       return;
     }
     if (label !== promptLabel) {
       promptLabel = label;
-      dom.promptText.textContent = label;
-      dom.btnAction.textContent = label.split(' ')[0] || 'взять';
+      dom.btnAction.setAttribute('aria-label', label);
+      dom.btnAction.textContent = '✦';
     }
-    dom.prompt.classList.remove('hidden');
+    dom.termContext.textContent = `рядом: ${label} · E`;
     dom.btnAction.classList.remove('hidden');
   }
 
@@ -670,13 +803,12 @@
       dom.storyLines.appendChild(p);
     }
 
-    dom.storyOverlay.classList.remove('hidden');
-    dom.prompt.classList.add('hidden');
+    setTerminalView('story');
     dom.btnAction.classList.add('hidden');
     keys = Object.create(null);
 
     dom.storyContinue.onclick = () => {
-      dom.storyOverlay.classList.add('hidden');
+      setTerminalView('main');
       storyActive = false;
       saveGame();
       if (entry.onClose) {
@@ -695,10 +827,10 @@
   /* ------------------------------------------------------------------ */
 
   dom.deathContinue.addEventListener('click', () => {
-    dom.deathOverlay.classList.add('hidden');
+    setTerminalView('main');
     lastFrame = now();
     updatePrompt();
-    toast('Ты у Скрижали');
+    appendLog('Ты у Скрижали.', 'sys', true);
   });
 
   /* ------------------------------------------------------------------ */
@@ -880,9 +1012,7 @@
       reply = currentRoomDescription();
     } else if (cmd === 'рюкзак') {
       reply = inventorySummary();
-      if (source === 'terminal' && !state.items.length) {
-        /* Пустой рюкзак тоже можно открыть — там будет подсказка. */
-      }
+      if (source === 'terminal') openInventory();
     } else if (cmd === 'карта') {
       if (state.items.includes('map_fragment')) {
         reply = 'Обрывок карты разворачивается. Виден весь участок и твои метки.';
@@ -935,7 +1065,7 @@
   });
 
   dom.commandInput.addEventListener('focus', () => {
-    dom.prompt.classList.add('hidden');
+    dom.termContext.textContent = '';
     dom.btnAction.classList.add('hidden');
   });
 
@@ -1003,6 +1133,17 @@
       const actions = document.createElement('div');
       actions.className = 'inv-actions';
 
+      if (item.kind === 'card' && item.art) {
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'inv-btn';
+        open.textContent = 'открыть';
+        open.addEventListener('click', () => {
+          openCardDetail(item.id, 'inventory');
+        });
+        actions.appendChild(open);
+      }
+
       if (item.command) {
         const run = document.createElement('button');
         run.type = 'button';
@@ -1040,22 +1181,18 @@
   }
 
   function openInventory() {
-    if (isStoryOrDeathOrTrial() || !dom.canvasOverlay.classList.contains('hidden')) return;
-    closeMap();
+    if (isStoryOrDeathOrTrial()) return;
+    ensureTerminalShare(0.42);
     renderInventory();
-    dom.inventoryOverlay.classList.remove('hidden');
+    setTerminalView('inventory');
     keys = Object.create(null);
   }
 
   function closeInventory() {
-    dom.inventoryOverlay.classList.add('hidden');
+    setTerminalView('main');
     updatePrompt();
   }
 
-  dom.btnInventory.addEventListener('click', () => {
-    if (dom.inventoryOverlay.classList.contains('hidden')) openInventory();
-    else closeInventory();
-  });
   dom.inventoryClose.addEventListener('click', closeInventory);
 
   /* ------------------------------------------------------------------ */
@@ -1080,9 +1217,9 @@
 
   function openMap() {
     if (isStoryOrDeathOrTrial()) return;
-    closeInventory();
-    dom.mapOverlay.classList.remove('hidden');
+    ensureTerminalShare(0.42);
     updateMapNote();
+    setTerminalView('map');
     window.requestAnimationFrame(() => {
       drawMapNow();
       window.requestAnimationFrame(drawMapNow);
@@ -1091,14 +1228,10 @@
   }
 
   function closeMap() {
-    dom.mapOverlay.classList.add('hidden');
+    setTerminalView('main');
     updatePrompt();
   }
 
-  dom.btnMap.addEventListener('click', () => {
-    if (dom.mapOverlay.classList.contains('hidden')) openMap();
-    else closeMap();
-  });
   dom.mapClose.addEventListener('click', closeMap);
 
   /* ------------------------------------------------------------------ */
@@ -1277,6 +1410,25 @@
       node.appendChild(sub);
     }
 
+    if (element.kind === 'card' && element.itemId) {
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'el-open';
+      open.textContent = 'открыть';
+      open.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      open.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!elementAvailable(element)) {
+          setCanvasReply('недоступно', 'Карта осталась в рюкзаке на месте смерти.');
+          return;
+        }
+        openCardDetail(element.itemId, 'canvas');
+      });
+      node.appendChild(open);
+    }
+
     const run = document.createElement('button');
     run.type = 'button';
     run.className = 'el-run';
@@ -1312,7 +1464,7 @@
       if (event.target.closest('.el-remove')) return;
       event.preventDefault();
       event.stopPropagation();
-      const rect = dom.canvasWorkspace.getBoundingClientRect();
+      const rect = dom.canvasStage.getBoundingClientRect();
       canvasDrag = {
         pointerId: event.pointerId,
         element,
@@ -1534,12 +1686,49 @@
     dom.canvasAddToggle.setAttribute('aria-expanded', 'false');
   }
 
+  function setCanvasZoom(value, announce) {
+    canvasZoom = clamp(value, 0.55, 2.4);
+    dom.canvasStage.style.transform = `scale(${canvasZoom.toFixed(4)})`;
+    dom.canvasZoomLabel.textContent = `${Math.round(canvasZoom * 100)}%`;
+    if (announce) {
+      setCanvasReply('масштаб', `${Math.round(canvasZoom * 100)}%. Колесо или щипок тоже меняют масштаб.`);
+    }
+  }
+
+  function openCardDetail(itemId, origin) {
+    const item = C.items[itemId];
+    if (!item || item.kind !== 'card' || !item.art) return;
+    if (!state.items.includes(itemId)) return;
+    cardOrigin = origin === 'inventory' ? 'inventory' : 'canvas';
+    ensureTerminalShare(0.55);
+    dom.cardTitle.textContent = item.name;
+    dom.cardArt.src = item.art;
+    dom.cardArt.alt = item.name;
+    dom.cardCommand.textContent = item.command ? `> ${item.command}` : '';
+    dom.cardDescription.textContent = item.description;
+    dom.cardState.textContent = cardOrigin === 'inventory'
+      ? 'состояние: в рюкзаке'
+      : 'состояние: размещена на canvas';
+    dom.cardRun.dataset.itemId = itemId;
+    dom.cardRun.disabled = !item.command;
+    dom.cardPlace.dataset.itemId = itemId;
+    dom.cardBack.textContent = cardOrigin === 'inventory' ? '← к рюкзаку' : '← к canvas';
+    dom.cardClose.setAttribute('aria-label', cardOrigin === 'inventory' ? 'Вернуться к рюкзаку' : 'Вернуться к canvas');
+    setTerminalView('card');
+    keys = Object.create(null);
+  }
+
+  function closeCardDetail() {
+    if (cardOrigin === 'inventory') openInventory();
+    else openCanvas();
+  }
+
   function openCanvas() {
     if (isStoryOrDeathOrTrial()) return;
-    closeInventory();
-    closeMap();
+    ensureTerminalShare(0.46);
     renderCanvasElements();
-    dom.canvasOverlay.classList.remove('hidden');
+    setTerminalView('canvas');
+    setCanvasZoom(canvasZoom, false);
     setCanvasReply('готово', 'Перетаскивай элементы. Нажми на элемент, чтобы выполнить его команду.');
     keys = Object.create(null);
   }
@@ -1551,16 +1740,29 @@
       dom.canvasLinkToggle.classList.remove('active');
     }
     closeCanvasDrawer();
-    dom.canvasOverlay.classList.add('hidden');
+    setTerminalView('main');
     saveGame();
     updatePrompt();
   }
 
-  dom.btnCanvas.addEventListener('click', () => {
-    if (dom.canvasOverlay.classList.contains('hidden')) openCanvas();
-    else closeCanvas();
-  });
   dom.canvasExit.addEventListener('click', closeCanvas);
+  dom.cardBack.addEventListener('click', closeCardDetail);
+  dom.cardClose.addEventListener('click', closeCardDetail);
+  dom.cardRun.addEventListener('click', () => {
+    const itemId = dom.cardRun.dataset.itemId;
+    const item = itemId ? C.items[itemId] : null;
+    if (!item || !item.command || !state.items.includes(itemId)) return;
+    handleCommand(item.command, 'canvas');
+    openCanvas();
+  });
+  dom.cardPlace.addEventListener('click', () => {
+    const itemId = dom.cardPlace.dataset.itemId;
+    if (!itemId || !state.items.includes(itemId)) return;
+    addItemElement(itemId, true);
+  });
+  dom.canvasZoomIn.addEventListener('click', () => setCanvasZoom(canvasZoom + 0.15, true));
+  dom.canvasZoomOut.addEventListener('click', () => setCanvasZoom(canvasZoom - 0.15, true));
+  dom.canvasZoomReset.addEventListener('click', () => setCanvasZoom(1, true));
   dom.canvasAddToggle.addEventListener('click', () => {
     if (dom.canvasDrawer.classList.contains('hidden')) openCanvasDrawer();
     else closeCanvasDrawer();
@@ -1578,6 +1780,55 @@
       ? 'Выбери первый элемент.'
       : 'Режим связки выключен.');
   });
+
+  /* Масштаб canvas: колесо и сенсорный щипок. */
+  dom.canvasWorkspace.addEventListener('wheel', (event) => {
+    if (event.deltaY === 0) return;
+    event.preventDefault();
+    const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
+    setCanvasZoom(canvasZoom * factor, true);
+  }, { passive: false });
+
+  const canvasPointers = new Map();
+
+  function pinchingDistance() {
+    const points = Array.from(canvasPointers.values());
+    if (points.length < 2) return 0;
+    return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+  }
+
+  dom.canvasWorkspace.addEventListener('pointerdown', (event) => {
+    canvasPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (canvasPointers.size === 2) {
+      event.stopPropagation();
+      canvasDrag = null;
+      dom.canvasElements.querySelectorAll('.cv-el.dragging').forEach((node) => {
+        node.classList.remove('dragging');
+      });
+      canvasPinch = {
+        distance: pinchingDistance(),
+        zoom: canvasZoom
+      };
+    }
+  }, { capture: true });
+
+  window.addEventListener('pointermove', (event) => {
+    if (!canvasPointers.has(event.pointerId)) return;
+    canvasPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (!canvasPinch || canvasPointers.size < 2) return;
+    event.preventDefault();
+    const distance = pinchingDistance();
+    if (canvasPinch.distance > 0 && distance > 0) {
+      setCanvasZoom(canvasPinch.zoom * (distance / canvasPinch.distance), false);
+    }
+  }, { passive: false });
+
+  const clearCanvasPointer = (event) => {
+    canvasPointers.delete(event.pointerId);
+    if (canvasPointers.size < 2) canvasPinch = null;
+  };
+  window.addEventListener('pointerup', clearCanvasPointer);
+  window.addEventListener('pointercancel', clearCanvasPointer);
 
   /* ------------------------------------------------------------------ */
   /* Испытание Круга Очарования                                          */
@@ -1682,7 +1933,8 @@
     keys = Object.create(null);
 
     if (outcome === 'death') {
-      hideTrialOverlay();
+      hideTrialStage();
+      dom.trialResult.classList.add('hidden');
       trial = null;
       die('spark');
       return;
@@ -1692,11 +1944,14 @@
       state.flags.trialDone = true;
       state.flags.trialAttempted = true;
       saveGame();
+      hideTrialStage();
       trial.resultKind = 'success';
+      ensureTerminalShare(0.5);
       dom.trialResultEyebrow.textContent = 'КРУГ';
       dom.trialResultTitle.textContent = 'Круг принял';
       dom.trialResultText.textContent = `Печати сомкнулись. Искры остались позади. В центре круга проступает карта.`;
       dom.trialResultBtn.textContent = 'Забрать';
+      setTerminalView('trial');
       dom.trialResult.classList.remove('hidden');
       return;
     }
@@ -1704,26 +1959,34 @@
     if (outcome === 'fail') {
       state.flags.trialAttempted = true;
       saveGame();
+      hideTrialStage();
       trial.resultKind = 'fail';
+      ensureTerminalShare(0.5);
       dom.trialResultEyebrow.textContent = 'КРУГ';
       dom.trialResultTitle.textContent = 'Круг не принял';
       dom.trialResultText.textContent = `Печатей закрыто: ${trial.sealsClosed}. Нужно не меньше ${C.trial.sealsRequired}. Ты можешь войти в круг снова — ничего не потеряно.`;
       dom.trialResultBtn.textContent = 'Выйти';
+      setTerminalView('trial');
       dom.trialResult.classList.remove('hidden');
       return;
     }
 
-    hideTrialOverlay();
+    hideTrialStage();
+    dom.trialResult.classList.add('hidden');
     trial = null;
+    setTerminalView('main');
     toast('Круг остыл. Можно войти снова');
     appendLog('Ты покидаешь круг. Печати гаснут, но остаются на месте.', 'reply', true);
     updatePrompt();
     saveGame();
   }
 
-  function hideTrialOverlay() {
-    dom.trialResult.classList.add('hidden');
-    dom.trialOverlay.classList.add('hidden');
+  function showTrialStage() {
+    dom.trialStage.classList.remove('hidden');
+  }
+
+  function hideTrialStage() {
+    dom.trialStage.classList.add('hidden');
   }
 
   function attemptSeal() {
@@ -1922,10 +2185,6 @@
       ctx.arc(seal.x, seal.y, seal.r * 1.18, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(244, 217, 181, 0.85)';
-      ctx.font = '700 10px Andika, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('ПЕЧАТЬ', seal.x, seal.y + 3.5);
       ctx.restore();
     }
 
@@ -2029,8 +2288,10 @@
       resultKind: null
     };
 
-    dom.trialOverlay.classList.remove('hidden');
     dom.trialResult.classList.add('hidden');
+    ensureTerminalShare(0.36);
+    showTrialStage();
+    setTerminalView('trial');
     resetTrialHint();
     const size = layoutTrial();
     trial.player.x = size.w / 2;
@@ -2051,8 +2312,10 @@
   dom.trialResultBtn.addEventListener('click', () => {
     if (!trial) return;
     const result = trial.resultKind;
-    hideTrialOverlay();
+    dom.trialResult.classList.add('hidden');
+    hideTrialStage();
     trial = null;
+    setTerminalView('main');
     updatePrompt();
     if (result === 'success') {
       appendLog('Печати погасли. В центре круга осталась карта.', 'story', true);
@@ -2072,19 +2335,12 @@
   /* ------------------------------------------------------------------ */
 
   function isStoryOrDeathOrTrial() {
-    if (!dom.storyOverlay.classList.contains('hidden')) return true;
-    if (!dom.deathOverlay.classList.contains('hidden')) return true;
-    if (!dom.trialOverlay.classList.contains('hidden')) return true;
-    return false;
+    return termView === 'story' || termView === 'death' || termView === 'trial';
   }
 
   function isPaused() {
     if (document.hidden) return true;
-    if (isStoryOrDeathOrTrial()) return true;
-    if (!dom.canvasOverlay.classList.contains('hidden')) return true;
-    if (!dom.inventoryOverlay.classList.contains('hidden')) return true;
-    if (!dom.mapOverlay.classList.contains('hidden')) return true;
-    return false;
+    return termView !== 'main';
   }
 
   /* ------------------------------------------------------------------ */
@@ -2092,14 +2348,8 @@
   /* ------------------------------------------------------------------ */
 
   function toast(text) {
-    const node = document.createElement('div');
-    node.className = 'toast';
-    node.textContent = text;
-    dom.toastLayer.appendChild(node);
-    window.setTimeout(() => {
-      node.classList.add('out');
-      window.setTimeout(() => node.remove(), 320);
-    }, 2400);
+    /* В новом интерфейсе уведомление живёт только в терминале. */
+    appendLog(text, 'sys', true);
   }
 
   /* ------------------------------------------------------------------ */
@@ -2210,9 +2460,13 @@
     }
 
     if (event.code === 'Escape') {
-      if (!dom.canvasOverlay.classList.contains('hidden')) closeCanvas();
-      else if (!dom.inventoryOverlay.classList.contains('hidden')) closeInventory();
-      else if (!dom.mapOverlay.classList.contains('hidden')) closeMap();
+      if (termView === 'card') closeCardDetail();
+      else if (termView === 'canvas') closeCanvas();
+      else if (termView === 'inventory') closeInventory();
+      else if (termView === 'map') closeMap();
+      else if (termView === 'trial' && trial && trial.resultKind) {
+        dom.trialResultBtn.click();
+      }
       return;
     }
 
@@ -2222,20 +2476,18 @@
       event.preventDefault();
       interact();
     } else if (event.code === 'KeyB') {
-      if (!isStoryOrDeathOrTrial() && dom.canvasOverlay.classList.contains('hidden')) {
-        if (dom.inventoryOverlay.classList.contains('hidden')) openInventory();
-        else closeInventory();
-      }
+      if (isStoryOrDeathOrTrial()) return;
+      if (termView === 'inventory') closeInventory();
+      else if (termView === 'main') openInventory();
     } else if (event.code === 'KeyM') {
-      if (!isStoryOrDeathOrTrial() && dom.canvasOverlay.classList.contains('hidden')) {
-        if (dom.mapOverlay.classList.contains('hidden')) openMap();
-        else closeMap();
-      }
+      if (isStoryOrDeathOrTrial()) return;
+      if (termView === 'map') closeMap();
+      else if (termView === 'main') openMap();
     } else if (event.code === 'KeyC') {
-      if (!isStoryOrDeathOrTrial()) {
-        if (dom.canvasOverlay.classList.contains('hidden')) openCanvas();
-        else closeCanvas();
-      }
+      if (isStoryOrDeathOrTrial()) return;
+      if (termView === 'card') closeCardDetail();
+      else if (termView === 'canvas') closeCanvas();
+      else if (termView === 'main') openCanvas();
     } else if (event.code === 'KeyF' && trial && trial.active) {
       attemptSeal();
     }
@@ -2283,7 +2535,11 @@
   dom.btnAction.addEventListener('click', interact);
 
   window.addEventListener('resize', () => {
-    if (!dom.mapOverlay.classList.contains('hidden')) drawMapNow();
+    if (termView === 'map') drawMapNow();
+    if (trial && trial.active) {
+      layoutTrial();
+      clampTrialPlayer();
+    }
   });
 
   window.addEventListener('beforeunload', saveGame);
@@ -2300,7 +2556,7 @@
       updateMovement(dt);
       updateRoomDetection();
       checkHazardDamage(time);
-      updateCamera(dt);
+      updateCamera();
       if (!trial) updatePrompt();
     }
 
@@ -2358,12 +2614,22 @@
             resultKind: trial.resultKind
           } : null,
           overlays: {
-            story: !dom.storyOverlay.classList.contains('hidden'),
-            death: !dom.deathOverlay.classList.contains('hidden'),
-            trial: !dom.trialOverlay.classList.contains('hidden'),
-            inventory: !dom.inventoryOverlay.classList.contains('hidden'),
-            map: !dom.mapOverlay.classList.contains('hidden'),
-            canvas: !dom.canvasOverlay.classList.contains('hidden')
+            termView,
+            cardOrigin,
+            story: termView === 'story',
+            death: termView === 'death',
+            trial: termView === 'trial',
+            inventory: termView === 'inventory',
+            map: termView === 'map',
+            canvas: termView === 'canvas' || termView === 'card',
+            card: termView === 'card',
+            trialStage: !dom.trialStage.classList.contains('hidden')
+          },
+          terminal: {
+            view: termView,
+            split: readSplitPreference(),
+            gameRows: dom.app.style.gridTemplateRows,
+            zoom: canvasZoom
           }
         }));
       },
@@ -2391,7 +2657,8 @@
       give(itemId) {
         if (!knownItemId(itemId) || state.items.includes(itemId)) return false;
         state.items.push(itemId);
-        refreshHud();
+        if (termView === 'inventory') renderInventory();
+        if (termView === 'canvas') renderCanvasElements();
         saveGame();
         return true;
       },
@@ -2424,12 +2691,9 @@
         return true;
       },
       closeAll() {
-        dom.storyOverlay.classList.add('hidden');
-        dom.deathOverlay.classList.add('hidden');
-        dom.trialOverlay.classList.add('hidden');
-        dom.inventoryOverlay.classList.add('hidden');
-        dom.mapOverlay.classList.add('hidden');
-        dom.canvasOverlay.classList.add('hidden');
+        dom.trialResult.classList.add('hidden');
+        hideTrialStage();
+        setTerminalView('main');
         storyActive = false;
         storyQueue.length = 0;
         if (trialRaf) window.cancelAnimationFrame(trialRaf);
@@ -2455,8 +2719,10 @@
     images = window.Renderer.prepareImages();
 
     C.terminal.greeting.forEach((line) => appendLog(line, 'sys', true));
-    refreshHud();
+    initDivider();
+    setCanvasZoom(1, false);
     renderCanvasElements();
+    setTerminalView('main');
     installDebugApi();
 
     lastFrame = now();

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#05070c">
+<title>РИТМ-КАТАЛОГ — ритм-игра по всей музыке zqwy</title>
+<link rel="stylesheet" href="style.css">
+<script>
+  window.__rhythmErrors = [];
+  window.addEventListener('error', function (e) {
+    window.__rhythmErrors.push(String((e && e.message) || e));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    window.__rhythmErrors.push('promise: ' + String((e && e.reason) || e));
+  });
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage" aria-label="Ритмическая сцена"></canvas>
+
+  <button id="btn-pause" class="hud-pause hidden" aria-label="Пауза">II</button>
+
+  <section id="screen-menu" class="screen menu-screen">
+    <div class="menu-panel">
+      <p class="eyebrow">ZQWY · ВСЯ МУЗЫКА</p>
+      <h1 class="game-title">РИТМ<span class="title-dot">·</span>КАТАЛОГ</h1>
+      <p class="tagline">Четыре полосы. Все альбомы. Один поток.</p>
+      <div class="menu-stats">
+        <div><b id="stat-albums">—</b><span>АЛЬБОМОВ</span></div>
+        <div><b id="stat-tracks">—</b><span>ТРЕКОВ</span></div>
+        <div><b id="stat-best">0</b><span>ЛУЧШИЙ СЧЁТ</span></div>
+      </div>
+      <button id="btn-enter" class="primary big">ОТКРЫТЬ КАТАЛОГ</button>
+      <p class="menu-hint">D F J K · СТРЕЛКИ · ТАЧ ПО ПОЛОСАМ</p>
+      <p class="menu-hint dim">НАУШНИКИ РЕКОМЕНДУЮТСЯ · ESC — ПАУЗА</p>
+    </div>
+  </section>
+
+  <section id="screen-select" class="screen select-screen hidden">
+    <header class="select-header">
+      <button id="btn-back" class="ghost icon" aria-label="В меню">←</button>
+      <div class="select-heading">
+        <p class="eyebrow">КАТАЛОГ</p>
+        <h2 id="album-heading">Backers</h2>
+      </div>
+      <div class="select-meta">
+        <span id="album-count">—</span>
+        <button id="btn-menu" class="ghost">МЕНЮ</button>
+      </div>
+    </header>
+
+    <nav id="album-rail" class="album-rail" aria-label="Альбомы"></nav>
+
+    <div class="select-body">
+      <div class="track-column">
+        <div id="track-list" class="track-list" role="listbox" aria-label="Треки альбома"></div>
+      </div>
+      <aside class="track-panel">
+        <p class="eyebrow" id="sel-album">BACKERS</p>
+        <h3 id="sel-title">Agonia</h3>
+        <div class="track-facts">
+          <span><b id="sel-duration">—</b> ДЛИТ.</span>
+          <span><b id="sel-bpm">—</b> BPM</span>
+          <span><b id="sel-diff">—</b> СЛОЖН.</span>
+          <span><b id="sel-notes">—</b> НОТ</span>
+        </div>
+        <div class="best-line" id="sel-best">РЕКОРД —</div>
+        <button id="btn-play" class="primary big">ИГРАТЬ</button>
+        <p class="panel-hint">ENTER — ИГРАТЬ · ↑↓ — ТРЕК · ←→ — АЛЬБОМ</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="screen-load" class="screen center-screen hidden">
+    <div class="load-card">
+      <p class="eyebrow" id="load-album">ЗАГРУЗКА</p>
+      <h2 id="load-title">Трек</h2>
+      <p class="load-status" id="load-status">ЧИТАЕМ ЧАРТ…</p>
+      <div class="load-bar"><i id="load-bar"></i></div>
+      <p class="load-percent" id="load-percent">0%</p>
+    </div>
+  </section>
+
+  <section id="screen-ready" class="screen center-screen hidden">
+    <div class="load-card">
+      <p class="eyebrow" id="ready-album">ГОТОВО</p>
+      <h2 id="ready-title">Трек</h2>
+      <p class="load-status">БРАУЗЕР ЖДЁТ ПОДТВЕРЖДЕНИЯ ЗВУКА</p>
+      <button id="btn-ready" class="primary big">НАЧАТЬ</button>
+    </div>
+  </section>
+
+  <section id="screen-pause" class="screen center-screen hidden">
+    <div class="pause-card">
+      <p class="eyebrow">ПАУЗА</p>
+      <h2>Тишина держит ритм</h2>
+      <div class="pause-actions">
+        <button id="btn-resume" class="primary big">ПРОДОЛЖИТЬ</button>
+        <button id="btn-restart" class="ghost">ЗАНОВО</button>
+        <button id="btn-quit" class="ghost">В КАТАЛОГ</button>
+      </div>
+      <div class="settings">
+        <div class="setting">
+          <span>ЗАДЕРЖКА</span>
+          <button id="off-minus" class="stepper" aria-label="Меньше">−</button>
+          <b id="off-value">0 МС</b>
+          <button id="off-plus" class="stepper" aria-label="Больше">+</button>
+        </div>
+        <div class="setting">
+          <span>ГРОМКОСТЬ</span>
+          <button id="vol-minus" class="stepper" aria-label="Тише">−</button>
+          <b id="vol-value">85%</b>
+          <button id="vol-plus" class="stepper" aria-label="Громче">+</button>
+        </div>
+        <button id="btn-sfx" class="ghost">ЗВУК УДАРОВ: ВКЛ</button>
+      </div>
+      <p class="panel-hint">ESC — ПРОДОЛЖИТЬ · R — ЗАНОВО · [ ] — ЗАДЕРЖКА · − = — ГРОМКОСТЬ · M — УДАРЫ</p>
+    </div>
+  </section>
+
+  <section id="screen-result" class="screen center-screen hidden">
+    <div class="result-card">
+      <p class="eyebrow" id="res-album">АЛЬБОМ</p>
+      <h2 id="res-track">Трек</h2>
+      <div id="res-rank" class="rank">РЕЗИДЕНТ</div>
+      <p id="res-sub" class="rank-sub">Держи поток.</p>
+      <div class="result-grid">
+        <div><span>ОЧКИ</span><b id="res-score">0</b></div>
+        <div><span>ТОЧНОСТЬ</span><b id="res-acc">0%</b></div>
+        <div><span>МАКС. КОМБО</span><b id="res-combo">0</b></div>
+      </div>
+      <p id="res-counts" class="result-counts"></p>
+      <p id="res-best" class="result-best"></p>
+      <div class="result-actions">
+        <button id="btn-retry" class="primary big">ЕЩЁ РАЗ</button>
+        <button id="btn-next" class="ghost">СЛЕДУЮЩИЙ</button>
+        <button id="btn-catalog" class="ghost">КАТАЛОГ</button>
+      </div>
+      <p class="panel-hint">R — ЕЩЁ РАЗ · ENTER — СЛЕДУЮЩИЙ · ESC — КАТАЛОГ</p>
+    </div>
+  </section>
+
+  <section id="screen-error" class="screen center-screen hidden">
+    <div class="load-card">
+      <p class="eyebrow">ОШИБКА</p>
+      <h2>ТРЕК НЕ ОТКРЫЛСЯ</h2>
+      <p class="load-status" id="err-text">Проверь локальный сервер.</p>
+      <button id="btn-err-back" class="primary big">В КАТАЛОГ</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <div id="boot" class="boot">
+    <div class="boot-inner">
+      <p class="eyebrow">ZQWY · ВСЯ МУЗЫКА</p>
+      <div class="boot-title">РИТМ<span class="title-dot">·</span>КАТАЛОГ</div>
+      <p class="boot-sub" id="boot-sub">СОБИРАЕМ КОЛЛЕКЦИЮ…</p>
+      <div class="boot-bar"><i id="boot-bar"></i></div>
+    </div>
+  </div>
+</div>
+
+<script src="data/catalog.js"></script>
+<script src="js/themes.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

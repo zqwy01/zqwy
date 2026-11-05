@@ -95,7 +95,8 @@
       if (touchesTrial && key !== trialKey) edges.delete(key);
     }
 
-    /* Пара петель, чтобы мир не был голым деревом. */
+    /* Сначала добавляем заметную часть петель, чтобы мир не был голым
+       деревом с длинными тупиковыми ветвями. */
     const loopCandidates = [];
     for (let cy = 0; cy < grid; cy++) {
       for (let cx = 0; cx < grid; cx++) {
@@ -116,8 +117,51 @@
       loopCandidates[i] = loopCandidates[j];
       loopCandidates[j] = tmp;
     }
-    for (let i = 0; i < Math.min(3, loopCandidates.length); i++) {
+    const extraLoops = Math.max(8, Math.round(loopCandidates.length * 0.6));
+    for (let i = 0; i < Math.min(extraLoops, loopCandidates.length); i++) {
       edges.add(loopCandidates[i].key);
+    }
+
+    /* Вытравливаем оставшиеся тупики: у каждой комнаты, кроме Круга,
+       должно быть не меньше двух выходов. Это превращает редкие
+       ответвления в проходные петли и сохраняет единственный вход
+       в комнату испытания. */
+    function degreeAt(cx, cy) {
+      let count = 0;
+      for (const key of edges) {
+        const e = parseKey(key);
+        if ((e.ax === cx && e.ay === cy) || (e.bx === cx && e.by === cy)) count++;
+      }
+      return count;
+    }
+
+    function openDeadEnd(cx, cy) {
+      const options = dirs
+        .map(([dx, dy]) => [cx + dx, cy + dy])
+        .filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < grid && ny < grid)
+        .filter(([nx, ny]) => !(nx === trialCell.cx && ny === trialCell.cy))
+        .filter(([nx, ny]) => !(cx === trialCell.cx && cy === trialCell.cy))
+        .map(([nx, ny]) => ({ nx, ny, key: edgeKey(cx, cy, nx, ny) }))
+        .filter((option) => !edges.has(option.key));
+      if (!options.length) return false;
+      const pick = options[Math.floor(random() * options.length)];
+      edges.add(pick.key);
+      return true;
+    }
+
+    let braidGuard = 0;
+    let braided = true;
+    while (braided && braidGuard < grid * grid * 3) {
+      braidGuard++;
+      braided = false;
+      for (let cy = 0; cy < grid && !braided; cy++) {
+        for (let cx = 0; cx < grid; cx++) {
+          if (cx === trialCell.cx && cy === trialCell.cy) continue;
+          if (degreeAt(cx, cy) >= 2) continue;
+          braided = openDeadEnd(cx, cy);
+          if (braided) break;
+        }
+      }
     }
 
     /* --- Комнаты --- */

@@ -72,14 +72,16 @@ button {
   display: none !important;
 }
 
+/* Игра занимает весь экран. Широкие окна расширяют Лабиринт по
+   горизонтали, а не оставляют вертикальные поля. */
 #stage {
   position: relative;
-  width: min(100vw, calc(100dvh * 9 / 16));
-  height: min(100dvh, calc(100vw * 16 / 9));
-  max-width: 100vw;
-  max-height: 100dvh;
-  margin: auto;
-  filter: drop-shadow(0 28px 70px rgba(0, 0, 0, 0.65));
+  width: 100vw;
+  width: 100dvw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
 }
 
 #app {
@@ -1120,6 +1122,81 @@ button {
   padding-right: 20px;
 }
 
+/* Клавиша — отдельный элемент стола, а не бейдж на чужой кнопке. */
+.cv-el.key {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 92px;
+  padding: 8px 9px 7px;
+  border: 1px solid rgba(208, 118, 60, 0.5);
+  border-radius: 3px;
+  background:
+    linear-gradient(160deg, rgba(53, 33, 21, 0.96), rgba(17, 20, 19, 0.97));
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+}
+
+.cv-el.key .el-key {
+  align-self: stretch;
+  min-width: 52px;
+  margin: 0;
+  padding: 6px 10px;
+  border-color: rgba(229, 161, 104, 0.7);
+  background: rgba(96, 51, 26, 0.48);
+  color: #f4e6d2;
+  font-size: calc(14px * var(--ui-scale));
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.cv-el.key .el-title {
+  color: rgba(229, 161, 104, 0.8);
+  font-size: calc(7.5px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cv-el.key .el-sub {
+  max-width: 150px;
+  color: rgba(224, 216, 198, 0.72);
+  font-size: calc(8px * var(--ui-scale));
+  letter-spacing: 0;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+.cv-el.key .el-run {
+  border-color: rgba(229, 161, 104, 0.3);
+  color: rgba(229, 161, 104, 0.85);
+  background: rgba(208, 118, 60, 0.08);
+}
+
+/* Вектор «A → цель»: на цели видно, какие клавиши её запускают. */
+.el-keyrefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.el-keyref {
+  padding: 1px 5px;
+  border: 1px solid rgba(208, 118, 60, 0.55);
+  border-radius: 2px;
+  background: rgba(96, 51, 26, 0.35);
+  color: #f0cfa6;
+  font-size: calc(7px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.cv-el.card .el-keyref,
+.cv-el.map .el-keyref {
+  border-color: rgba(93, 63, 34, 0.5);
+  background: rgba(255, 250, 235, 0.45);
+  color: #57412a;
+}
+
 .cv-el .el-key {
   align-self: flex-start;
   min-width: 30px;
@@ -1619,6 +1696,12 @@ body.split-dragging {
   display: none;
 }
 
+/* Приглашение рядом со Скрижалью отличается от обычных подсказок. */
+.term-context.tablet {
+  color: #e8cf9f;
+  text-shadow: 0 0 14px rgba(232, 207, 159, 0.28);
+}
+
 #view-inventory,
 #view-map,
 #view-card {
@@ -1789,6 +1872,147 @@ body.split-dragging {
 
 .keys-body {
   color: rgba(218, 217, 203, 0.8);
+}
+
+/* Живая схема: только реальные клавиши и их цели. Клавишу можно
+   нажать прямо здесь — она выполнит связанные команды. */
+.bound-scheme,
+.scheme-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scheme-intro {
+  margin: 0;
+  color: rgba(190, 194, 181, 0.62);
+  font-size: calc(8.5px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.bound-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bound-row {
+  display: grid;
+  grid-template-columns: auto 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border: 1px solid rgba(196, 204, 193, 0.12);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.bound-row.unbound {
+  opacity: 0.62;
+}
+
+.scheme-keycap {
+  min-width: 46px;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid rgba(229, 161, 104, 0.65);
+  border-radius: 3px;
+  background: rgba(96, 51, 26, 0.42);
+  color: #f6e8d4;
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.scheme-keycap:hover,
+.scheme-keycap:focus-visible {
+  border-color: var(--rust-bright);
+  background: rgba(128, 67, 33, 0.58);
+  outline: none;
+}
+
+.scheme-arrow {
+  color: rgba(229, 161, 104, 0.76);
+  font-size: calc(11px * var(--ui-scale));
+  text-align: center;
+}
+
+.scheme-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scheme-target {
+  padding: 2px 6px;
+  border: 1px solid rgba(127, 155, 132, 0.28);
+  border-radius: 2px;
+  background: rgba(127, 155, 132, 0.07);
+  color: rgba(210, 224, 208, 0.86);
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.scheme-target.empty {
+  border-color: transparent;
+  background: transparent;
+  color: rgba(158, 164, 151, 0.5);
+}
+
+.scheme-empty {
+  padding: 8px;
+  border: 1px dashed rgba(196, 204, 193, 0.18);
+  color: rgba(190, 194, 181, 0.55);
+  font-size: calc(9px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.scheme-core {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(196, 204, 193, 0.1);
+}
+
+.scheme-core-label {
+  color: rgba(229, 161, 104, 0.72);
+  font-size: calc(7.5px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scheme-core-text {
+  color: rgba(186, 190, 177, 0.62);
+  font-size: calc(8px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.scheme-reference-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scheme-reference-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 7px;
+  border: 1px solid rgba(196, 204, 193, 0.1);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.scheme-reference-item b {
+  color: #eee5d5;
+  font-size: calc(9px * var(--ui-scale));
+}
+
+.scheme-reference-item span {
+  color: rgba(186, 190, 177, 0.62);
+  font-size: calc(8px * var(--ui-scale));
 }
 
 .keyboard-scheme {
@@ -2321,6 +2545,29 @@ body.split-dragging {
   line-height: 1.4;
 }
 
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(210, 207, 192, 0.72);
+  font-size: calc(9px * var(--ui-scale));
+  cursor: pointer;
+}
+
+.setting-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--rust);
+  cursor: pointer;
+}
+
+.setting-log-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
 #settings-reset {
   align-self: flex-start;
 }
@@ -2393,6 +2640,282 @@ body.split-dragging {
 
 .trial-stage .trial-touch {
   z-index: 4;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ветвь истории                                                       */
+/* ------------------------------------------------------------------ */
+
+#view-story {
+  gap: 9px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#view-story .sheet-head {
+  flex: 0 0 auto;
+}
+
+.story-now {
+  flex: 0 0 auto;
+}
+
+.story-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid rgba(196, 204, 193, 0.14);
+  border-left: 2px solid var(--rust);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.story-summary-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.story-current-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.story-summary-label {
+  color: rgba(158, 164, 151, 0.56);
+  font-size: calc(7.5px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.story-current-stage b {
+  color: #f0e6d4;
+  font-size: calc(11px * var(--ui-scale));
+  letter-spacing: 0.02em;
+}
+
+.story-current-state {
+  color: rgba(229, 161, 104, 0.72);
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.story-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.story-goal-text {
+  color: rgba(232, 225, 209, 0.86);
+  font-size: calc(9.5px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.story-finds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.story-find-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.story-find-chip {
+  padding: 2px 7px;
+  border: 1px solid rgba(127, 155, 132, 0.35);
+  border-radius: 2px;
+  background: rgba(127, 155, 132, 0.09);
+  color: #cfe0d1;
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.story-empty {
+  color: rgba(158, 164, 151, 0.5);
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.story-tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 10px;
+}
+
+.story-trail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.story-node {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 9px;
+  border: 1px solid rgba(196, 204, 193, 0.12);
+  border-left: 2px solid rgba(196, 204, 193, 0.18);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.story-node.done {
+  border-left-color: rgba(127, 155, 132, 0.68);
+}
+
+.story-node.available {
+  border-left-color: var(--rust);
+  background: rgba(96, 51, 26, 0.12);
+}
+
+.story-node.locked {
+  opacity: 0.52;
+}
+
+.story-node.optional {
+  border-style: dashed;
+}
+
+.story-node-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.story-node-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+  border: 1px solid rgba(196, 204, 193, 0.4);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.story-node.done .story-node-dot {
+  border-color: rgba(127, 155, 132, 0.8);
+  background: rgba(127, 155, 132, 0.8);
+}
+
+.story-node.available .story-node-dot {
+  border-color: var(--rust-bright);
+  background: var(--rust-bright);
+  box-shadow: 0 0 10px rgba(229, 161, 104, 0.55);
+}
+
+.story-node-heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.story-node-heading h3 {
+  margin: 0;
+  color: #eee6d7;
+  font-size: calc(11px * var(--ui-scale));
+  line-height: 1.2;
+}
+
+.story-node-stage {
+  color: rgba(229, 161, 104, 0.62);
+  font-size: calc(7px * var(--ui-scale));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.story-node-flag {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid rgba(196, 204, 193, 0.18);
+  border-radius: 2px;
+  color: rgba(196, 200, 188, 0.62);
+  font-size: calc(7px * var(--ui-scale));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.story-node.done .story-node-flag {
+  border-color: rgba(127, 155, 132, 0.4);
+  color: rgba(184, 206, 184, 0.8);
+}
+
+.story-node.available .story-node-flag {
+  border-color: rgba(229, 161, 104, 0.55);
+  color: #f4d7b7;
+}
+
+.story-node-summary {
+  margin: 0;
+  color: rgba(206, 203, 190, 0.72);
+  font-size: calc(9px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.story-node-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.story-node-label {
+  color: rgba(158, 164, 151, 0.52);
+  font-size: calc(7px * var(--ui-scale));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.story-chip {
+  padding: 1px 5px;
+  border: 1px solid rgba(127, 155, 132, 0.28);
+  border-radius: 2px;
+  color: rgba(199, 217, 201, 0.8);
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.story-seeking {
+  color: rgba(238, 216, 184, 0.84);
+  font-size: calc(8.5px * var(--ui-scale));
+  line-height: 1.35;
+}
+
+.story-node-hint {
+  margin: 0;
+  padding-top: 3px;
+  border-top: 1px solid rgba(196, 204, 193, 0.08);
+  color: rgba(229, 161, 104, 0.64);
+  font-size: calc(8px * var(--ui-scale));
+  line-height: 1.35;
+}
+
+.story-children {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 5px;
+  margin-left: 9px;
+  padding-left: 9px;
+  border-left: 1px solid rgba(196, 204, 193, 0.16);
+}
+
+.story-ref {
+  color: rgba(158, 164, 151, 0.48);
+  font-size: calc(8px * var(--ui-scale));
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .setting-log-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (hover: none), (pointer: coarse) {

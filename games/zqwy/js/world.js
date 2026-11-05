@@ -86,7 +86,6 @@
     const edgeData = new Map();
     const edgesByCell = new Map();
     const itemPickups = [];
-    const shadows = [];
     const usedNames = new Map();
     const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
@@ -310,13 +309,6 @@
       } else if (room.role === 'hazard') {
         for (const [dx, dy] of [[-5, -4], [5, -4], [-5, 4], [5, 4], [-4, -2], [4, 2]]) {
           setTileInChunk(chunk, centerX + dx, centerY + dy, 3);
-        }
-        if (!shadows.length) {
-          shadows.push(
-            { cx: ox + 6.5, cy: oy + 5, rx: 3.6, ry: 2.1, speed: 0.62, phase: 0.4 },
-            { cx: ox + 14.5, cy: oy + 11.5, rx: 3.2, ry: 2.4, speed: -0.51, phase: 2.3 },
-            { cx: ox + 10.5, cy: oy + 8.5, rx: 4.2, ry: 1.7, speed: 0.37, phase: 4.1 }
-          );
         }
       } else if (room.role === 'storage') {
         for (let x = ox + 4; x <= ox + 16; x++) {
@@ -606,8 +598,7 @@
       hazardRoom: roomsByCell.get(cellKey(hazardCell.cx, hazardCell.cy)),
       storageRoom: roomsByCell.get(cellKey(C.fixedRooms.storage.cx, C.fixedRooms.storage.cy)),
       crossroadRoom: roomsByCell.get(cellKey(C.fixedRooms.crossroad.cx, C.fixedRooms.crossroad.cy)),
-      itemPickups,
-      shadows
+      itemPickups
     };
 
     Object.defineProperty(api, 'edges', {

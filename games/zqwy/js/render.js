@@ -302,60 +302,33 @@
     ctx.restore();
   }
 
-  function drawShadow(ctx, sx, sy, ts, now, phase) {
-    const wob = Math.sin(now * 0.003 + phase) * 0.12;
-    const r = ts * (0.48 + wob);
-    ctx.save();
-    ctx.translate(sx, sy);
-    const g = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r * 1.25);
-    g.addColorStop(0, 'rgba(4, 6, 7, 0.96)');
-    g.addColorStop(0.55, 'rgba(7, 10, 11, 0.9)');
-    g.addColorStop(1, 'rgba(10, 13, 14, 0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2;
-      const rr = r * (1 + Math.sin(a * 3 + now * 0.004 + phase) * 0.13);
-      const px = Math.cos(a) * rr;
-      const py = Math.sin(a) * rr * 0.72;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = `rgba(197, 93, 38, ${0.18 + 0.08 * Math.sin(now * 0.005 + phase)})`;
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
+  /* Восемь групп кадров: вниз, вверх, влево, вправо, вниз-влево,
+     вниз-вправо, вверх-влево, вверх-вправо. В каждой группе 4 кадра. */
   function frameForPlayer(state) {
     const p = state.player;
-    const vx = p.facingX;
-    const vy = p.facingY;
-    let base = 0;
+    const vx = p.facingX || 0;
+    const vy = p.facingY || 0;
     const horizontal = Math.abs(vx) > 0.3;
     const vertical = Math.abs(vy) > 0.3;
+    let group = 0;
     if (horizontal && vertical) {
-      if (vy > 0) base = vx < 0 ? 8 : 12;
-      else base = vx < 0 ? 24 : 28;
+      if (vy > 0) group = vx < 0 ? 4 : 5;
+      else group = vx < 0 ? 6 : 7;
     } else if (horizontal) {
-      base = vx < 0 ? 16 : 20;
-    } else {
-      base = vy < 0 ? 4 : 0;
+      group = vx < 0 ? 2 : 3;
+    } else if (vertical) {
+      group = vy < 0 ? 1 : 0;
     }
+    const base = group * 4;
     if (!p.moving) return base;
-    const frame = Math.floor(state.animTime * 8) % 3 + 1;
-    return base + frame;
+    return base + (Math.floor(state.animTime * 10) % 4);
   }
 
   function drawPlayer(ctx, state, sx, sy, ts, images) {
     const frame = frameForPlayer(state);
     const fw = C.player.spriteFrameW;
     const fh = C.player.spriteFrameH;
-    const srcX = (frame % 40) * fw;
+    const srcX = (frame % C.player.spriteFrames) * fw;
     const h = ts * 2.05;
     const w = h * (fw / fh);
 
@@ -390,16 +363,45 @@
     ctx.restore();
   }
 
-  function drawDust(ctx, view, now) {
+  /* Пыль живёт в координатах мира. Она не приклеена к экрану: при
+     движении камеры одни пылинки уходят, другие появляются. */
+  function dustMotes(params) {
+    const { view, now, cam, ts } = params;
+    const spanX = view.w / ts + 8;
+    const spanY = view.h / ts + 8;
+    const step = 2.4;
+    const baseX = cam.x - spanX / 2;
+    const baseY = cam.y - spanY / 2;
+    const cols = Math.ceil(spanX / step) + 1;
+    const rows = Math.ceil(spanY / step) + 1;
+    const motes = [];
+    for (let gy = 0; gy < rows; gy++) {
+      for (let gx = 0; gx < cols; gx++) {
+        const wx = baseX + gx * step;
+        const wy = baseY + gy * step;
+        const n = tileNoise(Math.floor(wx), Math.floor(wy), 31);
+        if (n < 0.74) continue;
+        motes.push({
+          wx: wx + Math.sin(now * 0.00012 + n * 20) * 0.8,
+          wy: wy + Math.cos(now * 0.00009 + n * 13) * 0.65,
+          r: 0.6 + n * 0.7,
+          a: 0.05 + 0.11 * (0.5 + 0.5 * Math.sin(now * 0.001 + n * 8))
+        });
+      }
+    }
+    return motes;
+  }
+
+  function drawDust(ctx, params) {
+    const { view, toScreenX, toScreenY } = params;
     ctx.save();
-    for (let i = 0; i < 26; i++) {
-      const seed = i * 91.17;
-      const x = ((seed * 13.3 + now * 0.003 * (0.3 + (i % 5) * 0.08)) % (view.w + 40)) - 20;
-      const y = ((Math.sin(seed) * 0.5 + 0.5) * view.h + now * 0.004 * ((i % 3) + 1)) % (view.h + 20);
-      const a = 0.04 + 0.09 * (0.5 + 0.5 * Math.sin(now * 0.001 + i));
-      ctx.fillStyle = `rgba(220, 226, 216, ${a})`;
+    for (const mote of dustMotes(params)) {
+      const px = toScreenX(mote.wx);
+      const py = toScreenY(mote.wy);
+      if (px < -8 || px > view.w + 8 || py < -8 || py > view.h + 8) continue;
+      ctx.fillStyle = `rgba(220, 226, 216, ${mote.a})`;
       ctx.beginPath();
-      ctx.arc(x, y, (i % 3) * 0.5 + 0.7, 0, Math.PI * 2);
+      ctx.arc(px, py, mote.r, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -474,13 +476,17 @@
     if (world.hazardRoom) {
       const room = world.hazardRoom;
       const visible = toScreenX(room.ox) < view.w + ts * 8 && toScreenX(room.ox + C.world.ROOM_W) > -ts * 8;
+      /* «Слепой зал» остался атмосферной комнатой, но без теней и урона. */
       if (visible) {
-        for (const shadow of world.shadows) {
-          const angle = now * 0.001 * shadow.speed + shadow.phase;
-          const px = shadow.cx + Math.cos(angle) * shadow.rx;
-          const py = shadow.cy + Math.sin(angle * 1.13) * shadow.ry;
-          drawShadow(ctx, toScreenX(px), toScreenY(py), ts, now, shadow.phase);
-        }
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx.fillRect(
+          toScreenX(room.ox),
+          toScreenY(room.oy),
+          C.world.ROOM_W * ts,
+          C.world.ROOM_H * ts
+        );
+        ctx.restore();
       }
     }
 
@@ -509,7 +515,7 @@
       images
     );
 
-    drawDust(ctx, view, now);
+    drawDust(ctx, { view, now, toScreenX, toScreenY, cam, ts });
   }
 
   function drawMap(canvas, state, world) {
@@ -729,6 +735,9 @@
     prepareImages,
     makeCanvasSize,
     tilePxFor,
-    tileNoise
+    tileNoise,
+    frameForPlayer,
+    dustMotes,
+    drawDust
   };
 })();

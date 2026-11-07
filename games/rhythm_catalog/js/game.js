@@ -6,6 +6,9 @@
   const Themes = window.RhythmThemes;
   const Art = window.RhythmArt;
   const AudioEngine = window.CatalogAudio;
+  const I18N = window.RhythmI18n;
+  const t = I18N ? I18N.t : function (key) { return key; };
+  const tCount = I18N ? I18N.count : function (key, n) { return String(n); };
 
   const $ = id => document.getElementById(id);
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -77,7 +80,11 @@
     leadStart: 0,
     leadPausedAt: null,
     startLock: false,
-    settings: { offsetMs: 0, volume: 0.85, sfx: true },
+    settings: { offsetMs: 0, volume: 0.85, sfx: true, lang: 'ru' },
+    load: { p: 0.04, key: 'load.reading' },
+    tint: { r: 0, g: 0, b: 0, a: 0 },
+    tintTarget: { r: 0, g: 0, b: 0, a: 0 },
+    punch: 0,
     bests: {},
     lastMissFx: -10,
     weatherAcc: 0,
@@ -99,6 +106,7 @@
       if (Number.isFinite(s.offsetMs)) S.settings.offsetMs = clamp(s.offsetMs, -250, 250);
       if (Number.isFinite(s.volume)) S.settings.volume = clamp(s.volume, 0, 1);
       if (typeof s.sfx === 'boolean') S.settings.sfx = s.sfx;
+      if (s.lang === 'ru' || s.lang === 'en') S.settings.lang = s.lang;
     } catch (e) {}
     try {
       const b = JSON.parse(localStorage.getItem(BEST_KEY) || '{}');
@@ -196,6 +204,13 @@
     root.style.setProperty('--accent2', theme.accent2);
     root.style.setProperty('--sun', theme.sun);
     root.style.setProperty('--faint', theme.fog);
+    const ui = theme.ui || {};
+    root.style.setProperty('--ui-radius', (ui.radius === undefined ? 12 : ui.radius) + 'px');
+    root.style.setProperty('--ui-glow', String(ui.glow === undefined ? 0.22 : ui.glow));
+    root.style.setProperty('--ui-tilt', (ui.tilt || 0) + 'deg');
+    document.body.dataset.ui = ui.shape || 'soft';
+    document.body.dataset.mark = ui.mark || 'none';
+    document.body.dataset.scene = theme.scene || 'void';
   }
 
   function albumTheme(album) {
@@ -216,6 +231,126 @@
     applyTheme(theme);
     const seed = S.track ? trackSeed(S.track) : Themes.hash32(S.album.id);
     Art.setTheme(theme, seed);
+  }
+
+  // ------------------------------------------------------------- language
+  function albumInitials(title) {
+    const clean = String(title || '').replace(/[^\p{L}\p{N}\s]/gu, ' ').trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length > 1) return (words[0][0] + words[1][0]).toUpperCase();
+    return (clean.replace(/\s/g, '').slice(0, 2) || 'ZQ').toUpperCase();
+  }
+
+  function trackMeta(track) {
+    const bpm = Number.isFinite(track.bpm) ? track.bpm + ' BPM' : '— BPM';
+    const diff = Number.isFinite(track.difficulty) ? track.difficulty + '/10' : '—';
+    return fmtTime(track.duration) + ' · ' + bpm + ' · ' + diff;
+  }
+
+  function rankNameForBest(best) {
+    if (!best) return '';
+    return rankFor(Number.isFinite(best.acc) ? best.acc : 0).name;
+  }
+
+  function bestLineFor(trackId) {
+    const b = bestOf(trackId);
+    if (!b) return t('select.notPlayed');
+    return t('select.record', {
+      score: fmtScore(b.score || 0),
+      rank: rankNameForBest(b),
+      acc: Math.round((b.acc || 0) * 10) / 10
+    });
+  }
+
+  function sectionName(section) {
+    if (!section) return '';
+    const tag = section.tag;
+    if (tag && I18N && I18N.DICT.ru['section.' + tag + '.name']) return t('section.' + tag + '.name');
+    return section.name || '';
+  }
+
+  function sectionSub(section) {
+    if (!section) return '';
+    const tag = section.tag;
+    if (tag && I18N && I18N.DICT.ru['section.' + tag + '.sub']) return t('section.' + tag + '.sub');
+    return section.sub || '';
+  }
+
+  function updateTrackPanel() {
+    if (!S.album || !S.track) return;
+    const track = S.track;
+    $('sel-album').textContent = S.album.title.toUpperCase();
+    $('sel-title').textContent = track.title;
+    $('sel-duration').textContent = fmtTime(track.duration);
+    $('sel-bpm').textContent = Number.isFinite(track.bpm) ? String(track.bpm) : '—';
+    $('sel-diff').textContent = Number.isFinite(track.difficulty) ? track.difficulty + '/10' : '—';
+    $('sel-notes').textContent = Number.isFinite(track.notes) ? String(track.notes) : '—';
+    $('sel-best').textContent = bestLineFor(track.id);
+  }
+
+  function refreshLanguageUi() {
+    if (I18N) I18N.apply();
+    setupMenu();
+    updateHeader();
+    updateTrackPanel();
+    updateSettingsUi();
+    renderAlbumSheet();
+    if (S.load && S.load.key) setLoadProgress(S.load.p, S.load.key);
+    if (S.phase === 'end' && S.result) showResult(S.result);
+    if (S.phase === 'error') {
+      const el = $('err-text');
+      if (el && !el.dataset.raw) el.textContent = t('error.default');
+    }
+  }
+
+  function setLanguage(lang) {
+    if (!I18N) return;
+    S.settings.lang = I18N.normalize(lang);
+    I18N.setLang(S.settings.lang);
+    saveSettings();
+    refreshLanguageUi();
+  }
+
+  // ------------------------------------------------------------- colour flow
+  const TINT_TAGS = {
+    intro: { key: 'fog', a: 0.055 },
+    build: { key: 'accent2', a: 0.060 },
+    theme: { key: 'accent', a: 0.050 },
+    drop: { key: 'accent2', a: 0.085 },
+    climax: { key: 'sun', a: 0.095 },
+    break: { key: 'fog', a: 0.045 },
+    outro: { key: 'sky', a: 0.170 }
+  };
+
+  function tintFor(tag) {
+    const theme = Art.theme || (S.album ? trackTheme(S.album, S.track) : null);
+    if (!theme) return { r: 0, g: 0, b: 0, a: 0 };
+    const spec = TINT_TAGS[tag] || TINT_TAGS.theme;
+    let color;
+    if (spec.key === 'sky') color = theme.sky ? theme.sky[0] : '#02040a';
+    else color = theme[spec.key] || theme.accent;
+    const rgb = Art.parseColor(color);
+    return { r: rgb[0], g: rgb[1], b: rgb[2], a: spec.a };
+  }
+
+  function setTintTarget(tag, immediate) {
+    const target = tintFor(tag);
+    S.tintTarget = target;
+    if (immediate) {
+      S.tint = { r: target.r, g: target.g, b: target.b, a: target.a };
+    }
+  }
+
+  function resetTint() {
+    S.tintTarget = { r: S.tint.r, g: S.tint.g, b: S.tint.b, a: 0 };
+  }
+
+  function updateTint(dt) {
+    const k = Math.min(1, dt * 2.4);
+    S.tint.r += (S.tintTarget.r - S.tint.r) * k;
+    S.tint.g += (S.tintTarget.g - S.tint.g) * k;
+    S.tint.b += (S.tintTarget.b - S.tint.b) * k;
+    S.tint.a += (S.tintTarget.a - S.tint.a) * k;
   }
 
   // ------------------------------------------------------------- selection
@@ -242,25 +377,48 @@
     selectAlbum(ai, ti, true);
   }
 
-  function renderAlbumRail() {
-    const rail = $('album-rail');
-    rail.textContent = '';
-    albums.forEach(function (album, i) {
-      const b = document.createElement('button');
-      b.className = 'album-chip' + (i === S.albumIndex ? ' active' : '');
-      b.dataset.index = String(i);
-      b.type = 'button';
+  function makeAlbumChip(album, i, inSheet) {
+    const b = document.createElement('button');
+    b.className = 'album-chip' + (i === S.albumIndex ? ' active' : '') + (inSheet ? ' album-card' : '');
+    b.dataset.index = String(i);
+    b.type = 'button';
+    if (inSheet) {
+      const badge = document.createElement('span');
+      badge.className = 'album-card-badge';
+      badge.textContent = albumInitials(album.title);
+      b.appendChild(badge);
+      const info = document.createElement('span');
+      info.className = 'album-card-info';
+      const title = document.createElement('span');
+      title.className = 'album-card-title';
+      title.textContent = album.title;
+      const count = document.createElement('em');
+      count.textContent = tCount('select.trackCount', album.tracks.length);
+      info.appendChild(title);
+      info.appendChild(count);
+      b.appendChild(info);
+    } else {
       const title = document.createElement('span');
       title.textContent = album.title;
       const count = document.createElement('em');
       count.textContent = String(album.tracks.length);
       b.appendChild(title);
       b.appendChild(count);
-      b.addEventListener('click', function () {
-        if (S.phase !== 'select') return;
-        selectAlbum(i, 0);
-      });
-      rail.appendChild(b);
+    }
+    b.addEventListener('click', function () {
+      if (S.phase !== 'select') return;
+      selectAlbum(i, 0);
+      if (inSheet) closeAlbumSheet();
+    });
+    return b;
+  }
+
+  function renderAlbumRail() {
+    const rail = $('album-rail');
+    if (!rail) return;
+    rail.textContent = '';
+    albums.forEach(function (album, i) {
+      rail.appendChild(makeAlbumChip(album, i, false));
     });
     const active = rail.children[S.albumIndex];
     if (active) {
@@ -268,6 +426,37 @@
         try { active.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
       });
     }
+  }
+
+  function renderAlbumSheet() {
+    const grid = $('album-grid');
+    if (!grid) return;
+    grid.textContent = '';
+    albums.forEach(function (album, i) {
+      grid.appendChild(makeAlbumChip(album, i, true));
+    });
+  }
+
+  function openAlbumSheet() {
+    if (S.phase !== 'select') return;
+    const sheet = $('album-sheet');
+    if (!sheet) return;
+    renderAlbumSheet();
+    sheet.classList.remove('hidden');
+    sheet.setAttribute('aria-hidden', 'false');
+    const active = sheet.querySelector('.album-chip.active');
+    if (active) {
+      requestAnimationFrame(function () {
+        try { active.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) {}
+      });
+    }
+  }
+
+  function closeAlbumSheet() {
+    const sheet = $('album-sheet');
+    if (!sheet) return;
+    sheet.classList.add('hidden');
+    sheet.setAttribute('aria-hidden', 'true');
   }
 
   function renderTrackList() {
@@ -287,14 +476,16 @@
       num.className = 'num';
       num.textContent = String(i + 1).padStart(2, '0');
 
+      const info = document.createElement('span');
+      info.className = 'info';
       const name = document.createElement('span');
       name.className = 'name';
       name.textContent = track.title;
-
       const meta = document.createElement('span');
-      meta.className = 'meta';
-      const diff = Number.isFinite(track.difficulty) ? track.difficulty + '/10' : '—';
-      meta.textContent = fmtTime(track.duration) + ' · ' + diff;
+      meta.className = 'sub';
+      meta.textContent = trackMeta(track);
+      info.appendChild(name);
+      info.appendChild(meta);
 
       const best = document.createElement('span');
       best.className = 'best';
@@ -302,8 +493,7 @@
       best.textContent = bscore ? fmtScore(bscore.score) : '—';
 
       b.appendChild(num);
-      b.appendChild(name);
-      b.appendChild(meta);
+      b.appendChild(info);
       b.appendChild(best);
       b.addEventListener('click', function () {
         if (S.phase !== 'select') return;
@@ -342,8 +532,13 @@
   }
 
   function updateHeader() {
+    if (!S.album) return;
     $('album-heading').textContent = S.album.title;
-    $('album-count').textContent = S.album.tracks.length + ' ТРЕКОВ';
+    $('album-count').textContent = tCount('select.trackCount', S.album.tracks.length);
+    const badge = $('album-badge');
+    if (badge) badge.textContent = albumInitials(S.album.title);
+    const albumsBtn = $('btn-albums');
+    if (albumsBtn) albumsBtn.textContent = t('select.albums');
   }
 
   function selectTrack(index, silent) {
@@ -363,18 +558,7 @@
       }
     }
 
-    const track = S.track;
-    $('sel-album').textContent = S.album.title.toUpperCase();
-    $('sel-title').textContent = track.title;
-    $('sel-duration').textContent = fmtTime(track.duration);
-    $('sel-bpm').textContent = Number.isFinite(track.bpm) ? String(track.bpm) : '—';
-    $('sel-diff').textContent = Number.isFinite(track.difficulty) ? track.difficulty + '/10' : '—';
-    $('sel-notes').textContent = Number.isFinite(track.notes) ? String(track.notes) : '—';
-    const b = bestOf(track.id);
-    $('sel-best').textContent = b
-      ? 'РЕКОРД · ' + fmtScore(b.score) + ' · ' + (b.rank || '') + ' · ' + (b.acc || 0) + '%'
-      : 'РЕКОРД · ЕЩЁ НЕ СЫГРАН';
-
+    updateTrackPanel();
     previewTheme();
     saveLast();
   }
@@ -389,10 +573,7 @@
       if (best) best.textContent = b ? fmtScore(b.score) : '—';
     }
     if (S.track && S.track.id === trackId) {
-      const b = bestOf(trackId);
-      $('sel-best').textContent = b
-        ? 'РЕКОРД · ' + fmtScore(b.score) + ' · ' + (b.rank || '') + ' · ' + (b.acc || 0) + '%'
-        : 'РЕКОРД · ЕЩЁ НЕ СЫГРАН';
+      $('sel-best').textContent = bestLineFor(trackId);
     }
   }
 
@@ -488,6 +669,8 @@
     S.section = chart.sections && chart.sections.length ? chart.sections[0] : null;
     S.lastMissFx = -10;
     S.result = null;
+    S.punch = 0;
+    setTintTarget(S.section ? S.section.tag : 'theme', true);
     S.leadActive = true;
     S.leadStart = performance.now();
     S.leadPausedAt = null;
@@ -516,19 +699,20 @@
     audio.sfxOn = S.settings.sfx;
 
     showPauseButton(false);
+    closeAlbumSheet();
     showScreen('screen-load');
     $('load-album').textContent = album.title.toUpperCase();
     $('load-title').textContent = track.title;
-    setLoadProgress(0.04, 'ЧИТАЕМ ЧАРТ…');
+    setLoadProgress(0.04, 'load.reading');
 
     try {
       const chart = await loadChart(track);
-      setLoadProgress(0.34, 'ЧАРТ ГОТОВ · ОТКРЫВАЕМ ЗВУК…');
+      setLoadProgress(0.34, 'load.chartReady');
       await audio.loadTrack(track, function (p) {
         const pct = clamp(0.34 + p * 0.62, 0.34, 0.97);
-        setLoadProgress(pct, p >= 1 ? 'ЗВУК ГОТОВ' : 'СТРИМИМ ТРЕК…');
+        setLoadProgress(pct, p >= 1 ? 'load.soundReady' : 'load.streaming');
       });
-      setLoadProgress(0.98, 'ПОЕХАЛИ');
+      setLoadProgress(0.98, 'load.go');
       prepareRun(chart);
       setPhase('playing');
       hideScreens();
@@ -540,20 +724,26 @@
       console.error(err);
       setPhase('error');
       showPauseButton(false);
-      $('err-text').textContent = String(err && err.message ? err.message : err);
+      const errEl = $('err-text');
+      const raw = String(err && err.message ? err.message : err);
+      if (errEl) {
+        errEl.dataset.raw = '1';
+        errEl.textContent = raw;
+      }
       showScreen('screen-error');
       S.startLock = false;
     }
   }
 
-  function setLoadProgress(p, status) {
-    const pct = Math.round(clamp(p, 0, 1) * 100);
+  function setLoadProgress(p, key) {
+    S.load = { p: clamp(p, 0, 1), key: key || S.load.key };
+    const pct = Math.round(S.load.p * 100);
     const bar = $('load-bar');
     const num = $('load-percent');
     const st = $('load-status');
     if (bar) bar.style.width = pct + '%';
     if (num) num.textContent = pct + '%';
-    if (st && status) st.textContent = status;
+    if (st && S.load.key) st.textContent = t(S.load.key);
   }
 
   async function startAudioForRun() {
@@ -618,6 +808,8 @@
     audio.stop();
     S.leadActive = false;
     S.leadPausedAt = null;
+    resetTint();
+    closeAlbumSheet();
     setPhase('select');
     showPauseButton(false);
     hideScreens();
@@ -627,6 +819,8 @@
 
   function toMenu() {
     audio.stop();
+    resetTint();
+    closeAlbumSheet();
     setPhase('menu');
     showPauseButton(false);
     hideScreens();
@@ -638,6 +832,8 @@
   function openCatalog() {
     ensureAudioUnlocked();
     if (!S.album) initialSelection();
+    resetTint();
+    closeAlbumSheet();
     setPhase('select');
     showPauseButton(false);
     hideScreens();
@@ -699,7 +895,13 @@
         x: Art.W / 2, y: Art.H * 0.42, text: '×' + S.combo,
         color: Art.theme.sun, life: 1.1, maxLife: 1.1, vy: -9, size: 1.35
       });
-      for (let i = 0; i < 12; i++) {
+      S.punch = Math.max(S.punch, 0.9);
+      S.shake = Math.max(S.shake, 0.32);
+      S.rings.push({
+        x: Art.W / 2, y: Art.HIT_Y, r: 4, maxR: Art.laneGap * 2.2,
+        life: 0.7, maxLife: 0.7, color: Art.theme.accent2, wide: true
+      });
+      for (let i = 0; i < 16; i++) {
         const a = Math.random() * Math.PI * 2;
         S.particles.push({
           x: Art.W / 2 + Math.cos(a) * 30, y: Art.H * 0.42 + Math.sin(a) * 18,
@@ -717,11 +919,12 @@
     S.fever = FEVER_TIME;
     S.flow = 100;
     audio.feverChime();
-    S.flash = Math.max(S.flash, 0.25);
-    S.shake = Math.max(S.shake, 0.7);
+    S.flash = Math.max(S.flash, 0.32);
+    S.shake = Math.max(S.shake, 1.15);
+    S.punch = Math.max(S.punch, 1.6);
     S.popups.push({
-      x: Art.W / 2, y: Art.H * 0.3, text: 'ФИВЕР ×2',
-      color: Art.theme.sun, life: 1.6, maxLife: 1.6, vy: -10, size: 1.7
+      x: Art.W / 2, y: Art.H * 0.3, text: t('hud.feverBadge'),
+      color: Art.theme.sun, life: 1.8, maxLife: 1.8, vy: -10, size: 1.7
     });
     S.rings.push({
       x: Art.W / 2, y: Art.HIT_Y, r: 10, maxR: Math.min(Art.W, Art.H) * 0.42,
@@ -747,9 +950,10 @@
     const col = theme.lane[lane] || theme.accent;
     const perfect = q === 'perfect';
     S.lanePulse[lane] = 1;
-    S.shake = Math.max(S.shake, perfect ? 0.35 : 0.16);
+    S.shake = Math.max(S.shake, perfect ? 0.48 : q === 'good' ? 0.26 : 0.16);
+    if (perfect) S.punch = Math.max(S.punch, 0.55);
 
-    const count = perfect ? 14 : q === 'good' ? 9 : 5;
+    const count = perfect ? 18 : q === 'good' ? 12 : 7;
     for (let i = 0; i < count; i++) {
       const a = -Math.PI * 0.5 + (Math.random() - 0.5) * (perfect ? 2.8 : 2.2);
       const sp = perfect ? 50 + Math.random() * 90 : 26 + Math.random() * 52;
@@ -774,7 +978,7 @@
     if (perfect) S.flash = Math.max(S.flash, 0.06);
     S.popups.push({
       x: x, y: y - Art.laneGap * 0.3,
-      text: perfect ? 'ИДЕАЛЬНО' : q === 'good' ? 'ХОРОШО' : 'ТОЧНО',
+      text: t(perfect ? 'judge.perfect' : q === 'good' ? 'judge.good' : 'judge.ok'),
       color: perfect ? theme.sun : q === 'good' ? theme.accent : col,
       life: perfect ? 0.8 : 0.6, maxLife: perfect ? 0.8 : 0.6, vy: -34, size: 1
     });
@@ -811,7 +1015,7 @@
       life: 0.3, maxLife: 0.3, color: theme.fog, wide: false
     });
     S.popups.push({
-      x: x, y: Art.HIT_Y - Art.laneGap * 0.26, text: 'МИМО',
+      x: x, y: Art.HIT_Y - Art.laneGap * 0.26, text: t('judge.miss'),
       color: theme.fog, life: 0.5, maxLife: 0.5, vy: -20, size: 0.9
     });
     audio.missTick();
@@ -861,12 +1065,19 @@
   }
 
   function rankFor(acc) {
-    if (acc >= 97) return { name: 'ЛЕГЕНДА КАТАЛОГА', sub: 'Весь зал знает твоё имя.', color: '#ffe08a' };
-    if (acc >= 92) return { name: 'ХЕДЛАЙНЕР', sub: 'Свет сцены держится на тебе.', color: '#ffc24a' };
-    if (acc >= 84) return { name: 'РЕЗИДЕНТ', sub: 'Пульс найден, поток держится.', color: '#7affc0' };
-    if (acc >= 70) return { name: 'УЧАСТНИК', sub: 'Ещё пара треков до идеала.', color: '#8fd3ff' };
-    if (acc >= 50) return { name: 'СЛУШАТЕЛЬ', sub: 'Лови момент и не спеши.', color: '#b8b0e8' };
-    return { name: 'ДЕБЮТ', sub: 'Каждый ритм начинается с первого удара.', color: '#9aa4b8' };
+    let key = 'debut';
+    let color = '#9aa4b8';
+    if (acc >= 97) { key = 'legend'; color = '#ffe08a'; }
+    else if (acc >= 92) { key = 'headliner'; color = '#ffc24a'; }
+    else if (acc >= 84) { key = 'resident'; color = '#7affc0'; }
+    else if (acc >= 70) { key = 'participant'; color = '#8fd3ff'; }
+    else if (acc >= 50) { key = 'listener'; color = '#b8b0e8'; }
+    return {
+      key: key,
+      name: t('rank.' + key + '.name'),
+      sub: t('rank.' + key + '.sub'),
+      color: color
+    };
   }
 
   function saveBest(result) {
@@ -880,6 +1091,7 @@
         score: result.score,
         acc: Math.round(result.acc * 10) / 10,
         combo: result.maxCombo,
+        rankKey: result.rank.key,
         rank: result.rank.name,
         plays: plays,
         at: Date.now()
@@ -901,14 +1113,16 @@
     $('res-score').textContent = fmtScore(r.score);
     $('res-acc').textContent = r.acc.toFixed(1) + '%';
     $('res-combo').textContent = String(r.maxCombo);
-    $('res-counts').textContent =
-      'ИДЕАЛЬНО ' + r.perfect + ' · ХОРОШО ' + r.good +
-      ' · ТОЧНО ' + r.ok + ' · МИМО ' + r.miss;
+    $('res-counts').textContent = t('result.counts', {
+      perfect: r.perfect, good: r.good, ok: r.ok, miss: r.miss
+    });
     const best = bestOf(S.track ? S.track.id : '');
     if (r.newBest) {
-      $('res-best').textContent = 'НОВЫЙ РЕКОРД · ' + fmtScore(r.score);
+      $('res-best').textContent = t('result.newBest', { score: fmtScore(r.score) });
     } else if (best) {
-      $('res-best').textContent = 'ЛУЧШИЙ РЕЗУЛЬТАТ · ' + fmtScore(best.score) + ' · ' + (best.rank || '');
+      $('res-best').textContent = t('result.best', {
+        score: fmtScore(best.score), rank: rankNameForBest(best)
+      });
     } else {
       $('res-best').textContent = '';
     }
@@ -926,6 +1140,8 @@
   // ---------------------------------------------------------------- update
   function update(dt) {
     S.ambient += dt;
+    updateTint(dt);
+    S.punch = Math.max(0, S.punch - dt * 4.2);
     if (S.phase === 'playing') {
       if (S.leadActive) {
         const now = (performance.now() - S.leadStart) / 1000 - LEAD_IN;
@@ -1001,9 +1217,12 @@
     if (idx !== S.sectionIndex) {
       S.sectionIndex = idx;
       S.section = S.chart.sections[idx];
+      setTintTarget(S.section && S.section.tag);
       if (!S.leadActive) {
         announce(S.section, idx === 0);
-        S.flash = Math.max(S.flash, 0.08);
+        S.flash = Math.max(S.flash, 0.16);
+        S.punch = Math.max(S.punch, 0.6);
+        S.shake = Math.max(S.shake, 0.16);
       }
     }
   }
@@ -1120,6 +1339,8 @@
       missFlash: S.missFlash,
       fever: S.fever / FEVER_TIME,
       shake: S.shake,
+      punch: S.punch,
+      tint: S.tint,
       lanePulse: S.lanePulse,
       laneKeys: LANE_KEYS,
       songTime: S.songTime
@@ -1190,7 +1411,9 @@
     for (let i = 1; i < 24; i++) {
       ctx.fillRect(margin + (w / 24) * i, y, 1, h);
     }
-    const label = S.fever > 0 ? 'ФИВЕР ×2 · ' + S.fever.toFixed(1) + 'С' : 'ПОТОК';
+    const label = S.fever > 0
+      ? t('hud.feverBadge') + ' · ' + S.fever.toFixed(1) + t('hud.seconds')
+      : t('hud.flow');
     hudText(label, margin, y - ui * 0.55, ui * 0.62, S.fever > 0 ? theme.sun : theme.fog, 'left', 0.95);
     hudText(Math.round(S.flow) + '%', margin + w, y - ui * 0.55, ui * 0.62, theme.fog, 'right', 0.95);
   }
@@ -1203,8 +1426,8 @@
     const theme = Art.theme;
     const y = S.safeTop + ui * (Art.portrait ? 4.75 : 4.2);
     hudText(b.num, Art.W / 2, y - ui * 0.78, ui * 0.62, theme.accent, 'center', a * 0.9);
-    hudText(b.name, Art.W / 2, y, ui * 0.92, '#f4f7fb', 'center', a);
-    hudText(b.sub, Art.W / 2, y + ui * 0.78, ui * 0.6, theme.fog, 'center', a * 0.92);
+    hudText(sectionName(S.section), Art.W / 2, y, ui * 0.92, '#f4f7fb', 'center', a);
+    hudText(sectionSub(S.section), Art.W / 2, y + ui * 0.78, ui * 0.6, theme.fog, 'center', a * 0.92);
     ctx.save();
     ctx.globalAlpha = a * 0.3;
     ctx.fillStyle = theme.accent;
@@ -1226,7 +1449,7 @@
     ctx.fill();
     ctx.restore();
     hudText(String(n), Art.W / 2, cy, ui * 6.4, theme.sun, 'center', 1);
-    hudText('ПРИГОТОВЬСЯ', Art.W / 2, cy + ui * 4.2, ui * 0.82, theme.fog, 'center', 0.95);
+    hudText(t('hud.ready'), Art.W / 2, cy + ui * 4.2, ui * 0.82, theme.fog, 'center', 0.95);
     if (S.track) {
       hudText(S.track.title, Art.W / 2, cy + ui * 5.3, ui * 1.2, '#f4f7fb', 'center', 0.9);
       hudText(S.album ? S.album.title : '', Art.W / 2, cy + ui * 6.2, ui * 0.7, theme.accent, 'center', 0.85);
@@ -1257,20 +1480,23 @@
 
     const labelY = top + ui * 1.18;
     const valueY = labelY + ui * 1.02;
-    hudText('ОЧКИ', margin, labelY, ui * 0.66, theme.fog, 'left', 1);
+    const bpm = S.chart && Number.isFinite(S.chart.bpm)
+      ? Math.round(S.chart.bpm)
+      : (S.track && Number.isFinite(S.track.bpm) ? Math.round(S.track.bpm) : null);
+    hudText(t('hud.score') + (bpm ? ' · ' + bpm + ' BPM' : ''), margin, labelY, ui * 0.66, theme.fog, 'left', 1);
     hudText(fmtScore(S.score), margin, valueY, ui * 1.65, '#f4f7fb', 'left', 1);
 
-    hudText('ТОЧНОСТЬ', Art.W - margin, labelY, ui * 0.66, theme.fog, 'right', 1);
+    hudText(t('hud.accuracy'), Art.W - margin, labelY, ui * 0.66, theme.fog, 'right', 1);
     hudText(liveAccuracy().toFixed(1) + '%', Art.W - margin, valueY, ui * 1.2, '#f4f7fb', 'right', 1);
 
     if (S.combo > 0) {
-      hudText('КОМБО', Art.W / 2, labelY, ui * 0.62, theme.accent, 'center', 0.95);
+      hudText(t('hud.combo'), Art.W / 2, labelY, ui * 0.62, theme.accent, 'center', 0.95);
       hudText(String(S.combo), Art.W / 2, valueY, ui * 1.45, theme.accent, 'center', 1);
       if (S.fever > 0) {
         hudText('×2', Art.W / 2 + ui * 1.55, valueY + ui * 0.12, ui * 0.72, theme.sun, 'left', 0.95);
       }
     } else if (S.fever > 0) {
-      hudText('ФИВЕР', Art.W / 2, labelY, ui * 0.62, theme.sun, 'center', 0.95);
+      hudText(t('hud.fever'), Art.W / 2, labelY, ui * 0.62, theme.sun, 'center', 0.95);
       hudText(S.fever.toFixed(1), Art.W / 2, valueY, ui * 1.45, theme.sun, 'center', 1);
     }
 
@@ -1374,7 +1600,10 @@
     audio.setOffsetMs(S.settings.offsetMs);
     saveSettings();
     updateSettingsUi();
-    showToast('ЗАДЕРЖКА ' + (S.settings.offsetMs > 0 ? '+' : '') + S.settings.offsetMs + ' МС');
+    showToast(t('toast.offset', {
+      value: (S.settings.offsetMs > 0 ? '+' : '') + S.settings.offsetMs,
+      unit: t('common.ms')
+    }));
   }
 
   function adjustVolume(delta) {
@@ -1382,7 +1611,7 @@
     audio.setVolume(S.settings.volume);
     saveSettings();
     updateSettingsUi();
-    showToast('ГРОМКОСТЬ ' + Math.round(S.settings.volume * 100) + '%');
+    showToast(t('toast.volume', { value: Math.round(S.settings.volume * 100) }));
   }
 
   function toggleSfx() {
@@ -1390,16 +1619,21 @@
     audio.sfxOn = S.settings.sfx;
     saveSettings();
     updateSettingsUi();
-    showToast('ЗВУК УДАРОВ ' + (S.settings.sfx ? 'ВКЛ' : 'ВЫКЛ'));
+    showToast(t('toast.sfx', { state: S.settings.sfx ? t('common.on') : t('common.off') }));
   }
 
   function updateSettingsUi() {
     const off = $('off-value');
     const vol = $('vol-value');
     const sfx = $('btn-sfx');
-    if (off) off.textContent = (S.settings.offsetMs > 0 ? '+' : '') + S.settings.offsetMs + ' МС';
+    if (off) off.textContent = t('pause.offsetValue', {
+      value: (S.settings.offsetMs > 0 ? '+' : '') + S.settings.offsetMs,
+      unit: t('common.ms')
+    });
     if (vol) vol.textContent = Math.round(S.settings.volume * 100) + '%';
-    if (sfx) sfx.textContent = 'ЗВУК УДАРОВ: ' + (S.settings.sfx ? 'ВКЛ' : 'ВЫКЛ');
+    if (sfx) sfx.textContent = t('pause.sfx', {
+      state: S.settings.sfx ? t('common.on') : t('common.off')
+    });
   }
 
   function wireUi() {
@@ -1418,6 +1652,21 @@
     $('btn-next').addEventListener('click', function () { nextTrack(); });
     $('btn-catalog').addEventListener('click', quitToCatalog);
     $('btn-err-back').addEventListener('click', quitToCatalog);
+
+    const albumsBtn = $('btn-albums');
+    if (albumsBtn) albumsBtn.addEventListener('click', openAlbumSheet);
+    const albumClose = $('btn-album-close');
+    if (albumClose) albumClose.addEventListener('click', closeAlbumSheet);
+    const sheet = $('album-sheet');
+    if (sheet) {
+      sheet.addEventListener('click', function (e) {
+        if (e.target === sheet) closeAlbumSheet();
+      });
+    }
+    document.querySelectorAll('[data-lang]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setLanguage(btn.dataset.lang); });
+    });
+
     $('btn-ready').addEventListener('click', async function () {
       hideScreens();
       setPhase('playing');
@@ -1456,6 +1705,17 @@
           ensureAudioUnlocked(); openCatalog(); return;
         }
       } else if (S.phase === 'select') {
+        const sheetOpen = $('album-sheet') && !$('album-sheet').classList.contains('hidden');
+        if (sheetOpen) {
+          if (code === 'Escape') { closeAlbumSheet(); return; }
+          if (code === 'ArrowDown') { selectAlbum(S.albumIndex + 1, 0); return; }
+          if (code === 'ArrowUp') { selectAlbum(S.albumIndex - 1, 0); return; }
+          if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
+            closeAlbumSheet(); return;
+          }
+          if (code === 'KeyB') { closeAlbumSheet(); return; }
+          return;
+        }
         if (code === 'ArrowDown') { selectTrack(S.trackIndex + 1); return; }
         if (code === 'ArrowUp') { selectTrack(S.trackIndex - 1); return; }
         if (code === 'ArrowRight') { selectAlbum(S.albumIndex + 1, 0); return; }
@@ -1508,11 +1768,13 @@
   // ------------------------------------------------------------------ init
   function init() {
     loadStore();
+    if (I18N) I18N.setLang(S.settings.lang);
     resize();
     setupMenu();
     initialSelection();
     updateSettingsUi();
     wireUi();
+    refreshLanguageUi();
     setPhase('menu');
     showScreen('screen-menu');
     showPauseButton(false);

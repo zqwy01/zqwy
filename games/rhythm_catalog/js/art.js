@@ -1142,14 +1142,39 @@
     const bar = state.downPulse || 0;
     const fever = state.fever || 0;
     const shake = state.shake || 0;
+    const punch = state.punch || 0;
 
+    // Base fill: keeps the frame opaque while the punch scale and shake move
+    // the cached background around.
     ctx.save();
     ctx.globalAlpha = 1;
+    ctx.fillStyle = theme.sky ? theme.sky[0] : '#04060a';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    if (punch > 0.001) {
+      const p = 1 + punch * 0.018;
+      ctx.translate(W / 2, H / 2);
+      ctx.scale(p, p);
+      ctx.translate(-W / 2, -H / 2);
+    }
     if (shake > 0.01) {
-      const s = shake * Math.min(W, H) * 0.007;
-      ctx.translate(Math.sin(t * 71) * s, Math.cos(t * 63) * s);
+      // Two detuned oscillators give a looser, less mechanical shake than a
+      // single sine; the punch briefly widens it on big hits.
+      const s = Math.min(W, H) * (shake * 0.0065 + punch * 0.0018);
+      const ox = (Math.sin(t * 47.3) + 0.5 * Math.sin(t * 29.7 + 1.3)) * s;
+      const oy = (Math.cos(t * 41.1) + 0.5 * Math.cos(t * 33.9 + 0.7)) * s;
+      ctx.translate(ox, oy);
     }
     ctx.drawImage(bg, 0, 0, W, H);
+
+    // Section tint: a slow colour wash driven by the current chart section.
+    const tint = state.tint;
+    if (tint && tint.a > 0.001) {
+      ctx.fillStyle = 'rgba(' + Math.round(tint.r) + ',' + Math.round(tint.g) + ',' +
+        Math.round(tint.b) + ',' + clamp(tint.a, 0, 0.35) + ')';
+      ctx.fillRect(0, 0, W, H);
+    }
 
     // twinkling sky points
     if (theme.scene === 'space' || theme.scene === 'void' || theme.scene === 'forest') {
@@ -1188,10 +1213,23 @@
       ctx.fillRect(0, 0, W, H);
       ctx.globalCompositeOperation = 'source-over';
     }
+    drawScanlines(ctx, t);
     if (state.fade > 0.001) {
       ctx.fillStyle = 'rgba(0,0,0,' + clamp(state.fade, 0, 1) * 0.75 + ')';
       ctx.fillRect(0, 0, W, H);
     }
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawScanlines(ctx, t) {
+    // Subtle CRT lines, drifting just enough to feel alive.
+    const step = Math.max(3, Math.round(H / 260));
+    const off = Math.floor((t * 9) % step);
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    for (let y = off; y < H; y += step) ctx.fillRect(0, y, W, 1);
     ctx.restore();
   }
 
@@ -1328,6 +1366,20 @@
       ctx.fillStyle = trail;
       ctx.fillRect(x - w * 0.42, y - h * 1.8, w * 0.84, h * 2.8);
       glow(ctx, x, y, w * (0.9 + hot * 0.25), col, (0.10 + hot * 0.10) * appear);
+      if (hot > 0) {
+        // Comet wisp and a flickering halo as the note reaches the pad.
+        ctx.fillStyle = rgba(theme.sun, 0.10 + 0.08 * Math.sin(t * 24 + i));
+        ctx.fillRect(x - w * 0.055, y - h * 3.6, w * 0.11, h * 2.5);
+        ctx.strokeStyle = rgba(col, 0.20);
+        ctx.lineWidth = 1;
+        for (let k = 0; k < 2; k++) {
+          const yy = y + h * (0.9 + k * 0.55);
+          ctx.beginPath();
+          ctx.moveTo(x - w * 0.30, yy);
+          ctx.lineTo(x + w * 0.30, yy);
+          ctx.stroke();
+        }
+      }
       ctx.restore();
 
       // body
@@ -1339,6 +1391,10 @@
       body.addColorStop(1, shade(col, 0.62));
       ctx.fillStyle = body;
       rr(ctx, x - w / 2, y - h / 2, w, h, h * 0.42);
+      ctx.fill();
+      // inner core
+      ctx.fillStyle = rgba('#ffffff', 0.12 + hot * 0.18);
+      rr(ctx, x - w * 0.20, y - h * 0.24, w * 0.40, Math.max(1.4, h * 0.24), h * 0.1);
       ctx.fill();
       // top highlight
       ctx.fillStyle = rgba('#ffffff', 0.32);

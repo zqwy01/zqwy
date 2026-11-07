@@ -88,6 +88,7 @@
     const itemPickups = [];
     const usedNames = new Map();
     const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+    let proceduralStoryCount = 0;
 
     function roleAt(cx, cy) {
       return fixedByCell.get(cellKey(cx, cy)) || 'procedural';
@@ -110,7 +111,19 @@
 
       const ccx = Math.floor(cx / CHUNK);
       const ccy = Math.floor(cy / CHUNK);
-      const role = (ccx === 0 && ccy === 0) ? roleAt(cx, cy) : 'procedural';
+      const startChunk = ccx === 0 && ccy === 0;
+      const role = startChunk ? roleAt(cx, cy) : 'procedural';
+      let storyIndex = null;
+      if (!startChunk && !fixedByCell.has(key)) {
+        const chance = proceduralStoryCount === 0
+          ? (Number.isFinite(W.storyFirstChance) ? W.storyFirstChance : 0.25)
+          : (Number.isFinite(W.storyNextChance) ? W.storyNextChance : 0.08);
+        const roll = hashString(`${seed}:story:${cx}:${cy}`) / 4294967296;
+        if (roll < chance) {
+          storyIndex = hashString(`${seed}:storypick:${cx}:${cy}`) % C.proceduralStories.length;
+          proceduralStoryCount++;
+        }
+      }
       const meta = C.roomMeta[role];
       let name;
 
@@ -135,6 +148,7 @@
         ox,
         oy,
         role,
+        storyIndex,
         name,
         tag: meta ? meta.tag : '',
         music: meta ? meta.music : 'labyrinth',
@@ -209,7 +223,19 @@
       chunk.tiles[index] = value;
     }
 
+    function corridorWidth(edge) {
+      const min = Math.max(1, Math.round(W.corridorMin || 1));
+      const max = Math.max(min, Math.round(W.corridorMax || min));
+      const span = max - min + 1;
+      const value = hashString(
+        `${seed}:corridor:${edge.ax}:${edge.ay}:${edge.bx}:${edge.by}`
+      ) % span;
+      return min + value;
+    }
+
     function carveEdge(chunk, edge) {
+      const width = corridorWidth(edge);
+      const half = Math.floor((width - 1) / 2);
       if (edge.ay === edge.by) {
         /* Горизонтальный коридор: комнаты стоят слева и справа. */
         const ax = edge.ax * stepX;
@@ -217,12 +243,14 @@
         const left = Math.min(ax, bx);
         const right = Math.max(ax, bx);
         const y0 = edge.ay * stepY + Math.floor(W.ROOM_H / 2);
+        const y1 = y0 - half;
+        const y2 = y1 + width - 1;
         for (let x = left + W.ROOM_W - 1; x <= right; x++) {
-          for (let y = y0 - 1; y <= y0 + 1; y++) {
+          for (let y = y1; y <= y2; y++) {
             setTileInChunk(chunk, x, y, 1);
           }
         }
-        for (let y = y0 - 1; y <= y0 + 1; y++) {
+        for (let y = y1; y <= y2; y++) {
           setTileInChunk(chunk, left + W.ROOM_W - 1, y, 5);
           setTileInChunk(chunk, right, y, 5);
         }
@@ -233,12 +261,14 @@
         const top = Math.min(ay, by);
         const bottom = Math.max(ay, by);
         const x0 = edge.ax * stepX + Math.floor(W.ROOM_W / 2);
+        const x1 = x0 - half;
+        const x2 = x1 + width - 1;
         for (let y = top + W.ROOM_H - 1; y <= bottom; y++) {
-          for (let x = x0 - 1; x <= x0 + 1; x++) {
+          for (let x = x1; x <= x2; x++) {
             setTileInChunk(chunk, x, y, 1);
           }
         }
-        for (let x = x0 - 1; x <= x0 + 1; x++) {
+        for (let x = x1; x <= x2; x++) {
           setTileInChunk(chunk, top + W.ROOM_H - 1, x, 5);
           setTileInChunk(chunk, bottom, x, 5);
         }

@@ -21,6 +21,12 @@
       : Date.now();
   }
 
+  /* Единая точка перевода для модулей, которые не хотят знать,
+     подключён ли i18n. До загрузки словаря текст остаётся русским. */
+  function tr(text) {
+    return window.ZQ_TR ? window.ZQ_TR(text) : text;
+  }
+
   function plural(n, forms) {
     const abs = Math.abs(n) % 100;
     const last = abs % 10;
@@ -45,11 +51,21 @@
     termContext: $('term-context'),
     commandForm: $('command-form'),
     commandInput: $('command-input'),
+    commandSuggest: $('command-suggest'),
     viewMain: $('view-main'),
     terminal: $('terminal'),
 
+    btnSave: $('btn-save'),
+    btnLoad: $('btn-load'),
+    btnExport: $('btn-export'),
+    btnSettings: $('btn-settings'),
+
     settingsView: $('view-settings'),
     settingsClose: $('settings-close'),
+    termSettingsView: $('view-term-settings'),
+    termSettingsClose: $('term-settings-close'),
+    termSettingsBack: $('term-settings-back'),
+    openTermSettings: $('open-term-settings'),
     settingSpeed: $('setting-speed'),
     settingSpeedNumber: $('setting-speed-number'),
     settingSpeedValue: $('setting-speed-value'),
@@ -64,10 +80,28 @@
     settingFontTableNumber: $('setting-font-table-number'),
     settingsReset: $('settings-reset'),
     settingLogEnabled: $('setting-log-enabled'),
+    settingLogTerminal: $('setting-log-terminal'),
+    settingLogScenes: $('setting-log-scenes'),
+    settingLogSystem: $('setting-log-system'),
+    settingLogWorld: $('setting-log-world'),
     settingLogMovement: $('setting-log-movement'),
     settingLogActions: $('setting-log-actions'),
     settingLogCommands: $('setting-log-commands'),
     settingLogState: $('setting-log-state'),
+    settingLanguageState: $('setting-language-state'),
+
+    musicToggle: $('music-toggle'),
+    musicStop: $('music-stop'),
+    musicSeek: $('music-seek'),
+    musicTime: $('music-time'),
+    musicCue: $('music-cue'),
+    musicVolume: $('music-volume'),
+    musicState: $('music-state'),
+    dataSave: $('data-save'),
+    dataLoad: $('data-load'),
+    dataExport: $('data-export'),
+
+    aspectWarning: $('aspect-warning'),
 
     storyView: $('view-story'),
     storyClose: $('story-close'),
@@ -103,6 +137,7 @@
     canvasWorkspace: $('canvas-workspace'),
     canvasStage: $('canvas-stage'),
     canvasElements: $('canvas-elements'),
+    canvasLinks: $('canvas-links'),
     canvasEmpty: $('canvas-empty'),
     canvasDrawer: $('canvas-drawer'),
     canvasDrawerClose: $('canvas-drawer-close'),
@@ -117,6 +152,11 @@
     canvasKeysToggle: $('canvas-keys-toggle'),
     canvasKeysTabs: $('canvas-keys-tabs'),
     canvasKeysBody: $('canvas-keys-body'),
+    canvasKeyboard: $('canvas-keyboard'),
+    canvasKeyboardHint: $('canvas-keyboard-hint'),
+    canvasMoveSeconds: $('canvas-move-seconds'),
+    canvasMoveNote: $('canvas-move-note'),
+    canvasMoveStop: $('canvas-move-stop'),
 
     cardView: $('view-card'),
     cardTitle: $('card-title'),
@@ -140,6 +180,7 @@
     card: dom.cardView,
     story: dom.storyView,
     settings: dom.settingsView,
+    termSettings: dom.termSettingsView,
     trial: dom.trialView
   };
 
@@ -153,19 +194,25 @@
   const FONT_MAX = 24;
   const FONT_BASE = 14;
   const OVERRIDE_MAX = 28;
-  const UNLOCK_IDS = ['backpack', 'map', 'table'];
+  const UNLOCK_IDS = ['backpack', 'map', 'table', 'cards'];
+  const LOG_KEYS = ['terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands'];
+
+  function loggingDefaults() {
+    const source = (C.terminal && C.terminal.logging) || {};
+    const result = { enabled: Boolean(source.enabled) };
+    for (const key of LOG_KEYS) {
+      result[key] = source[key] !== false;
+    }
+    return result;
+  }
 
   const DEFAULT_TERM_SETTINGS = {
     speed: 70,
     fontSize: 14,
     fontOverrides: { terminal: 0, table: 0 },
-    logging: {
-      enabled: Boolean(C.terminal.logging && C.terminal.logging.enabled),
-      movement: !C.terminal.logging || C.terminal.logging.movement !== false,
-      actions: !C.terminal.logging || C.terminal.logging.actions !== false,
-      commands: !C.terminal.logging || C.terminal.logging.commands !== false
-    },
-    music: C.music ? C.music.enabled !== false : true
+    logging: loggingDefaults(),
+    music: C.music ? C.music.enabled !== false : true,
+    musicVolume: C.music && Number.isFinite(C.music.volume) ? C.music.volume : 0.55
   };
 
   const rt = {
@@ -211,7 +258,8 @@
       fontSize: DEFAULT_TERM_SETTINGS.fontSize,
       fontOverrides: { ...DEFAULT_TERM_SETTINGS.fontOverrides },
       logging: { ...DEFAULT_TERM_SETTINGS.logging },
-      music: DEFAULT_TERM_SETTINGS.music
+      music: DEFAULT_TERM_SETTINGS.music,
+      musicVolume: DEFAULT_TERM_SETTINGS.musicVolume
     },
     logBusy: false,
     logToken: 0,
@@ -222,8 +270,18 @@
     commandHistory: [],
     commandHistoryIndex: -1,
     commandDraft: '',
+    commandSuggestions: [],
+    commandSuggestIndex: -1,
     moveLogAt: 0,
-    moveLogDir: ''
+    moveLogDir: '',
+
+    timedMove: null,
+    cursorMove: null,
+    cursorHold: false,
+    cursorPointer: null,
+    loadMs: 0,
+    aspectWarned: false,
+    musicTimer: 0
   };
 
   function defaultState(seed) {
@@ -241,7 +299,7 @@
       mapMarks: [],
       canvasElements: [],
       storySeen: {},
-      unlocks: { backpack: false, map: false, table: false },
+      unlocks: { backpack: false, map: false, table: false, cards: false },
       deaths: 0
     };
   }
@@ -322,33 +380,174 @@
     }
   }
 
+  function serializeState() {
+    const state = rt.state;
+    return {
+      version: SAVE_VERSION,
+      seed: state.seed,
+      player: {
+        x: state.player.x,
+        y: state.player.y,
+        facingX: state.player.facingX,
+        facingY: state.player.facingY
+      },
+      flags: state.flags,
+      visited: state.visited,
+      items: state.items,
+      backpacks: state.backpacks,
+      mapMarks: state.mapMarks,
+      canvasElements: state.canvasElements,
+      storySeen: state.storySeen,
+      unlocks: state.unlocks,
+      deaths: state.deaths,
+      savedAt: Date.now()
+    };
+  }
+
   function saveGame() {
-    if (!rt.state || !rt.state.player) return;
+    if (!rt.state || !rt.state.player) return false;
     try {
-      const state = rt.state;
-      const data = {
-        version: SAVE_VERSION,
-        seed: state.seed,
-        player: {
-          x: state.player.x,
-          y: state.player.y,
-          facingX: state.player.facingX,
-          facingY: state.player.facingY
-        },
-        flags: state.flags,
-        visited: state.visited,
-        items: state.items,
-        backpacks: state.backpacks,
-        mapMarks: state.mapMarks,
-        canvasElements: state.canvasElements,
-        storySeen: state.storySeen,
-        unlocks: state.unlocks,
-        deaths: state.deaths
-      };
-      window.localStorage.setItem(C.saveKey, JSON.stringify(data));
+      window.localStorage.setItem(C.saveKey, JSON.stringify(serializeState()));
+      return true;
     } catch (error) {
       /* Приватный режим или переполнение — игра продолжает работать. */
+      return false;
     }
+  }
+
+  function resetTransientMotion() {
+    rt.keys = Object.create(null);
+    for (const key of Object.keys(rt.gamepadKeys)) rt.gamepadKeys[key] = false;
+    rt.timedMove = null;
+    rt.cursorMove = null;
+    rt.cursorHold = false;
+    rt.cursorPointer = null;
+    if (rt.state && rt.state.player) rt.state.player.moving = false;
+  }
+
+  function closeAllOverlays() {
+    rt.storyQueue.length = 0;
+    rt.storyActive = false;
+    if (rt.trialRaf) window.cancelAnimationFrame(rt.trialRaf);
+    rt.trialRaf = 0;
+    rt.trial = null;
+    if (typeof ZQ.hideTrialStage === 'function') ZQ.hideTrialStage();
+    rt.canvasLinkMode = false;
+    rt.linkFirstId = null;
+    rt.keyBindingId = null;
+    rt.canvasDrag = null;
+    rt.canvasPinch = null;
+    rt.workspacePan = null;
+    if (dom.canvasLinkToggle) dom.canvasLinkToggle.classList.remove('active');
+    if (typeof ZQ.closeCanvasDrawer === 'function') ZQ.closeCanvasDrawer();
+  }
+
+  function loadGame() {
+    const saved = readSave();
+    if (!saved) return { ok: false, reason: 'empty' };
+
+    const started = now();
+    const seed = typeof saved.seed === 'string' && saved.seed ? saved.seed : newSeed();
+    closeAllOverlays();
+    resetTransientMotion();
+
+    rt.state = defaultState(seed);
+    rt.world = window.World.generate(seed);
+    hydrateState(saved);
+    if (!ZQ.canStandAt(rt.state.player.x, rt.state.player.y)) respawnPlayerAtSpawn();
+    rt.state.currentRoomId = null;
+    ZQ.snapCamera();
+    rt.state.currentRoomId = ZQ.roomIdForPosition ? ZQ.roomIdForPosition() : rt.world.spawn.roomId;
+    rt.loadMs = Math.max(0, Math.round(now() - started));
+
+    ZQ.applyCanvasTransform();
+    ZQ.renderCanvasElements();
+    ZQ.renderCanvasDrawer();
+    ZQ.renderKeyScheme();
+    ZQ.setTerminalView('main');
+    ZQ.updatePrompt();
+    if (rt.state.currentRoomId) rt.state.visited[rt.state.currentRoomId] = true;
+    ZQ.saveGame();
+    return { ok: true, seed, savedAt: saved.savedAt || 0 };
+  }
+
+  function respawnPlayerAtSpawn() {
+    rt.state.player.x = rt.world.spawn.x;
+    rt.state.player.y = rt.world.spawn.y;
+    rt.state.player.facingX = 0;
+    rt.state.player.facingY = -1;
+    rt.state.player.moving = false;
+    if (typeof ZQ.snapCamera === 'function') ZQ.snapCamera();
+  }
+
+  function exportGame() {
+    if (!rt.state || !rt.state.player) return false;
+    const data = serializeState();
+    data.exportedAt = new Date().toISOString();
+    data.title = C.title;
+    data.kind = 'zqwy-world';
+    data.world = {
+      seed: rt.state.seed,
+      chunkSize: rt.world ? rt.world.CHUNK : null,
+      rooms: rt.world ? rt.world.rooms.length : 0
+    };
+    const text = JSON.stringify(data, null, 2);
+
+    try {
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `zqwy-world-${rt.state.seed || 'seed'}.json`;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function aspectInfo() {
+    const width = Math.max(1, window.innerWidth || 1);
+    const height = Math.max(1, window.innerHeight || 1);
+    const ratio = width / height;
+    const limits = C.display || { minAspect: 1.32, maxAspect: 2.4, ideal: 16 / 9 };
+    const min = Number.isFinite(limits.minAspect) ? limits.minAspect : 1.32;
+    const max = Number.isFinite(limits.maxAspect) ? limits.maxAspect : 2.4;
+    return {
+      width,
+      height,
+      ratio,
+      min,
+      max,
+      ok: ratio >= min && ratio <= max,
+      ideal: Number.isFinite(limits.ideal) ? limits.ideal : 16 / 9
+    };
+  }
+
+  function checkAspectRatio(announce) {
+    if (!dom.aspectWarning) return null;
+    const info = aspectInfo();
+    dom.aspectWarning.classList.toggle('hidden', info.ok);
+    if (!info.ok) {
+      dom.aspectWarning.textContent = ZQ.tr
+        ? ZQ.tr(`Пропорции экрана ${info.ratio.toFixed(2)}:1. Поддерживается примерно 16:9. Измени окно, чтобы не было визуальных дефектов.`)
+        : `Пропорции экрана ${info.ratio.toFixed(2)}:1. Поддерживается примерно 16:9.`;
+    }
+
+    if (info.ok) {
+      rt.aspectWarned = false;
+      return info;
+    }
+    if (announce && !rt.aspectWarned) {
+      rt.aspectWarned = true;
+      const text = `Пропорции экрана ${info.ratio.toFixed(2)}:1. Поддерживается примерно 16:9. Терминал предупреждает: возможны визуальные дефекты.`;
+      ZQ.appendLog(text, 'sys', true);
+    }
+    return info;
   }
 
   function hydrateState(saved) {
@@ -566,6 +765,7 @@
   }
 
   function startNewGame() {
+    const started = now();
     const seed = newSeed();
     try {
       window.localStorage.removeItem(C.saveKey);
@@ -590,8 +790,7 @@
     rt.state.currentRoomId = rt.world.spawn.roomId;
     rt.state.visited[rt.world.spawn.roomId] = true;
 
-    rt.keys = Object.create(null);
-    for (const key of Object.keys(rt.gamepadKeys)) rt.gamepadKeys[key] = false;
+    resetTransientMotion();
     rt.canvasLinkMode = false;
     rt.linkFirstId = null;
     rt.keyBindingId = null;
@@ -601,14 +800,16 @@
     rt.canvasZoom = 1;
     rt.canvasPanX = 0;
     rt.canvasPanY = 0;
+    rt.aspectWarned = false;
     dom.canvasLinkToggle.classList.remove('active');
     ZQ.closeCanvasDrawer();
 
     ZQ.snapCamera();
+    rt.loadMs = Math.max(0, Math.round(now() - started));
     ZQ.clearLog();
+    ZQ.appendLog(`Мир загружен за ${rt.loadMs} мс. Seed: ${seed}`, 'sys', true);
     C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
     C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
-    ZQ.appendLog(`Новый Лабиринт. Seed: ${seed}`, 'sys', true);
     setTerminalView('main');
     ZQ.applyCanvasTransform();
     ZQ.renderCanvasElements();
@@ -636,15 +837,23 @@
       UNLOCK_IDS
     },
     DEFAULT_TERM_SETTINGS,
+    LOG_KEYS,
     clamp,
     lerp,
     now,
+    tr,
     plural,
     makeId,
     defaultState,
     newSeed,
     readSave,
     saveGame,
+    loadGame,
+    exportGame,
+    serializeState,
+    aspectInfo,
+    checkAspectRatio,
+    resetTransientMotion,
     knownItemId,
     normalizeCanvasElement,
     hydrateState,
@@ -662,7 +871,7 @@
     },
     isPaused() {
       if (document.hidden) return true;
-      return rt.termView !== 'main';
+      return rt.termView !== 'main' && rt.termView !== 'canvas';
     },
     resetKeys() {
       rt.keys = Object.create(null);

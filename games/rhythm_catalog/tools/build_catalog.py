@@ -37,7 +37,7 @@ ALBUM_TITLES = {
     "backers": "Backers",
     "be_simpler": "Be Simpler",
     "biela": "Biela",
-    "blizko_boha": "Близко Бога",
+    "blizko_boha": "Blizko Boha",
     "broken_space": "Broken Space",
     "cyber_absolutus": "Cyber Absolutus",
     "cyber_logos": "Cyber Logos",
@@ -61,7 +61,7 @@ ALBUM_TITLES = {
     "new_adventure": "New Adventure",
     "new_tablet": "New Tablet",
     "not_diverse": "Not Diverse",
-    "not_sorted": "Не разобрано",
+    "not_sorted": "Unsorted",
     "petunia": "Petunia",
     "rastignac": "Rastignac",
     "runner": "Runner",
@@ -134,6 +134,25 @@ def probe_duration(path: Path) -> float:
         return 0.0
 
 
+def probe_chart_meta(track_id: str) -> dict:
+    """Reuse the tempo and section count written by the chart generator."""
+    try:
+        chart = json.loads((GAME_DIR / "data" / "charts" / f"{track_id}.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    meta: dict = {}
+    try:
+        bpm = round(float(chart.get("bpm") or 0), 2)
+        if bpm > 0:
+            meta["bpm"] = bpm
+    except (TypeError, ValueError):
+        pass
+    sections = chart.get("sections")
+    if isinstance(sections, list) and sections:
+        meta["sections"] = len(sections)
+    return meta
+
+
 def collect(tracks_dir: Path) -> list[dict]:
     audio: list[Path] = []
     for path in tracks_dir.rglob("*"):
@@ -198,7 +217,7 @@ def collect(tracks_dir: Path) -> list[dict]:
                     n += 1
                 track_id = f"{track_id}-{n}"
             used_ids.add(track_id)
-            entries.append({
+            entry = {
                 "id": track_id,
                 "title": pretty_title(base),
                 "file": base,
@@ -207,7 +226,9 @@ def collect(tracks_dir: Path) -> list[dict]:
                 "bytes": path.stat().st_size,
                 "chart": f"data/charts/{track_id}.json",
                 "seed": int.from_bytes(track_id.encode("utf-8")[:8].ljust(8, b"\0"), "little"),
-            })
+            }
+            entry.update(probe_chart_meta(track_id))
+            entries.append(entry)
         entries.sort(key=lambda t: natural_key(t["file"]))
         out.append({
             "id": album_theme(folder),

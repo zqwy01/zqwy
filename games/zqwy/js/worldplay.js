@@ -84,10 +84,41 @@
   function updateMovement(dt) {
     let mx = 0;
     let my = 0;
+    let mode = 'keys';
     if (rt.keys.up || rt.gamepadKeys.up) my -= 1;
     if (rt.keys.down || rt.gamepadKeys.down) my += 1;
     if (rt.keys.left || rt.gamepadKeys.left) mx -= 1;
     if (rt.keys.right || rt.gamepadKeys.right) mx += 1;
+
+    if (mx || my) {
+      /* Ручное управление всегда важнее команды и цели курсора. */
+      rt.timedMove = null;
+      rt.cursorMove = null;
+      mode = 'keys';
+    } else if (rt.timedMove) {
+      const move = rt.timedMove;
+      move.remaining = Math.max(0, move.remaining - dt);
+      mx = move.vx;
+      my = move.vy;
+      mode = 'timed';
+      if (move.remaining <= 0) {
+        rt.timedMove = null;
+        mx = 0;
+        my = 0;
+      }
+    } else if (rt.cursorMove) {
+      const cursor = rt.cursorMove;
+      const dx = cursor.x - rt.state.player.x;
+      const dy = cursor.y - rt.state.player.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance <= 0.09) {
+        rt.cursorMove = null;
+      } else {
+        mx = dx / distance;
+        my = dy / distance;
+        mode = 'cursor';
+      }
+    }
 
     if (!mx && !my) {
       rt.state.player.moving = false;
@@ -108,14 +139,81 @@
     if (rt.moveLogDir !== name || time - rt.moveLogAt > 1200) {
       rt.moveLogDir = name;
       rt.moveLogAt = time;
-      ZQ.logEvent('movement', `шаг ${name}`, 'шаг');
+      const suffix = mode === 'timed' && rt.timedMove
+        ? ` (${rt.timedMove.remaining.toFixed(1)} с)`
+        : mode === 'cursor' ? ' (к курсору)' : '';
+      ZQ.logEvent('movement', `шаг ${name}${suffix}`, 'шаг');
     }
 
-    const step = C.player.speed * dt;
+    let step = C.player.speed * dt;
+    if (mode === 'cursor' && rt.cursorMove) {
+      const remaining = Math.hypot(
+        rt.cursorMove.x - rt.state.player.x,
+        rt.cursorMove.y - rt.state.player.y
+      );
+      step = Math.min(step, remaining);
+    }
     const nx = rt.state.player.x + mx * step;
     if (canStandAt(nx, rt.state.player.y)) rt.state.player.x = nx;
     const ny = rt.state.player.y + my * step;
     if (canStandAt(rt.state.player.x, ny)) rt.state.player.y = ny;
+
+    if (mode === 'cursor' && rt.cursorMove) {
+      const distance = Math.hypot(
+        rt.cursorMove.x - rt.state.player.x,
+        rt.cursorMove.y - rt.state.player.y
+      );
+      if (distance <= 0.1) rt.cursorMove = null;
+    }
+  }
+
+  function startTimedMove(direction, seconds) {
+    const dirs = {
+      up: [0, -1, 'вверх'],
+      down: [0, 1, 'вниз'],
+      left: [-1, 0, 'влево'],
+      right: [1, 0, 'вправо'],
+      вверх: [0, -1, 'вверх'],
+      вниз: [0, 1, 'вниз'],
+      влево: [-1, 0, 'влево'],
+      вправо: [1, 0, 'вправо']
+    };
+    const dir = dirs[String(direction || '').toLowerCase()];
+    if (!dir) return '';
+    const duration = ZQ.clamp(Number(seconds) || 1, 0.2, 120);
+    rt.cursorMove = null;
+    rt.timedMove = {
+      vx: dir[0],
+      vy: dir[1],
+      remaining: duration,
+      total: duration,
+      direction: dir[2]
+    };
+    rt.state.player.facingX = dir[0];
+    rt.state.player.facingY = dir[1];
+    rt.state.player.moving = true;
+    updateRoomDetection();
+    updatePrompt();
+    return ZQ.tr(`Иду ${dir[2]} ${duration} с.`);
+  }
+
+  function stopMovement() {
+    ZQ.resetKeys();
+    rt.state.player.moving = false;
+    rt.timedMove = null;
+    rt.cursorMove = null;
+    rt.moveLogDir = '';
+    return ZQ.tr('Движение остановлено.');
+  }
+
+  function setCursorDestination(x, y, hold) {
+    if (!rt.state || !rt.world) return false;
+    const tx = Number(x);
+    const ty = Number(y);
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    rt.timedMove = null;
+    rt.cursorMove = { x: tx, y: ty, hold: Boolean(hold) };
+    return true;
   }
 
   function updateCamera() {
@@ -157,6 +255,12 @@
       } else {
         ZQ.queueStory(room.role);
       }
+      return;
+    }
+
+    if (room.storyIndex !== null && room.storyIndex !== undefined &&
+        C.proceduralStories[room.storyIndex]) {
+      ZQ.queueProceduralStory(room);
       return;
     }
 
@@ -473,4 +577,7 @@
   ZQ.inventorySummary = inventorySummary;
   ZQ.mapMark = mapMark;
   ZQ.nudgePlayer = nudgePlayer;
+  ZQ.startTimedMove = startTimedMove;
+  ZQ.stopMovement = stopMovement;
+  ZQ.setCursorDestination = setCursorDestination;
 })();

@@ -49,7 +49,7 @@
       lane: ['#d8f4ff', '#8fd0ff', '#b0e6d8', '#e0c8ff'], note: '#f2fdff'
     },
     'blizko-boha': {
-      title: 'Близко Бога', scene: 'cathedral', weather: 'dust',
+      title: 'Blizko Boha', scene: 'cathedral', ui: { shape: 'rune', mark: 'cross', radius: 5, glow: 0.30, tilt: -1 }, weather: 'dust',
       sky: ['#0c0904', '#1c1408', '#38280e'], horizon: ['#5a4216', '#8a6524'],
       accent: '#f5d075', accent2: '#fff3c4', fog: '#b08d45', sun: '#fff6cf',
       lane: ['#f5d075', '#ffe8a8', '#d8b0ff', '#ffd98a'], note: '#fff3c4'
@@ -229,7 +229,7 @@
       lane: ['#a07aff', '#5ee6ff', '#ff5ea8', '#d0b8ff'], note: '#d8c8ff'
     },
     'not-sorted': {
-      title: 'Не разобрано', scene: 'void', weather: 'dust',
+      title: 'Unsorted', scene: 'void', ui: { shape: 'cut', mark: 'dot', radius: 3, glow: 0.12, tilt: 0 }, weather: 'dust',
       sky: ['#09080b', '#141218', '#242030'], horizon: ['#332e42', '#4a445c'],
       accent: '#c8b8e8', accent2: '#8ad8c8', fog: '#7a7090', sun: '#e8e0ff',
       lane: ['#c8b8e8', '#8ad8c8', '#ffb88a', '#a8b0ff'], note: '#e8e0ff'
@@ -247,6 +247,34 @@
       h = Math.imul(h, 16777619);
     }
     return h >>> 0;
+  }
+
+  // UI identity: every release gets its own button silhouette, corner mark and
+  // glow, derived from the album's scene plus a stable hash of its folder id.
+  const UI_SHAPES = ['soft', 'cut', 'pill', 'sharp', 'round', 'hex'];
+  const MARK_BY_SCENE = {
+    arena: 'spark', cathedral: 'cross', circus: 'star', city: 'grid',
+    desert: 'sun', edge: 'arc', field: 'leaf', forest: 'rune',
+    garden: 'petal', grid: 'grid', hall: 'column', ice: 'shard',
+    industrial: 'gear', orb: 'eye', organic: 'cell', rain: 'drop',
+    ruins: 'ruin', space: 'star', void: 'dot'
+  };
+  const FALLBACK_MARKS = ['rune', 'grid', 'star', 'wave', 'dot', 'spark'];
+
+  function uiFor(theme, id) {
+    const h = hash32(String(id || theme.title || 'zqwy') + '|' + String(theme.scene || 'void'));
+    return {
+      shape: UI_SHAPES[h % UI_SHAPES.length],
+      mark: MARK_BY_SCENE[theme.scene] || FALLBACK_MARKS[(h >>> 4) % FALLBACK_MARKS.length],
+      radius: 4 + ((h >>> 9) % 20),
+      glow: 0.14 + ((h >>> 15) % 22) / 100,
+      tilt: ((h >>> 21) % 5) - 2
+    };
+  }
+
+  function withUi(theme, id) {
+    if (!theme.ui) theme.ui = uiFor(theme, id);
+    return theme;
   }
 
   // ------------------------------------------------------- per-track variants
@@ -403,7 +431,7 @@
   }
 
   function forAlbum(id, title) {
-    return THEMES[id] || generated(String(id || 'unknown'), title);
+    return withUi(THEMES[id] || generated(String(id || 'unknown'), title), id);
   }
 
   window.RhythmThemes = {

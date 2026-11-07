@@ -1,4 +1,7 @@
-/* Терминал: сообщения, представления, настройки и логгирование. */
+/* Терминал: сообщения, представления, настройки и логгирование.
+   Логгирование — это запись действий. Категории нужны для фильтрации
+   полезного текста: терминал, сцены, система, мир, движение, действия,
+   команды. */
 (function () {
   'use strict';
 
@@ -16,14 +19,42 @@
     OVERRIDE_MAX
   } = ZQ.constants;
   const DEFAULT = ZQ.DEFAULT_TERM_SETTINGS;
+  const LOG_KEYS = ZQ.LOG_KEYS || ['terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands'];
+
+  function isEn() {
+    return Boolean(window.ZQI18N && window.ZQI18N.lang === 'en');
+  }
+
+  function t(ru, en) {
+    return isEn() ? en : ru;
+  }
+
+  function translate(text) {
+    return window.ZQI18N && typeof window.ZQI18N.tr === 'function'
+      ? window.ZQI18N.tr(text)
+      : text;
+  }
+
+  function translateLabel(label) {
+    return window.ZQI18N && typeof window.ZQI18N.trLabel === 'function'
+      ? window.ZQI18N.trLabel(label)
+      : label;
+  }
+
+  function loggingFallback() {
+    const result = { enabled: Boolean(DEFAULT.logging.enabled) };
+    for (const key of LOG_KEYS) result[key] = DEFAULT.logging[key] !== false;
+    return result;
+  }
 
   function readTermSettings() {
     const fallback = {
       speed: DEFAULT.speed,
       fontSize: DEFAULT.fontSize,
       fontOverrides: { ...DEFAULT.fontOverrides },
-      logging: { ...DEFAULT.logging },
-      music: DEFAULT.music
+      logging: loggingFallback(),
+      music: DEFAULT.music,
+      musicVolume: DEFAULT.musicVolume
     };
     try {
       const raw = window.localStorage.getItem(TERM_SETTINGS_KEY);
@@ -35,7 +66,7 @@
       const logging = parsed.logging && typeof parsed.logging === 'object'
         ? parsed.logging
         : {};
-      return {
+      const result = {
         speed: Number.isFinite(parsed.speed) ? parsed.speed : fallback.speed,
         fontSize: Number.isFinite(parsed.fontSize) ? parsed.fontSize : fallback.fontSize,
         fontOverrides: {
@@ -43,13 +74,19 @@
           table: Number.isFinite(overrides.table) ? overrides.table : 0
         },
         logging: {
-          enabled: typeof logging.enabled === 'boolean' ? logging.enabled : fallback.logging.enabled,
-          movement: typeof logging.movement === 'boolean' ? logging.movement : fallback.logging.movement,
-          actions: typeof logging.actions === 'boolean' ? logging.actions : fallback.logging.actions,
-          commands: typeof logging.commands === 'boolean' ? logging.commands : fallback.logging.commands
+          enabled: typeof logging.enabled === 'boolean' ? logging.enabled : fallback.logging.enabled
         },
-        music: typeof parsed.music === 'boolean' ? parsed.music : fallback.music
+        music: typeof parsed.music === 'boolean' ? parsed.music : fallback.music,
+        musicVolume: Number.isFinite(parsed.musicVolume)
+          ? parsed.musicVolume
+          : fallback.musicVolume
       };
+      for (const key of LOG_KEYS) {
+        result.logging[key] = typeof logging[key] === 'boolean'
+          ? logging[key]
+          : fallback.logging[key];
+      }
+      return result;
     } catch (error) {
       return fallback;
     }
@@ -68,44 +105,74 @@
         ? ZQ.clamp(Math.round(value), 0, OVERRIDE_MAX)
         : 0;
     }
-    if (!s.logging || typeof s.logging !== 'object') s.logging = { ...DEFAULT.logging };
-    for (const key of ['enabled', 'movement', 'actions', 'commands']) {
-      s.logging[key] = typeof s.logging[key] === 'boolean' ? s.logging[key] : DEFAULT.logging[key];
+    if (!s.logging || typeof s.logging !== 'object') s.logging = loggingFallback();
+    for (const key of LOG_KEYS) {
+      s.logging[key] = typeof s.logging[key] === 'boolean'
+        ? s.logging[key]
+        : DEFAULT.logging[key] !== false;
     }
+    s.logging.enabled = typeof s.logging.enabled === 'boolean'
+      ? s.logging.enabled
+      : Boolean(DEFAULT.logging.enabled);
     s.music = typeof s.music === 'boolean' ? s.music : DEFAULT.music;
+    s.musicVolume = Number.isFinite(s.musicVolume)
+      ? ZQ.clamp(s.musicVolume, 0, 1)
+      : DEFAULT.musicVolume;
   }
 
-  function scaleFor(override) {
-    const size = override > 0 ? override : rt.termSettings.fontSize;
-    return size / FONT_BASE;
+  function categoryName(key) {
+    const names = {
+      terminal: t('терминал', 'terminal'),
+      scenes: t('сцены', 'scenes'),
+      system: t('система', 'system'),
+      world: t('мир', 'world'),
+      movement: t('движение', 'movement'),
+      actions: t('действия', 'actions'),
+      commands: t('команды', 'commands')
+    };
+    return names[key] || key;
   }
 
   function loggingSummary() {
     const logging = rt.termSettings.logging;
-    if (!logging.enabled) return 'выключено';
+    if (!logging.enabled) return t('выключено', 'off');
     const parts = [];
-    if (logging.movement) parts.push('движение');
-    if (logging.actions) parts.push('действия');
-    if (logging.commands) parts.push('команды');
-    return parts.length ? `включено: ${parts.join(', ')}` : 'включено, но все категории выключены';
+    for (const key of LOG_KEYS) {
+      if (logging[key]) parts.push(categoryName(key));
+    }
+    if (!parts.length) return t('включено, но все категории выключены', 'on, but all categories are off');
+    return `${t('включено', 'on')}: ${parts.join(', ')}`;
+  }
+
+  function applyFonts() {
+    if (!window.ZQFonts) return;
+    const s = rt.termSettings;
+    window.ZQFonts.apply(s.fontSize, s.fontOverrides);
+  }
+
+  function setChecked(input, value) {
+    if (input) input.checked = Boolean(value);
+  }
+
+  function setValue(input, value) {
+    if (input) input.value = String(value);
   }
 
   function applyTermSettings(persist) {
     normalizeTermSettings();
     const s = rt.termSettings;
-
-    document.documentElement.style.setProperty('--ui-scale', String(scaleFor(0)));
-    dom.terminal.style.setProperty('--ui-scale', String(scaleFor(s.fontOverrides.terminal)));
-    dom.canvasView.style.setProperty('--ui-scale', String(scaleFor(s.fontOverrides.table)));
+    applyFonts();
 
     if (dom.settingSpeed) {
-      dom.settingSpeed.value = String(s.speed);
-      dom.settingSpeedNumber.value = String(s.speed);
-      dom.settingSpeedValue.textContent = s.speed <= 0 ? 'сразу' : `${s.speed} зн/с`;
+      setValue(dom.settingSpeed, s.speed);
+      setValue(dom.settingSpeedNumber, s.speed);
+      dom.settingSpeedValue.textContent = s.speed <= 0
+        ? t('сразу', 'instant')
+        : `${s.speed} ${t('зн/с', 'ch/s')}`;
     }
     if (dom.settingFont) {
-      dom.settingFont.value = String(s.fontSize);
-      dom.settingFontNumber.value = String(s.fontSize);
+      setValue(dom.settingFont, s.fontSize);
+      setValue(dom.settingFontNumber, s.fontSize);
       dom.settingFontValue.textContent = `${s.fontSize} px`;
     }
 
@@ -113,8 +180,8 @@
       const value = s.fontOverrides[key];
       const slider = key === 'terminal' ? dom.settingFontTerminal : dom.settingFontTable;
       const number = key === 'terminal' ? dom.settingFontTerminalNumber : dom.settingFontTableNumber;
-      if (slider) slider.value = String(value);
-      if (number) number.value = String(value);
+      setValue(slider, value);
+      setValue(number, value);
     };
     setOverrideInputs('terminal');
     setOverrideInputs('table');
@@ -130,17 +197,27 @@
       });
     }
 
-    if (dom.settingLogEnabled) {
-      dom.settingLogEnabled.checked = s.logging.enabled;
-      dom.settingLogMovement.checked = s.logging.movement;
-      dom.settingLogActions.checked = s.logging.actions;
-      dom.settingLogCommands.checked = s.logging.commands;
+    setChecked(dom.settingLogEnabled, s.logging.enabled);
+    setChecked(dom.settingLogTerminal, s.logging.terminal);
+    setChecked(dom.settingLogScenes, s.logging.scenes);
+    setChecked(dom.settingLogSystem, s.logging.system);
+    setChecked(dom.settingLogWorld, s.logging.world);
+    setChecked(dom.settingLogMovement, s.logging.movement);
+    setChecked(dom.settingLogActions, s.logging.actions);
+    setChecked(dom.settingLogCommands, s.logging.commands);
+    if (dom.settingLogState) {
+      dom.settingLogState.textContent = loggingSummary();
     }
-    if (dom.settingLogState) dom.settingLogState.textContent = loggingSummary();
 
-    if (ZQ.audio && typeof ZQ.audio.setEnabled === 'function') {
-      ZQ.audio.setEnabled(s.music);
+    if (dom.settingLanguageState) {
+      dom.settingLanguageState.textContent = isEn() ? 'English' : 'русский';
     }
+
+    if (ZQ.audio) {
+      if (typeof ZQ.audio.setVolume === 'function') ZQ.audio.setVolume(s.musicVolume);
+      if (typeof ZQ.audio.setEnabled === 'function') ZQ.audio.setEnabled(s.music);
+    }
+    updateMusicUI();
 
     if (persist) {
       try {
@@ -169,7 +246,7 @@
   function setLogging(key, value) {
     if (key === 'enabled') {
       rt.termSettings.logging.enabled = Boolean(value);
-    } else if (['movement', 'actions', 'commands'].includes(key)) {
+    } else if (LOG_KEYS.includes(key)) {
       rt.termSettings.logging[key] = Boolean(value);
     }
     applyTermSettings(true);
@@ -177,6 +254,11 @@
 
   function setMusicEnabled(value) {
     rt.termSettings.music = Boolean(value);
+    applyTermSettings(true);
+  }
+
+  function setMusicVolume(value) {
+    rt.termSettings.musicVolume = ZQ.clamp(Number(value), 0, 1);
     applyTermSettings(true);
   }
 
@@ -188,93 +270,67 @@
     ZQ.resetKeys();
   }
 
+  function openTermSettings() {
+    if (ZQ.isTrialBlocking()) return;
+    ZQ.ensureTerminalShare(0.5);
+    applyTermSettings(false);
+    ZQ.setTerminalView('termSettings');
+    ZQ.resetKeys();
+  }
+
   function closeSettings() {
     ZQ.setTerminalView('main');
     ZQ.updatePrompt();
   }
 
-  dom.settingsClose.addEventListener('click', closeSettings);
-  dom.settingSpeed.addEventListener('input', () => setSpeed(dom.settingSpeed.value));
-  dom.settingSpeedNumber.addEventListener('change', () => setSpeed(dom.settingSpeedNumber.value));
-  dom.settingFont.addEventListener('input', () => setFontSize(dom.settingFont.value));
-  dom.settingFontNumber.addEventListener('change', () => setFontSize(dom.settingFontNumber.value));
-  dom.settingFontTerminal.addEventListener('input', () => {
-    setFontOverride('terminal', dom.settingFontTerminal.value);
-  });
-  dom.settingFontTerminalNumber.addEventListener('change', () => {
-    setFontOverride('terminal', dom.settingFontTerminalNumber.value);
-  });
-  dom.settingFontTable.addEventListener('input', () => {
-    setFontOverride('table', dom.settingFontTable.value);
-  });
-  dom.settingFontTableNumber.addEventListener('change', () => {
-    setFontOverride('table', dom.settingFontTableNumber.value);
-  });
-  dom.settingLogEnabled.addEventListener('change', () => {
-    setLogging('enabled', dom.settingLogEnabled.checked);
-  });
-  dom.settingLogMovement.addEventListener('change', () => {
-    setLogging('movement', dom.settingLogMovement.checked);
-  });
-  dom.settingLogActions.addEventListener('change', () => {
-    setLogging('actions', dom.settingLogActions.checked);
-  });
-  dom.settingLogCommands.addEventListener('change', () => {
-    setLogging('commands', dom.settingLogCommands.checked);
-  });
-
-  dom.settingsView.addEventListener('click', (event) => {
-    const clear = event.target.closest('[data-font-clear]');
-    if (clear) {
-      setFontOverride(clear.dataset.fontClear, 0);
-      return;
-    }
-    const speedButton = event.target.closest('[data-speed]');
-    if (speedButton) {
-      setSpeed(speedButton.dataset.speed);
-      return;
-    }
-    const fontButton = event.target.closest('[data-font]');
-    if (fontButton) setFontSize(fontButton.dataset.font);
-  });
-  dom.settingsReset.addEventListener('click', () => {
-    rt.termSettings = {
-      speed: DEFAULT.speed,
-      fontSize: DEFAULT.fontSize,
-      fontOverrides: { ...DEFAULT.fontOverrides },
-      logging: { ...DEFAULT.logging },
-      music: DEFAULT.music
-    };
-    applyTermSettings(true);
-  });
+  /* ----------------------------- Лог ------------------------------- */
 
   function defaultLabelForType(type) {
-    if (type === 'sys') return 'система';
-    if (type === 'story') return 'сцена';
-    if (type === 'reply') return 'система';
+    if (type === 'sys' || type === 'reply') return t('система', 'system');
+    if (type === 'story' || type === 'log-scenes') return t('сцена', 'scene');
     if (type === 'cmd') return 'Zemic:';
-    if (type === 'log-movement') return 'шаг';
-    if (type === 'log-actions') return 'действие';
-    if (type === 'log-commands') return 'команда';
+    if (type === 'log-movement') return t('шаг', 'step');
+    if (type === 'log-actions') return t('действие', 'action');
+    if (type === 'log-commands') return t('команда', 'command');
+    if (type === 'log-terminal') return t('терминал', 'terminal');
+    if (type === 'log-world') return t('мир', 'world');
+    if (type === 'log-system') return t('система', 'system');
     return '';
   }
 
+  const LOG_TYPE_ALIAS = {
+    terminal: 'log-terminal',
+    scenes: 'log-scenes',
+    system: 'log-system',
+    world: 'log-world',
+    movement: 'log-movement',
+    actions: 'log-actions',
+    commands: 'log-commands'
+  };
+
   function appendLog(text, type, instant, label) {
     if (text === null || text === undefined || text === '') return;
+    const sourceType = type || 'sys';
+    const finalType = LOG_TYPE_ALIAS[sourceType] || sourceType;
+    const rawText = String(text);
+    const rawLabel = label === undefined ? defaultLabelForType(sourceType) : label;
     rt.logQueue.push({
-      text: String(text),
-      type: type || 'sys',
+      text: rawText,
+      type: finalType,
       instant: Boolean(instant) || rt.termSettings.speed <= 0,
-      label: label === undefined ? defaultLabelForType(type || 'sys') : label
+      label: rawLabel
     });
     pumpLog();
   }
 
   function logEvent(category, text, label) {
-    const logging = rt.termSettings.logging;
-    if (!logging.enabled || !logging[category]) return false;
-    appendLog(text, `log-${category}`, true, label || defaultLabelForType(`log-${category}`));
-    return true;
+    if (LOG_KEYS.includes(category)) {
+      const logging = rt.termSettings.logging;
+      if (!logging.enabled || !logging[category]) return false;
+      appendLog(text, `log-${category}`, true, label || defaultLabelForType(`log-${category}`));
+      return true;
+    }
+    return false;
   }
 
   function clearLog() {
@@ -301,6 +357,23 @@
     }
   }
 
+  function makeLogLine(entry) {
+    const line = document.createElement('div');
+    line.className = `log-line ${entry.type}`;
+    line.dataset.rawText = entry.text;
+    line.dataset.rawLabel = entry.label || '';
+    if (entry.label) {
+      const label = document.createElement('span');
+      label.className = 'log-label';
+      label.textContent = translateLabel(entry.label);
+      line.appendChild(label);
+    }
+    const body = document.createElement('span');
+    body.className = 'log-text';
+    line.appendChild(body);
+    return { line, body, display: translate(entry.text) };
+  }
+
   function pumpLog() {
     if (rt.logBusy) return;
     const entry = rt.logQueue.shift();
@@ -310,17 +383,7 @@
     }
     rt.logBusy = true;
 
-    const line = document.createElement('div');
-    line.className = `log-line ${entry.type}`;
-    if (entry.label) {
-      const label = document.createElement('span');
-      label.className = 'log-label';
-      label.textContent = entry.label;
-      line.appendChild(label);
-    }
-    const body = document.createElement('span');
-    body.className = 'log-text';
-    line.appendChild(body);
+    const { line, body, display } = makeLogLine(entry);
     dom.log.appendChild(line);
     dom.log.scrollTop = dom.log.scrollHeight;
 
@@ -331,8 +394,8 @@
       pumpLog();
     };
 
-    if (entry.instant || entry.text.length < 3) {
-      body.textContent = entry.text;
+    if (entry.instant || display.length < 3) {
+      body.textContent = display;
       finish();
       return;
     }
@@ -348,12 +411,12 @@
 
     const step = () => {
       if (token !== rt.logToken) {
-        body.textContent = entry.text;
+        body.textContent = display;
         finish();
         return;
       }
       if (rt.logSkip) {
-        body.textContent = entry.text;
+        body.textContent = display;
         finish();
         return;
       }
@@ -361,10 +424,10 @@
       const add = Math.floor(budget);
       if (add > 0) {
         budget -= add;
-        index = Math.min(entry.text.length, index + add);
-        body.textContent = entry.text.slice(0, index);
+        index = Math.min(display.length, index + add);
+        body.textContent = display.slice(0, index);
       }
-      if (index >= entry.text.length) {
+      if (index >= display.length) {
         finish();
         return;
       }
@@ -375,9 +438,26 @@
     step();
   }
 
+  /* Переводим уже показанные строки при смене языка. Исходный текст
+     хранится в dataset, поэтому русские записи становятся английскими. */
+  function translateLog() {
+    dom.log.querySelectorAll('.log-line').forEach((line) => {
+      const rawText = line.dataset.rawText;
+      const rawLabel = line.dataset.rawLabel;
+      if (rawLabel) {
+        const label = line.querySelector('.log-label');
+        if (label) label.textContent = translateLabel(rawLabel);
+      }
+      const body = line.querySelector('.log-text');
+      if (body && rawText !== undefined) body.textContent = translate(rawText);
+    });
+  }
+
   dom.log.addEventListener('click', () => {
     if (rt.logBusy) rt.logSkip = true;
   });
+
+  /* --------------------------- История ----------------------------- */
 
   function isTyping() {
     return document.activeElement === dom.commandInput;
@@ -396,17 +476,25 @@
     resetHistory();
   }
 
+  function historyText() {
+    const history = rt.commandHistory;
+    if (!history.length) return t('История команд пуста.', 'Command history is empty.');
+    const lines = [`${t('История команд', 'Command history')} (${history.length}):`];
+    history.forEach((entry, index) => {
+      lines.push(`  ${index + 1}. ${entry}`);
+    });
+    return lines.join('\n');
+  }
+
   function showHistory(offset) {
     const history = rt.commandHistory;
     if (!history.length) return;
     if (rt.commandHistoryIndex === -1) {
-      /* Из черновика ↑ уходит к последней команде, а ↓ уже некуда. */
       if (offset > 0) return;
       rt.commandDraft = dom.commandInput.value;
       rt.commandHistoryIndex = history.length - 1;
     } else {
       const next = rt.commandHistoryIndex + offset;
-      /* После последней команды ↓ возвращает пустой черновик. */
       rt.commandHistoryIndex = next >= history.length ? -1 : Math.max(-1, next);
     }
     if (rt.commandHistoryIndex === -1) {
@@ -421,6 +509,102 @@
       /* ignored */
     }
     dom.commandInput.focus();
+    refreshCommandSuggestions();
+  }
+
+  /* ------------------------- Автодополнение ------------------------ */
+
+  function suggestionPool() {
+    const pool = [];
+    for (const group of C.terminal.helpGroups) {
+      if (!ZQ.groupUnlocked(group)) continue;
+      for (const entry of group.commands) {
+        if (entry.bindable === false) continue;
+        if (!pool.includes(entry.command)) pool.push(entry.command);
+      }
+    }
+    for (const command of rt.commandHistory) {
+      if (!pool.includes(command)) pool.push(command);
+    }
+    return pool;
+  }
+
+  function hideSuggestions() {
+    rt.commandSuggestions = [];
+    rt.commandSuggestIndex = -1;
+    if (dom.commandSuggest) {
+      dom.commandSuggest.textContent = '';
+      dom.commandSuggest.classList.add('hidden');
+    }
+  }
+
+  function completeSuggestion() {
+    if (!rt.commandSuggestions.length) return false;
+    const index = rt.commandSuggestIndex >= 0 ? rt.commandSuggestIndex : 0;
+    const value = rt.commandSuggestions[index];
+    if (!value) return false;
+    dom.commandInput.value = value;
+    const end = value.length;
+    try {
+      dom.commandInput.setSelectionRange(end, end);
+    } catch (error) {
+      /* ignored */
+    }
+    hideSuggestions();
+    return true;
+  }
+
+  function refreshCommandSuggestions() {
+    if (!dom.commandSuggest) return;
+    if (!isTyping()) {
+      hideSuggestions();
+      return;
+    }
+    const value = dom.commandInput.value.trim();
+    const needle = value.toLowerCase();
+    const pool = suggestionPool();
+    const matches = [];
+    for (const command of pool) {
+      const lower = command.toLowerCase();
+      if (!needle || lower.startsWith(needle) || lower.includes(needle)) {
+        matches.push(command);
+      }
+      if (matches.length >= 7) break;
+    }
+    rt.commandSuggestions = matches;
+    rt.commandSuggestIndex = matches.length ? 0 : -1;
+    dom.commandSuggest.textContent = '';
+    if (!matches.length) {
+      dom.commandSuggest.classList.add('hidden');
+      return;
+    }
+    dom.commandSuggest.classList.remove('hidden');
+    for (const [index, command] of matches.entries()) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'command-suggest-item';
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+      item.dataset.command = command;
+
+      if (needle && command.toLowerCase().startsWith(needle)) {
+        const strong = document.createElement('b');
+        strong.textContent = command.slice(0, needle.length);
+        item.appendChild(strong);
+        item.appendChild(document.createTextNode(command.slice(needle.length)));
+      } else {
+        item.textContent = command;
+      }
+      item.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+      });
+      item.addEventListener('click', () => {
+        dom.commandInput.value = command;
+        hideSuggestions();
+        dom.commandInput.focus();
+      });
+      dom.commandSuggest.appendChild(item);
+    }
   }
 
   dom.commandInput.addEventListener('keydown', (event) => {
@@ -430,21 +614,30 @@
     } else if (event.code === 'ArrowDown') {
       event.preventDefault();
       showHistory(1);
+    } else if (event.code === 'Tab' && rt.commandSuggestions.length) {
+      event.preventDefault();
+      completeSuggestion();
+    } else if (event.code === 'Escape' && rt.commandSuggestions.length) {
+      event.preventDefault();
+      hideSuggestions();
     }
   });
+
   dom.commandInput.addEventListener('input', () => {
     if (rt.commandHistoryIndex !== -1) resetHistory();
+    refreshCommandSuggestions();
   });
 
   dom.commandForm.addEventListener('submit', (event) => {
     event.preventDefault();
     if (ZQ.isPaused()) {
-      appendLog('Сейчас не до команд.', 'sys', true);
+      appendLog(t('Сейчас не до команд.', 'Not now for commands.'), 'sys', true);
       return;
     }
     const value = dom.commandInput.value.trim();
     if (!value) return;
     dom.commandInput.value = '';
+    hideSuggestions();
     rememberCommand(value);
     appendLog(value, 'cmd', true);
     ZQ.handleCommand(value, 'terminal');
@@ -454,19 +647,244 @@
     dom.termContext.textContent = '';
     dom.termContext.classList.remove('tablet');
     dom.btnAction.classList.add('hidden');
+    refreshCommandSuggestions();
   });
 
   dom.commandInput.addEventListener('blur', () => {
+    window.setTimeout(() => {
+      if (!dom.commandInput.matches(':focus') &&
+          !dom.commandSuggest.contains(document.activeElement)) {
+        hideSuggestions();
+      }
+    }, 120);
     ZQ.updatePrompt();
   });
+
+  /* --------------------------- Настройки --------------------------- */
+
+  dom.settingsClose.addEventListener('click', closeSettings);
+  dom.termSettingsClose.addEventListener('click', closeSettings);
+  dom.termSettingsBack.addEventListener('click', openSettings);
+  dom.openTermSettings.addEventListener('click', openTermSettings);
+
+  dom.settingSpeed.addEventListener('input', () => setSpeed(dom.settingSpeed.value));
+  dom.settingSpeedNumber.addEventListener('change', () => setSpeed(dom.settingSpeedNumber.value));
+  dom.settingFont.addEventListener('input', () => setFontSize(dom.settingFont.value));
+  dom.settingFontNumber.addEventListener('change', () => setFontSize(dom.settingFontNumber.value));
+  dom.settingFontTerminal.addEventListener('input', () => {
+    setFontOverride('terminal', dom.settingFontTerminal.value);
+  });
+  dom.settingFontTerminalNumber.addEventListener('change', () => {
+    setFontOverride('terminal', dom.settingFontTerminalNumber.value);
+  });
+  dom.settingFontTable.addEventListener('input', () => {
+    setFontOverride('table', dom.settingFontTable.value);
+  });
+  dom.settingFontTableNumber.addEventListener('change', () => {
+    setFontOverride('table', dom.settingFontTableNumber.value);
+  });
+
+  const logInputs = {
+    enabled: dom.settingLogEnabled,
+    terminal: dom.settingLogTerminal,
+    scenes: dom.settingLogScenes,
+    system: dom.settingLogSystem,
+    world: dom.settingLogWorld,
+    movement: dom.settingLogMovement,
+    actions: dom.settingLogActions,
+    commands: dom.settingLogCommands
+  };
+  for (const [key, input] of Object.entries(logInputs)) {
+    if (!input) continue;
+    input.addEventListener('change', () => setLogging(key, input.checked));
+  }
+
+  dom.settingsView.addEventListener('click', (event) => {
+    const clear = event.target.closest('[data-font-clear]');
+    if (clear) {
+      setFontOverride(clear.dataset.fontClear, 0);
+      return;
+    }
+    const speedButton = event.target.closest('[data-speed]');
+    if (speedButton) {
+      setSpeed(speedButton.dataset.speed);
+      return;
+    }
+    const fontButton = event.target.closest('[data-font]');
+    if (fontButton) {
+      setFontSize(fontButton.dataset.font);
+      return;
+    }
+    const languageButton = event.target.closest('[data-lang]');
+    if (languageButton && window.ZQI18N) {
+      window.ZQI18N.apply(languageButton.dataset.lang);
+    }
+  });
+
+  dom.settingsReset.addEventListener('click', () => {
+    rt.termSettings = {
+      speed: DEFAULT.speed,
+      fontSize: DEFAULT.fontSize,
+      fontOverrides: { ...DEFAULT.fontOverrides },
+      logging: loggingFallback(),
+      music: DEFAULT.music,
+      musicVolume: DEFAULT.musicVolume
+    };
+    applyTermSettings(true);
+  });
+
+  /* ---------------------------- Музыка ----------------------------- */
+
+  function updateMusicUI() {
+    if (!dom.musicState) return;
+    const audio = ZQ.audio;
+    const state = audio && typeof audio.state === 'function'
+      ? audio.state()
+      : {
+        enabled: rt.termSettings.music,
+        playing: false,
+        current: 0,
+        duration: 0,
+        volume: rt.termSettings.musicVolume,
+        cue: 'tablet'
+      };
+
+    dom.musicState.textContent = state.enabled
+      ? t('включена', 'on')
+      : t('выключена', 'off');
+    if (dom.musicToggle) {
+      dom.musicToggle.textContent = state.playing
+        ? t('пауза', 'pause')
+        : t('играть', 'play');
+    }
+    if (dom.musicTime) {
+      const total = Number.isFinite(state.duration) ? state.duration : 0;
+      dom.musicTime.textContent = `${formatTime(state.current)} / ${formatTime(total)}`;
+    }
+    if (dom.musicSeek) {
+      const total = Number.isFinite(state.duration) ? state.duration : 0;
+      const value = total > 0 ? Math.round((state.current / total) * 1000) : 0;
+      if (document.activeElement !== dom.musicSeek) dom.musicSeek.value = String(value);
+    }
+    if (dom.musicVolume) {
+      const value = Math.round((Number.isFinite(state.volume) ? state.volume : rt.termSettings.musicVolume) * 100);
+      if (document.activeElement !== dom.musicVolume) dom.musicVolume.value = String(value);
+    }
+    if (dom.musicCue) {
+      const cue = state.cue || 'labyrinth';
+      const meta = C.musicCues && C.musicCues[cue];
+      dom.musicCue.textContent = meta ? meta.title : t('Лабиринт', 'Labyrinth');
+    }
+  }
+
+  function formatTime(seconds) {
+    const value = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+    const m = Math.floor(value / 60);
+    const s = value % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  if (dom.musicToggle) {
+    dom.musicToggle.addEventListener('click', () => {
+      if (!ZQ.audio) return;
+      const state = typeof ZQ.audio.state === 'function' ? ZQ.audio.state() : null;
+      if (state && state.playing) ZQ.audio.pause();
+      else ZQ.audio.play();
+      updateMusicUI();
+    });
+  }
+  if (dom.musicStop) {
+    dom.musicStop.addEventListener('click', () => {
+      if (ZQ.audio && typeof ZQ.audio.stop === 'function') ZQ.audio.stop();
+      updateMusicUI();
+    });
+  }
+  if (dom.musicSeek) {
+    dom.musicSeek.addEventListener('input', () => {
+      if (ZQ.audio && typeof ZQ.audio.seekFraction === 'function') {
+        ZQ.audio.seekFraction(Number(dom.musicSeek.value) / 1000);
+      }
+    });
+  }
+  if (dom.musicVolume) {
+    dom.musicVolume.addEventListener('input', () => {
+      setMusicVolume(Number(dom.musicVolume.value) / 100);
+    });
+  }
+  if (dom.soundtrack) {
+    for (const eventName of ['timeupdate', 'play', 'pause', 'loadedmetadata', 'volumechange']) {
+      dom.soundtrack.addEventListener(eventName, updateMusicUI);
+    }
+  }
+
+  /* --------------------------- Данные ------------------------------ */
+
+  function saveWorld(announce) {
+    const ok = ZQ.saveGame();
+    if (announce) {
+      appendLog(
+        ok
+          ? `Мир сохранён. Seed: ${rt.state.seed}.`
+          : t('Не удалось сохранить мир.', 'Could not save the world.'),
+        'sys',
+        true
+      );
+    }
+    return ok;
+  }
+
+  function loadWorld(announce) {
+    const result = ZQ.loadGame();
+    if (announce) {
+      if (!result || !result.ok) {
+        appendLog(t('Сохранения пока нет.', 'There is no save yet.'), 'sys', true);
+      } else {
+        appendLog(`Сохранение загружено. Seed: ${result.seed}.`, 'sys', true);
+        appendLog(`Мир загружен за ${rt.loadMs || 0} мс. Seed: ${result.seed}.`, 'sys', true);
+      }
+    }
+    updateMusicUI();
+    return Boolean(result && result.ok);
+  }
+
+  function exportWorld(announce) {
+    const ok = ZQ.exportGame();
+    if (announce) {
+      appendLog(
+        ok
+          ? t('Мир выгружен в файл.', 'World exported to a file.')
+          : t('Не удалось выгрузить мир.', 'Could not export the world.'),
+        'sys',
+        true
+      );
+    }
+    return ok;
+  }
+
+  const onAction = (button, handler) => {
+    if (button) button.addEventListener('click', handler);
+  };
+  onAction(dom.btnSave, () => saveWorld(true));
+  onAction(dom.btnLoad, () => loadWorld(true));
+  onAction(dom.btnExport, () => exportWorld(true));
+  onAction(dom.btnSettings, openSettings);
+  onAction(dom.dataSave, () => saveWorld(true));
+  onAction(dom.dataLoad, () => loadWorld(true));
+  onAction(dom.dataExport, () => exportWorld(true));
 
   ZQ.readTermSettings = readTermSettings;
   ZQ.normalizeTermSettings = normalizeTermSettings;
   ZQ.applyTermSettings = applyTermSettings;
+  ZQ.applyFonts = applyFonts;
   ZQ.loggingSummary = loggingSummary;
   ZQ.setLogging = setLogging;
   ZQ.setMusicEnabled = setMusicEnabled;
+  ZQ.setMusicVolume = setMusicVolume;
+  ZQ.setSpeed = setSpeed;
+  ZQ.setFontSize = setFontSize;
+  ZQ.setFontOverride = setFontOverride;
   ZQ.openSettings = openSettings;
+  ZQ.openTermSettings = openTermSettings;
   ZQ.closeSettings = closeSettings;
   ZQ.appendLog = appendLog;
   ZQ.logEvent = logEvent;
@@ -474,4 +892,14 @@
   ZQ.whenLogsIdle = whenLogsIdle;
   ZQ.isTyping = isTyping;
   ZQ.rememberCommand = rememberCommand;
+  ZQ.historyText = historyText;
+  ZQ.refreshCommandSuggestions = refreshCommandSuggestions;
+  ZQ.completeSuggestion = completeSuggestion;
+  ZQ.hideSuggestions = hideSuggestions;
+  ZQ.updateMusicUI = updateMusicUI;
+  ZQ.translateLog = translateLog;
+  ZQ.saveWorld = saveWorld;
+  ZQ.loadWorld = loadWorld;
+  ZQ.exportWorld = exportWorld;
+  ZQ.categoryName = categoryName;
 })();

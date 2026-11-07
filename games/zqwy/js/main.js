@@ -288,6 +288,23 @@
         return ZQ.storyInfo();
       },
 
+      move(dir, seconds) {
+        return ZQ.startTimedMove(dir, seconds);
+      },
+
+      stopMove() {
+        ZQ.stopMovement();
+        return true;
+      },
+
+      setCursor(x, y) {
+        return ZQ.setCursorDestination(x, y);
+      },
+
+      load() {
+        return ZQ.loadGame();
+      },
+
       save: ZQ.saveGame
     };
   }
@@ -313,6 +330,7 @@
           world: rt.world,
           images: rt.images,
           view,
+          cursor: rt.cursorMove,
           now: time
         });
       } catch (error) {
@@ -324,6 +342,7 @@
   }
 
   function boot() {
+    const started = ZQ.now();
     rt.termSettings = ZQ.readTermSettings();
     ZQ.applyTermSettings(false);
 
@@ -339,7 +358,9 @@
     }
     ZQ.snapCamera();
     rt.images = window.Renderer.prepareImages();
+    rt.loadMs = Math.max(0, Math.round(ZQ.now() - started));
 
+    ZQ.appendLog(`Мир загружен за ${rt.loadMs} мс. Seed: ${seed}`, 'sys', true);
     C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
     C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
     ZQ.initDivider();
@@ -348,6 +369,7 @@
     ZQ.renderCanvasDrawer();
     ZQ.renderKeyScheme();
     ZQ.setTerminalView('main');
+    ZQ.checkAspectRatio(true);
     installDebugApi();
 
     rt.lastFrame = ZQ.now();

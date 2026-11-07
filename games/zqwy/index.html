@@ -27,6 +27,8 @@
 
         <div class="vignette" aria-hidden="true"></div>
 
+        <div id="aspect-warning" class="aspect-warning hidden" role="status"></div>
+
         <div id="trial-stage" class="trial-stage hidden" aria-label="Испытание Круга Очарования">
           <canvas id="trial-canvas"></canvas>
           <div class="trial-touch" aria-label="Управление в круге">
@@ -46,13 +48,24 @@
       </div>
 
       <section id="terminal" class="terminal" aria-label="Терминал">
+        <div class="term-topbar">
+          <span class="term-wordmark">Zemic</span>
+          <div class="term-actions">
+            <button id="btn-save" class="tool-btn" type="button">сохранить</button>
+            <button id="btn-load" class="tool-btn" type="button">загрузить</button>
+            <button id="btn-export" class="tool-btn" type="button">экспорт</button>
+            <button id="btn-settings" class="tool-btn term-settings" type="button" aria-label="Настройки">⚙</button>
+          </div>
+        </div>
+
         <div id="term-views" class="term-views">
           <div id="view-main" class="term-view">
             <div id="log" class="log" role="log" aria-live="polite"></div>
             <div id="term-context" class="term-context" aria-live="polite"></div>
+            <div id="command-suggest" class="command-suggest hidden" role="listbox" aria-label="Подсказки команд"></div>
             <form id="command-form" class="term-input" autocomplete="off">
               <label for="command-input" class="prompt-glyph">&gt;</label>
-              <input id="command-input" name="command" type="text" placeholder="Введите команду" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
+              <input id="command-input" name="command" type="text" placeholder="Введите команду и нажмите отправить" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
               <button class="term-send" type="submit" aria-label="Отправить команду">↵</button>
             </form>
           </div>
@@ -90,8 +103,8 @@
             </header>
 
             <div class="canvas-toolbar">
-              <button id="canvas-add-toggle" class="tool-btn" type="button" aria-expanded="false">+ элемент</button>
-              <button id="canvas-link-toggle" class="tool-btn" type="button">связать</button>
+              <button id="canvas-add-toggle" class="tool-btn" type="button" aria-expanded="false" aria-label="Добавить элемент">+</button>
+              <button id="canvas-link-toggle" class="tool-btn" type="button" aria-label="Связать">→</button>
               <button id="canvas-keys-toggle" class="tool-btn" type="button" aria-expanded="false">клавиши</button>
               <div class="canvas-zoom" role="group" aria-label="Масштаб стола">
                 <button id="canvas-zoom-out" class="zoom-btn" type="button" aria-label="Уменьшить масштаб">−</button>
@@ -101,13 +114,26 @@
             </div>
             <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. Свяжи клавишу с целями, чтобы запускать их одной кнопкой.</span>
 
+            <div class="canvas-move" role="group" aria-label="Движение по времени">
+              <button class="move-btn" type="button" data-canvas-move="up" aria-label="Идти вверх">↑</button>
+              <button class="move-btn" type="button" data-canvas-move="left" aria-label="Идти влево">←</button>
+              <button class="move-btn" type="button" data-canvas-move="down" aria-label="Идти вниз">↓</button>
+              <button class="move-btn" type="button" data-canvas-move="right" aria-label="Идти вправо">→</button>
+              <label class="move-time">секунды
+                <input id="canvas-move-seconds" type="number" min="1" max="60" step="1" value="1" inputmode="numeric">
+              </label>
+              <button id="canvas-move-stop" class="move-btn stop" type="button">стоп</button>
+              <span id="canvas-move-note" class="canvas-move-note">движение: 1 с по умолчанию · «идти вниз 10» — 10 с</span>
+            </div>
+
             <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность стола">
               <div id="canvas-stage" class="canvas-stage">
                 <div class="canvas-grid" aria-hidden="true"></div>
+                <svg id="canvas-links" class="canvas-links" aria-hidden="true"></svg>
                 <div id="canvas-elements" class="canvas-elements"></div>
                 <div id="canvas-empty" class="canvas-empty">
                   <span>здесь пока пусто</span>
-                  <small>Добавь найденную вещь, команду или клавишу из панели «+ элемент». Клавишу можно связать с несколькими целями.</small>
+                  <small>Добавь найденную вещь, команду или клавишу из панели «+». Клавишу можно связать с несколькими целями.</small>
                 </div>
               </div>
             </div>
@@ -121,6 +147,8 @@
                   <button type="button" data-device="phone" role="tab" aria-selected="false">телефон</button>
                 </div>
               </div>
+              <p id="canvas-keyboard-hint" class="scheme-intro">Нажми на клавишу — она сразу появится на столе.</p>
+              <div id="canvas-keyboard" class="canvas-keyboard" aria-label="Интерактивная клавиатура"></div>
               <div id="canvas-keys-body" class="keys-body"></div>
             </div>
 
@@ -175,18 +203,30 @@
             <div id="story-tree" class="story-tree"></div>
           </div>
 
-          <div id="view-settings" class="term-view hidden" aria-label="Настройки терминала">
+          <div id="view-settings" class="term-view hidden" aria-label="Настройки">
             <header class="sheet-head">
               <div>
-                <span class="eyebrow">ТЕРМИНАЛ</span>
-                <h2>Настройки</h2>
+                <span class="eyebrow">ИНТЕРФЕЙС</span>
+                <h2 class="settings-title">Настройки</h2>
+                <p class="settings-subtitle">интерфейс, звук и данные</p>
               </div>
               <button class="close-btn" id="settings-close" type="button" aria-label="Закрыть настройки">×</button>
             </header>
             <div class="settings-body">
               <section class="setting-group">
                 <div class="setting-head">
-                  <span>общий размер шрифта</span>
+                  <span id="setting-language-title">Язык</span>
+                  <b id="setting-language-state">русский</b>
+                </div>
+                <div class="setting-presets" id="setting-language">
+                  <button type="button" data-lang="ru">русский</button>
+                  <button type="button" data-lang="en">English</button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-font-title">Общий размер шрифта</span>
                   <b id="setting-font-value">14 px</b>
                 </div>
                 <div class="setting-control-row">
@@ -199,29 +239,80 @@
                   <button type="button" data-font="16">16</button>
                   <button type="button" data-font="18">18</button>
                 </div>
+                <p id="setting-font-note" class="setting-note-inline">Общий размер применяется ко всему интерфейсу.</p>
               </section>
+
               <section class="setting-group">
                 <div class="setting-head">
-                  <span>размер по разделам</span>
+                  <span id="setting-overrides-title">Размеры по разделам</span>
                   <b>необязательно</b>
                 </div>
                 <div class="setting-override" data-override="terminal">
-                  <span class="setting-override-name">терминал</span>
+                  <span class="setting-override-name" id="setting-override-terminal-name">терминал</span>
                   <input id="setting-font-terminal-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта терминала; 0 — как общий">
                   <input id="setting-font-terminal" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта терминала">
                   <button type="button" class="setting-auto" data-font-clear="terminal">авто</button>
                 </div>
                 <div class="setting-override" data-override="table">
-                  <span class="setting-override-name">стол</span>
+                  <span class="setting-override-name" id="setting-override-table-name">стол</span>
                   <input id="setting-font-table-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта стола; 0 — как общий">
                   <input id="setting-font-table" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта стола">
                   <button type="button" class="setting-auto" data-font-clear="table">авто</button>
                 </div>
-                <p class="setting-note-inline">0 — наследовать общий размер. Предметы и клавиши на столе масштабируются вместе с разделом.</p>
+                <p id="setting-overrides-note" class="setting-note-inline">0 — наследовать общий размер. Предметы и клавиши на столе масштабируются вместе с разделом.</p>
               </section>
+
               <section class="setting-group">
                 <div class="setting-head">
-                  <span>скорость появления текста</span>
+                  <span id="setting-music-title">Музыка</span>
+                  <b id="music-state">включена</b>
+                </div>
+                <div class="music-player">
+                  <div class="music-controls">
+                    <button id="music-toggle" class="ghost-btn" type="button">играть</button>
+                    <button id="music-stop" class="ghost-btn" type="button">стоп</button>
+                  </div>
+                  <input id="music-seek" class="music-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
+                  <div class="music-meta">
+                    <span id="music-time">0:00 / 0:00</span>
+                    <span id="music-cue">Лабиринт</span>
+                  </div>
+                  <label class="music-volume">громкость
+                    <input id="music-volume" type="range" min="0" max="100" step="1" value="55" aria-label="Громкость музыки">
+                  </label>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-data-title">Данные</span>
+                  <b>браузер</b>
+                </div>
+                <div class="setting-presets data-actions">
+                  <button id="data-save" type="button">сохранить мир</button>
+                  <button id="data-load" type="button">загрузить сохранение</button>
+                  <button id="data-export" type="button">экспорт мира</button>
+                </div>
+              </section>
+
+              <button id="open-term-settings" class="ghost-btn" type="button">Настройки терминала →</button>
+              <button id="settings-reset" class="ghost-btn" type="button">вернуть по умолчанию</button>
+            </div>
+          </div>
+
+          <div id="view-term-settings" class="term-view hidden" aria-label="Настройки терминала">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ТЕРМИНАЛ</span>
+                <h2 class="settings-title">Настройки: терминал</h2>
+                <p class="settings-subtitle">текст и запись событий</p>
+              </div>
+              <button class="close-btn" id="term-settings-close" type="button" aria-label="Закрыть настройки терминала">×</button>
+            </header>
+            <div class="settings-body">
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-speed-title">Скорость появления текста</span>
                   <b id="setting-speed-value">70 зн/с</b>
                 </div>
                 <div class="setting-control-row">
@@ -235,33 +326,50 @@
                   <button type="button" data-speed="130">быстро</button>
                 </div>
               </section>
+
               <section class="setting-group">
                 <div class="setting-head">
-                  <span>логгирование действий</span>
+                  <span id="setting-log-title">Логгирование действий</span>
                   <b id="setting-log-state">выключено</b>
                 </div>
                 <label class="setting-toggle">
                   <input id="setting-log-enabled" type="checkbox">
-                  <span>записывать события в терминал</span>
+                  <span id="setting-log-enable-text">записывать события в терминал</span>
                 </label>
                 <div class="setting-log-grid">
                   <label class="setting-toggle">
+                    <input id="setting-log-terminal" type="checkbox">
+                    <span id="setting-log-terminal-text">терминал</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-scenes" type="checkbox">
+                    <span id="setting-log-scenes-text">сцены</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-system" type="checkbox">
+                    <span id="setting-log-system-text">система</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-world" type="checkbox">
+                    <span id="setting-log-world-text">мир</span>
+                  </label>
+                  <label class="setting-toggle">
                     <input id="setting-log-movement" type="checkbox">
-                    <span>движение</span>
+                    <span id="setting-log-movement-text">движение</span>
                   </label>
                   <label class="setting-toggle">
                     <input id="setting-log-actions" type="checkbox">
-                    <span>действия</span>
+                    <span id="setting-log-actions-text">действия</span>
                   </label>
                   <label class="setting-toggle">
                     <input id="setting-log-commands" type="checkbox">
-                    <span>команды</span>
+                    <span id="setting-log-commands-text">команды</span>
                   </label>
                 </div>
-                <p class="setting-note-inline">Команда «логгирование» включает лог целиком или отдельные категории: «логгирование движение», «логгирование действия», «логгирование команды».</p>
+                <p id="setting-log-note" class="setting-note-inline">Команда «логгирование» включает всё или одну категорию: «логгирование движение», «логгирование действия», «логгирование терминал».</p>
               </section>
-              <p class="sheet-note" id="setting-note">Общий размер применяется ко всему интерфейсу. Разделы могут наследовать его или задать своё значение. Нажми на сообщение в логе, чтобы сразу показать его целиком.</p>
-              <button id="settings-reset" class="ghost-btn" type="button">вернуть по умолчанию</button>
+
+              <button id="term-settings-back" class="ghost-btn" type="button">← общие настройки</button>
             </div>
           </div>
 
@@ -291,6 +399,8 @@
   </noscript>
 
   <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/fonts.js"></script>
   <script src="js/world.js"></script>
   <script src="js/render.js"></script>
   <script src="js/core.js"></script>

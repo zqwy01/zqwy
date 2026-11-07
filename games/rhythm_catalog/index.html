@@ -18,36 +18,49 @@
 </head>
 <body>
 <div id="app">
-  <canvas id="stage" aria-label="Ритмическая сцена"></canvas>
+  <canvas id="stage" aria-label="Ритмическая сцена" data-i18n-aria="hud.stage"></canvas>
 
-  <button id="btn-pause" class="hud-pause hidden" aria-label="Пауза">II</button>
+  <button id="btn-pause" class="hud-pause hidden" aria-label="Пауза" data-i18n-aria="hud.pause">II</button>
 
   <section id="screen-menu" class="screen menu-screen">
     <div class="menu-panel">
-      <p class="eyebrow">ZQWY · ВСЯ МУЗЫКА</p>
-      <h1 class="game-title">РИТМ<span class="title-dot">·</span>КАТАЛОГ</h1>
-      <p class="tagline">Четыре полосы. Все альбомы. Один поток.</p>
+      <p class="eyebrow" data-i18n="menu.eyebrow">ZQWY · ВСЯ МУЗЫКА</p>
+      <h1 class="game-title" data-i18n-html="menu.titleHtml">РИТМ<span class="title-dot">·</span>КАТАЛОГ</h1>
+      <p class="tagline" data-i18n="menu.tagline">Четыре полосы. Все альбомы. Один поток.</p>
       <div class="menu-stats">
-        <div><b id="stat-albums">—</b><span>АЛЬБОМОВ</span></div>
-        <div><b id="stat-tracks">—</b><span>ТРЕКОВ</span></div>
-        <div><b id="stat-best">0</b><span>ЛУЧШИЙ СЧЁТ</span></div>
+        <div><b id="stat-albums">—</b><span data-i18n="menu.statAlbums">АЛЬБОМОВ</span></div>
+        <div><b id="stat-tracks">—</b><span data-i18n="menu.statTracks">ТРЕКОВ</span></div>
+        <div><b id="stat-best">0</b><span data-i18n="menu.statBest">ЛУЧШИЙ СЧЁТ</span></div>
       </div>
-      <button id="btn-enter" class="primary big">ОТКРЫТЬ КАТАЛОГ</button>
-      <p class="menu-hint">D F J K · СТРЕЛКИ · ТАЧ ПО ПОЛОСАМ</p>
-      <p class="menu-hint dim">НАУШНИКИ РЕКОМЕНДУЮТСЯ · ESC — ПАУЗА</p>
+      <button id="btn-enter" class="primary big" data-i18n="menu.enter">ОТКРЫТЬ КАТАЛОГ</button>
+      <p class="menu-hint" data-i18n="menu.hintKeys">D F J K · СТРЕЛКИ · ТАЧ ПО ПОЛОСАМ</p>
+      <p class="menu-hint dim" data-i18n="menu.hintAudio">НАУШНИКИ РЕКОМЕНДУЮТСЯ · ESC — ПАУЗА</p>
+      <div class="lang-switch" role="group" aria-label="Язык" data-i18n-aria="menu.language">
+        <span class="lang-label" data-i18n="menu.language">ЯЗЫК</span>
+        <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true">RU</button>
+        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+      </div>
     </div>
   </section>
 
   <section id="screen-select" class="screen select-screen hidden">
     <header class="select-header">
-      <button id="btn-back" class="ghost icon" aria-label="В меню">←</button>
+      <button id="btn-back" class="ghost icon" aria-label="В меню" data-i18n-aria="select.back">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 4.8 7.3 12l7.2 7.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span id="album-badge" class="album-badge" aria-hidden="true">BC</span>
       <div class="select-heading">
-        <p class="eyebrow">КАТАЛОГ</p>
+        <p class="eyebrow" data-i18n="select.eyebrow">КАТАЛОГ</p>
         <h2 id="album-heading">Backers</h2>
       </div>
       <div class="select-meta">
         <span id="album-count">—</span>
-        <button id="btn-menu" class="ghost">МЕНЮ</button>
+        <div class="lang-switch compact" role="group" aria-label="Язык" data-i18n-aria="menu.language">
+          <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true">RU</button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <button id="btn-albums" class="ghost albums-toggle" type="button">АЛЬБОМЫ</button>
+        <button id="btn-menu" class="ghost" data-i18n="select.menu">МЕНЮ</button>
       </div>
     </header>
 
@@ -61,17 +74,32 @@
         <p class="eyebrow" id="sel-album">BACKERS</p>
         <h3 id="sel-title">Agonia</h3>
         <div class="track-facts">
-          <span><b id="sel-duration">—</b> ДЛИТ.</span>
-          <span><b id="sel-bpm">—</b> BPM</span>
-          <span><b id="sel-diff">—</b> СЛОЖН.</span>
-          <span><b id="sel-notes">—</b> НОТ</span>
+          <span><b id="sel-duration">—</b><span data-i18n="select.duration">ДЛИТ.</span></span>
+          <span><b id="sel-bpm">—</b><span data-i18n="select.bpm">BPM</span></span>
+          <span><b id="sel-diff">—</b><span data-i18n="select.diff">СЛОЖН.</span></span>
+          <span><b id="sel-notes">—</b><span data-i18n="select.notes">НОТ</span></span>
         </div>
         <div class="best-line" id="sel-best">РЕКОРД —</div>
-        <button id="btn-play" class="primary big">ИГРАТЬ</button>
-        <p class="panel-hint">ENTER — ИГРАТЬ · ↑↓ — ТРЕК · ←→ — АЛЬБОМ</p>
+        <button id="btn-play" class="primary big" data-i18n="select.play">ИГРАТЬ</button>
+        <p class="panel-hint" data-i18n="select.hint">ENTER — ИГРАТЬ · ↑↓ — ТРЕК · ←→ — АЛЬБОМ</p>
       </aside>
     </div>
   </section>
+
+  <div id="album-sheet" class="album-sheet hidden" aria-hidden="true">
+    <div class="album-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="album-sheet-title">
+      <header class="album-sheet-head">
+        <div>
+          <p class="eyebrow" data-i18n="select.sheetHint">ВЫБЕРИ АЛЬБОМ</p>
+          <h2 id="album-sheet-title" data-i18n="select.sheetTitle">ВСЕ РЕЛИЗЫ</h2>
+        </div>
+        <button id="btn-album-close" class="ghost icon" aria-label="Закрыть" data-i18n-aria="select.sheetClose">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <div id="album-grid" class="album-grid"></div>
+    </div>
+  </div>
 
   <section id="screen-load" class="screen center-screen hidden">
     <div class="load-card">
@@ -85,38 +113,45 @@
 
   <section id="screen-ready" class="screen center-screen hidden">
     <div class="load-card">
-      <p class="eyebrow" id="ready-album">ГОТОВО</p>
+      <p class="eyebrow" id="ready-album" data-i18n="ready.eyebrow">ГОТОВО</p>
       <h2 id="ready-title">Трек</h2>
-      <p class="load-status">БРАУЗЕР ЖДЁТ ПОДТВЕРЖДЕНИЯ ЗВУКА</p>
-      <button id="btn-ready" class="primary big">НАЧАТЬ</button>
+      <p class="load-status" data-i18n="ready.waiting">БРАУЗЕР ЖДЁТ ПОДТВЕРЖДЕНИЯ ЗВУКА</p>
+      <button id="btn-ready" class="primary big" data-i18n="ready.start">НАЧАТЬ</button>
     </div>
   </section>
 
   <section id="screen-pause" class="screen center-screen hidden">
     <div class="pause-card">
-      <p class="eyebrow">ПАУЗА</p>
-      <h2>Тишина держит ритм</h2>
+      <p class="eyebrow" data-i18n="pause.eyebrow">ПАУЗА</p>
+      <h2 data-i18n="pause.title">Тишина держит ритм</h2>
       <div class="pause-actions">
-        <button id="btn-resume" class="primary big">ПРОДОЛЖИТЬ</button>
-        <button id="btn-restart" class="ghost">ЗАНОВО</button>
-        <button id="btn-quit" class="ghost">В КАТАЛОГ</button>
+        <button id="btn-resume" class="primary big" data-i18n="pause.resume">ПРОДОЛЖИТЬ</button>
+        <button id="btn-restart" class="ghost" data-i18n="pause.restart">ЗАНОВО</button>
+        <button id="btn-quit" class="ghost" data-i18n="pause.quit">В КАТАЛОГ</button>
       </div>
       <div class="settings">
         <div class="setting">
-          <span>ЗАДЕРЖКА</span>
-          <button id="off-minus" class="stepper" aria-label="Меньше">−</button>
+          <span data-i18n="pause.offset">ЗАДЕРЖКА</span>
+          <button id="off-minus" class="stepper" aria-label="Меньше" data-i18n-aria="aria.less">−</button>
           <b id="off-value">0 МС</b>
-          <button id="off-plus" class="stepper" aria-label="Больше">+</button>
+          <button id="off-plus" class="stepper" aria-label="Больше" data-i18n-aria="aria.more">+</button>
         </div>
         <div class="setting">
-          <span>ГРОМКОСТЬ</span>
-          <button id="vol-minus" class="stepper" aria-label="Тише">−</button>
+          <span data-i18n="pause.volume">ГРОМКОСТЬ</span>
+          <button id="vol-minus" class="stepper" aria-label="Тише" data-i18n-aria="aria.quieter">−</button>
           <b id="vol-value">85%</b>
-          <button id="vol-plus" class="stepper" aria-label="Громче">+</button>
+          <button id="vol-plus" class="stepper" aria-label="Громче" data-i18n-aria="aria.louder">+</button>
+        </div>
+        <div class="setting lang-setting">
+          <span data-i18n="menu.language">ЯЗЫК</span>
+          <div class="lang-switch compact" role="group" aria-label="Язык" data-i18n-aria="menu.language">
+            <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true">RU</button>
+            <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+          </div>
         </div>
         <button id="btn-sfx" class="ghost">ЗВУК УДАРОВ: ВКЛ</button>
       </div>
-      <p class="panel-hint">ESC — ПРОДОЛЖИТЬ · R — ЗАНОВО · [ ] — ЗАДЕРЖКА · − = — ГРОМКОСТЬ · M — УДАРЫ</p>
+      <p class="panel-hint" data-i18n="pause.hint">ESC — ПРОДОЛЖИТЬ · R — ЗАНОВО · [ ] — ЗАДЕРЖКА · − = — ГРОМКОСТЬ · M — УДАРЫ</p>
     </div>
   </section>
 
@@ -127,27 +162,27 @@
       <div id="res-rank" class="rank">РЕЗИДЕНТ</div>
       <p id="res-sub" class="rank-sub">Держи поток.</p>
       <div class="result-grid">
-        <div><span>ОЧКИ</span><b id="res-score">0</b></div>
-        <div><span>ТОЧНОСТЬ</span><b id="res-acc">0%</b></div>
-        <div><span>МАКС. КОМБО</span><b id="res-combo">0</b></div>
+        <div><span data-i18n="result.score">ОЧКИ</span><b id="res-score">0</b></div>
+        <div><span data-i18n="result.accuracy">ТОЧНОСТЬ</span><b id="res-acc">0%</b></div>
+        <div><span data-i18n="result.maxCombo">МАКС. КОМБО</span><b id="res-combo">0</b></div>
       </div>
       <p id="res-counts" class="result-counts"></p>
       <p id="res-best" class="result-best"></p>
       <div class="result-actions">
-        <button id="btn-retry" class="primary big">ЕЩЁ РАЗ</button>
-        <button id="btn-next" class="ghost">СЛЕДУЮЩИЙ</button>
-        <button id="btn-catalog" class="ghost">КАТАЛОГ</button>
+        <button id="btn-retry" class="primary big" data-i18n="result.retry">ЕЩЁ РАЗ</button>
+        <button id="btn-next" class="ghost" data-i18n="result.next">СЛЕДУЮЩИЙ</button>
+        <button id="btn-catalog" class="ghost" data-i18n="result.catalog">КАТАЛОГ</button>
       </div>
-      <p class="panel-hint">R — ЕЩЁ РАЗ · ENTER — СЛЕДУЮЩИЙ · ESC — КАТАЛОГ</p>
+      <p class="panel-hint" data-i18n="result.hint">R — ЕЩЁ РАЗ · ENTER — СЛЕДУЮЩИЙ · ESC — КАТАЛОГ</p>
     </div>
   </section>
 
   <section id="screen-error" class="screen center-screen hidden">
     <div class="load-card">
-      <p class="eyebrow">ОШИБКА</p>
-      <h2>ТРЕК НЕ ОТКРЫЛСЯ</h2>
-      <p class="load-status" id="err-text">Проверь локальный сервер.</p>
-      <button id="btn-err-back" class="primary big">В КАТАЛОГ</button>
+      <p class="eyebrow" data-i18n="error.eyebrow">ОШИБКА</p>
+      <h2 data-i18n="error.title">ТРЕК НЕ ОТКРЫЛСЯ</h2>
+      <p class="load-status" id="err-text" data-i18n="error.default">Проверь локальный сервер.</p>
+      <button id="btn-err-back" class="primary big" data-i18n="error.back">В КАТАЛОГ</button>
     </div>
   </section>
 
@@ -155,15 +190,16 @@
 
   <div id="boot" class="boot">
     <div class="boot-inner">
-      <p class="eyebrow">ZQWY · ВСЯ МУЗЫКА</p>
-      <div class="boot-title">РИТМ<span class="title-dot">·</span>КАТАЛОГ</div>
-      <p class="boot-sub" id="boot-sub">СОБИРАЕМ КОЛЛЕКЦИЮ…</p>
+      <p class="eyebrow" data-i18n="boot.eyebrow">ZQWY · ВСЯ МУЗЫКА</p>
+      <div class="boot-title" data-i18n-html="menu.titleHtml">РИТМ<span class="title-dot">·</span>КАТАЛОГ</div>
+      <p class="boot-sub" id="boot-sub" data-i18n="boot.collecting">СОБИРАЕМ КОЛЛЕКЦИЮ…</p>
       <div class="boot-bar"><i id="boot-bar"></i></div>
     </div>
   </div>
 </div>
 
 <script src="data/catalog.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/themes.js"></script>
 <script src="js/art.js"></script>
 <script src="js/audio.js"></script>

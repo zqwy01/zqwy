@@ -212,6 +212,87 @@
     for (const key of Object.keys(directions)) rt.gamepadKeys[key] = directions[key];
   }
 
+  /* --------------------- Курсор по миру (ЛКМ) ---------------------- */
+  /* Короткий клик ставит точку назначения. Удержание и перетаскивание
+     ведут Zemic за курсором; отпускание останавливает следование. */
+  function screenToWorld(clientX, clientY) {
+    if (!rt.state || !rt.state.camera) return null;
+    const rect = dom.worldCanvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    const view = { w: rect.width, h: rect.height };
+    const ts = window.Renderer && window.Renderer.tilePxFor
+      ? window.Renderer.tilePxFor(view)
+      : 30;
+    return {
+      x: rt.state.camera.x + (clientX - rect.left - rect.width / 2) / ts,
+      y: rt.state.camera.y + (clientY - rect.top - rect.height / 2) / ts
+    };
+  }
+
+  function canUseCursor() {
+    if (!rt.state || !rt.world) return false;
+    if (ZQ.isTyping() || ZQ.isPaused()) return false;
+    if (rt.trial && rt.trial.active) return false;
+    return rt.termView === 'main' || rt.termView === 'canvas';
+  }
+
+  dom.worldCanvas.addEventListener('pointerdown', (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    if (!canUseCursor()) return;
+    const target = screenToWorld(event.clientX, event.clientY);
+    if (!target) return;
+    rt.cursorPointer = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false
+    };
+    ZQ.setCursorDestination(target.x, target.y, true);
+    try {
+      dom.worldCanvas.setPointerCapture(event.pointerId);
+    } catch (error) {
+      /* capture не обязателен */
+    }
+    event.preventDefault();
+  });
+
+  dom.worldCanvas.addEventListener('pointermove', (event) => {
+    const pointer = rt.cursorPointer;
+    if (!pointer || pointer.id !== event.pointerId) return;
+    if (event.buttons !== undefined && (event.buttons & 1) === 0) return;
+    if (!canUseCursor()) return;
+    const dx = event.clientX - pointer.startX;
+    const dy = event.clientY - pointer.startY;
+    if (Math.hypot(dx, dy) > 4) pointer.moved = true;
+    if (!pointer.moved) return;
+    const target = screenToWorld(event.clientX, event.clientY);
+    if (!target) return;
+    ZQ.setCursorDestination(target.x, target.y, true);
+    event.preventDefault();
+  });
+
+  function finishCursorPointer(event) {
+    const pointer = rt.cursorPointer;
+    if (!pointer || pointer.id !== event.pointerId) return;
+    rt.cursorPointer = null;
+    try {
+      dom.worldCanvas.releasePointerCapture(event.pointerId);
+    } catch (error) {
+      /* ignored */
+    }
+    if (pointer.moved) {
+      /* Ведение за курсором заканчивается вместе с удержанием. */
+      ZQ.stopMovement();
+    }
+  }
+
+  dom.worldCanvas.addEventListener('pointerup', finishCursorPointer);
+  dom.worldCanvas.addEventListener('pointercancel', (event) => {
+    if (!rt.cursorPointer || rt.cursorPointer.id !== event.pointerId) return;
+    rt.cursorPointer = null;
+    ZQ.stopMovement();
+  });
+
   window.addEventListener('resize', () => {
     if (rt.termView === 'map') ZQ.drawMapNow();
     ZQ.resizeTrial();

@@ -57,6 +57,7 @@
   function elementAvailable(element) {
     if (!element) return false;
     if (element.kind === 'key') return true;
+    if (element.kind === 'control' && !actionUnlocked(element.action)) return false;
     if (element.itemId) return hasItem(element.itemId);
     if (element.requires && element.requires.length) {
       return element.requires.every((id) => hasItem(id));
@@ -121,6 +122,109 @@
     for (const element of rt.state.canvasElements) {
       if (element.kind === 'key' && element.code === code && element.id !== exceptId) {
         element.code = null;
+      }
+    }
+  }
+
+  const CONTROL_UNLOCKS = {
+    inventory: 'backpack',
+    map: 'map',
+    canvas: 'table'
+  };
+
+  function actionUnlocked(action) {
+    const lock = CONTROL_UNLOCKS[action];
+    return !lock || ZQ.hasUnlock(lock);
+  }
+
+  /* Настоящие линии связи: SVG лежит в системе координат стола,
+     поэтому линии масштабируются вместе с элементами. */
+  function canvasNodeFor(id) {
+    if (!dom.canvasElements) return null;
+    return dom.canvasElements.querySelector(`.cv-el[data-id="${id}"]`);
+  }
+
+  function rayToBox(cx, cy, halfW, halfH, dx, dy) {
+    const tx = Math.abs(dx) < 0.0001 ? Infinity : halfW / Math.abs(dx);
+    const ty = Math.abs(dy) < 0.0001 ? Infinity : halfH / Math.abs(dy);
+    const scale = Math.min(tx, ty);
+    if (!Number.isFinite(scale)) return { x: cx, y: cy };
+    return { x: cx + dx * scale, y: cy + dy * scale };
+  }
+
+  function renderCanvasLinks() {
+    const svg = dom.canvasLinks;
+    const stage = dom.canvasStage;
+    if (!svg || !stage) return;
+    svg.textContent = '';
+
+    const width = Math.max(1, stage.clientWidth || dom.canvasWorkspace.clientWidth || 1);
+    const height = Math.max(1, stage.clientHeight || dom.canvasWorkspace.clientHeight || 1);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', String(width));
+    svg.setAttribute('height', String(height));
+
+    for (const key of keyElements()) {
+      if (!Array.isArray(key.links) || !key.links.length) continue;
+      const sourceNode = canvasNodeFor(key.id);
+      const sx = key.nx * width;
+      const sy = key.ny * height;
+      const shw = (sourceNode ? sourceNode.offsetWidth : 46) / 2;
+      const shh = (sourceNode ? sourceNode.offsetHeight : 34) / 2;
+
+      for (const targetId of key.links) {
+        const target = rt.state.canvasElements.find((element) => element.id === targetId);
+        if (!target) continue;
+        const targetNode = canvasNodeFor(target.id);
+        const tx = target.nx * width;
+        const ty = target.ny * height;
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const length = Math.hypot(dx, dy);
+        if (length < 1) continue;
+        const ux = dx / length;
+        const uy = dy / length;
+        const thw = (targetNode ? targetNode.offsetWidth : 96) / 2;
+        const thh = (targetNode ? targetNode.offsetHeight : 42) / 2;
+        const start = rayToBox(sx, sy, shw, shh, ux, uy);
+        const end = rayToBox(tx, ty, thw, thh, -ux, -uy);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', start.x.toFixed(1));
+        line.setAttribute('y1', start.y.toFixed(1));
+        line.setAttribute('x2', end.x.toFixed(1));
+        line.setAttribute('y2', end.y.toFixed(1));
+        line.setAttribute('class', `link-arrow${key.id === rt.linkFirstId ? ' selected' : ''}`);
+        svg.appendChild(line);
+
+        const angle = Math.atan2(uy, ux);
+        const size = 6;
+        const backX = end.x - Math.cos(angle) * size;
+        const backY = end.y - Math.sin(angle) * size;
+        const spread = 0.48;
+        const head = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        head.setAttribute('points', [
+          `${end.x.toFixed(1)},${end.y.toFixed(1)}`,
+          `${(backX + Math.cos(angle + spread) * size).toFixed(1)},${(backY + Math.sin(angle + spread) * size).toFixed(1)}`,
+          `${(backX + Math.cos(angle - spread) * size).toFixed(1)},${(backY + Math.sin(angle - spread) * size).toFixed(1)}`
+        ].join(' '));
+        head.setAttribute('class', `link-head${key.id === rt.linkFirstId ? ' selected' : ''}`);
+        svg.appendChild(head);
+
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', start.x.toFixed(1));
+        dot.setAttribute('cy', start.y.toFixed(1));
+        dot.setAttribute('r', '2.4');
+        dot.setAttribute('class', 'link-dot');
+        svg.appendChild(dot);
+
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', ((start.x + end.x) / 2).toFixed(1));
+        label.setAttribute('y', (((start.y + end.y) / 2) - 4).toFixed(1));
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'link-key');
+        label.textContent = keyLabel(key.code);
+        svg.appendChild(label);
       }
     }
   }
@@ -288,6 +392,9 @@
     if (!element || element.kind !== 'control') return 'Это не кнопка управления.';
     const meta = C.controlActions && C.controlActions[element.action];
     if (!meta) return 'Кнопка управления не настроена.';
+    if (!actionUnlocked(element.action)) {
+      return ZQ.denyLocked(CONTROL_UNLOCKS[element.action]);
+    }
 
     if (element.action === 'inventory') {
       closeCanvas();
@@ -427,6 +534,7 @@
     ZQ.saveGame();
     renderCanvasElements();
     renderCanvasDrawer();
+    renderKeyScheme();
     if (element.code) {
       setCanvasReply(
         keyLabel(element.code),
@@ -766,6 +874,7 @@
       element.ny = ny;
       node.style.left = `${nx * 100}%`;
       node.style.top = `${ny * 100}%`;
+      renderCanvasLinks();
     });
 
     const finish = (event) => {
@@ -782,6 +891,7 @@
       }
       if (moved) {
         ZQ.saveGame();
+        renderCanvasLinks();
         return;
       }
       if (event.target.closest('.el-remove')) return;
@@ -806,6 +916,7 @@
       dom.canvasElements.appendChild(buildCanvasNode(element));
     }
     dom.canvasEmpty.classList.toggle('hidden', rt.state.canvasElements.length > 0);
+    renderCanvasLinks();
   }
 
   function renderCanvasDrawer() {
@@ -841,14 +952,8 @@
 
     for (const group of C.terminal.helpGroups) {
       const unlocked = ZQ.groupUnlocked(group);
-      addGroupLabel(group.title, !unlocked);
-      if (!unlocked) {
-        const locked = document.createElement('span');
-        locked.className = 'canvas-tip';
-        locked.textContent = `закрыто · ${ZQ.unlockHint(group.unlock)}`;
-        dom.canvasAddList.appendChild(locked);
-        continue;
-      }
+      if (!unlocked) continue;
+      addGroupLabel(group.title, false);
       for (const entry of group.commands) {
         if (entry.bindable === false) continue;
         const chip = document.createElement('button');
@@ -871,6 +976,7 @@
 
     addGroupLabel('УПРАВЛЕНИЕ', false);
     for (const action of Object.keys(C.controlActions || {})) {
+      if (!actionUnlocked(action)) continue;
       const meta = C.controlActions[action];
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -934,6 +1040,22 @@
     if (!dom.canvasStage) return;
     dom.canvasStage.style.transform =
       `translate(${rt.canvasPanX.toFixed(1)}px, ${rt.canvasPanY.toFixed(1)}px) scale(${rt.canvasZoom.toFixed(4)})`;
+
+    /* Сетка живёт вне сцены, поэтому её нужно двигать и масштабировать
+       вручную. Так она остаётся непрерывной при любом сдвиге стола. */
+    if (dom.canvasGrid) {
+      const workspace = dom.canvasWorkspace;
+      const width = Math.max(1, workspace.clientWidth || 1);
+      const height = Math.max(1, workspace.clientHeight || 1);
+      const zoom = rt.canvasZoom;
+      const size = 22 * zoom;
+      const originX = width / 2 + rt.canvasPanX - (width / 2) * zoom;
+      const originY = height / 2 + rt.canvasPanY - (height / 2) * zoom;
+      const offsetX = ((originX % size) + size) % size;
+      const offsetY = ((originY % size) + size) % size;
+      dom.canvasGrid.style.backgroundSize = `${size.toFixed(2)}px ${size.toFixed(2)}px`;
+      dom.canvasGrid.style.backgroundPosition = `${offsetX.toFixed(2)}px ${offsetY.toFixed(2)}px`;
+    }
   }
 
   function setCanvasPan(x, y) {
@@ -981,7 +1103,7 @@
     body.appendChild(core);
   }
 
-  function renderKeyboardScheme(body) {
+  function renderBoundScheme(body) {
     const scheme = document.createElement('div');
     scheme.className = 'bound-scheme';
 
@@ -1116,6 +1238,88 @@
     body.appendChild(scheme);
   }
 
+  function renderKeyboardScheme() {
+    if (!dom.canvasKeyboard) return;
+    dom.canvasKeyboard.textContent = '';
+    const rows = [
+      [
+        ['Backquote', '`'], ['Digit1', '1'], ['Digit2', '2'], ['Digit3', '3'],
+        ['Digit4', '4'], ['Digit5', '5'], ['Digit6', '6'], ['Digit7', '7'],
+        ['Digit8', '8'], ['Digit9', '9'], ['Digit0', '0'], ['Minus', '−'],
+        ['Equal', '='], ['Backspace', '⌫', 'wide-2']
+      ],
+      [
+        ['Tab', 'TAB', 'wide-2'], ['KeyQ', 'Q'], ['KeyW', 'W'], ['KeyE', 'E'],
+        ['KeyR', 'R'], ['KeyT', 'T'], ['KeyY', 'Y'], ['KeyU', 'U'],
+        ['KeyI', 'I'], ['KeyO', 'O'], ['KeyP', 'P'], ['BracketLeft', '['],
+        ['BracketRight', ']'], ['Backslash', '\\', 'wide-2']
+      ],
+      [
+        ['CapsLock', 'CAPS', 'wide-2'], ['KeyA', 'A'], ['KeyS', 'S'],
+        ['KeyD', 'D'], ['KeyF', 'F'], ['KeyG', 'G'], ['KeyH', 'H'],
+        ['KeyJ', 'J'], ['KeyK', 'K'], ['KeyL', 'L'], ['Semicolon', ';'],
+        ['Quote', "'"], ['Enter', 'ENTER', 'wide-2']
+      ],
+      [
+        ['ShiftLeft', 'SHIFT', 'wide-2'], ['KeyZ', 'Z'], ['KeyX', 'X'],
+        ['KeyC', 'C'], ['KeyV', 'V'], ['KeyB', 'B'], ['KeyN', 'N'],
+        ['KeyM', 'M'], ['Comma', ','], ['Period', '.'], ['Slash', '/'],
+        ['ShiftRight', 'SHIFT', 'wide-2']
+      ],
+      [
+        ['ControlLeft', 'CTRL', 'wide-2'], ['MetaLeft', 'META'],
+        ['AltLeft', 'ALT', 'wide-2'], ['Space', '␣', 'space'],
+        ['AltRight', 'ALT', 'wide-2'], ['MetaRight', 'META'],
+        ['ContextMenu', 'MENU'], ['ControlRight', 'CTRL', 'wide-2']
+      ]
+    ];
+
+    for (const row of rows) {
+      const line = document.createElement('div');
+      line.className = 'kb-row';
+      for (const item of row) {
+        const code = item[0];
+        const label = item[1] || keyLabel(code);
+        const widthClass = item[2] || '';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `kb-key ${widthClass}`.trim();
+        button.textContent = label;
+        button.dataset.code = code;
+        const existing = keyForCode(code);
+        if (existing) button.classList.add('placed');
+        if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'Space', 'Enter', 'Escape'].includes(code)) {
+          button.classList.add('core');
+        }
+        button.title = existing
+          ? `${keyLabel(code)} уже на столе · целей: ${existing.links.length}`
+          : `Добавить клавишу ${keyLabel(code)} на стол`;
+        button.setAttribute('aria-label', button.title);
+        button.addEventListener('click', () => {
+          const key = keyForCode(code);
+          if (key) {
+            if (rt.canvasLinkMode) {
+              rt.linkFirstId = key.id;
+              renderCanvasElements();
+              renderCanvasLinks();
+            }
+            setCanvasReply(
+              keyLabel(code),
+              key.links.length
+                ? `Клавиша уже на столе. Связано целей: ${key.links.length}.`
+                : 'Клавиша уже на столе, но пока ни с чем не связана.'
+            );
+            return;
+          }
+          addKeyElement(code);
+          renderKeyboardScheme();
+        });
+        line.appendChild(button);
+      }
+      dom.canvasKeyboard.appendChild(line);
+    }
+  }
+
   function renderKeyScheme() {
     if (!dom.canvasKeysBody) return;
     dom.canvasKeysBody.textContent = '';
@@ -1128,7 +1332,13 @@
     }
     if (rt.canvasDevice === 'gamepad') renderGamepadScheme(dom.canvasKeysBody);
     else if (rt.canvasDevice === 'phone') renderPhoneScheme(dom.canvasKeysBody);
-    else renderKeyboardScheme(dom.canvasKeysBody);
+    else {
+      renderKeyboardScheme();
+      renderBoundScheme(dom.canvasKeysBody);
+    }
+    const keyboardTab = rt.canvasDevice === 'keyboard';
+    if (dom.canvasKeyboard) dom.canvasKeyboard.classList.toggle('hidden', !keyboardTab);
+    if (dom.canvasKeyboardHint) dom.canvasKeyboardHint.classList.toggle('hidden', !keyboardTab);
   }
 
   /* --------------------------- Карточка ----------------------------- */
@@ -1180,6 +1390,7 @@
     renderKeyScheme();
     ZQ.setTerminalView('canvas');
     applyCanvasTransform();
+    renderCanvasLinks();
     setCanvasReply(
       'готово',
       'Перетаскивай элементы. Нажми на элемент, чтобы выполнить. Клавиша запускает все связанные с ней цели.'
@@ -1239,6 +1450,55 @@
   });
   dom.canvasLinkToggle.addEventListener('click', () => {
     setLinkMode(!rt.canvasLinkMode);
+  });
+
+  /* Движение со стола: ровно одна клетка, плавно, за выбранное время. */
+  const TILE_DIRECTIONS = {
+    up: [0, -1, 'вверх'],
+    down: [0, 1, 'вниз'],
+    left: [-1, 0, 'влево'],
+    right: [1, 0, 'вправо']
+  };
+
+  function moveTableTile(direction, seconds) {
+    const dir = TILE_DIRECTIONS[direction];
+    if (!dir || !rt.state || !rt.state.player) return false;
+    const duration = ZQ.clamp(Number(seconds) || 1, 0.2, 60);
+    const player = rt.state.player;
+    const ok = ZQ.setCursorDestination(
+      player.x + dir[0],
+      player.y + dir[1],
+      false,
+      duration
+    );
+    if (ok) {
+      setCanvasReply(
+        `шаг ${dir[2]}`,
+        `Ровно одна клетка за ${duration.toFixed(duration < 10 ? 1 : 0)} с.`
+      );
+    }
+    return ok;
+  }
+
+  document.querySelectorAll('[data-canvas-move]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const seconds = dom.canvasMoveSeconds
+        ? Number(dom.canvasMoveSeconds.value) || 1
+        : 1;
+      moveTableTile(button.dataset.canvasMove, seconds);
+    });
+  });
+
+  if (dom.canvasMoveStop) {
+    dom.canvasMoveStop.addEventListener('click', () => {
+      ZQ.stopMovement();
+      setCanvasReply('стоп', 'Движение остановлено.');
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    if (rt.termView === 'canvas') applyCanvasTransform();
+    renderCanvasLinks();
   });
 
   /* Масштаб и панорамирование стола: колесо, щипок и ЛКМ по пустому месту. */
@@ -1338,6 +1598,7 @@
   ZQ.runElement = runElement;
   ZQ.setCanvasReply = setCanvasReply;
   ZQ.renderCanvasElements = renderCanvasElements;
+  ZQ.renderCanvasLinks = renderCanvasLinks;
   ZQ.renderCanvasDrawer = renderCanvasDrawer;
   ZQ.openCanvasDrawer = openCanvasDrawer;
   ZQ.closeCanvasDrawer = closeCanvasDrawer;
@@ -1346,6 +1607,8 @@
   ZQ.setCanvasZoom = setCanvasZoom;
   ZQ.resetCanvasView = resetCanvasView;
   ZQ.renderKeyScheme = renderKeyScheme;
+  ZQ.renderKeyboardScheme = renderKeyboardScheme;
+  ZQ.moveTableTile = moveTableTile;
   ZQ.openCardDetail = openCardDetail;
   ZQ.closeCardDetail = closeCardDetail;
   ZQ.openCanvas = openCanvas;

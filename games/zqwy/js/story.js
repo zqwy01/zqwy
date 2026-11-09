@@ -107,17 +107,7 @@
     return order;
   }
 
-  function createNode(id, depth, seen, states, order) {
-    const node = C.storyTree.nodes[id];
-    if (!node) return null;
-    if (seen.has(id)) {
-      const ref = document.createElement('div');
-      ref.className = 'story-ref';
-      ref.textContent = `↳ ${node.title} · общий узел`;
-      return ref;
-    }
-    seen.add(id);
-    const state = states.get(id);
+  function createStoryCard(id, node, state) {
     const card = document.createElement('article');
     card.className = 'story-node';
     card.dataset.node = id;
@@ -146,7 +136,9 @@
 
     const flag = document.createElement('span');
     flag.className = 'story-node-flag';
-    flag.textContent = state.done ? 'пройдено' : state.available ? 'сейчас' : 'закрыто';
+    flag.textContent = state.done
+      ? ZQ.tr('пройдено')
+      : state.available ? ZQ.tr('сейчас') : ZQ.tr('закрыто');
     head.appendChild(flag);
     card.appendChild(head);
 
@@ -160,7 +152,7 @@
       row.className = 'story-node-row';
       const label = document.createElement('span');
       label.className = 'story-node-label';
-      label.textContent = 'находки';
+      label.textContent = ZQ.tr('находки');
       row.appendChild(label);
       for (const find of node.finds) {
         const chip = document.createElement('span');
@@ -176,7 +168,7 @@
       row.className = 'story-node-row seeking';
       const label = document.createElement('span');
       label.className = 'story-node-label';
-      label.textContent = 'ищешь';
+      label.textContent = ZQ.tr('ищешь');
       row.appendChild(label);
       const text = document.createElement('span');
       text.className = 'story-seeking';
@@ -191,17 +183,134 @@
       hint.textContent = node.hint;
       card.appendChild(hint);
     }
-
-    if (node.children && node.children.length) {
-      const children = document.createElement('div');
-      children.className = 'story-children';
-      for (const child of node.children) {
-        const childNode = createNode(child, depth + 1, seen, states, order);
-        if (childNode) children.appendChild(childNode);
-      }
-      card.appendChild(children);
-    }
     return card;
+  }
+
+  /* Раскладка графа: колонка на глубину ветви, карточки по центру
+     колонки. Линии рисуются после измерения реальной высоты карточек. */
+  function layoutStoryGraph(tree, states, container) {
+    const depth = new Map();
+    const order = [];
+
+    function visit(id, level) {
+      if (!tree.nodes[id] || depth.has(id)) return;
+      depth.set(id, level);
+      order.push(id);
+      const node = tree.nodes[id];
+      for (const child of node.children || []) visit(child, level + 1);
+    }
+    for (const root of tree.roots) visit(root, 0);
+    for (const id of Object.keys(tree.nodes)) visit(id, 0);
+
+    const columns = new Map();
+    for (const id of order) {
+      const level = depth.get(id);
+      if (!columns.has(level)) columns.set(level, []);
+      columns.get(level).push(id);
+    }
+
+    const board = document.createElement('div');
+    board.className = 'story-board';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'story-edges');
+    svg.setAttribute('aria-hidden', 'true');
+    board.appendChild(svg);
+    container.appendChild(board);
+
+    const padX = 24;
+    const padY = 20;
+    const columnGap = 232;
+    const rowGap = 18;
+    const nodeWidth = 176;
+    const levels = Array.from(columns.keys()).sort((a, b) => a - b);
+    const maxDepth = levels.length ? levels[levels.length - 1] : 0;
+    const positions = new Map();
+
+    for (const level of levels) {
+      const ids = columns.get(level);
+      const entries = [];
+      for (const id of ids) {
+        const node = tree.nodes[id];
+        const state = states.get(id);
+        const card = createStoryCard(id, node, state);
+        card.style.left = `${padX + level * columnGap}px`;
+        card.style.top = '0px';
+        board.appendChild(card);
+        const height = card.offsetHeight || Math.max(86, 58 + (node.summary ? 24 : 0) +
+          (node.finds ? 20 : 0) + (node.seeking ? 18 : 0) + (node.hint ? 22 : 0));
+        entries.push({ id, card, height });
+      }
+      columns.set(level, entries);
+    }
+
+    let tallest = 0;
+    for (const entries of columns.values()) {
+      const total = entries.reduce((sum, entry) => sum + entry.height, 0) +
+        rowGap * Math.max(0, entries.length - 1);
+      tallest = Math.max(tallest, total);
+    }
+
+    for (const [level, entries] of columns) {
+      const total = entries.reduce((sum, entry) => sum + entry.height, 0) +
+        rowGap * Math.max(0, entries.length - 1);
+      let y = padY + (tallest - total) / 2;
+      for (const entry of entries) {
+        entry.card.style.top = `${y}px`;
+        positions.set(entry.id, {
+          x: padX + level * columnGap,
+          y,
+          width: nodeWidth,
+          height: entry.height
+        });
+        y += entry.height + rowGap;
+      }
+    }
+
+    const boardWidth = Math.max(padX * 2 + maxDepth * columnGap + nodeWidth, 680);
+    const boardHeight = Math.max(padY * 2 + tallest, 340);
+    board.style.width = `${boardWidth}px`;
+    board.style.height = `${boardHeight}px`;
+    svg.setAttribute('width', String(boardWidth));
+    svg.setAttribute('height', String(boardHeight));
+    svg.setAttribute('viewBox', `0 0 ${boardWidth} ${boardHeight}`);
+
+    for (const parentId of order) {
+      const parent = tree.nodes[parentId];
+      const parentPos = positions.get(parentId);
+      if (!parentPos) continue;
+      const parentState = states.get(parentId);
+      for (const childId of parent.children || []) {
+        const childPos = positions.get(childId);
+        if (!childPos) continue;
+        const childState = states.get(childId);
+        const cls = childState.done && parentState.done
+          ? 'done'
+          : childState.available ? 'available' : '';
+        const x1 = parentPos.x + parentPos.width;
+        const y1 = parentPos.y + parentPos.height / 2;
+        const x2 = childPos.x - 2;
+        const y2 = childPos.y + childPos.height / 2;
+        const curve = Math.max(28, (x2 - x1) * 0.42);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d',
+          `M ${x1.toFixed(1)} ${y1.toFixed(1)} ` +
+          `C ${(x1 + curve).toFixed(1)} ${y1.toFixed(1)}, ` +
+          `${(x2 - curve).toFixed(1)} ${y2.toFixed(1)}, ` +
+          `${x2.toFixed(1)} ${y2.toFixed(1)}`);
+        path.setAttribute('class', `story-edge${cls ? ` ${cls}` : ''}`);
+        svg.appendChild(path);
+
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        arrow.setAttribute('points',
+          `${x2.toFixed(1)},${y2.toFixed(1)} ` +
+          `${(x2 - 8).toFixed(1)},${(y2 - 4).toFixed(1)} ` +
+          `${(x2 - 8).toFixed(1)},${(y2 + 4).toFixed(1)}`);
+        arrow.setAttribute('class', `story-edge-arrow${cls ? ` ${cls}` : ''}`);
+        svg.appendChild(arrow);
+      }
+    }
+
+    return board;
   }
 
   function renderStory() {
@@ -239,7 +348,7 @@
     stage.className = 'story-current-stage';
     const stageLabel = document.createElement('span');
     stageLabel.className = 'story-summary-label';
-    stageLabel.textContent = 'текущий этап';
+    stageLabel.textContent = ZQ.tr('текущий этап');
     const stageValue = document.createElement('b');
     stageValue.textContent = currentStage;
     stage.appendChild(stageLabel);
@@ -249,8 +358,8 @@
     const stateLabel = document.createElement('div');
     stateLabel.className = 'story-current-state';
     stateLabel.textContent = available.length
-      ? `доступно узлов: ${available.length}`
-      : 'все доступные узлы пройдены';
+      ? `${ZQ.tr('доступно узлов')}: ${available.length}`
+      : ZQ.tr('все доступные узлы пройдены');
     top.appendChild(stateLabel);
     summary.appendChild(top);
 
@@ -258,7 +367,7 @@
     goal.className = 'story-goal';
     const goalLabel = document.createElement('span');
     goalLabel.className = 'story-summary-label';
-    goalLabel.textContent = 'что ищешь';
+    goalLabel.textContent = ZQ.tr('что ищешь');
     goal.appendChild(goalLabel);
     const goals = [];
     for (const node of available) {
@@ -268,7 +377,9 @@
     }
     const goalText = document.createElement('div');
     goalText.className = 'story-goal-text';
-    goalText.textContent = goals.length ? goals.join(' · ') : 'Ветвь пройдена. Можно перечитать её или начать новый Лабиринт.';
+    goalText.textContent = goals.length
+      ? goals.join(' · ')
+      : ZQ.tr('Ветвь пройдена. Можно перечитать её или начать новый Лабиринт.');
     goal.appendChild(goalText);
     summary.appendChild(goal);
 
@@ -276,7 +387,7 @@
     finds.className = 'story-finds';
     const findsLabel = document.createElement('span');
     findsLabel.className = 'story-summary-label';
-    findsLabel.textContent = 'доступные находки';
+    findsLabel.textContent = ZQ.tr('доступные находки');
     finds.appendChild(findsLabel);
     const findList = [];
     for (const node of available) {
@@ -296,7 +407,7 @@
     } else {
       const empty = document.createElement('span');
       empty.className = 'story-empty';
-      empty.textContent = 'новых находок не осталось';
+      empty.textContent = ZQ.tr('новых находок не осталось');
       findWrap.appendChild(empty);
     }
     finds.appendChild(findWrap);
@@ -304,14 +415,7 @@
 
     dom.storyNow.appendChild(summary);
 
-    const trail = document.createElement('div');
-    trail.className = 'story-trail';
-    const seen = new Set();
-    for (const root of tree.roots) {
-      const node = createNode(root, 0, seen, states, order);
-      if (node) trail.appendChild(node);
-    }
-    dom.storyTree.appendChild(trail);
+    layoutStoryGraph(tree, states, dom.storyTree);
   }
 
   function openStory() {
@@ -327,6 +431,10 @@
   }
 
   dom.storyClose.addEventListener('click', closeStory);
+
+  window.addEventListener('resize', () => {
+    if (rt.termView === 'story') renderStory();
+  });
 
   ZQ.queueStory = queueStory;
   ZQ.clearStoryQueue = clearStoryQueue;

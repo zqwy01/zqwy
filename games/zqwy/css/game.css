@@ -3450,3 +3450,86 @@ body.split-dragging {
     width: 100%;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Патч 5: читаемость, бесконечная сетка и связи стола                 */
+/* ------------------------------------------------------------------ */
+
+#canvas-workspace > .canvas-grid {
+  inset: 0;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+#canvas-workspace > .canvas-grid::after {
+  display: none;
+}
+
+.canvas-links .link-head {
+  fill: rgba(229, 161, 104, 0.78);
+}
+
+.canvas-links .link-head.selected {
+  fill: var(--rust-bright);
+}
+
+#view-canvas .canvas-toolbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#view-canvas .canvas-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+#view-canvas .canvas-toolbar .tool-btn,
+#view-canvas .canvas-toolbar .exit-btn {
+  flex: 0 0 auto;
+}
+
+#view-canvas .exit-btn {
+  padding: 5px 8px;
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+/* Отправленная команда ближе к ответу: меньше воздуха между строками. */
+.log-line.cmd {
+  margin-bottom: 0;
+}
+
+.log-line.cmd + .log-line {
+  margin-top: 1px;
+}
+
+/* «система» и «ЛАБИРИНТ» — ярче и различимее. */
+.log-line.sys {
+  color: rgba(224, 227, 215, 0.9);
+}
+
+.log-line.sys .log-label {
+  color: rgba(235, 168, 108, 0.95);
+}
+
+.log-line.story .log-label {
+  color: rgba(154, 212, 175, 0.96);
+}
+
+.log-line.story {
+  color: #e0d3b7;
+}
+
+.setting-head > span {
+  font-size: var(--fs-h2);
+}
+
+.story-board .story-node {
+  font-size: var(--fs-sm);
+}
+
+@media (max-width: 720px) {
+  #view-canvas .canvas-toolbar {
+    flex-wrap: wrap;
+  }
+}

@@ -319,10 +319,10 @@
           title: 'movement',
           description: 'smooth timed steps and stop',
           commands: [
-            { command: 'up', description: 'walks up for one second; “walk up 10” — ten seconds', bindable: true },
-            { command: 'down', description: 'walks down for one second; “walk down 10” — ten seconds', bindable: true },
-            { command: 'left', description: 'walks left for one second; “walk left 10” — ten seconds', bindable: true },
-            { command: 'right', description: 'walks right for one second; “walk right 10” — ten seconds', bindable: true },
+            { command: 'walk up', description: 'walks up for one second; “walk up 10” — ten seconds', bindable: true },
+            { command: 'walk down', description: 'walks down for one second; “walk down 10” — ten seconds', bindable: true },
+            { command: 'walk left', description: 'walks left for one second; “walk left 10” — ten seconds', bindable: true },
+            { command: 'walk right', description: 'walks right for one second; “walk right 10” — ten seconds', bindable: true },
             { command: 'stop', description: 'releases held keys and clears the cursor target', bindable: true }
           ]
         },
@@ -486,12 +486,34 @@
     'Неизвестная команда: ': 'Unknown command: ',
     'Пока недоступно. ': 'Not available yet. ',
     'Сохранение и загрузка доступны в настройках и на панели терминала.': 'Saving and loading are available in settings and on the terminal panel.',
-    'Мир загружен за ': 'World loaded in '
+    'Мир загружен за ': 'World loaded in ',
+    'пройдено': 'done',
+    'сейчас': 'now',
+    'закрыто': 'locked',
+    'находки': 'finds',
+    'ищешь': 'seeking',
+    'текущий этап': 'current stage',
+    'доступно узлов': 'available nodes',
+    'все доступные узлы пройдены': 'all available nodes are done',
+    'что ищешь': 'what you seek',
+    'доступные находки': 'available finds',
+    'новых находок не осталось': 'no new finds left',
+    'Ветвь пройдена. Можно перечитать её или начать новый Лабиринт.': 'The branch is complete. You can reread it or start a new Labyrinth.',
+    'Клавиша уже на столе. Связано целей: ': 'The key is already on the table. Linked targets: ',
+    'Клавиша уже на столе, но пока ни с чем не связана.': 'The key is already on the table, but not linked to anything yet.',
+    'Добавить клавишу ': 'Add key ',
+    ' на стол': ' to the table',
+    'Ровно одна клетка за ': 'Exactly one tile in ',
+    ' с.': ' s.'
   };
 
   const PATTERNS = [
     [/^Новый Лабиринт\. Seed: (.+)$/, (m) => `New Labyrinth. Seed: ${m[1]}`],
+    [/^Мир загружен за (\d+) мс · комнат: (\d+) · чанков: (\d+) · seed: (.*)$/, (m) => `World loaded in ${m[1]} ms · rooms: ${m[2]} · chunks: ${m[3]} · seed: ${m[4]}`],
     [/^Мир загружен за (\d+) мс\. (.*)$/, (m) => `World loaded in ${m[1]} ms. ${m[2]}`],
+    [/^Клавиша уже на столе\. Связано целей: (\d+)\.$/, (m) => `The key is already on the table. Linked targets: ${m[1]}.`],
+    [/^Ровно одна клетка за (.+) с\.$/, (m) => `Exactly one tile in ${m[1]} s.`],
+    [/^доступно узлов: (\d+)$/, (m) => `available nodes: ${m[1]}`],
     [/^Открыто: (.+)\.$/, (m) => `Unlocked: ${m[1]}.`],
     [/^Пока недоступно\. (.+)$/, (m) => `Not available yet. ${m[1]}`],
     [/^Группа «(.+)» пока закрыта\. (.+)$/, (m) => `Group “${m[1]}” is still closed. ${m[2]}`],
@@ -624,8 +646,8 @@
       setText('#map-note', 'For now this is only the memory of what you have crossed.');
       setAttr('#map-close', 'aria-label', 'Close map');
 
-      setText('#canvas-title', 'table');
-      setText('#canvas-exit', 'Leave the table');
+      setText('#canvas-title', 'Table');
+      setText('#canvas-exit', 'Exit');
       setText('#canvas-add-toggle', '+');
       setAttr('#canvas-add-toggle', 'aria-label', 'Add element');
       setText('#canvas-link-toggle', '→');
@@ -649,6 +671,16 @@
       setText('#canvas-response-command', 'ready');
       setText('#canvas-response-reply', 'Click a placed element to run its command.');
       setText('#canvas-move-note', 'movement: 1 s by default · “walk down 10” — 10 s');
+      setText('#canvas-move-seconds-label', 'seconds');
+      setAttr('[data-canvas-move="up"]', 'aria-label', 'Walk up');
+      setAttr('[data-canvas-move="down"]', 'aria-label', 'Walk down');
+      setAttr('[data-canvas-move="left"]', 'aria-label', 'Walk left');
+      setAttr('[data-canvas-move="right"]', 'aria-label', 'Walk right');
+      setAttr('#canvas-move-stop', 'aria-label', 'Stop movement');
+      setAttr('#canvas-move-seconds', 'aria-label', 'Movement duration in seconds');
+      setAttr('#music-seek', 'aria-label', 'Track position');
+      setAttr('#music-volume', 'aria-label', 'Music volume');
+      setText('#music-volume-label', 'volume');
 
       setText('#view-card .eyebrow', 'CARD');
       setAttr('#card-close', 'aria-label', 'Return to the table');
@@ -681,7 +713,7 @@
       setAttr('#term-settings-close', 'aria-label', 'Close terminal settings');
       setText('#term-settings-back', '← general settings');
       setText('#setting-speed-title', 'Text appearance speed');
-      setText('#setting-log-title', 'Action logging');
+      setText('#setting-log-title', 'Action log');
       setText('#setting-log-enable-text', 'record events in the terminal');
       setText('#setting-log-terminal-text', 'terminal');
       setText('#setting-log-scenes-text', 'scenes');
@@ -690,7 +722,7 @@
       setText('#setting-log-movement-text', 'movement');
       setText('#setting-log-actions-text', 'actions');
       setText('#setting-log-commands-text', 'commands');
-      setText('#setting-log-note', 'The “logging” command enables everything or one category: “logging movement”, “logging actions”, “logging terminal”.');
+      setText('#setting-log-note', 'The action log filters useful text. For example, “movement” records steps. The “logging” command enables everything or one category: “logging movement”, “logging actions”, “logging terminal”.');
 
       setText('#view-trial .trial-head .eyebrow', 'CIRCLE OF ENCHANTMENT');
 
@@ -724,8 +756,8 @@
       setText('#map-note', 'Пока это только память о пройденном.');
       setAttr('#map-close', 'aria-label', 'Закрыть карту');
 
-      setText('#canvas-title', 'стол');
-      setText('#canvas-exit', 'Выйти из-за стола');
+      setText('#canvas-title', 'Стол');
+      setText('#canvas-exit', 'Выход');
       setText('#canvas-add-toggle', '+');
       setText('#canvas-link-toggle', '→');
       setText('#canvas-keys-toggle', 'клавиши');
@@ -741,6 +773,16 @@
       setText('#canvas-response-command', 'готово');
       setText('#canvas-response-reply', 'Нажми на размещённый элемент, чтобы выполнить его команду.');
       setText('#canvas-move-note', 'движение: 1 с по умолчанию · «идти вниз 10» — 10 с');
+      setText('#canvas-move-seconds-label', 'секунды');
+      setAttr('[data-canvas-move="up"]', 'aria-label', 'Идти вверх');
+      setAttr('[data-canvas-move="down"]', 'aria-label', 'Идти вниз');
+      setAttr('[data-canvas-move="left"]', 'aria-label', 'Идти влево');
+      setAttr('[data-canvas-move="right"]', 'aria-label', 'Идти вправо');
+      setAttr('#canvas-move-stop', 'aria-label', 'Остановить движение');
+      setAttr('#canvas-move-seconds', 'aria-label', 'Длительность движения в секундах');
+      setAttr('#music-seek', 'aria-label', 'Позиция трека');
+      setAttr('#music-volume', 'aria-label', 'Громкость музыки');
+      setText('#music-volume-label', 'громкость');
 
       setText('#view-card .eyebrow', 'КАРТА');
       setText('#card-run', 'произнести');
@@ -769,7 +811,7 @@
       setText('#view-term-settings .settings-subtitle', 'текст и запись событий');
       setText('#term-settings-back', '← общие настройки');
       setText('#setting-speed-title', 'Скорость появления текста');
-      setText('#setting-log-title', 'Логгирование действий');
+      setText('#setting-log-title', 'Запись действий');
       setText('#setting-log-enable-text', 'записывать события в терминал');
       setText('#setting-log-terminal-text', 'терминал');
       setText('#setting-log-scenes-text', 'сцены');
@@ -778,7 +820,7 @@
       setText('#setting-log-movement-text', 'движение');
       setText('#setting-log-actions-text', 'действия');
       setText('#setting-log-commands-text', 'команды');
-      setText('#setting-log-note', 'Команда «логгирование» включает лог целиком или отдельные категории: «логгирование движение», «логгирование действия», «логгирование терминал».');
+      setText('#setting-log-note', 'Запись действий — это фильтр полезного текста. Например, «движение» записывает шаги. Команда «логгирование» включает всё или одну категорию: «логгирование движение», «логгирование действия», «логгирование терминал».');
 
       setText('#view-trial .trial-head .eyebrow', 'КРУГ ОЧАРОВАНИЯ');
 

@@ -48,16 +48,6 @@
       </div>
 
       <section id="terminal" class="terminal" aria-label="Терминал">
-        <div class="term-topbar">
-          <span class="term-wordmark">Zemic</span>
-          <div class="term-actions">
-            <button id="btn-save" class="tool-btn" type="button">сохранить</button>
-            <button id="btn-load" class="tool-btn" type="button">загрузить</button>
-            <button id="btn-export" class="tool-btn" type="button">экспорт</button>
-            <button id="btn-settings" class="tool-btn term-settings" type="button" aria-label="Настройки">⚙</button>
-          </div>
-        </div>
-
         <div id="term-views" class="term-views">
           <div id="view-main" class="term-view">
             <div id="log" class="log" role="log" aria-live="polite"></div>
@@ -97,9 +87,8 @@
           <div id="view-canvas" class="term-view hidden" aria-label="Стол">
             <header class="canvas-head">
               <div>
-                <h2 id="canvas-title">стол</h2>
+                <h2 id="canvas-title">Стол</h2>
               </div>
-              <button id="canvas-exit" class="exit-btn" type="button">Выйти из-за стола</button>
             </header>
 
             <div class="canvas-toolbar">
@@ -111,6 +100,7 @@
                 <button id="canvas-zoom-reset" class="zoom-btn zoom-value" type="button" aria-label="Сбросить масштаб и положение"><span id="canvas-zoom-label">100%</span></button>
                 <button id="canvas-zoom-in" class="zoom-btn" type="button" aria-label="Увеличить масштаб">+</button>
               </div>
+              <button id="canvas-exit" class="exit-btn" type="button">Выход</button>
             </div>
             <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. Свяжи клавишу с целями, чтобы запускать их одной кнопкой.</span>
 
@@ -119,7 +109,7 @@
               <button class="move-btn" type="button" data-canvas-move="left" aria-label="Идти влево">←</button>
               <button class="move-btn" type="button" data-canvas-move="down" aria-label="Идти вниз">↓</button>
               <button class="move-btn" type="button" data-canvas-move="right" aria-label="Идти вправо">→</button>
-              <label class="move-time">секунды
+              <label class="move-time"><span id="canvas-move-seconds-label">секунды</span>
                 <input id="canvas-move-seconds" type="number" min="1" max="60" step="1" value="1" inputmode="numeric">
               </label>
               <button id="canvas-move-stop" class="move-btn stop" type="button">стоп</button>
@@ -127,8 +117,8 @@
             </div>
 
             <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность стола">
+              <div id="canvas-grid" class="canvas-grid" aria-hidden="true"></div>
               <div id="canvas-stage" class="canvas-stage">
-                <div class="canvas-grid" aria-hidden="true"></div>
                 <svg id="canvas-links" class="canvas-links" aria-hidden="true"></svg>
                 <div id="canvas-elements" class="canvas-elements"></div>
                 <div id="canvas-empty" class="canvas-empty">
@@ -277,7 +267,7 @@
                     <span id="music-time">0:00 / 0:00</span>
                     <span id="music-cue">Лабиринт</span>
                   </div>
-                  <label class="music-volume">громкость
+                  <label class="music-volume"><span id="music-volume-label">громкость</span>
                     <input id="music-volume" type="range" min="0" max="100" step="1" value="55" aria-label="Громкость музыки">
                   </label>
                 </div>
@@ -329,7 +319,7 @@
 
               <section class="setting-group">
                 <div class="setting-head">
-                  <span id="setting-log-title">Логгирование действий</span>
+                  <span id="setting-log-title">Запись действий</span>
                   <b id="setting-log-state">выключено</b>
                 </div>
                 <label class="setting-toggle">
@@ -366,7 +356,7 @@
                     <span id="setting-log-commands-text">команды</span>
                   </label>
                 </div>
-                <p id="setting-log-note" class="setting-note-inline">Команда «логгирование» включает всё или одну категорию: «логгирование движение», «логгирование действия», «логгирование терминал».</p>
+                <p id="setting-log-note" class="setting-note-inline">Запись действий — это фильтр полезного текста. Например, «движение» записывает шаги. Команда «логгирование» включает всё или одну категорию: «логгирование движение», «логгирование действия», «логгирование терминал».</p>
               </section>
 
               <button id="term-settings-back" class="ghost-btn" type="button">← общие настройки</button>

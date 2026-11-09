@@ -32,11 +32,17 @@
     save: 'сохранить',
     load: 'загрузить',
     export: 'экспорт',
+    import: 'импорт',
+    slots: 'слоты',
+    rename: 'переименовать',
+    delete: 'удалить',
     language: 'язык',
     music: 'музыка',
     clear: 'очисти',
     'new game': 'новая игра',
-    backpack: 'рюкзак',
+    backpack: 'инвентарь',
+    inventory: 'инвентарь',
+    layouts: 'макеты',
     map: 'карта',
     mark: 'пометить',
     table: 'стол',
@@ -56,7 +62,8 @@
     exportieren: 'экспорт',
     tabelle: 'стол',
     karte: 'карта',
-    rucksack: 'рюкзак',
+    rucksack: 'инвентарь',
+    inventar: 'инвентарь',
     geschichte: 'сюжет',
     protokoll: 'логгирование',
     hallo: 'привет',
@@ -69,6 +76,21 @@
   };
 
   const PREFIX_ALIASES = [
+    [/^layout speichern\b/, 'макет сохранить'],
+    [/^layout save\b/, 'макет сохранить'],
+    [/^layout\b/, 'макет'],
+    [/^save slot\b/, 'сохранить слот'],
+    [/^load slot\b/, 'загрузить слот'],
+    [/^rename slot\b/, 'переименовать слот'],
+    [/^delete slot\b/, 'удалить слот'],
+    [/^slot speichern\b/, 'сохранить слот'],
+    [/^slot laden\b/, 'загрузить слот'],
+    [/^slot umbenennen\b/, 'переименовать слот'],
+    [/^slot löschen\b/, 'удалить слот'],
+    [/^slots\b/, 'слоты'],
+    [/^import\b/, 'импорт'],
+    [/^story chance\b/, 'шанс сюжет'],
+    [/^fauna chance\b/, 'шанс фауны'],
     [/^help\b/, 'помоги'],
     [/^hilfe\b/, 'помоги'],
     [/^walk\b/, 'идти'],
@@ -273,6 +295,113 @@
     );
   }
 
+  function askNumber(arg) {
+    const text = String(arg || '').trim().replace(',', '.');
+    if (!text) return null;
+    const value = Number(text);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  function percent(value) {
+    return `${Math.round(Number(value) * 1000) / 10}%`;
+  }
+
+  /* Читы меняют шансы генерации для ещё не созданных комнат. Мир
+     пересобирается сразу, чтобы изменения можно было проверить без
+     перезапуска. Уже открытые флаги и предметы остаются. */
+  function rebuildWorld() {
+    if (!rt.state || !window.World) return false;
+    rt.world = window.World.generate(rt.state.seed);
+    if (typeof ZQ.canStandAt === 'function' &&
+        !ZQ.canStandAt(rt.state.player.x, rt.state.player.y)) {
+      ZQ.respawnAtTablet();
+    }
+    rt.state.currentRoomId = null;
+    if (typeof ZQ.snapCamera === 'function') ZQ.snapCamera();
+    if (typeof ZQ.updateRoomDetection === 'function') ZQ.updateRoomDetection();
+    if (typeof ZQ.updatePrompt === 'function') ZQ.updatePrompt();
+    if (typeof ZQ.rebuildImages === 'function') ZQ.rebuildImages();
+    return true;
+  }
+
+  function chanceCommand(kind, arg) {
+    const world = (C.world || {});
+    const value = askNumber(arg);
+    if (kind === 'фауны') {
+      if (value === null) {
+        return t(
+          `Шанс фауны: ${percent(world.faunaChance === undefined ? 0.18 : world.faunaChance)}. ` +
+            'Использование: «шанс фауны 0.4».',
+          `Fauna chance: ${percent(world.faunaChance === undefined ? 0.18 : world.faunaChance)}. ` +
+            'Usage: “fauna chance 0.4”.'
+        );
+      }
+      world.faunaChance = ZQ.clamp(value, 0, 1);
+      rebuildWorld();
+      return t(
+        `Шанс фауны теперь ${percent(world.faunaChance)}. Мир пересобран.`,
+        `Fauna chance is now ${percent(world.faunaChance)}. The world has been rebuilt.`
+      );
+    }
+    if (value === null) {
+      const first = world.storyFirstChance === undefined ? 0.25 : world.storyFirstChance;
+      const next = world.storyNextChance === undefined ? 0.08 : world.storyNextChance;
+      return t(
+        `Шанс сюжетной комнаты: первый ${percent(first)}, следующий ${percent(next)}. ` +
+          'Использование: «шанс сюжет 0.25».',
+        `Story room chance: first ${percent(first)}, next ${percent(next)}. ` +
+          'Usage: “story chance 0.25”.'
+      );
+    }
+    world.storyFirstChance = ZQ.clamp(value, 0, 1);
+    world.storyNextChance = ZQ.clamp(value, 0, 1);
+    rebuildWorld();
+    return t(
+      `Шанс сюжетной комнаты теперь ${percent(world.storyFirstChance)}. Мир пересобран.`,
+      `Story room chance is now ${percent(world.storyFirstChance)}. The world has been rebuilt.`
+    );
+  }
+
+  function layoutCommand(arg) {
+    const value = String(arg || '').trim();
+    if (!value) {
+      return typeof ZQ.listCanvasLayouts === 'function'
+        ? ZQ.listCanvasLayouts()
+        : t('Макеты пока не сохранялись.', 'No layouts have been saved yet.');
+    }
+    return typeof ZQ.loadCanvasLayout === 'function'
+      ? ZQ.loadCanvasLayout(value)
+      : t('Стол ещё не готов к макетам.', 'The table is not ready for layouts yet.');
+  }
+
+  function saveLayoutCommand(arg) {
+    const name = String(arg || '').trim();
+    if (!name) {
+      return t(
+        'Укажи имя макета: «макет сохранить бой».',
+        'Name the layout: “layout save fight”.'
+      );
+    }
+    return typeof ZQ.saveCanvasLayout === 'function'
+      ? ZQ.saveCanvasLayout(name)
+      : t('Стол ещё не готов к макетам.', 'The table is not ready for layouts yet.');
+  }
+
+  function slotNameFrom(arg) {
+    return String(arg || '').trim();
+  }
+
+  function renameSlotNames(arg) {
+    const text = String(arg || '').trim();
+    if (!text) return null;
+    const parts = text.split(/\s*(?:→|->|=>)\s*/);
+    if (parts.length < 2) return null;
+    const from = parts[0].trim();
+    const to = parts.slice(1).join(' → ').trim();
+    if (!from || !to) return null;
+    return { from, to };
+  }
+
   function handleCommand(raw, source) {
     source = source || 'terminal';
     const text = String(raw === null || raw === undefined ? '' : raw).trim();
@@ -315,7 +444,7 @@
       reply = ZQ.stopMovement();
     } else if (cmd === 'осмотреться') {
       reply = ZQ.currentRoomDescription();
-    } else if (cmd === 'рюкзак') {
+    } else if (cmd === 'инвентарь' || cmd === 'рюкзак') {
       if (!ZQ.hasUnlock('backpack')) {
         reply = ZQ.denyLocked('backpack');
       } else {
@@ -343,6 +472,21 @@
           : t('Ты уже за столом.', 'You are already at the table.');
         if (source === 'terminal') ZQ.openCanvas();
       }
+    } else if (cmd === 'макет сохранить' || cmd.startsWith('макет сохранить ')) {
+      reply = saveLayoutCommand(cmd.replace(/^макет сохранить\s*/, ''));
+      replyInstant = true;
+    } else if (cmd === 'макеты') {
+      reply = layoutCommand('');
+      replyInstant = true;
+    } else if (cmd === 'макет' || cmd.startsWith('макет ')) {
+      reply = layoutCommand(cmd.replace(/^макет\s*/, ''));
+      replyInstant = true;
+    } else if (cmd === 'шанс сюжет' || cmd.startsWith('шанс сюжет ')) {
+      reply = chanceCommand('сюжет', cmd.replace(/^шанс сюжет\s*/, ''));
+      replyInstant = true;
+    } else if (cmd === 'шанс фауны' || cmd.startsWith('шанс фауны ')) {
+      reply = chanceCommand('фауны', cmd.replace(/^шанс фауны\s*/, ''));
+      replyInstant = true;
     } else if (cmd === 'пометить') {
       if (!ZQ.hasUnlock('map')) {
         reply = ZQ.denyLocked('map');
@@ -398,6 +542,75 @@
       reply = ok
         ? t('Мир выгружен в файл.', 'World exported to a file.')
         : t('Не удалось выгрузить мир.', 'Could not export the world.');
+      replyInstant = true;
+    } else if (cmd === 'слоты') {
+      reply = typeof ZQ.slotListText === 'function'
+        ? ZQ.slotListText()
+        : t('Именованных сохранений пока нет.', 'There are no named saves yet.');
+      replyInstant = true;
+    } else if (cmd === 'сохранить слот' || cmd.startsWith('сохранить слот ')) {
+      const name = slotNameFrom(cmd.replace(/^сохранить слот\s*/, ''));
+      if (!name) {
+        reply = t('Укажи имя слота: «сохранить слот вечер».',
+          'Name the slot: “save slot evening”.',
+          'Nenne den Slot: „slot speichern abend“.');
+      } else {
+        const result = ZQ.saveSlotWorld(name, false);
+        reply = result && result.ok
+          ? t(`Слот «${result.name}» сохранён.`, `Slot “${result.name}” saved.`, `Slot „${result.name}“ gespeichert.`)
+          : t('Не удалось сохранить слот.', 'Could not save the slot.', 'Der Slot konnte nicht gespeichert werden.');
+      }
+      replyInstant = true;
+    } else if (cmd === 'загрузить слот' || cmd.startsWith('загрузить слот ')) {
+      const name = slotNameFrom(cmd.replace(/^загрузить слот\s*/, ''));
+      if (!name) {
+        reply = t('Укажи имя слота: «загрузить слот вечер».',
+          'Name the slot: “load slot evening”.',
+          'Nenne den Slot: „slot laden abend“.');
+      } else {
+        const result = ZQ.loadSlotWorld(name, false);
+        reply = result && result.ok
+          ? t(`Слот «${name}» загружен. Seed: ${result.seed}.`, `Slot “${name}” loaded. Seed: ${result.seed}.`, `Slot „${name}“ geladen. Seed: ${result.seed}.`)
+          : t('Такого слота нет.', 'There is no such slot.', 'Diesen Slot gibt es nicht.');
+      }
+      replyInstant = true;
+    } else if (cmd === 'переименовать слот' || cmd.startsWith('переименовать слот ')) {
+      const names = renameSlotNames(cmd.replace(/^переименовать слот\s*/, ''));
+      if (!names) {
+        reply = t('Формат: «переименовать слот старое → новое».',
+          'Format: “rename slot old → new”.',
+          'Format: „slot umbenennen alt → neu“.');
+      } else {
+        const result = ZQ.renameSlot(names.from, names.to, false);
+        reply = result && result.ok
+          ? t(`Слот «${result.from}» переименован в «${result.name}».`, `Slot “${result.from}” renamed to “${result.name}”.`, `Slot „${result.from}“ umbenannt in „${result.name}“.`)
+          : result && result.reason === 'exists'
+            ? t('Слот с таким именем уже есть.', 'A slot with that name already exists.', 'Ein Slot mit diesem Namen existiert bereits.')
+            : t('Не удалось переименовать слот.', 'Could not rename the slot.', 'Der Slot konnte nicht umbenannt werden.');
+      }
+      replyInstant = true;
+    } else if (cmd === 'удалить слот' || cmd.startsWith('удалить слот ')) {
+      const name = slotNameFrom(cmd.replace(/^удалить слот\s*/, ''));
+      if (!name) {
+        reply = t('Укажи имя слота: «удалить слот вечер».',
+          'Name the slot: “delete slot evening”.',
+          'Nenne den Slot: „slot löschen abend“.');
+      } else {
+        const result = ZQ.deleteSlot(name, false);
+        reply = result && result.ok
+          ? t(`Слот «${result.name}» удалён.`, `Slot “${result.name}” deleted.`, `Slot „${result.name}“ gelöscht.`)
+          : t('Такого слота нет.', 'There is no such slot.', 'Diesen Slot gibt es nicht.');
+      }
+      replyInstant = true;
+    } else if (cmd === 'импорт') {
+      if (ZQ.dom && ZQ.dom.dataImportFile) {
+        ZQ.dom.dataImportFile.click();
+        reply = t('Выбери JSON-файл мира.', 'Choose a world JSON file.', 'Wähle eine JSON-Weltdatei.');
+      } else {
+        reply = t('Импорт доступен в «настройки» → «Данные».',
+          'Import is available under “settings” → “Data”.',
+          'Der Import ist unter „einstellungen“ → „Daten“ verfügbar.');
+      }
       replyInstant = true;
     } else if (cmd === 'очаровать') {
       reply = t('Очарование: способность ещё не подключена. Это временная нейтральная заглушка — эффект появится позже.',

@@ -20,6 +20,7 @@
     if (typeof ZQ.applyTermSettings === 'function') ZQ.applyTermSettings(false);
     ZQ.setTerminalView('music');
     ZQ.updateMusicUI();
+    if (ZQ.audio && typeof ZQ.audio.decodePeaks === 'function') ZQ.audio.decodePeaks();
     drawWave();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыт музыкальный плеер', 'терминал');
   }
@@ -62,16 +63,62 @@
       const x = i * (barWidth + gap);
       const amplitude = Math.max(0.05, bars[i]);
       const barHeight = Math.max(2 * dpr, amplitude * (height * 0.86));
-      const played = i / bars.length <= progress;
+      const played = (i + 0.5) / bars.length <= progress;
       ctx.fillStyle = played
-        ? 'rgba(229, 161, 104, 0.92)'
-        : 'rgba(158, 164, 151, 0.28)';
+        ? 'rgba(229, 161, 104, 0.94)'
+        : 'rgba(158, 164, 151, 0.3)';
       ctx.fillRect(x, middle - barHeight / 2, barWidth, barHeight);
     }
 
-    ctx.fillStyle = 'rgba(229, 161, 104, 0.5)';
+    /* Центральная линия и маркер перемотки: видно, где именно
+       находится игрок на всём треке. */
+    ctx.fillStyle = 'rgba(196, 204, 193, 0.16)';
+    ctx.fillRect(0, Math.round(middle), width, Math.max(1, dpr));
+    ctx.fillStyle = 'rgba(255, 226, 190, 0.9)';
     const lineX = Math.round(progress * width);
-    ctx.fillRect(lineX, 0, Math.max(1, dpr), height);
+    ctx.fillRect(lineX, 0, Math.max(1, dpr * 1.5), height);
+  }
+
+  function seekFromPointer(event) {
+    const canvas = dom.musicWave;
+    const audio = ZQ.audio;
+    if (!canvas || !audio || typeof audio.seekFraction !== 'function') return;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width) return;
+    const fraction = (event.clientX - rect.left) / rect.width;
+    if (audio.seekFraction(fraction)) {
+      if (typeof ZQ.updateMusicUI === 'function') ZQ.updateMusicUI();
+      drawWave();
+    }
+  }
+
+  if (dom.musicWave) {
+    let seeking = false;
+    dom.musicWave.addEventListener('pointerdown', (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      event.preventDefault();
+      seeking = true;
+      try {
+        dom.musicWave.setPointerCapture(event.pointerId);
+      } catch (error) {
+        /* необязательный захват указателя */
+      }
+      seekFromPointer(event);
+    });
+    dom.musicWave.addEventListener('pointermove', (event) => {
+      if (seeking) seekFromPointer(event);
+    });
+    const endSeek = (event) => {
+      if (!seeking) return;
+      seeking = false;
+      try {
+        dom.musicWave.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        /* необязательный захват указателя */
+      }
+    };
+    dom.musicWave.addEventListener('pointerup', endSeek);
+    dom.musicWave.addEventListener('pointercancel', endSeek);
   }
 
   function tick() {

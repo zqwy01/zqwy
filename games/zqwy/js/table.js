@@ -677,6 +677,7 @@
     node.style.transform = 'translate(-50%, -50%)';
     node.dataset.id = element.id;
     node.dataset.kind = element.kind;
+    if (element.kind === 'key' && element.code) node.dataset.code = element.code;
 
     if (element.kind === 'key') {
       const cap = document.createElement('button');
@@ -874,8 +875,8 @@
       const dy = event.clientY - rt.canvasDrag.startY;
       if (Math.hypot(dx, dy) > 4) rt.canvasDrag.moved = true;
       if (!rt.canvasDrag.moved) return;
-      const nx = ZQ.clamp(rt.canvasDrag.startNx + dx / rt.canvasDrag.rect.width, 0.06, 0.94);
-      const ny = ZQ.clamp(rt.canvasDrag.startNy + dy / rt.canvasDrag.rect.height, 0.06, 0.94);
+      const nx = ZQ.clamp(rt.canvasDrag.startNx + dx / rt.canvasDrag.rect.width, 0, 1);
+      const ny = ZQ.clamp(rt.canvasDrag.startNy + dy / rt.canvasDrag.rect.height, 0, 1);
       element.nx = nx;
       element.ny = ny;
       node.style.left = `${nx * 100}%`;
@@ -1071,7 +1072,7 @@
   }
 
   function setCanvasZoom(value, announce) {
-    rt.canvasZoom = ZQ.clamp(value, 0.55, 2.4);
+    rt.canvasZoom = ZQ.clamp(value, 0.18, 3.2);
     applyCanvasTransform();
     dom.canvasZoomLabel.textContent = `${Math.round(rt.canvasZoom * 100)}%`;
     if (announce) {
@@ -1093,21 +1094,100 @@
     }
   }
 
-  /* --------------------------- Схема -------------------------------- */
+  /* --------------------------- Макеты ------------------------------- */
 
-  function appendCoreControls(body) {
-    const core = document.createElement('div');
-    core.className = 'scheme-core';
-    const label = document.createElement('span');
-    label.className = 'scheme-core-label';
-    label.textContent = 'ядро управления';
-    core.appendChild(label);
-    const text = document.createElement('span');
-    text.className = 'scheme-core-text';
-    text.textContent = 'WASD или стрелки — идти · E — действие · Enter — команда · Space — печать';
-    core.appendChild(text);
-    body.appendChild(core);
+  function snapshotCanvasLayout() {
+    return {
+      zoom: rt.canvasZoom,
+      panX: rt.canvasPanX,
+      panY: rt.canvasPanY,
+      elements: rt.state.canvasElements.map((element) => ({
+        id: element.id,
+        nx: element.nx,
+        ny: element.ny
+      })),
+      savedAt: Date.now()
+    };
   }
+
+  function saveCanvasLayout(name) {
+    const clean = String(name || '').trim().slice(0, 48);
+    if (!clean) {
+      return tl(
+        'Укажи имя макета: «макет сохранить бой».',
+        'Name the layout: “layout save fight”.'
+      );
+    }
+    rt.state.canvasLayouts[clean] = snapshotCanvasLayout();
+    ZQ.saveGame();
+    const text = tl(
+      `Макет «${clean}» сохранён: ${rt.state.canvasElements.length} элементов, масштаб ${Math.round(rt.canvasZoom * 100)}%.`,
+      `Layout “${clean}” saved: ${rt.state.canvasElements.length} elements, scale ${Math.round(rt.canvasZoom * 100)}%.`
+    );
+    if (rt.termView === 'canvas') setCanvasReply(`макет сохранить ${clean}`, text);
+    return text;
+  }
+
+  function loadCanvasLayout(name) {
+    const clean = String(name || '').trim();
+    if (!clean) return listCanvasLayouts();
+    const layout = rt.state.canvasLayouts[clean];
+    if (!layout) {
+      const names = Object.keys(rt.state.canvasLayouts);
+      const suffix = names.length
+        ? tl(` Сохранены: ${names.join(', ')}.`, ` Saved: ${names.join(', ')}.`)
+        : tl(' Сохранённых макетов пока нет.', ' There are no saved layouts yet.');
+      return tl(`Макет «${clean}» не найден.`, `Layout “${clean}” was not found.`) + suffix;
+    }
+    if (Number.isFinite(layout.zoom)) {
+      rt.canvasZoom = ZQ.clamp(layout.zoom, 0.18, 3.2);
+    }
+    if (Number.isFinite(layout.panX)) rt.canvasPanX = layout.panX;
+    if (Number.isFinite(layout.panY)) rt.canvasPanY = layout.panY;
+    if (Array.isArray(layout.elements)) {
+      for (const entry of layout.elements) {
+        if (!entry || !entry.id) continue;
+        const element = rt.state.canvasElements.find((candidate) => candidate.id === entry.id);
+        if (!element) continue;
+        if (Number.isFinite(entry.nx)) element.nx = ZQ.clamp(entry.nx, 0, 1);
+        if (Number.isFinite(entry.ny)) element.ny = ZQ.clamp(entry.ny, 0, 1);
+      }
+    }
+    if (rt.termView !== 'canvas') openCanvas();
+    renderCanvasElements();
+    applyCanvasTransform();
+    renderCanvasLinks();
+    dom.canvasZoomLabel.textContent = `${Math.round(rt.canvasZoom * 100)}%`;
+    ZQ.saveGame();
+    return tl(
+      `Макет «${clean}» развёрнут: ${rt.state.canvasElements.length} элементов, масштаб ${Math.round(rt.canvasZoom * 100)}%.`,
+      `Layout “${clean}” restored: ${rt.state.canvasElements.length} elements, scale ${Math.round(rt.canvasZoom * 100)}%.`
+    );
+  }
+
+  function listCanvasLayouts() {
+    const names = Object.keys(rt.state.canvasLayouts || {});
+    if (!names.length) {
+      return tl('Макеты пока не сохранялись.', 'No layouts have been saved yet.');
+    }
+    const lines = [tl(`Макеты стола (${names.length}):`, `Table layouts (${names.length}):`)];
+    for (const name of names) {
+      const layout = rt.state.canvasLayouts[name] || {};
+      const count = Array.isArray(layout.elements) ? layout.elements.length : 0;
+      const zoom = Number.isFinite(layout.zoom) ? `${Math.round(layout.zoom * 100)}%` : '—';
+      const when = Number.isFinite(layout.savedAt)
+        ? new Date(layout.savedAt).toLocaleString()
+        : '';
+      lines.push(`• ${name} — ${count} ${tl('элементов', 'elements')}, ${zoom}${when ? ` · ${when}` : ''}`);
+    }
+    lines.push(tl(
+      'Загрузить: «макет имя». Сохранить: «макет сохранить имя».',
+      'Load: “layout name”. Save: “layout save name”.'
+    ));
+    return lines.join('\n');
+  }
+
+  /* ----------------------- Схема -------------------------------- */
 
   function renderBoundScheme(body) {
     const scheme = document.createElement('div');
@@ -1140,6 +1220,7 @@
           ? `Нажать ${keyLabel(key.code)}`
           : 'Назначить клавишу';
         cap.dataset.key = key.code || '';
+        cap.dataset.code = key.code || '';
         cap.addEventListener('click', () => {
           if (!key.code) {
             startKeyBinding(key);
@@ -1178,7 +1259,6 @@
       scheme.appendChild(list);
     }
 
-    appendCoreControls(scheme);
     body.appendChild(scheme);
   }
 
@@ -1210,7 +1290,6 @@
       grid.appendChild(item);
     }
     scheme.appendChild(grid);
-    appendCoreControls(scheme);
     body.appendChild(scheme);
   }
 
@@ -1244,7 +1323,6 @@
       grid.appendChild(item);
     }
     scheme.appendChild(grid);
-    appendCoreControls(scheme);
     body.appendChild(scheme);
   }
 
@@ -1274,7 +1352,6 @@
       grid.appendChild(item);
     }
     scheme.appendChild(grid);
-    appendCoreControls(scheme);
     body.appendChild(scheme);
   }
 
@@ -1328,9 +1405,6 @@
         button.dataset.code = code;
         const existing = keyForCode(code);
         if (existing) button.classList.add('placed');
-        if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'Space', 'Enter', 'Escape'].includes(code)) {
-          button.classList.add('core');
-        }
         button.title = existing
           ? `${keyLabel(code)} уже на столе · целей: ${existing.links.length}`
           : `Добавить клавишу ${keyLabel(code)} на стол`;
@@ -1452,6 +1526,21 @@
   }
 
   dom.canvasExit.addEventListener('click', closeCanvas);
+  if (dom.canvasLayoutSave) {
+    dom.canvasLayoutSave.addEventListener('click', () => {
+      const name = window.prompt(
+        tl('Имя макета', 'Layout name'),
+        `макет ${Object.keys(rt.state.canvasLayouts || {}).length + 1}`
+      );
+      if (name === null) return;
+      const clean = String(name).trim();
+      if (!clean) {
+        setCanvasReply('макет сохранить', tl('Имя не задано. Макет не сохранён.', 'No name given. Layout not saved.'));
+        return;
+      }
+      saveCanvasLayout(clean);
+    });
+  }
   dom.cardBack.addEventListener('click', closeCardDetail);
   dom.cardClose.addEventListener('click', closeCardDetail);
   dom.cardRun.addEventListener('click', () => {
@@ -1490,50 +1579,6 @@
   dom.canvasLinkToggle.addEventListener('click', () => {
     setLinkMode(!rt.canvasLinkMode);
   });
-
-  /* Движение со стола: ровно одна клетка, плавно, за выбранное время. */
-  const TILE_DIRECTIONS = {
-    up: [0, -1, 'вверх'],
-    down: [0, 1, 'вниз'],
-    left: [-1, 0, 'влево'],
-    right: [1, 0, 'вправо']
-  };
-
-  function moveTableTile(direction, seconds) {
-    const dir = TILE_DIRECTIONS[direction];
-    if (!dir || !rt.state || !rt.state.player) return false;
-    const duration = ZQ.clamp(Number(seconds) || 1, 0.2, 60);
-    const player = rt.state.player;
-    const ok = ZQ.setCursorDestination(
-      player.x + dir[0],
-      player.y + dir[1],
-      false,
-      duration
-    );
-    if (ok) {
-      setCanvasReply(
-        `шаг ${dir[2]}`,
-        `Ровно одна клетка за ${duration.toFixed(duration < 10 ? 1 : 0)} с.`
-      );
-    }
-    return ok;
-  }
-
-  document.querySelectorAll('[data-canvas-move]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const seconds = dom.canvasMoveSeconds
-        ? Number(dom.canvasMoveSeconds.value) || 1
-        : 1;
-      moveTableTile(button.dataset.canvasMove, seconds);
-    });
-  });
-
-  if (dom.canvasMoveStop) {
-    dom.canvasMoveStop.addEventListener('click', () => {
-      ZQ.stopMovement();
-      setCanvasReply('стоп', 'Движение остановлено.');
-    });
-  }
 
   window.addEventListener('resize', () => {
     if (rt.termView === 'canvas') applyCanvasTransform();
@@ -1645,9 +1690,11 @@
   ZQ.setCanvasPan = setCanvasPan;
   ZQ.setCanvasZoom = setCanvasZoom;
   ZQ.resetCanvasView = resetCanvasView;
+  ZQ.saveCanvasLayout = saveCanvasLayout;
+  ZQ.loadCanvasLayout = loadCanvasLayout;
+  ZQ.listCanvasLayouts = listCanvasLayouts;
   ZQ.renderKeyScheme = renderKeyScheme;
   ZQ.renderKeyboardScheme = renderKeyboardScheme;
-  ZQ.moveTableTile = moveTableTile;
   ZQ.openCardDetail = openCardDetail;
   ZQ.closeCardDetail = closeCardDetail;
   ZQ.openCanvas = openCanvas;

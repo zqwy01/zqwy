@@ -438,6 +438,295 @@
     ctx.restore();
   }
 
+  function drawBelzebufo(ctx, sx, sy, ts, now) {
+    const r = ts * 0.52;
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.0022);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.62, r * 1.05, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Яркий апосематический окрас: предупреждение, а не маскировка. */
+    const body = ctx.createRadialGradient(-r * 0.25, -r * 0.35, r * 0.12, 0, 0, r * 1.2);
+    body.addColorStop(0, '#d8c63a');
+    body.addColorStop(0.55, '#9c8a1e');
+    body.addColorStop(1, '#3c3a12');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r, r * 0.82, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(178, 48, 32, 0.85)';
+    for (const [px, py, pr] of [
+      [-0.34, -0.1, 0.18], [0.28, 0.08, 0.22], [0.05, -0.4, 0.14],
+      [-0.12, 0.36, 0.16]
+    ]) {
+      ctx.beginPath();
+      ctx.arc(px * r, py * r, pr * r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    /* Глаза навыкате. */
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = '#e8dfa0';
+      ctx.beginPath();
+      ctx.arc(side * r * 0.46, -r * 0.52, r * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#14140c';
+      ctx.beginPath();
+      ctx.arc(side * r * 0.48, -r * 0.54, r * 0.09, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    /* Едва заметный ядовитый ореол. */
+    ctx.strokeStyle = `rgba(168, 196, 74, ${0.08 + pulse * 0.1})`;
+    ctx.lineWidth = Math.max(1, ts * 0.05);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * (1.25 + pulse * 0.18), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTitanoboa(ctx, sx, sy, ts, now, room) {
+    const r = Math.max(ts * 0.9, Math.min(room ? room.w : 8, 10) * ts * 0.28);
+    const sway = Math.sin(now * 0.0011) * 0.1;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.5, r * 1.5, r * 0.34, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Кольца: змея занимает весь зал. */
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const rr = r * (1.25 - i * 0.2);
+      ctx.strokeStyle = i % 2 === 0 ? 'rgba(116, 122, 78, 0.85)' : 'rgba(78, 84, 52, 0.9)';
+      ctx.lineWidth = Math.max(2, r * 0.26);
+      ctx.beginPath();
+      ctx.ellipse(
+        Math.sin(sway + i) * r * 0.18,
+        Math.cos(sway + i * 0.7) * r * 0.14,
+        rr,
+        rr * 0.58,
+        0.35 + i * 0.18,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+    }
+
+    /* Голова поднимается над кольцами. */
+    ctx.translate(Math.sin(sway * 2) * r * 0.2, -r * 0.46);
+    ctx.fillStyle = '#6e7448';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.34, r * 0.24, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(224, 168, 74, 0.75)';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(side * r * 0.12, -r * 0.05, r * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(196, 70, 44, 0.8)';
+    ctx.lineWidth = Math.max(1, r * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.24, r * 0.1);
+    ctx.lineTo(r * 0.24, r * 0.1);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawArenaBeetle(ctx, sx, sy, ts, now) {
+    const r = ts * 0.7;
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.003);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.55, r * 1.02, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#4b4a35';
+    ctx.lineWidth = Math.max(1.2, r * 0.08);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const yOff = (i - 1) * r * 0.36;
+        ctx.beginPath();
+        ctx.moveTo(side * r * 0.4, yOff);
+        ctx.lineTo(side * r * (0.92 + i * 0.06), yOff + r * 0.26);
+        ctx.stroke();
+      }
+    }
+
+    const shell = ctx.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r);
+    shell.addColorStop(0, '#8c8a52');
+    shell.addColorStop(0.6, '#545a35');
+    shell.addColorStop(1, '#2e3320');
+    ctx.fillStyle = shell;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.9, r, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(224, 214, 164, 0.22)';
+    ctx.lineWidth = Math.max(1, r * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.8);
+    ctx.lineTo(0, r * 0.8);
+    ctx.stroke();
+
+    ctx.fillStyle = '#6c683c';
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.9, r * 0.48, r * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(236, 122, 58, ${0.55 + pulse * 0.35})`;
+    ctx.beginPath();
+    ctx.arc(-r * 0.17, -r * 0.96, r * 0.07, 0, Math.PI * 2);
+    ctx.arc(r * 0.17, -r * 0.96, r * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDimetrodon(ctx, sx, sy, ts, now, index) {
+    const r = Math.max(ts * 0.5, ts * 0.48);
+    const sway = Math.sin(now * 0.0016 + index * 1.7) * 0.08;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(sway + index * 1.9);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.6, r * 1.1, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Тело и хвост. */
+    ctx.strokeStyle = '#5a5a3c';
+    ctx.lineWidth = Math.max(2, r * 0.34);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.1, r * 0.1);
+    ctx.quadraticCurveTo(-r * 0.4, -r * 0.05, r * 0.7, r * 0.16);
+    ctx.stroke();
+
+    /* Парус на спине. */
+    const sail = ctx.createLinearGradient(0, -r * 0.9, 0, r * 0.1);
+    sail.addColorStop(0, 'rgba(180, 92, 54, 0.9)');
+    sail.addColorStop(1, 'rgba(96, 54, 38, 0.85)');
+    ctx.fillStyle = sail;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.58, r * 0.02);
+    ctx.quadraticCurveTo(-r * 0.2, -r * 1.05, r * 0.3, -r * 0.72);
+    ctx.quadraticCurveTo(r * 0.52, -r * 0.3, r * 0.52, r * 0.06);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(232, 182, 132, 0.35)';
+    ctx.lineWidth = Math.max(1, r * 0.035);
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.4 + i * r * 0.26, r * 0.02);
+      ctx.lineTo(-r * 0.24 + i * r * 0.22, -r * 0.6 + i * r * 0.08);
+      ctx.stroke();
+    }
+
+    /* Голова. */
+    ctx.fillStyle = '#6c6844';
+    ctx.beginPath();
+    ctx.ellipse(r * 0.82, r * 0.08, r * 0.3, r * 0.2, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(230, 176, 90, ${0.6 + 0.3 * Math.sin(now * 0.004 + index)})`;
+    ctx.beginPath();
+    ctx.arc(r * 0.9, -r * 0.02, r * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Лапы. */
+    ctx.strokeStyle = '#4e4c34';
+    ctx.lineWidth = Math.max(1.4, r * 0.09);
+    for (const side of [-1, 1]) {
+      for (const dx of [-0.42, 0.42]) {
+        ctx.beginPath();
+        ctx.moveTo(dx * r, r * 0.12);
+        ctx.lineTo(dx * r + side * r * 0.24, r * 0.44);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawUmbrellaEnemy(ctx, sx, sy, ts, now) {
+    const r = Math.max(ts * 0.9, ts * 0.72);
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.004);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.46)';
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.95, r * 0.9, r * 0.26, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Купол. */
+    const dome = ctx.createLinearGradient(0, -r * 0.9, 0, r * 0.25);
+    dome.addColorStop(0, '#3c3f36');
+    dome.addColorStop(0.6, '#22251f');
+    dome.addColorStop(1, '#141611');
+    ctx.fillStyle = dome;
+    ctx.beginPath();
+    ctx.moveTo(-r, r * 0.12);
+    ctx.quadraticCurveTo(0, -r * 1.2, r, r * 0.12);
+    ctx.quadraticCurveTo(r * 0.5, -r * 0.12, 0, -r * 0.12);
+    ctx.quadraticCurveTo(-r * 0.5, -r * 0.12, -r, r * 0.12);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(236, 154, 84, ${0.35 + pulse * 0.35})`;
+    ctx.lineWidth = Math.max(1, r * 0.045);
+    ctx.stroke();
+
+    /* Спицы и рукоять. */
+    ctx.strokeStyle = 'rgba(210, 190, 154, 0.7)';
+    ctx.lineWidth = Math.max(1, r * 0.035);
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6;
+      const x = -r + t * 2 * r;
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.56);
+      ctx.lineTo(x, r * 0.12 + Math.sin(t * Math.PI) * r * 0.04);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#8c6a44';
+    ctx.lineWidth = Math.max(2, r * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.12);
+    ctx.lineTo(0, r * 0.95);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, r * 1.02, r * 0.12, 0, Math.PI * 2);
+    ctx.stroke();
+
+    /* Глаз под куполом. */
+    ctx.fillStyle = `rgba(236, 122, 58, ${0.55 + pulse * 0.35})`;
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.42, r * 0.09, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFauna(ctx, room, sx, sy, ts, now) {
+    if (room.faunaKind === 'belzebufo') drawBelzebufo(ctx, sx, sy, ts, now);
+    else if (room.faunaKind === 'titanoboa') drawTitanoboa(ctx, sx, sy, ts, now, room);
+    else if (room.faunaKind === 'dimetrodon') {
+      const count = Math.max(2, Math.min(4, Math.floor(room.w / 8)));
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + 0.4;
+        const orbit = Math.min(room.w, room.h) * 0.18 * ts;
+        drawDimetrodon(
+          ctx,
+          sx + Math.cos(angle) * orbit,
+          sy + Math.sin(angle) * orbit * 0.7,
+          ts,
+          now,
+          i
+        );
+      }
+    }
+  }
+
   function drawWorld(ctx, params) {
     const { state, world, images, view, now } = params;
     const ts = tilePxFor(view);
@@ -503,6 +792,49 @@
       images,
       now
     );
+
+    /* Фауна живёт в своих комнатах и не мешает проходу: это сцена,
+       а не противник. Комната человека-жука остаётся ареной. */
+    for (const room of world.faunaRooms) {
+      if (toScreenX(room.ox) > view.w + ts * 8 || toScreenX(room.ox + room.w) < -ts * 8) continue;
+      if (toScreenY(room.oy) > view.h + ts * 8 || toScreenY(room.oy + room.h) < -ts * 8) continue;
+      drawFauna(
+        ctx,
+        room,
+        toScreenX(room.centerX + 0.5),
+        toScreenY(room.centerY + 0.5),
+        ts,
+        now
+      );
+    }
+
+    const arena = world.beetleRoom;
+    if (arena && !state.flags.beetleDone) {
+      if (toScreenX(arena.ox) < view.w + ts * 8 && toScreenX(arena.ox + arena.w) > -ts * 8 &&
+          toScreenY(arena.oy) < view.h + ts * 8 && toScreenY(arena.oy + arena.h) > -ts * 8) {
+        drawArenaBeetle(
+          ctx,
+          toScreenX(arena.centerX + 0.5),
+          toScreenY(arena.centerY + 0.5),
+          ts,
+          now
+        );
+      }
+    }
+
+    const umbrellaRoom = world.umbrellaRoom;
+    if (umbrellaRoom && !state.flags.umbrellaDone) {
+      if (toScreenX(umbrellaRoom.ox) < view.w + ts * 8 && toScreenX(umbrellaRoom.ox + umbrellaRoom.w) > -ts * 8 &&
+          toScreenY(umbrellaRoom.oy) < view.h + ts * 8 && toScreenY(umbrellaRoom.oy + umbrellaRoom.h) > -ts * 8) {
+        drawUmbrellaEnemy(
+          ctx,
+          toScreenX(umbrellaRoom.centerX + 0.5),
+          toScreenY(umbrellaRoom.centerY + 0.5),
+          ts,
+          now
+        );
+      }
+    }
 
     if (world.hazardRoom) {
       const room = world.hazardRoom;

@@ -16,7 +16,7 @@
   const CORE_CODES = new Set([
     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
     'KeyW', 'KeyA', 'KeyS', 'KeyD',
-    'KeyE', 'Space', 'Enter', 'Escape'
+    'KeyE', 'KeyF', 'Space', 'Enter', 'Escape'
   ]);
 
   function closeActiveView() {
@@ -44,6 +44,26 @@
     }
 
     if (ZQ.isTyping()) return;
+
+    /* Выживание — отдельный режим: рывок, зонт и выход из воды. */
+    if (rt.battle && rt.battle.active) {
+      if (event.code === 'Escape') {
+        event.preventDefault();
+        ZQ.finishBattle('abort');
+        return;
+      }
+      if (event.code === 'Space' || event.code === 'KeyE' ||
+          event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+        event.preventDefault();
+        ZQ.attemptDash();
+        return;
+      }
+      if (event.code === 'KeyF') {
+        event.preventDefault();
+        ZQ.attemptReflect();
+        return;
+      }
+    }
 
     /* Связанные клавиши: на столе работают все, в основной вкладке —
        всё, что не занято базовым управлением. */
@@ -108,7 +128,9 @@
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) ZQ.resetKeys();
+    if (document.hidden) {
+      ZQ.resetKeys();
+    }
   });
 
   function bindDirectionPad(root) {
@@ -137,6 +159,7 @@
 
   bindDirectionPad(document.querySelector('.touch-ui .dpad'));
   bindDirectionPad(document.querySelector('.trial-touch .dpad'));
+  bindDirectionPad(document.querySelector('.battle-touch .dpad'));
 
   dom.btnAction.addEventListener('click', () => ZQ.interact());
 
@@ -145,6 +168,7 @@
   const GAMEPAD_BUTTONS = {
     0: { label: 'A', action: 'interact' },
     1: { label: 'B', action: 'stop' },
+    2: { label: 'X', action: 'reflect' },
     9: { label: 'START', action: 'settings' }
   };
 
@@ -190,8 +214,9 @@
 
       /* Открытая вкладка терминала не мешает геймпаду: ограничиваем
          действие только паузой (скрытый документ или испытание).
-         Во время испытания оставляем кнопку действия для закрытия печати. */
+         Во время испытания и арены оставляем кнопку действия. */
       const canAct = (rt.trial && rt.trial.active) ||
+        (rt.battle && rt.battle.active) ||
         (!ZQ.isPaused() && !ZQ.isTyping());
       for (const key of Object.keys(GAMEPAD_BUTTONS)) {
         const index = Number(key);
@@ -201,6 +226,12 @@
         if (!isPressed || wasPressed || !canAct) continue;
         if (rt.trial && rt.trial.active) {
           if (info.action === 'interact') ZQ.attemptSeal();
+          continue;
+        }
+        if (rt.battle && rt.battle.active) {
+          if (info.action === 'interact') ZQ.attemptDash();
+          else if (info.action === 'reflect') ZQ.attemptReflect();
+          else if (info.action === 'stop') ZQ.finishBattle('abort');
           continue;
         }
         runGamepadAction(info.action);
@@ -353,6 +384,7 @@
   window.addEventListener('resize', () => {
     if (rt.termView === 'map') ZQ.drawMapNow();
     ZQ.resizeTrial();
+    ZQ.resizeBattle();
     ZQ.updatePrompt();
   });
 

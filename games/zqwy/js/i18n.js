@@ -40,7 +40,35 @@
       low: { name: 'Low Vault', tag: 'passage' },
       trial: { name: 'Circle of Enchantment', tag: 'trial' },
       storage: { name: 'Storeroom', tag: 'finds' },
-      crossroad: { name: 'Quiet Crossroads', tag: 'trace' }
+      crossroad: { name: 'Quiet Crossroads', tag: 'trace' },
+      beetle: { name: 'Hall of Sudden Water', tag: 'first survival' },
+      umbrella: { name: 'Umbrella Hall', tag: 'second survival' }
+    },
+    fauna: {
+      belzebufo: {
+        name: 'Belzebufo',
+        tag: 'poisonous toad',
+        lines: [
+          'A belzebufo sits on the warm stone. Its skin is damp, and its colouring is too bright to be accidental.',
+          'Aposematism does not hide the toad — it warns. Even the titanoboa avoids such a spot.'
+        ]
+      },
+      titanoboa: {
+        name: 'Titanoboa',
+        tag: 'giant snake',
+        lines: [
+          'The hall is swollen to the impossible. A vast shadow is lost under the ceiling, and only then do you realise it is coils.',
+          'The titanoboa is in no hurry. All the space of this room belongs to it, and it knows it.'
+        ]
+      },
+      dimetrodon: {
+        name: 'Hall of Dimetrodons',
+        tag: 'sail-backed predators',
+        lines: [
+          'Dimetrodons bask on the stones. Tall sails on their backs catch the air, while their eyes follow your every step.',
+          'They do not attack first. But the hall belongs to them, and they are not going to leave.'
+        ]
+      }
     },
     proceduralNames: [
       'Whisper Corridor', 'Hall of Scree', 'Room with a Crack', 'Repeat',
@@ -79,7 +107,21 @@
       bead: {
         name: 'Glass Bead',
         description: 'A cloudy bead with a hole. A tiny bubble of air seems frozen inside.',
-        note: 'Does nothing. It simply rests in your backpack.'
+        note: 'Does nothing. It simply rests in a pocket of the inventory.'
+      },
+      backpack: {
+        name: 'Backpack',
+        action: 'open',
+        description: 'A tight sack with broad straps. It still smells of the water in the hall.',
+        note: 'Adds 4 slots to the inventory.',
+        slotBonus: 4
+      },
+      umbrella: {
+        name: 'Umbrella',
+        action: 'open',
+        description: 'A heavy black umbrella with a bone handle. The ribs hum as if they remember the current.',
+        note: 'Turns projectiles aside underwater. 12 second cooldown.',
+        reflectCooldown: 12
       }
     },
     controlActions: {
@@ -90,7 +132,7 @@
       interact: { label: 'action' },
       look: { label: 'look around' },
       stop: { label: 'stop' },
-      inventory: { label: 'backpack' },
+      inventory: { label: 'inventory' },
       map: { label: 'map' },
       canvas: { label: 'table' }
     },
@@ -102,6 +144,42 @@
           'The flat stone under your palm is warmer than the air.',
           'You do not remember how you came here. You only remember that you have left before.',
           'The Tablet is not a shelter. Just a place where you become yourself again.'
+        ]
+      },
+      beetle: {
+        title: 'Sudden Water',
+        speaker: 'THE DEEP',
+        lines: [
+          'The floor drops away and the air becomes water. You are an axolotl in a foreign hall.',
+          'Projectiles come in waves out of the dark. There is no one to fight: you only have to hold out.',
+          'Move, dash and slip through the gaps. When the current lets go, a backpack will remain on the bottom.'
+        ]
+      },
+      beetleSuccess: {
+        title: 'The Water Still',
+        speaker: 'THE DEEP',
+        lines: [
+          'The water falls still as suddenly as it came. You stand on stone again, dripping.',
+          'A backpack lies by the wall. Its straps still hold someone else’s warmth.',
+          'The inventory has more slots now. The backpack is not a command but a thing.'
+        ]
+      },
+      umbrella: {
+        title: 'Water in the Hall',
+        speaker: 'THE DEEP',
+        lines: [
+          'The hall seems empty until the water rises to your knees. The first volley flashes under the ceiling.',
+          'There is no enemy. There is current, projectiles and time you have to survive.',
+          'An umbrella lies on the bottom. Hold out — and it will remain yours.'
+        ]
+      },
+      umbrellaSuccess: {
+        title: 'Umbrella on the Bottom',
+        speaker: 'THE DEEP',
+        lines: [
+          'The last wave fades. The water withdraws, leaving an umbrella on the stone.',
+          'The handle still hums with a diverted blow. Now this umbrella is yours.',
+          'It turns projectiles aside. Cooldown — twelve seconds. Press F underwater.'
         ]
       },
       hazard: {
@@ -204,10 +282,43 @@
         tablet: {
           stage: 'I · Awakening',
           title: 'Tablet',
-          summary: 'The Tablet opens the backpack and the table — not a shelter, but a point of return.',
-          finds: ['backpack', 'table'],
+          summary: 'The Tablet opens the inventory and the table — not a shelter, but a point of return.',
+          finds: ['inventory', 'table', 'hall of sudden water'],
           seeking: ['the first conversation with the Tablet'],
           hint: 'The Tablet stands in the starting room.'
+        },
+        beetle: {
+          stage: 'II · First Finds',
+          title: 'Hall of Sudden Water',
+          summary: 'Water arrives without warning. Hold out under the waves and take the backpack from the bottom.',
+          parents: ['tablet'],
+          complete: { flag: 'beetleDone' },
+          finds: ['backpack'],
+          seeking: ['survive underwater'],
+          children: ['backpack'],
+          hint: 'The Hall of Sudden Water lies south of the Tablet.'
+        },
+        backpack: {
+          stage: 'II · First Finds',
+          title: 'Backpack',
+          summary: 'The backpack from the bottom is not a command but a thing. It expands the inventory.',
+          parents: ['beetle'],
+          complete: { item: 'backpack' },
+          finds: ['+4 inventory slots'],
+          seeking: ['pick up the backpack after surviving'],
+          children: [],
+          hint: 'After surviving, the backpack lies on the bottom of the hall.'
+        },
+        umbrella: {
+          stage: 'II · First Finds',
+          title: 'Umbrella Hall',
+          summary: 'Water rises in the hall and projectiles come faster. Hold out — and the umbrella remains yours.',
+          parents: ['beetle'],
+          complete: { flag: 'umbrellaDone' },
+          finds: ['umbrella'],
+          seeking: ['survive the waves and take the umbrella'],
+          children: [],
+          hint: 'The Umbrella Hall lies east of the Hall of Sudden Water.'
         },
         storage: {
           stage: 'II · First Finds',
@@ -327,12 +438,12 @@
           ]
         },
         {
-          id: 'рюкзак',
-          title: 'backpack',
+          id: 'инвентарь',
+          title: 'inventory',
           description: 'carried and found',
           unlock: 'backpack',
           commands: [
-            { command: 'backpack', description: 'shows the contents of the backpack and opens it in the terminal', bindable: true }
+            { command: 'inventory', description: 'opens the item graph, the links between items and the slot count', bindable: true }
           ]
         },
         {
@@ -348,10 +459,13 @@
         {
           id: 'стол',
           title: 'table',
-          description: 'workspace and keys',
+          description: 'workspace, keys and layouts',
           unlock: 'table',
           commands: [
-            { command: 'table', description: 'opens the workspace for items, commands and control buttons', bindable: true }
+            { command: 'table', description: 'opens the workspace for items, commands and control buttons', bindable: true },
+            { command: 'layout save', description: 'saves the current table arrangement under a name: “layout save fight”', bindable: true },
+            { command: 'layout', description: 'restores a saved layout: “layout fight”', bindable: true },
+            { command: 'layouts', description: 'lists the saved table layouts', bindable: true }
           ]
         },
         {
@@ -387,12 +501,21 @@
             { command: 'clear', description: 'clears the terminal log and restores the greeting', bindable: true },
             { command: 'new game', description: 'creates a new Labyrinth with a random seed and starts over', bindable: false }
           ]
+        },
+        {
+          id: 'читы',
+          title: 'cheats',
+          description: 'generation debugging',
+          commands: [
+            { command: 'story chance', description: 'sets the story room chance: “story chance 0.25”', bindable: true },
+            { command: 'fauna chance', description: 'sets the fauna room chance: “fauna chance 0.4”', bindable: true }
+          ]
         }
       ],
       unlocks: {
         backpack: {
-          title: 'backpack',
-          hint: 'The Tablet will open the backpack after the first conversation.'
+          title: 'inventory',
+          hint: 'Survive underwater in the hall south of the Tablet.'
         },
         map: {
           title: 'map',
@@ -421,6 +544,22 @@
       storage: { title: 'Storeroom' },
       crossroad: { title: 'Trace' },
       labyrinth: { title: 'Labyrinth' }
+    },
+    battle: {
+      encounters: {
+        beetle: {
+          title: 'Survival · axolotl',
+          hudLabel: 'hold out',
+          intro: 'The floor drops away and the air becomes water. You are an axolotl in a foreign hall. Hold out until the current lets go.',
+          introSpeaker: 'THE DEEP'
+        },
+        umbrella: {
+          title: 'Survival · axolotl',
+          hudLabel: 'hold out',
+          intro: 'Water rises in the middle of the hall. Projectiles come faster, but an umbrella already lies on the bottom. Hold out and take it.',
+          introSpeaker: 'THE DEEP'
+        }
+      }
     }
   };
 
@@ -439,10 +578,16 @@
       {
         id: 'данные',
         title: 'data',
-        description: 'saving, loading and moving the world',
+        description: 'saving, slots, import and moving the world',
         commands: [
           { command: 'save', description: 'saves the world and state in the browser; also under “settings” → “Data”', bindable: true },
-          { command: 'load', description: 'loads the latest browser save', bindable: true },
+          { command: 'load', description: 'loads the latest browser autosave', bindable: true },
+          { command: 'slots', description: 'lists named saves with their seed and room count', bindable: true },
+          { command: 'save slot', description: 'saves the world into a named slot: “save slot evening”', bindable: true },
+          { command: 'load slot', description: 'loads a named slot: “load slot evening”', bindable: true },
+          { command: 'rename slot', description: 'renames a slot: “rename slot old → new”', bindable: true },
+          { command: 'delete slot', description: 'deletes a named slot: “delete slot evening”', bindable: true },
+          { command: 'import', description: 'opens a picker for a world or slot JSON file', bindable: true },
           { command: 'export', description: 'downloads a world file with seed and state', bindable: true }
         ]
       },
@@ -469,7 +614,35 @@
       low: { name: 'Niedriges Gewölbe', tag: 'Durchgang' },
       trial: { name: 'Kreis der Verzauberung', tag: 'Prüfung' },
       storage: { name: 'Vorratskammer', tag: 'Funde' },
-      crossroad: { name: 'Stille Kreuzung', tag: 'Spur' }
+      crossroad: { name: 'Stille Kreuzung', tag: 'Spur' },
+      beetle: { name: 'Halle des plötzlichen Wassers', tag: 'erstes Überleben' },
+      umbrella: { name: 'Regenschirmhalle', tag: 'zweites Überleben' }
+    },
+    fauna: {
+      belzebufo: {
+        name: 'Belzebufo',
+        tag: 'giftige Kröte',
+        lines: [
+          'Auf dem warmen Stein sitzt ein Belzebufo. Die Haut ist feucht, und die Färbung ist zu grell, um zufällig zu sein.',
+          'Aposematismus verbirgt die Kröte nicht — er warnt. Selbst die Titanoboa meidet diesen Fleck.'
+        ]
+      },
+      titanoboa: {
+        name: 'Titanoboa',
+        tag: 'riesige Schlange',
+        lines: [
+          'Die Halle ist unmöglich aufgedunsen. Unter der Decke verliert sich ein gewaltiger Schatten, und erst dann begreifst du, dass es Ringe sind.',
+          'Die Titanoboa hat es nicht eilig. Der ganze Raum gehört ihr, und sie weiß es.'
+        ]
+      },
+      dimetrodon: {
+        name: 'Halle der Dimetrodonen',
+        tag: 'Segelräuber',
+        lines: [
+          'Auf den Steinen sonnen sich Dimetrodonen. Hohe Segel auf ihren Rücken fangen die Luft, während ihre Augen jedem Schritt folgen.',
+          'Sie greifen nicht zuerst an. Aber die Halle gehört ihnen, und sie gedenken nicht zu gehen.'
+        ]
+      }
     },
     proceduralNames: [
       'Flüsterkorridor', 'Halle des Grinds', 'Raum mit dem Riss', 'Wiederholung',
@@ -508,7 +681,21 @@
       bead: {
         name: 'Glasperle',
         description: 'Eine trübe Perle mit einem Loch. Eine winzige Luftblase scheint darin eingefroren.',
-        note: 'Tut nichts. Sie ruht einfach in deinem Rucksack.'
+        note: 'Tut nichts. Sie ruht einfach in einer Tasche des Inventars.'
+      },
+      backpack: {
+        name: 'Rucksack',
+        action: 'öffnen',
+        description: 'Ein fester Sack mit breiten Riemen. Er riecht noch nach dem Wasser der Halle.',
+        note: 'Erhöht die Zahl der Inventarplätze um 4.',
+        slotBonus: 4
+      },
+      umbrella: {
+        name: 'Regenschirm',
+        action: 'öffnen',
+        description: 'Ein schwerer schwarzer Schirm mit Knochengriff. Die Speichen summen, als erinnerten sie sich an die Strömung.',
+        note: 'Lenkt unter Wasser Geschosse ab. 12 Sekunden Abklingzeit.',
+        reflectCooldown: 12
       }
     },
     controlActions: {
@@ -519,7 +706,7 @@
       interact: { label: 'handlung' },
       look: { label: 'umschauen' },
       stop: { label: 'halt' },
-      inventory: { label: 'rucksack' },
+      inventory: { label: 'inventar' },
       map: { label: 'karte' },
       canvas: { label: 'tisch' }
     },
@@ -531,6 +718,42 @@
           'Der flache Stein unter deiner Hand ist wärmer als die Luft.',
           'Du erinnerst dich nicht, wie du hierher gekommen bist. Du erinnerst dich nur, dass du schon einmal gegangen bist.',
           'Die Tafel ist kein Schutz. Nur ein Ort, an dem du wieder du selbst wirst.'
+        ]
+      },
+      beetle: {
+        title: 'Plötzliches Wasser',
+        speaker: 'DIE TIEFE',
+        lines: [
+          'Der Boden fällt weg, und die Luft wird Wasser. Du bist ein Axolotl in einer fremden Halle.',
+          'Geschosse kommen in Wellen aus der Dunkelheit. Es gibt keinen Gegner: Du musst nur durchhalten.',
+          'Bewege dich, mache Ausweichsprünge und gleite durch die Lücken. Wenn die Strömung nachlässt, bleibt ein Rucksack am Grund.'
+        ]
+      },
+      beetleSuccess: {
+        title: 'Das Wasser steht still',
+        speaker: 'DIE TIEFE',
+        lines: [
+          'Das Wasser wird so plötzlich still, wie es kam. Du stehst wieder auf Stein, tropfend.',
+          'An der Wand liegt ein Rucksack. Die Riemen halten noch fremde Wärme.',
+          'Das Inventar hat jetzt mehr Plätze. Der Rucksack ist kein Befehl, sondern ein Ding.'
+        ]
+      },
+      umbrella: {
+        title: 'Wasser in der Halle',
+        speaker: 'DIE TIEFE',
+        lines: [
+          'Die Halle scheint leer, bis das Wasser bis zu den Knien steigt. Unter der Decke blitzt die erste Salve auf.',
+          'Es gibt keinen Gegner. Es gibt Strömung, Geschosse und Zeit, die du überleben musst.',
+          'Am Grund liegt ein Regenschirm. Halte durch — und er bleibt dir.'
+        ]
+      },
+      umbrellaSuccess: {
+        title: 'Regenschirm am Grund',
+        speaker: 'DIE TIEFE',
+        lines: [
+          'Die letzte Welle erlischt. Das Wasser weicht zurück und lässt einen Regenschirm auf dem Stein zurück.',
+          'Im Griff summt noch ein abgelenkter Schlag. Jetzt gehört dieser Schirm dir.',
+          'Er lenkt Geschosse ab. Abklingzeit — zwölf Sekunden. Drücke unter Wasser F.'
         ]
       },
       hazard: {
@@ -599,10 +822,43 @@
         tablet: {
           stage: 'I · Erwachen',
           title: 'Tafel',
-          summary: 'Die Tafel öffnet Rucksack und Tisch — kein Schutz, sondern ein Rückkehrpunkt.',
-          finds: ['Rucksack', 'Tisch'],
+          summary: 'Die Tafel öffnet Inventar und Tisch — kein Schutz, sondern ein Rückkehrpunkt.',
+          finds: ['Inventar', 'Tisch', 'Halle des plötzlichen Wassers'],
           seeking: ['das erste Gespräch mit der Tafel'],
           hint: 'Die Tafel steht im Startraum.'
+        },
+        beetle: {
+          stage: 'II · Erste Funde',
+          title: 'Halle des plötzlichen Wassers',
+          summary: 'Wasser kommt ohne Warnung. Halte unter den Wellen durch und nimm den Rucksack vom Grund.',
+          parents: ['tablet'],
+          complete: { flag: 'beetleDone' },
+          finds: ['Rucksack'],
+          seeking: ['unter Wasser überleben'],
+          children: ['backpack'],
+          hint: 'Die Halle des plötzlichen Wassers liegt südlich der Tafel.'
+        },
+        backpack: {
+          stage: 'II · Erste Funde',
+          title: 'Rucksack',
+          summary: 'Der Rucksack vom Grund ist kein Befehl, sondern ein Ding. Er erweitert das Inventar.',
+          parents: ['beetle'],
+          complete: { item: 'backpack' },
+          finds: ['+4 Inventarplätze'],
+          seeking: ['den Rucksack nach dem Überleben aufnehmen'],
+          children: [],
+          hint: 'Nach dem Überleben liegt der Rucksack am Grund der Halle.'
+        },
+        umbrella: {
+          stage: 'II · Erste Funde',
+          title: 'Regenschirmhalle',
+          summary: 'Das Wasser steigt, und die Geschosse kommen schneller. Halte durch — und der Schirm bleibt dir.',
+          parents: ['beetle'],
+          complete: { flag: 'umbrellaDone' },
+          finds: ['Regenschirm'],
+          seeking: ['die Wellen überleben und den Schirm nehmen'],
+          children: [],
+          hint: 'Die Regenschirmhalle liegt östlich der Halle des plötzlichen Wassers.'
         },
         storage: {
           stage: 'II · Erste Funde',
@@ -723,12 +979,12 @@
           ]
         },
         {
-          id: 'рюкзак',
-          title: 'rucksack',
+          id: 'инвентарь',
+          title: 'inventar',
           description: 'Getragenes und Gefundenes',
           unlock: 'backpack',
           commands: [
-            { command: 'backpack', description: 'zeigt den Inhalt des Rucksacks und öffnet ihn im Terminal', bindable: true }
+            { command: 'inventory', description: 'öffnet den Gegenstandsgraph, die Verbindungen und die Platzzahl', bindable: true }
           ]
         },
         {
@@ -744,10 +1000,13 @@
         {
           id: 'стол',
           title: 'tisch',
-          description: 'Arbeitsfläche und Tasten',
+          description: 'Arbeitsfläche, Tasten und Layouts',
           unlock: 'table',
           commands: [
-            { command: 'table', description: 'öffnet die Arbeitsfläche für Gegenstände, Befehle und Steuerungstasten', bindable: true }
+            { command: 'table', description: 'öffnet die Arbeitsfläche für Gegenstände, Befehle und Steuerungstasten', bindable: true },
+            { command: 'layout save', description: 'speichert die aktuelle Tischanordnung unter einem Namen: „layout save kampf“', bindable: true },
+            { command: 'layout', description: 'lädt ein gespeichertes Layout: „layout kampf“', bindable: true },
+            { command: 'layouts', description: 'zeigt die gespeicherten Tischlayouts', bindable: true }
           ]
         },
         {
@@ -783,10 +1042,16 @@
         {
           id: 'данные',
           title: 'daten',
-          description: 'Speichern, Laden und Übertragen der Welt',
+          description: 'Speichern, Slots, Import und Übertragen der Welt',
           commands: [
             { command: 'save', description: 'speichert Welt und Zustand im Browser; auch unter „einstellungen“ → „Daten“', bindable: true },
-            { command: 'load', description: 'lädt die letzte Speicherung aus dem Browser', bindable: true },
+            { command: 'load', description: 'lädt die letzte automatische Speicherung aus dem Browser', bindable: true },
+            { command: 'slots', description: 'listet benannte Speicherungen mit Seed und Raumzahl', bindable: true },
+            { command: 'save slot', description: 'speichert die Welt in einem benannten Slot: „save slot abend“', bindable: true },
+            { command: 'load slot', description: 'lädt einen benannten Slot: „load slot abend“', bindable: true },
+            { command: 'rename slot', description: 'benennt einen Slot um: „rename slot alt → neu“', bindable: true },
+            { command: 'delete slot', description: 'löscht einen benannten Slot: „delete slot abend“', bindable: true },
+            { command: 'import', description: 'öffnet die Auswahl für eine Welt- oder Slot-JSON-Datei', bindable: true },
             { command: 'export', description: 'lädt eine Weltdatei mit Seed und Zustand herunter', bindable: true }
           ]
         },
@@ -797,10 +1062,19 @@
           commands: [
             { command: 'music', description: 'öffnet den Player: Stopp, Spulen, Lautstärke, Welle und Tempo 0.5×–2×', bindable: true }
           ]
+        },
+        {
+          id: 'читы',
+          title: 'cheats',
+          description: 'Debuggen der Generierung',
+          commands: [
+            { command: 'story chance', description: 'setzt die Chance auf einen Geschichtsraum: „story chance 0.25“', bindable: true },
+            { command: 'fauna chance', description: 'setzt die Chance auf einen Faunaraum: „fauna chance 0.4“', bindable: true }
+          ]
         }
       ],
       unlocks: {
-        backpack: { title: 'rucksack', hint: 'Die Tafel öffnet den Rucksack nach dem ersten Gespräch.' },
+        backpack: { title: 'inventar', hint: 'Überlebe unter Wasser in der Halle südlich der Tafel.' },
         map: { title: 'karte', hint: 'Das Kartenfragment liegt in der Vorratskammer.' },
         table: { title: 'tisch', hint: 'Die Tafel öffnet den Tisch nach dem ersten Gespräch.' },
         cards: { title: 'karten', hint: 'Die Karte „Verzauberung“ wartet in der Mitte des Kreises.' }
@@ -819,6 +1093,22 @@
       storage: { title: 'Vorratskammer' },
       crossroad: { title: 'Spur' },
       labyrinth: { title: 'Labyrinth' }
+    },
+    battle: {
+      encounters: {
+        beetle: {
+          title: 'Überleben · Axolotl',
+          hudLabel: 'durchhalten',
+          intro: 'Der Boden fällt weg, und die Luft wird Wasser. Du bist ein Axolotl in einer fremden Halle. Halte durch, bis die Strömung nachlässt.',
+          introSpeaker: 'DIE TIEFE'
+        },
+        umbrella: {
+          title: 'Überleben · Axolotl',
+          hudLabel: 'durchhalten',
+          intro: 'Mitten in der Halle steigt Wasser. Die Geschosse kommen schneller, aber am Grund liegt bereits ein Regenschirm. Halte durch und nimm ihn.',
+          introSpeaker: 'DIE TIEFE'
+        }
+      }
     }
   };
 
@@ -841,6 +1131,7 @@
   };
 
   const PHRASES = {
+    'АРЕНА': 'ARENA',
     'Сейчас не до команд.': 'Not now for commands.',
     'Рюкзак пуст.': 'The backpack is empty.',
     'Пустой рюкзак возвращён': 'The empty backpack has been recovered.',
@@ -956,7 +1247,6 @@
     'ПРЕДМЕТЫ': 'ITEMS',
     'УПРАВЛЕНИЕ': 'CONTROLS',
     'КЛАВШИ': 'KEYS',
-    'ядро управления': 'control core',
     'Добавить клавишу и связать её с элементами': 'Add a key and link it to elements',
     'Кнопка без клавиши: свяжи её с клавишей': 'Button without a key: link it to a key',
     'Пока нечего добавить. Найди предметы в Лабиринте.': 'Nothing to add yet. Find items in the Labyrinth.',
@@ -1004,6 +1294,7 @@
   };
 
   const DE_PHRASES = {
+    'АРЕНА': 'ARENA',
     'Сейчас не до команд.': 'Jetzt ist keine Zeit für Befehle.',
     'Готово.': 'Erledigt.',
     'Движение остановлено.': 'Bewegung angehalten.',
@@ -1249,9 +1540,9 @@
       setAttr('#divider', 'aria-label', 'Divider between the game area and the terminal');
 
       setText('#view-inventory .eyebrow', 'CARRIED');
-      setText('#inv-title', 'Backpack');
+      setText('#inv-title', 'Inventory');
       setText('#inventory-note', 'Items can be placed on the table and their commands run with a quick press.');
-      setAttr('#inventory-close', 'aria-label', 'Close backpack');
+      setAttr('#inventory-close', 'aria-label', 'Close inventory');
 
       setText('#view-map .eyebrow', 'LOCAL AREA');
       setText('#map-title', 'Map');
@@ -1284,17 +1575,11 @@
       setAttr('#canvas-drawer-close', 'aria-label', 'Close panel');
       setText('#canvas-response-command', 'ready');
       setText('#canvas-response-reply', 'Click a placed element to run its command.');
-      setText('#canvas-move-note', 'movement: 1 s by default · “walk down 10” — 10 s');
-      setText('#canvas-move-seconds-label', 'seconds');
-      setAttr('[data-canvas-move="up"]', 'aria-label', 'Walk up');
-      setAttr('[data-canvas-move="down"]', 'aria-label', 'Walk down');
-      setAttr('[data-canvas-move="left"]', 'aria-label', 'Walk left');
-      setAttr('[data-canvas-move="right"]', 'aria-label', 'Walk right');
-      setAttr('#canvas-move-stop', 'aria-label', 'Stop movement');
-      setAttr('#canvas-move-seconds', 'aria-label', 'Movement duration in seconds');
       setAttr('#music-seek', 'aria-label', 'Track position');
       setAttr('#music-volume', 'aria-label', 'Music volume');
+      setAttr('#music-wave', 'aria-label', 'Full track waveform, click to seek');
       setText('#music-volume-label', 'volume');
+      setText('.music-seek-note', 'The waveform shows the whole track. Click it or drag the slider to jump anywhere.');
 
       setText('#view-card .eyebrow', 'CARD');
       setAttr('#card-close', 'aria-label', 'Return to the table');
@@ -1361,14 +1646,31 @@
 
       setText('#view-trial .trial-head .eyebrow', 'CIRCLE OF ENCHANTMENT');
 
+      setText('#battle-reflect', '☂ umbrella · F');
+      setText('#battle-dash', '⚡ dash · Shift');
+      setText('#battle-abort', 'get out of the water');
+      setAttr('#battle-reflect-touch', 'aria-label', 'Open the umbrella');
+      setAttr('#battle-dash-touch', 'aria-label', 'Dash');
+      setAttr('#battle-stage', 'aria-label', 'Sudden axolotl survival');
+
       setText('#music-toggle', 'play');
       setText('#music-stop', 'stop');
       setText('#btn-save', 'save');
       setText('#btn-load', 'load');
       setText('#btn-export', 'export');
       setText('#data-save', 'save world');
-      setText('#data-load', 'load save');
+      setText('#data-load', 'load autosave');
       setText('#data-export', 'export world');
+      setText('#data-import', 'import world');
+      setText('#save-slots-title', 'Named saves');
+      setText('#save-slot-status', 'Slots are stored in the browser separately from the autosave.');
+      setAttr('#save-slot-select', 'aria-label', 'Named save');
+      setPlaceholder('#save-slot-name', 'save name');
+      setAttr('#save-slot-name', 'aria-label', 'Save name');
+      setText('#save-slot-save', 'save to slot');
+      setText('#save-slot-load', 'load slot');
+      setText('#save-slot-rename', 'rename');
+      setText('#save-slot-delete', 'delete');
       setAttr('#btn-settings', 'aria-label', 'Settings');
     } else {
       setPlaceholder('#command-input', 'Введите команду и нажмите отправить');
@@ -1382,9 +1684,9 @@
       setAttr('#divider', 'aria-label', 'Разделитель игровой области и терминала');
 
       setText('#view-inventory .eyebrow', 'ПЕРЕНОСИМОЕ');
-      setText('#inv-title', 'Рюкзак');
+      setText('#inv-title', 'Инвентарь');
       setText('#inventory-note', 'Предметы можно вынести на стол и запускать их команды быстрым нажатием.');
-      setAttr('#inventory-close', 'aria-label', 'Закрыть рюкзак');
+      setAttr('#inventory-close', 'aria-label', 'Закрыть инвентарь');
 
       setText('#view-map .eyebrow', 'ЛОКАЛЬНЫЙ УЧАСТОК');
       setText('#map-title', 'Карта');
@@ -1409,17 +1711,11 @@
       setText('#canvas-drawer .drawer-head > span', 'ДОБАВИТЬ НА СТОЛ');
       setText('#canvas-response-command', 'готово');
       setText('#canvas-response-reply', 'Нажми на размещённый элемент, чтобы выполнить его команду.');
-      setText('#canvas-move-note', 'движение: 1 с по умолчанию · «идти вниз 10» — 10 с');
-      setText('#canvas-move-seconds-label', 'секунды');
-      setAttr('[data-canvas-move="up"]', 'aria-label', 'Идти вверх');
-      setAttr('[data-canvas-move="down"]', 'aria-label', 'Идти вниз');
-      setAttr('[data-canvas-move="left"]', 'aria-label', 'Идти влево');
-      setAttr('[data-canvas-move="right"]', 'aria-label', 'Идти вправо');
-      setAttr('#canvas-move-stop', 'aria-label', 'Остановить движение');
-      setAttr('#canvas-move-seconds', 'aria-label', 'Длительность движения в секундах');
       setAttr('#music-seek', 'aria-label', 'Позиция трека');
       setAttr('#music-volume', 'aria-label', 'Громкость музыки');
+      setAttr('#music-wave', 'aria-label', 'Полная волна трека, нажми, чтобы перемотать');
       setText('#music-volume-label', 'громкость');
+      setText('.music-seek-note', 'Волна показывает весь трек. Нажми на неё или веди ползунок, чтобы перейти в любую точку.');
 
       setText('#view-card .eyebrow', 'КАРТА');
       setText('#card-run', 'произнести');
@@ -1461,14 +1757,31 @@
 
       setText('#view-trial .trial-head .eyebrow', 'КРУГ ОЧАРОВАНИЯ');
 
+      setText('#battle-reflect', '☂ зонт · F');
+      setText('#battle-dash', '⚡ рывок · Shift');
+      setText('#battle-abort', 'выбраться из воды');
+      setAttr('#battle-reflect-touch', 'aria-label', 'Раскрыть зонтик');
+      setAttr('#battle-dash-touch', 'aria-label', 'Рывок');
+      setAttr('#battle-stage', 'aria-label', 'Внезапное выживание аксолотля');
+
       setText('#music-toggle', 'играть');
       setText('#music-stop', 'стоп');
       setText('#btn-save', 'сохранить');
       setText('#btn-load', 'загрузить');
       setText('#btn-export', 'экспорт');
       setText('#data-save', 'сохранить мир');
-      setText('#data-load', 'загрузить сохранение');
+      setText('#data-load', 'загрузить автосохранение');
       setText('#data-export', 'экспорт мира');
+      setText('#data-import', 'импорт мира');
+      setText('#save-slots-title', 'Именованные сохранения');
+      setText('#save-slot-status', 'Слоты хранятся в браузере отдельно от автосохранения.');
+      setAttr('#save-slot-select', 'aria-label', 'Именованное сохранение');
+      setPlaceholder('#save-slot-name', 'имя сохранения');
+      setAttr('#save-slot-name', 'aria-label', 'Имя сохранения');
+      setText('#save-slot-save', 'сохранить в слот');
+      setText('#save-slot-load', 'загрузить слот');
+      setText('#save-slot-rename', 'переименовать');
+      setText('#save-slot-delete', 'удалить');
     }
 
     if (de) {
@@ -1483,9 +1796,9 @@
       setAttr('#divider', 'aria-label', 'Trenner zwischen Spielfläche und Terminal');
 
       setText('#view-inventory .eyebrow', 'GETRAGEN');
-      setText('#inv-title', 'Rucksack');
+      setText('#inv-title', 'Inventar');
       setText('#inventory-note', 'Gegenstände lassen sich auf den Tisch legen und ihre Befehle mit einem kurzen Druck ausführen.');
-      setAttr('#inventory-close', 'aria-label', 'Rucksack schließen');
+      setAttr('#inventory-close', 'aria-label', 'Inventar schließen');
 
       setText('#view-map .eyebrow', 'ÖRTLICHER BEREICH');
       setText('#map-title', 'Karte');
@@ -1518,17 +1831,11 @@
       setAttr('#canvas-drawer-close', 'aria-label', 'Panel schließen');
       setText('#canvas-response-command', 'bereit');
       setText('#canvas-response-reply', 'Klicke ein platziertes Element, um seinen Befehl auszuführen.');
-      setText('#canvas-move-note', 'Bewegung: standardmäßig 1 s · „walk down 10“ — 10 s');
-      setText('#canvas-move-seconds-label', 'sekunden');
-      setAttr('[data-canvas-move="up"]', 'aria-label', 'Nach oben gehen');
-      setAttr('[data-canvas-move="down"]', 'aria-label', 'Nach unten gehen');
-      setAttr('[data-canvas-move="left"]', 'aria-label', 'Nach links gehen');
-      setAttr('[data-canvas-move="right"]', 'aria-label', 'Nach rechts gehen');
-      setAttr('#canvas-move-stop', 'aria-label', 'Bewegung anhalten');
-      setAttr('#canvas-move-seconds', 'aria-label', 'Bewegungsdauer in Sekunden');
       setAttr('#music-seek', 'aria-label', 'Position im Track');
       setAttr('#music-volume', 'aria-label', 'Musiklautstärke');
+      setAttr('#music-wave', 'aria-label', 'Wellenform des ganzen Tracks, klicken zum Springen');
       setText('#music-volume-label', 'lautstärke');
+      setText('.music-seek-note', 'Die Wellenform zeigt den ganzen Track. Klicke darauf oder ziehe den Regler, um an jede Stelle zu springen.');
 
       setText('#view-card .eyebrow', 'KARTE');
       setAttr('#card-close', 'aria-label', 'Zum Tisch zurückkehren');
@@ -1595,12 +1902,29 @@
 
       setText('#view-trial .trial-head .eyebrow', 'KREIS DER VERZAUBERUNG');
 
+      setText('#battle-reflect', '☂ Regenschirm · F');
+      setText('#battle-dash', '⚡ Ausweichen · Shift');
+      setText('#battle-abort', 'aus dem Wasser steigen');
+      setAttr('#battle-reflect-touch', 'aria-label', 'Regenschirm öffnen');
+      setAttr('#battle-dash-touch', 'aria-label', 'Ausweichen');
+      setAttr('#battle-stage', 'aria-label', 'Plötzliches Axolotl-Überleben');
+
       setText('#btn-save', 'speichern');
       setText('#btn-load', 'laden');
       setText('#btn-export', 'exportieren');
       setText('#data-save', 'welt speichern');
-      setText('#data-load', 'speicherung laden');
+      setText('#data-load', 'automatische speicherung laden');
       setText('#data-export', 'welt exportieren');
+      setText('#data-import', 'welt importieren');
+      setText('#save-slots-title', 'Benannte Speicherungen');
+      setText('#save-slot-status', 'Slots werden im Browser getrennt von der automatischen Speicherung abgelegt.');
+      setAttr('#save-slot-select', 'aria-label', 'Benannte Speicherung');
+      setPlaceholder('#save-slot-name', 'name der speicherung');
+      setAttr('#save-slot-name', 'aria-label', 'Name der Speicherung');
+      setText('#save-slot-save', 'in slot speichern');
+      setText('#save-slot-load', 'slot laden');
+      setText('#save-slot-rename', 'umbenennen');
+      setText('#save-slot-delete', 'löschen');
       setAttr('#btn-settings', 'aria-label', 'Einstellungen');
     }
     refreshLangButtons();

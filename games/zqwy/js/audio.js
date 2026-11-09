@@ -16,6 +16,10 @@
     analyser: null,
     source: null,
     waveData: null,
+    peaks: null,
+    peakSamples: 720,
+    peakPromise: null,
+    peakFile: '',
 
     element() {
       return dom.soundtrack || null;
@@ -35,12 +39,20 @@
 
     ensureAnalyser() {
       const el = this.element();
-      if (!el || this.analyser) return;
+      if (!el) return;
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return;
       try {
         if (!this.context) this.context = new Ctx();
-        if (this.context.state === 'suspended') this.context.resume();
+        /* Контекст мог быть создан для декодирования волны до жеста
+           пользователя. Если он остался suspended, звук пойдёт в
+           анализатор, но не в колонки — поэтому будим его при каждом
+           обращении, а не только при первом создании. */
+        if (this.context.state === 'suspended') {
+          const resumed = this.context.resume();
+          if (resumed && typeof resumed.catch === 'function') resumed.catch(() => {});
+        }
+        if (this.analyser) return;
         if (!this.source) this.source = this.context.createMediaElementSource(el);
         this.analyser = this.context.createAnalyser();
         this.analyser.fftSize = 512;
@@ -54,8 +66,97 @@
       }
     },
 
+    /* Полная волна трека: файл декодируется целиком один раз, а не
+       берётся из живого анализатора. Так плеер показывает весь трек,
+       а не только последние доли секунды. */
+    decodePeaks() {
+      if (this.peaks && this.peaks.length) return Promise.resolve(this.peaks);
+      if (this.peakPromise) return this.peakPromise;
+      const el = this.element();
+      if (!el || !C.music || !C.music.file) return Promise.resolve(null);
+      const src = el.getAttribute('src') || C.music.file;
+      if (this.peakFile && this.peakFile !== src) {
+        this.peaks = null;
+        this.peakPromise = null;
+      }
+      this.peakFile = src;
+      this.ensureAnalyser();
+      const ctx = this.context;
+      if (!ctx || typeof window.fetch !== 'function') return Promise.resolve(null);
+
+      const finish = (buffer) => {
+        const count = this.peakSamples;
+        const channels = Math.max(1, buffer.numberOfChannels || 1);
+        const length = Math.max(1, buffer.length || 1);
+        const data = [];
+        for (let c = 0; c < channels; c += 1) {
+          try {
+            data.push(buffer.getChannelData(c));
+          } catch (error) {
+            /* пропускаем недоступный канал */
+          }
+        }
+        if (!data.length) return null;
+        const bucket = Math.max(1, Math.floor(length / count));
+        const raw = new Array(count).fill(0);
+        let global = 0;
+        for (let i = 0; i < count; i += 1) {
+          const start = i * bucket;
+          const end = Math.min(length, start + bucket);
+          let peak = 0;
+          for (let c = 0; c < data.length; c += 1) {
+            const channel = data[c];
+            for (let j = start; j < end; j += 1) {
+              const value = Math.abs(channel[j] || 0);
+              if (value > peak) peak = value;
+            }
+          }
+          raw[i] = peak;
+          if (peak > global) global = peak;
+        }
+        this.peaks = raw.map((value) =>
+          Math.max(0.035, Math.min(1, Math.pow(global > 0 ? value / global : 0, 0.72)))
+        );
+        if (typeof ZQ.drawMusicWave === 'function') ZQ.drawMusicWave();
+        return this.peaks;
+      };
+
+      this.peakPromise = window.fetch(src, { cache: 'force-cache' })
+        .then((response) => (response.ok ? response.arrayBuffer() : null))
+        .then((buffer) => {
+          if (!buffer) return null;
+          const decoded = ctx.decodeAudioData(buffer);
+          if (decoded && typeof decoded.then === 'function') {
+            return decoded.then(finish);
+          }
+          return new Promise((resolve, reject) => {
+            ctx.decodeAudioData(buffer, (result) => resolve(finish(result)), reject);
+          });
+        })
+        .catch(() => null)
+        .then((result) => {
+          if (!result) this.peakPromise = null;
+          return result;
+        });
+      return this.peakPromise;
+    },
+
     waveform(bars) {
       const count = Math.max(8, Math.min(160, Math.round(bars || 64)));
+      if (this.peaks && this.peaks.length) {
+        const result = [];
+        const total = this.peaks.length;
+        for (let i = 0; i < count; i += 1) {
+          const start = Math.floor((i / count) * total);
+          const end = Math.max(start + 1, Math.floor(((i + 1) / count) * total));
+          let peak = 0;
+          for (let j = start; j < end && j < total; j += 1) {
+            if (this.peaks[j] > peak) peak = this.peaks[j];
+          }
+          result.push(Math.max(0.035, peak));
+        }
+        return result;
+      }
       const result = [];
       if (this.analyser && this.waveData) {
         try {
@@ -102,9 +203,11 @@
       el.playbackRate = this.rate();
       if (!rt.termSettings.music) {
         el.pause();
+        if (this.decodePeaks) this.decodePeaks();
         return;
       }
       this.ensureAnalyser();
+      if (this.decodePeaks) this.decodePeaks();
       const play = el.play();
       if (play && typeof play.catch === 'function') {
         play.then(() => {

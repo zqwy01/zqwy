@@ -80,8 +80,17 @@
       low: [11, 9],
       trial: [19, 15],
       storage: [15, 13],
-      crossroad: [13, 11]
+      crossroad: [13, 11],
+      beetle: [19, 15],
+      umbrella: [21, 17]
     };
+    for (const kind of Object.keys(C.fauna || {})) {
+      const def = C.fauna[kind];
+      ROLE_MIN[kind] = [
+        Math.max(ROLE_MIN.tablet[0], Math.round(def.minW || 13)),
+        Math.max(ROLE_MIN.tablet[1], Math.round(def.minH || 11))
+      ];
+    }
 
     const fixedByCell = new Map();
     for (const role of Object.keys(C.fixedRooms)) {
@@ -89,8 +98,21 @@
       fixedByCell.set(cellKey(f.cx, f.cy), role);
     }
 
+    /* Роль клетки вычисляется детерминированно и до создания комнаты:
+       roomBox() соседнего чанка должен видеть те же размеры, что и
+       комната, которую материализуют позже. Поэтому шанс фауны тоже
+       считается от seed и координат, а не от порядка генерации. */
     function roleAt(cx, cy) {
-      return fixedByCell.get(cellKey(cx, cy)) || 'procedural';
+      const fixed = fixedByCell.get(cellKey(cx, cy));
+      if (fixed) return fixed;
+      const chance = Number.isFinite(W.faunaChance) ? W.faunaChance : 0.18;
+      if (chance <= 0) return 'procedural';
+      const roll = hashString(`${seed}:fauna:${cx}:${cy}`) / 4294967296;
+      if (roll >= chance) return 'procedural';
+      const kinds = Object.keys(C.fauna || {});
+      if (!kinds.length) return 'procedural';
+      const pick = hashString(`${seed}:faunapick:${cx}:${cy}`) % kinds.length;
+      return kinds[pick];
     }
 
     /* Размер детерминирован для клетки и seed, поэтому соседние чанки
@@ -165,9 +187,10 @@
       const ccx = Math.floor(cx / CHUNK);
       const ccy = Math.floor(cy / CHUNK);
       const startChunk = ccx === 0 && ccy === 0;
-      const role = startChunk ? roleAt(cx, cy) : 'procedural';
+      const role = roleAt(cx, cy);
+      const faunaMeta = C.fauna && C.fauna[role] ? C.fauna[role] : null;
       let storyIndex = null;
-      if (!startChunk && !fixedByCell.has(key)) {
+      if (role === 'procedural' && !startChunk) {
         const chance = proceduralStoryCount === 0
           ? (Number.isFinite(W.storyFirstChance) ? W.storyFirstChance : 0.25)
           : (Number.isFinite(W.storyNextChance) ? W.storyNextChance : 0.08);
@@ -182,6 +205,8 @@
 
       if (meta) {
         name = meta.name;
+      } else if (faunaMeta) {
+        name = faunaMeta.name;
       } else {
         const idx = hashString(`${seed}:name:${cx}:${cy}`) % C.proceduralNames.length;
         name = C.proceduralNames[idx];
@@ -202,9 +227,10 @@
         w: box.w,
         h: box.h,
         role,
+        faunaKind: faunaMeta ? role : null,
         storyIndex,
         name,
-        tag: meta ? meta.tag : '',
+        tag: meta ? meta.tag : (faunaMeta ? faunaMeta.tag : ''),
         music: meta ? meta.music : 'labyrinth',
         x1: box.x1,
         y1: box.y1,
@@ -485,6 +511,15 @@
         addEdge(tabletCell.cx, tabletCell.cy, hazardCell.cx, hazardCell.cy);
         addEdge(hazardCell.cx, hazardCell.cy, lowCell.cx, lowCell.cy);
         addEdge(lowCell.cx, lowCell.cy, trialCell.cx, trialCell.cy);
+        const beetleCell = C.fixedRooms.beetle;
+        if (beetleCell) {
+          addEdge(tabletCell.cx, tabletCell.cy, beetleCell.cx, beetleCell.cy);
+        }
+        const umbrellaCell = C.fixedRooms.umbrella;
+        if (umbrellaCell) {
+          addEdge(beetleCell.cx, beetleCell.cy, umbrellaCell.cx, umbrellaCell.cy);
+          addEdge(C.fixedRooms.crossroad.cx, C.fixedRooms.crossroad.cy, umbrellaCell.cx, umbrellaCell.cy);
+        }
       }
 
       /* Случайный остовный обход внутри чанка. */
@@ -710,8 +745,17 @@
       hazardRoom: roomsByCell.get(cellKey(hazardCell.cx, hazardCell.cy)),
       storageRoom: roomsByCell.get(cellKey(C.fixedRooms.storage.cx, C.fixedRooms.storage.cy)),
       crossroadRoom: roomsByCell.get(cellKey(C.fixedRooms.crossroad.cx, C.fixedRooms.crossroad.cy)),
+      beetleRoom: roomsByCell.get(cellKey(C.fixedRooms.beetle.cx, C.fixedRooms.beetle.cy)),
+      umbrellaRoom: roomsByCell.get(cellKey(C.fixedRooms.umbrella.cx, C.fixedRooms.umbrella.cy)),
       itemPickups
     };
+
+    Object.defineProperty(api, 'faunaRooms', {
+      enumerable: true,
+      get() {
+        return rooms.filter((room) => Boolean(room.faunaKind));
+      }
+    });
 
     Object.defineProperty(api, 'edges', {
       enumerable: true,

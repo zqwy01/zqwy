@@ -36,17 +36,18 @@
       <p class="menu-hint" data-i18n="menu.hintKeys">D F J K · СТРЕЛКИ · ТАЧ ПО ПОЛОСАМ</p>
       <p class="menu-hint dim" data-i18n="menu.hintAudio">НАУШНИКИ РЕКОМЕНДУЮТСЯ · ESC — ПАУЗА</p>
       <div class="lang-switch" role="group" aria-label="Язык" data-i18n-aria="menu.language">
-        <span class="lang-label" data-i18n="menu.language">ЯЗЫК</span>
-        <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true">RU</button>
-        <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
-      </div>
+          <span class="lang-globe" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.2 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.2-3.6-8.5s1.2-6.2 3.6-8.5z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+          <span class="lang-label" data-i18n="menu.language">ЯЗЫК</span>
+          <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true"><b>RU</b><small>РУС</small></button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false"><b>EN</b><small>ENG</small></button>
+        </div>
     </div>
   </section>
 
   <section id="screen-select" class="screen select-screen hidden">
     <header class="select-header">
       <button id="btn-back" class="ghost icon" aria-label="В меню" data-i18n-aria="select.back">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 4.8 7.3 12l7.2 7.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15.5 4.8 8.3 12l7.2 7.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <span id="album-badge" class="album-badge" aria-hidden="true">BC</span>
       <div class="select-heading">
@@ -56,13 +57,24 @@
       <div class="select-meta">
         <span id="album-count">—</span>
         <div class="lang-switch compact" role="group" aria-label="Язык" data-i18n-aria="menu.language">
-          <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true">RU</button>
-          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+          <span class="lang-globe" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.2 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.2-3.6-8.5s1.2-6.2 3.6-8.5z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+          <span class="lang-label" data-i18n="menu.language">ЯЗЫК</span>
+          <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true"><b>RU</b><small>РУС</small></button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false"><b>EN</b><small>ENG</small></button>
         </div>
-        <button id="btn-albums" class="ghost albums-toggle" type="button">АЛЬБОМЫ</button>
+        <button id="btn-albums" class="ghost albums-toggle" type="button" data-i18n="select.albums">АЛЬБОМЫ</button>
         <button id="btn-menu" class="ghost" data-i18n="select.menu">МЕНЮ</button>
       </div>
     </header>
+
+    <div class="search-row">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m15.5 15.5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input id="search-input" type="search" autocomplete="off" spellcheck="false" placeholder="ПОИСК: ТРЕК, АЛЬБОМ, ЖАНР" data-i18n-placeholder="select.searchPlaceholder" aria-label="Поиск" data-i18n-aria="select.searchLabel">
+        <button id="search-clear" class="search-clear hidden" type="button" aria-label="Очистить" data-i18n-aria="select.searchClear">×</button>
+      </div>
+      <p id="search-status" class="search-status" aria-live="polite"></p>
+    </div>
 
     <nav id="album-rail" class="album-rail" aria-label="Альбомы"></nav>
 
@@ -74,6 +86,7 @@
         <p class="eyebrow" id="sel-album">BACKERS</p>
         <h3 id="sel-title">Agonia</h3>
         <div class="track-facts">
+          <span><b id="sel-genre">—</b><span data-i18n="select.genre">ЖАНР</span></span>
           <span><b id="sel-duration">—</b><span data-i18n="select.duration">ДЛИТ.</span></span>
           <span><b id="sel-bpm">—</b><span data-i18n="select.bpm">BPM</span></span>
           <span><b id="sel-diff">—</b><span data-i18n="select.diff">СЛОЖН.</span></span>
@@ -86,9 +99,10 @@
     </div>
   </section>
 
-  <div id="album-sheet" class="album-sheet hidden" aria-hidden="true">
-    <div class="album-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="album-sheet-title">
-      <header class="album-sheet-head">
+  <div id="album-sheet" class="album-drawer" aria-hidden="true">
+    <div class="album-drawer-backdrop" data-close-drawer="1"></div>
+    <aside class="album-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="album-sheet-title">
+      <header class="album-drawer-head">
         <div>
           <p class="eyebrow" data-i18n="select.sheetHint">ВЫБЕРИ АЛЬБОМ</p>
           <h2 id="album-sheet-title" data-i18n="select.sheetTitle">ВСЕ РЕЛИЗЫ</h2>
@@ -98,7 +112,7 @@
         </button>
       </header>
       <div id="album-grid" class="album-grid"></div>
-    </div>
+    </aside>
   </div>
 
   <section id="screen-load" class="screen center-screen hidden">
@@ -145,9 +159,11 @@
         <div class="setting lang-setting">
           <span data-i18n="menu.language">ЯЗЫК</span>
           <div class="lang-switch compact" role="group" aria-label="Язык" data-i18n-aria="menu.language">
-            <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true">RU</button>
-            <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
-          </div>
+          <span class="lang-globe" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.2 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.2-3.6-8.5s1.2-6.2 3.6-8.5z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+          <span class="lang-label" data-i18n="menu.language">ЯЗЫК</span>
+          <button type="button" class="lang-btn" data-lang="ru" aria-pressed="true"><b>RU</b><small>РУС</small></button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false"><b>EN</b><small>ENG</small></button>
+        </div>
         </div>
         <button id="btn-sfx" class="ghost">ЗВУК УДАРОВ: ВКЛ</button>
       </div>

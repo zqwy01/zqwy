@@ -80,6 +80,25 @@
     ctx.closePath();
   }
 
+  // Stepped-corner block: square pixels, no antialiased diagonals.
+  function pixelBlockPath(ctx, x, y, w, h, cut) {
+    const c = Math.max(1, Math.min(Math.round(cut), Math.abs(w) / 2, Math.abs(h) / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + c, y);
+    ctx.lineTo(x + w - c, y);
+    ctx.lineTo(x + w - c, y + c);
+    ctx.lineTo(x + w, y + c);
+    ctx.lineTo(x + w, y + h - c);
+    ctx.lineTo(x + w - c, y + h - c);
+    ctx.lineTo(x + w - c, y + h);
+    ctx.lineTo(x + c, y + h);
+    ctx.lineTo(x + c, y + h - c);
+    ctx.lineTo(x, y + h - c);
+    ctx.lineTo(x, y + c);
+    ctx.lineTo(x + c, y + c);
+    ctx.closePath();
+  }
+
   function glow(ctx, x, y, r, color, a) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, r));
     g.addColorStop(0, rgba(color, a));
@@ -1169,10 +1188,25 @@
     ctx.drawImage(bg, 0, 0, W, H);
 
     // Section tint: a slow colour wash driven by the current chart section.
+    // A vertical gradient plus a soft side wash keeps the change readable
+    // without flattening the procedural background.
     const tint = state.tint;
     if (tint && tint.a > 0.001) {
-      ctx.fillStyle = 'rgba(' + Math.round(tint.r) + ',' + Math.round(tint.g) + ',' +
-        Math.round(tint.b) + ',' + clamp(tint.a, 0, 0.35) + ')';
+      const tr = Math.round(tint.r), tg = Math.round(tint.g), tb = Math.round(tint.b);
+      const ta = clamp(tint.a, 0, 0.35);
+      const tg1 = ctx.createLinearGradient(0, 0, 0, H);
+      tg1.addColorStop(0, 'rgba(' + tr + ',' + tg + ',' + tb + ',' + (ta * 0.30).toFixed(3) + ')');
+      tg1.addColorStop(0.36, 'rgba(' + tr + ',' + tg + ',' + tb + ',' + (ta * 0.92).toFixed(3) + ')');
+      tg1.addColorStop(0.62, 'rgba(' + tr + ',' + tg + ',' + tb + ',' + (ta * 0.46).toFixed(3) + ')');
+      tg1.addColorStop(1, 'rgba(' + tr + ',' + tg + ',' + tb + ',' + Math.min(0.42, ta * 1.22).toFixed(3) + ')');
+      ctx.fillStyle = tg1;
+      ctx.fillRect(0, 0, W, H);
+
+      const tg2 = ctx.createLinearGradient(0, 0, W, 0);
+      tg2.addColorStop(0, 'rgba(' + tr + ',' + tg + ',' + tb + ',' + (ta * 0.24).toFixed(3) + ')');
+      tg2.addColorStop(0.5, 'rgba(' + tr + ',' + tg + ',' + tb + ',0)');
+      tg2.addColorStop(1, 'rgba(' + tr + ',' + tg + ',' + tb + ',' + (ta * 0.18).toFixed(3) + ')');
+      ctx.fillStyle = tg2;
       ctx.fillRect(0, 0, W, H);
     }
 
@@ -1295,29 +1329,38 @@
       glow(ctx, x, hy, r * 2.6, col, 0.10 + p * 0.18 + beat * 0.04 + fever * 0.06);
       ctx.restore();
 
-      ctx.strokeStyle = rgba(col, 0.30 + p * 0.5 + beat * 0.1);
-      ctx.lineWidth = Math.max(2, laneGap * 0.022);
-      ctx.beginPath();
-      ctx.arc(x, hy, r, 0, TAU);
-      ctx.stroke();
+      // Pixel pad: four chunky brackets around a stepped diamond.
+      const sPix = Math.max(6, Math.round(r * 0.92));
+      const tPix = Math.max(2, Math.round(r * 0.16));
+      const aPix = 0.30 + p * 0.5 + beat * 0.1;
+      ctx.fillStyle = rgba(col, aPix);
+      ctx.fillRect(x - sPix * 0.62, hy - sPix, sPix * 1.24, tPix);
+      ctx.fillRect(x - sPix * 0.62, hy + sPix - tPix, sPix * 1.24, tPix);
+      ctx.fillRect(x - sPix, hy - sPix * 0.62, tPix, sPix * 1.24);
+      ctx.fillRect(x + sPix - tPix, hy - sPix * 0.62, tPix, sPix * 1.24);
 
+      const cSq = Math.max(2, Math.round(tPix * 0.8));
+      ctx.fillStyle = rgba(col, aPix * 0.9);
+      ctx.fillRect(x - sPix * 0.86, hy - sPix * 0.86, cSq, cSq);
+      ctx.fillRect(x + sPix * 0.86 - cSq, hy - sPix * 0.86, cSq, cSq);
+      ctx.fillRect(x - sPix * 0.86, hy + sPix * 0.86 - cSq, cSq, cSq);
+      ctx.fillRect(x + sPix * 0.86 - cSq, hy + sPix * 0.86 - cSq, cSq, cSq);
+
+      const dPix = Math.max(3, Math.round(r * 0.42));
       ctx.fillStyle = rgba(col, 0.05 + p * 0.12);
-      ctx.beginPath();
-      ctx.arc(x, hy, r * 0.72, 0, TAU);
-      ctx.fill();
-
-      // inner key mark
-      ctx.strokeStyle = rgba(col, 0.5 + p * 0.5);
-      ctx.lineWidth = Math.max(1.5, laneGap * 0.012);
-      ctx.beginPath();
-      if (i % 2 === 0) {
-        ctx.moveTo(x - r * 0.26, hy - r * 0.26);
-        ctx.lineTo(x + r * 0.26, hy + r * 0.26);
-      } else {
-        ctx.moveTo(x + r * 0.26, hy - r * 0.26);
-        ctx.lineTo(x - r * 0.26, hy + r * 0.26);
+      for (let row = -dPix; row <= dPix; row += 2) {
+        const half = dPix - Math.abs(row);
+        ctx.fillRect(x - half, hy + row, half * 2, 2);
       }
-      ctx.stroke();
+
+      // inner key mark made of pixels
+      const mPix = Math.max(3, Math.round(r * 0.30));
+      const qPix = Math.max(1, Math.round(r * 0.07));
+      ctx.fillStyle = rgba(col, 0.5 + p * 0.5);
+      for (let k = -mPix; k <= mPix; k += qPix * 2) {
+        ctx.fillRect(x + k, hy + k, qPix, qPix);
+        ctx.fillRect(x - k, hy + k, qPix, qPix);
+      }
 
       const key = (state.laneKeys && state.laneKeys[i]) || ['D', 'F', 'J', 'K'][i];
       ctx.fillStyle = rgba(col, 0.72 + p * 0.28);
@@ -1390,16 +1433,18 @@
       body.addColorStop(0.28, rgba(col, 0.96));
       body.addColorStop(1, shade(col, 0.62));
       ctx.fillStyle = body;
-      rr(ctx, x - w / 2, y - h / 2, w, h, h * 0.42);
+      pixelBlockPath(ctx, x - w / 2, y - h / 2, w, h, h * 0.30);
       ctx.fill();
+      ctx.strokeStyle = rgba(theme.sun, 0.42 + hot * 0.3);
+      ctx.lineWidth = Math.max(1, h * 0.07);
+      pixelBlockPath(ctx, x - w / 2, y - h / 2, w, h, h * 0.30);
+      ctx.stroke();
       // inner core
       ctx.fillStyle = rgba('#ffffff', 0.12 + hot * 0.18);
-      rr(ctx, x - w * 0.20, y - h * 0.24, w * 0.40, Math.max(1.4, h * 0.24), h * 0.1);
-      ctx.fill();
+      ctx.fillRect(x - w * 0.20, y - h * 0.24, w * 0.40, Math.max(2, h * 0.24));
       // top highlight
       ctx.fillStyle = rgba('#ffffff', 0.32);
-      rr(ctx, x - w * 0.32, y - h * 0.34, w * 0.64, Math.max(1.5, h * 0.14), h * 0.1);
-      ctx.fill();
+      ctx.fillRect(x - w * 0.32, y - h * 0.34, w * 0.64, Math.max(2, h * 0.14));
       // side ticks
       ctx.fillStyle = rgba(theme.sun, 0.75);
       ctx.fillRect(x - w / 2 + 2, y - h * 0.28, 2, h * 0.56);

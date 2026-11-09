@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import unicodedata
@@ -70,6 +71,66 @@ ALBUM_TITLES = {
     "voidstorm": "Voidstorm",
 }
 
+# A short genre tag for every release. The collection is electronic at heart,
+# but each album has its own flavour; these labels are also used by search.
+ALBUM_GENRES = {
+    "008008008": "Experimental",
+    "algiz": "Folkstep",
+    "alone": "Ambient",
+    "axs": "Ritual Industrial",
+    "backers": "Drum & Bass",
+    "be_simpler": "Trip-Hop",
+    "biela": "Darkwave",
+    "blizko_boha": "Sacral Ambient",
+    "broken_space": "Space Bass",
+    "cyber_absolutus": "Cyber Industrial",
+    "cyber_logos": "IDM",
+    "cybernetic_lifeform": "Industrial Techno",
+    "death_to_capital": "Breakcore",
+    "dystopian_future": "Dark Ambient",
+    "endorphin": "Psytrance",
+    "everyday": "Downtempo",
+    "forty_hours": "Industrial",
+    "glioma": "Organic Noise",
+    "hurting_other_people": "Dark Trip-Hop",
+    "in_forest": "Ambient Drone",
+    "its_a_tablet": "Ritual Drone",
+    "joker": "Circus Breakbeat",
+    "kuzya": "Balkan Bass",
+    "mannequins": "Darkwave",
+    "mice_inside": "Body Industrial",
+    "must_all_things_end": "Post-Industrial",
+    "my_tablet": "Glitch",
+    "na_hrane": "Slavic Bass",
+    "new_adventure": "Chiptune Folk",
+    "new_tablet": "Neo-Classical Bass",
+    "not_diverse": "Noise Rock",
+    "not_sorted": "Mixed Bag",
+    "petunia": "Bloom Techno",
+    "rastignac": "Baroque Beat",
+    "runner": "Cyber DnB",
+    "someone": "Melancholic Electronica",
+    "the_remaining_one": "Desert Bass",
+    "voidstorm": "Space Ambient",
+}
+
+# Tracks that wander away from their album's main genre. Keys are the album
+# theme id; values map a display title to a more precise genre.
+TRACK_GENRES = {
+    "backers": {"Agonia": "Drum & Bass", "Mind": "Ambient", "Umbrella": "Breakbeat"},
+    "death_to_capital": {"Deal Slowed": "Slowed Breakcore"},
+    "not_sorted": {
+        "Bird": "Ambient", "Winter Dream": "Downtempo", "Virtual Private": "IDM",
+        "#13 90 BPM": "Lo-fi", "Abbelie": "House", "Bango": "Trap",
+        "Besez": "Breakbeat", "Blink": "Lo-fi", "Boombap NoTags": "Boom Bap",
+        "Cursed": "Darkwave", "Dungeon Synth": "Dungeon Synth", "Elevin": "House",
+        "Hen": "Breakcore", "Iola": "Downtempo", "Jenith": "Drum & Bass",
+        "Lofi Video": "Lo-fi", "Piano Beat": "Piano Beat", "Sheni": "Breakcore",
+        "Trailer": "Cinematic", "Umes De Vanish": "Ambient", "Vanish": "Breakcore",
+        "Zemic": "Bass", "ZQWY OLD BEAT 7": "Boom Bap",
+    },
+}
+
 # Small words that should stay lowercase in generated track titles.
 SMALL = {"a", "an", "and", "at", "by", "for", "from", "in", "of", "on", "or",
          "the", "to", "with", "vs", "via"}
@@ -96,6 +157,26 @@ def album_title(folder: str) -> str:
     if key in ALBUM_TITLES:
         return ALBUM_TITLES[key]
     return " ".join(w.capitalize() for w in re.split(r"[_-]+", key) if w)
+
+
+def genre_keys(folder: str):
+    key = album_theme(folder)
+    return (key, key.replace("-", "_"))
+
+
+def album_genre(folder: str) -> str:
+    for key in genre_keys(folder):
+        if key in ALBUM_GENRES:
+            return ALBUM_GENRES[key]
+    return "Electronic"
+
+
+def track_genre(folder: str, title: str) -> str:
+    for key in genre_keys(folder):
+        override = TRACK_GENRES.get(key, {}).get(title)
+        if override:
+            return override
+    return album_genre(folder)
 
 
 def pretty_title(stem: str) -> str:
@@ -150,6 +231,13 @@ def probe_chart_meta(track_id: str) -> dict:
     sections = chart.get("sections")
     if isinstance(sections, list) and sections:
         meta["sections"] = len(sections)
+    notes = chart.get("notes")
+    if isinstance(notes, list):
+        meta["notes"] = len(notes)
+    for key in ("density", "difficulty", "playableEnd"):
+        value = chart.get(key)
+        if isinstance(value, (int, float)):
+            meta[key] = value
     return meta
 
 
@@ -217,9 +305,11 @@ def collect(tracks_dir: Path) -> list[dict]:
                     n += 1
                 track_id = f"{track_id}-{n}"
             used_ids.add(track_id)
+            title = pretty_title(base)
             entry = {
                 "id": track_id,
-                "title": pretty_title(base),
+                "title": title,
+                "genre": track_genre(folder, title),
                 "file": base,
                 "path": "../../src/tracks/" + rel.as_posix(),
                 "duration": probe_duration(path),
@@ -233,10 +323,18 @@ def collect(tracks_dir: Path) -> list[dict]:
         out.append({
             "id": album_theme(folder),
             "title": album_title(folder),
+            "genre": album_genre(folder),
             "folder": folder,
             "tracks": entries,
         })
     return out
+
+
+def write_atomic(path: Path, text: str) -> None:
+    """Replace generated files even when the share marks them read-only."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def album_sort_key(folder: str):
@@ -271,11 +369,11 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     json_path = args.out.with_suffix(".json")
     text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    json_path.write_text(text, encoding="utf-8")
-    args.out.write_text(
+    write_atomic(json_path, text)
+    write_atomic(
+        args.out,
         "/* Generated by tools/build_catalog.py — do not hand-edit. */\n"
         "window.RHYTHM_CATALOG = " + text + ";\n",
-        encoding="utf-8",
     )
     print(f"albums={len(albums)} tracks={total}")
     for a in albums:

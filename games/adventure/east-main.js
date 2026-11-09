@@ -1,56 +1,81 @@
+// Runtime wiring for the “To East” browser prototype.
+// The module connects the dependency-free core, data, rendering and UI layers.
+
 import {
   DIRS,
   SAVE_VERSION,
+  addCanvasLink,
   addInventoryItem,
   canvasPalette,
+  commandUnlocked,
   createInitialState,
   currentRoom,
   dangerPosition,
+  doorCenter,
+  doorSpanFor,
+  dropBackpack,
   elementAvailable,
-  hashString,
+  exitAt,
   hasItem,
   makeCanvasElement,
   markRoomVisited,
   mulberry32,
   nearestInteractable,
-  nearestPack,
+  normalizeSettings,
   normalizeState,
   pickupBackpack,
-  dropBackpack,
+  removeCanvasElement,
   spawnPointForEntry,
-  exitAt,
 } from './east-core.js';
 import {
-  BUILTIN_COMMANDS,
+  CARD_ORDER,
+  COMMANDS,
+  COMMAND_BY_ID,
   ITEM_DEFS,
-  HELP,
+  KEYBOARD_ROWS,
+  KEY_ACTIONS,
   MUSIC_MAP,
   PROLOGUE,
   ROOM_COPY,
+  STORY_PLOT,
   TRIAL,
   TUTORIAL_LINES,
-  UI_TEXT,
-  WORLD_RESPONSES,
+  WALK_COMMAND_LIST,
+  commandForAlias,
 } from './east-data.js';
+import {
+  languageName,
+  pick,
+  setLanguage,
+  t,
+  translateDocument,
+} from './east-i18n.js';
 import { AudioManager } from './east-audio.js';
 import { Renderer } from './east-render.js';
 import { createUI } from './east-ui.js';
 
 const SAVE_KEY = 'toEast.save.v1';
 const PLAYER_SPEED = 152;
+const CURSOR_SPEED = 176;
 const TRIAL_SPEED = 186;
 const DASH_SPEED = 520;
 const DASH_COOLDOWN = 1.05;
 const TRIAL_DASH_COOLDOWN = 1.05;
 const ACTION_RADIUS = 0.17;
+const WALK_SPEED = 0.235;
+const WALK_CLAMP = 0.02;
+const TRIAL_MAX_BULLETS = 260;
 
 const DEFINITIONS = {
-  builtinCommands: BUILTIN_COMMANDS,
+  builtinCommands: COMMANDS,
   items: ITEM_DEFS,
 };
 
 const params = new URLSearchParams(window.location.search);
-const state = loadState();
+const bootStartedAt = performance.now();
+let state = loadState();
+setLanguage(state.settings.language);
+
 const runtime = {
   clock: 0,
   walkClock: 0,
@@ -59,7 +84,11 @@ const runtime = {
   virtual: new Set(),
   moving: false,
   facing: state.player.facing || 'up',
+  lastMove: null,
+  walk: null,
   commandTarget: null,
+  cursorTarget: null,
+  cursorHeld: false,
   autoExit: null,
   flash: 0,
   shake: 0,
@@ -81,9 +110,19 @@ let ui;
 let renderer;
 let audio;
 let saveTimer = 0;
+let lastAspectOk = null;
+let aspectState = { ratio: '9:16', ok: true, label: '9:16' };
+let resizeTimer = 0;
 
 // ---------------------------------------------------------------------------
 // Persistence
+
+function generationOptions() {
+  const story = params.get('story');
+  if (story === '1') return { forceStory: true };
+  if (story === '0') return { forceStory: false };
+  return {};
+}
 
 function loadState() {
   try {
@@ -96,7 +135,7 @@ function loadState() {
     // A broken or unavailable localStorage must not stop the prototype.
   }
   const seed = params.get('seed');
-  return createInitialState(seed || Date.now());
+  return createInitialState(seed || Date.now(), generationOptions());
 }
 
 function saveNow() {
@@ -112,32 +151,54 @@ function saveNow() {
 
 function scheduleSave() {
   if (saveTimer) return;
-  saveTimer = window.setTimeout(saveNow, 120);
+  saveTimer = window.setTimeout(saveNow, 140);
 }
 
-function resetGame() {
-  const fresh = createInitialState(Date.now());
-  for (const key of Object.keys(state)) delete state[key];
-  Object.assign(state, fresh);
+function adoptState(next, options = {}) {
+  if (!next) return;
+  state = next;
+  setLanguage(state.settings.language);
+  runtime.facing = state.player.facing || 'down';
   runtime.trial = null;
+  runtime.walk = null;
   runtime.commandTarget = null;
+  runtime.cursorTarget = null;
+  runtime.cursorHeld = false;
   runtime.autoExit = null;
   runtime.dying = false;
   runtime.deathLock = false;
   runtime.promptLabel = null;
-  ui.setTrial(false);
-  ui.closeCanvas();
-  ui.clearTerminal();
-  ui.setCanvasData(state, buildPalette());
-  ui.setRoom(state, currentRoom(state), { banner: true });
-  ui.setPrompt(null);
+  runtime.dashTimer = 0;
+  runtime.dashInvulnerable = 0;
+  runtime.dashTrail = [];
+  runtime.keys.clear();
+  runtime.virtual.clear();
+
+  translateDocument(document);
+  ui.setSettings(state.settings);
+  ui.setAspect(aspectState);
   ui.setSound(state.settings.sound);
+  ui.setTrial(false);
+  ui.setPrompt(null);
+  ui.setRoom(state, currentRoom(state), { banner: Boolean(options.banner) });
+  ui.setCanvasData(state, buildPalette());
   audio.setEnabled(state.settings.sound);
+  audio.setVolume(state.settings.musicVolume);
   playRoomMusic();
   saveNow();
-  ui.log('Лабиринт перестроился. Скрижаль снова в центре.', 'system');
-  ui.log(TUTORIAL_LINES[0], 'system');
-  ui.showToast('Новый лабиринт создан', { tone: 'info' });
+}
+
+function resetGame() {
+  const next = createInitialState(Date.now(), generationOptions());
+  next.settings = normalizeSettings({ ...state.settings });
+  ui.clearTerminal();
+  ui.clearHistory();
+  runtime.introShown = false;
+  adoptState(next, { banner: true });
+  ui.showToast(t('banner.newLabyrinth'), { tone: 'info' });
+  log(t('reset.done'), 'system');
+  log(t(TUTORIAL_LINES[0]), 'system');
+  if (!next.flags.introSeen) showPrologue();
   requestAnimationFrame(() => renderer.resize());
 }
 
@@ -193,8 +254,8 @@ function movePlayerByPixels(player, px, py, clampBounds = true) {
   player.x += px / rr.w;
   player.y += py / rr.h;
   if (clampBounds) {
-    player.x = Math.max(0.022, Math.min(0.978, player.x));
-    player.y = Math.max(0.022, Math.min(0.978, player.y));
+    player.x = Math.max(WALK_CLAMP, Math.min(1 - WALK_CLAMP, player.x));
+    player.y = Math.max(WALK_CLAMP, Math.min(1 - WALK_CLAMP, player.y));
   }
 }
 
@@ -215,11 +276,11 @@ function getInputVector() {
 function interactionLabel(interaction) {
   if (!interaction) return null;
   switch (interaction.kind) {
-    case 'pack': return 'Взять рюкзак';
-    case 'item': return ROOM_COPY.find.interact;
-    case 'trial': return ROOM_COPY.story.interact;
-    case 'tablet': return 'Коснуться Скрижали';
-    default: return 'Действие';
+    case 'pack': return t('prompt.pack');
+    case 'item': return pick(ROOM_COPY.find.interact);
+    case 'trial': return pick(ROOM_COPY.story.interact);
+    case 'tablet': return t('prompt.tablet');
+    default: return t('prompt.action');
   }
 }
 
@@ -235,21 +296,30 @@ function getInteraction(radius = ACTION_RADIUS) {
 }
 
 function packItemsText(pack) {
-  if (!pack.items.length) return 'пусто';
-  return pack.items.map((id) => ITEM_DEFS[id]?.title || id).join(', ');
+  if (!pack.items.length) return t('command.packEmpty');
+  return pack.items.map((id) => pick(ITEM_DEFS[id]?.title) || id).join(', ');
+}
+
+function formatSeconds(seconds) {
+  const value = Math.max(0, Number(seconds) || 0);
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 // ---------------------------------------------------------------------------
 // Music
 
+function roomMusicId() {
+  const room = currentRoom(state);
+  return room?.musicId && MUSIC_MAP[room.musicId] ? room.musicId : 'labyrinth';
+}
+
 function playRoomMusic() {
+  if (!audio) return;
   if (runtime.trial?.active) {
     audio.playTrack('trial');
     return;
   }
-  const room = currentRoom(state);
-  const id = room?.musicId && MUSIC_MAP[room.musicId] ? room.musicId : 'labyrinth';
-  audio.playTrack(id);
+  audio.playTrack(roomMusicId());
 }
 
 function toggleSound() {
@@ -259,15 +329,42 @@ function toggleSound() {
   if (state.settings.sound) {
     audio.unlock();
     playRoomMusic();
-    log('Звук включён.', 'system');
+    log(t('sound.onMessage'), 'system');
   } else {
-    log('Звук выключен.', 'system');
+    log(t('sound.offMessage'), 'system');
   }
   saveNow();
 }
 
+function musicAction(action, value) {
+  if (!audio) return;
+  switch (action) {
+    case 'play':
+      audio.playTrack(audio.currentId || roomMusicId(), { force: true });
+      break;
+    case 'pause':
+      audio.pause();
+      break;
+    case 'stop':
+      audio.stop();
+      break;
+    case 'track':
+      audio.playTrack(value, { force: true });
+      break;
+    case 'seek':
+      audio.seek(value);
+      break;
+    case 'volume':
+      applySettings({ musicVolume: value });
+      break;
+    default:
+      break;
+  }
+  ui.setMusic(audio.snapshot());
+}
+
 // ---------------------------------------------------------------------------
-// Room descriptions and commands
+// Room descriptions and actions
 
 function describeRoom() {
   const room = currentRoom(state);
@@ -283,80 +380,103 @@ function describeRoom() {
   log(text, 'world');
 
   if (copy.whisper) log(copy.whisper, 'echo');
-  if (room.chalkMarked) log('На полу осталась твоя черта.', 'system');
+  if (room.chalkMarked) log(t('command.chalkMark'), 'system');
   const packs = state.packs.filter((pack) => pack.roomId === room.id);
   if (packs.length > 0) {
-    log(`В комнате рюкзаков: ${packs.length}. Подойди и нажми E, чтобы поднять.`, 'system');
+    log(t('command.roomPacks', { count: packs.length }), 'system');
   }
   if (room.threat && !runtime.trial?.active) {
-    log('Тень движется по полу. Её не нужно побеждать — её нужно обойти.', 'system');
+    log(t('room.dangerShadow'), 'system');
   }
 }
 
 function describePack() {
   if (!state.inventory.length) {
-    log('Рюкзак пуст.', 'system');
+    log(t('command.packEmpty'), 'system');
   } else {
-    log(`При тебе: ${state.inventory.map((id) => ITEM_DEFS[id]?.title || id).join(', ')}.`, 'world');
+    log(t('command.packHas', {
+      items: state.inventory.map((id) => pick(ITEM_DEFS[id]?.title) || id).join(', '),
+    }), 'world');
   }
   if (!state.packs.length) {
-    log('Потерянных рюкзаков нет.', 'system');
+    log(t('command.packsNone'), 'system');
     return;
   }
-  log(`Всего оставленных рюкзаков: ${state.packs.length}.`, 'system');
+  log(t('command.packsTotal', { count: state.packs.length }), 'system');
   for (const pack of state.packs) {
     const room = state.rooms[pack.roomId];
-    const here = pack.roomId === state.currentRoomId ? ' · здесь' : '';
-    log(`▣ «${room?.title || 'неизвестная комната'}» · ${packItemsText(pack)}${here}`, 'system');
-  }
-}
-
-function nearestExitDirection(side) {
-  switch (side) {
-    case 'north': return { x: 0.5, y: 0.035 };
-    case 'south': return { x: 0.5, y: 0.965 };
-    case 'west': return { x: 0.035, y: 0.5 };
-    case 'east': return { x: 0.965, y: 0.5 };
-    default: return { x: 0.5, y: 0.5 };
+    const here = pack.roomId === state.currentRoomId ? t('command.packHere') : '';
+    log(t('command.packLine', {
+      room: pick(room?.title) || t('room.fallback'),
+      items: pack.items.map((id) => pick(ITEM_DEFS[id]?.title) || id).join(', ') || t('command.packEmpty'),
+      here,
+    }), 'system');
   }
 }
 
 function goToExit(side) {
   const room = currentRoom(state);
   if (!room.exits[side]) {
-    log(WORLD_RESPONSES.wall, 'world');
+    log(t('command.wall'), 'world');
     return;
   }
-  runtime.commandTarget = nearestExitDirection(side);
+  const door = doorSpanFor(room, side);
+  const center = doorCenter(door);
+  const target = side === 'north'
+    ? { x: center, y: 0.018 }
+    : side === 'south'
+      ? { x: center, y: 0.982 }
+      : side === 'west'
+        ? { x: 0.018, y: center }
+        : { x: 0.982, y: center };
+  runtime.cursorTarget = target;
+  runtime.commandTarget = { ...target, exit: side };
   runtime.autoExit = side;
-  log(`Иду на ${DIRS.find((dir) => dir.id === side)?.label || side}.`, 'system');
+  runtime.walk = null;
+  runtime.cursorHeld = false;
+  log(t('command.goExit', { direction: t(`dir.${side}`) }), 'action');
 }
 
-function stepDirection(dx, dy, label) {
-  runtime.commandTarget = {
-    x: Math.max(0.03, Math.min(0.97, state.player.x + dx * 0.17)),
-    y: Math.max(0.03, Math.min(0.97, state.player.y + dy * 0.13)),
+function startWalk(command, seconds) {
+  const dir = command.walk;
+  if (!dir) return;
+  const duration = Math.max(0.1, Math.min(60, Number.isFinite(seconds) ? seconds : state.settings.walkSeconds));
+  runtime.walk = {
+    x: dir.x,
+    y: dir.y,
+    direction: dir.direction,
+    remaining: duration,
   };
+  runtime.commandTarget = null;
+  runtime.cursorTarget = null;
+  runtime.cursorHeld = false;
   runtime.autoExit = null;
-  log(`Я иду ${label}.`, 'system');
+  runtime.facing = dir.direction;
+  state.player.facing = dir.direction;
+  log(t('command.walkStarted', {
+    direction: t(`dir.${dir.direction}`),
+    seconds: formatSeconds(duration),
+  }), 'action');
 }
 
 function approachNearest() {
   const target = nearestInteractable(state, { radius: 1 });
   if (!target) {
-    log(WORLD_RESPONSES.noTarget, 'world');
+    log(t('command.noTarget'), 'world');
     return;
   }
-  runtime.commandTarget = { x: target.x, y: target.y };
+  runtime.cursorTarget = { x: target.x, y: target.y };
+  runtime.commandTarget = null;
   runtime.autoExit = null;
-  log(`Подхожу ближе: ${target.title}.`, 'system');
+  runtime.walk = null;
+  log(t('command.approach', { target: pick(target.title) }), 'action');
 }
 
 function performAction() {
   if (runtime.trial?.active) return;
   const interaction = getInteraction();
   if (!interaction) {
-    log('Рядом нет ничего, что требует действия.', 'system');
+    log(t('command.noTarget'), 'system');
     return;
   }
 
@@ -365,8 +485,8 @@ function performAction() {
     const result = pickupBackpack(state, interaction.id);
     if (result.ok) {
       audio.pickup();
-      log(`Рюкзак поднят. Внутри: ${packItemsText(result.pack)}.`, 'good');
-      ui.showToast('Рюкзак снова при тебе', { tone: 'info' });
+      log(t('command.packPicked', { items: packItemsText(result.pack) }), 'good');
+      ui.showToast(t('banner.backpack'), { tone: 'info' });
       afterStateChange();
     }
     return;
@@ -378,8 +498,8 @@ function performAction() {
       addInventoryItem(state, room.take.itemId);
       audio.pickup();
       const item = ITEM_DEFS[room.take.itemId];
-      log(`${item?.title || 'Предмет'} теперь в рюкзаке.`, 'good');
-      log('Его можно добавить на холст: команда «холст».', 'system');
+      log(t('command.itemInPack', { item: pick(item?.title) || room.take.itemId }), 'good');
+      log(t('command.itemOnCanvas'), 'system');
       afterStateChange();
     }
     return;
@@ -398,7 +518,7 @@ function performAction() {
 
 function useItem(itemId) {
   if (!hasItem(state, itemId)) {
-    log(WORLD_RESPONSES.noItem, 'error');
+    log(t('command.noItem'), 'error');
     return;
   }
   const item = ITEM_DEFS[itemId];
@@ -406,25 +526,44 @@ function useItem(itemId) {
 
   if (itemId === 'chalk') {
     if (room.chalkMarked) {
-      log(WORLD_RESPONSES.chalkAlready, 'system');
+      log(t('command.chalkAlready'), 'system');
       return;
     }
     room.chalkMarked = true;
     audio.tone(640, 0.14, 'triangle', 0.025);
-    log(WORLD_RESPONSES.chalk(room.title), 'good');
+    log(t('command.chalk', { room: pick(room.title) }), 'good');
     afterStateChange();
     return;
   }
 
   if (itemId === 'charm') {
     state.flags.charmUsed = true;
-    log(WORLD_RESPONSES.charm, 'echo');
+    log(t('command.charm'), 'echo');
     scheduleSave();
     return;
   }
 
-  log(`${item?.title || itemId}: пока без отдельного действия.`, 'system');
+  log(t('command.itemNoAction', { item: pick(item?.title) || itemId }), 'system');
 }
+
+function showCards() {
+  if (!state.flags.seenCard) {
+    log(t('command.unknown', { command: 'карта' }), 'error');
+    return;
+  }
+  const cards = CARD_ORDER.filter((id) => hasItem(state, id));
+  if (!cards.length) {
+    log(t('command.noItem'), 'system');
+    return;
+  }
+  for (const id of cards) {
+    const card = ITEM_DEFS[id];
+    log(`${pick(card.title)} · ${pick(card.description)}`, 'world');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Trial
 
 function openTrialIntro() {
   if (state.flags.trialCleared) {
@@ -436,21 +575,21 @@ function openTrialIntro() {
     kicker: TRIAL.intro.kicker,
     title: TRIAL.title,
     paragraphs: TRIAL.intro.paragraphs,
-    note: 'Это не бой: у света нет здоровья, а у тебя нет оружия. Только движение и ритм.',
+    note: TRIAL.intro.note,
     buttons: [
       {
-        label: TRIAL.intro.cancel,
+        label: t('trial.cancelButton'),
         variant: 'quiet',
-        onClick: () => log('Ты отступаешь от света. Он ждёт.', 'system'),
+        onClick: () => log(t('trial.cancel'), 'system'),
       },
       {
-        label: TRIAL.intro.start,
+        label: t('trial.start'),
         variant: 'primary',
         onClick: startTrial,
       },
     ],
     dismissible: true,
-    onDismiss: () => log('Ты отступаешь от света. Он ждёт.', 'system'),
+    onDismiss: () => log(t('trial.cancel'), 'system'),
   });
 }
 
@@ -477,13 +616,15 @@ function startTrial() {
     random: mulberry32(seed),
   };
   runtime.moving = false;
+  runtime.walk = null;
+  runtime.cursorTarget = null;
   runtime.promptLabel = null;
   ui.setPrompt(null);
   ui.setTrial(true, TRIAL.duration, TRIAL.duration);
-  ui.setTerminalState('испытание · дрожащий свет');
+  ui.setTerminalState(t('terminal.state.trial'));
   audio.playTrack('trial');
   log(TRIAL.intro.paragraphs[0], 'echo');
-  log('Двигайся. Рывок — Shift, Space или кнопка «рывок».', 'system');
+  log(t('trial.hint'), 'system');
 }
 
 function addBullet(trial, x, y, vx, vy, radius = TRIAL.bulletRadius, color = '232, 198, 139') {
@@ -495,7 +636,6 @@ function spawnTrialPattern(trial) {
   const elapsed = trial.elapsed;
 
   if (elapsed < 5.5) {
-    // Rows of slow rain with a moving gap.
     const gap = 0.5 + Math.sin(elapsed * 1.15) * 0.29;
     for (let i = 0; i < 11; i += 1) {
       const x = 0.08 + i * 0.084;
@@ -514,7 +654,6 @@ function spawnTrialPattern(trial) {
   }
 
   if (elapsed < 11) {
-    // Side sweeps, alternating direction, plus an occasional slow ring.
     const fromLeft = beat % 2 === 0;
     const gap = 0.5 + Math.sin(elapsed * 1.35 + (fromLeft ? 0 : Math.PI)) * 0.29;
     for (let i = 0; i < 9; i += 1) {
@@ -550,7 +689,6 @@ function spawnTrialPattern(trial) {
     return;
   }
 
-  // Final phase: a rotating inward ring with a single gap and aimed shots.
   if (beat % 2 === 0) {
     const gapAngle = elapsed * 0.85;
     const count = 20;
@@ -626,11 +764,12 @@ function updateTrial(dt) {
 
   while (trial.elapsed >= trial.nextBeat) {
     spawnTrialPattern(trial);
-    const strong = trial.beatIndex % 4 === 0;
-    audio.beat(strong);
+    audio.beat(trial.beatIndex % 4 === 0);
     trial.beatIndex += 1;
     trial.nextBeat += trial.beatSeconds;
-    if (trial.bullets.length > 260) trial.bullets.splice(0, trial.bullets.length - 260);
+    if (trial.bullets.length > TRIAL_MAX_BULLETS) {
+      trial.bullets.splice(0, trial.bullets.length - TRIAL_MAX_BULLETS);
+    }
   }
 
   for (const bullet of trial.bullets) {
@@ -679,7 +818,7 @@ function winTrial() {
   runtime.promptLabel = null;
   ui.setTrial(false);
   ui.setPrompt(null);
-  ui.setTerminalState('канал открыт');
+  ui.setTerminalState(t('terminal.state.open'));
 
   state.flags.trialCleared = true;
   state.flags.seenCard = true;
@@ -691,15 +830,15 @@ function winTrial() {
   saveNow();
   ui.setRoom(state, room);
   ui.setCanvasData(state, buildPalette());
-  ui.showBanner('испытание пройдено', 'Очарование');
+  ui.showBanner(t('banner.trialDone'), t('trial.title'));
   audio.chime();
   audio.playTrack('labyrinth');
   log(TRIAL.win.paragraphs[0], 'good');
-  log('Карта «Очарование» лежит в рюкзаке. Её можно добавить на холст.', 'system');
+  log(t('trial.charmInPack'), 'system');
 
   ui.showModal({
     kicker: TRIAL.win.kicker,
-    title: 'Очарование',
+    title: t('trial.title'),
     art: ITEM_DEFS.charm.art,
     artAlt: ITEM_DEFS.charm.artAlt,
     paragraphs: TRIAL.win.paragraphs,
@@ -709,7 +848,7 @@ function winTrial() {
         label: TRIAL.win.button,
         variant: 'primary',
         onClick: () => {
-          log('Карта «Очарование»: временная техническая заглушка, конкретный эффект пока не подключён.', 'system');
+          log(t('trial.charmNote'), 'system');
           ui.focusTerminal();
         },
       },
@@ -735,7 +874,9 @@ function die(cause, position = null) {
   const dropRoom = state.rooms[drop.roomId] || room;
   dropBackpack(state, drop);
   runtime.trial = null;
+  runtime.walk = null;
   runtime.commandTarget = null;
+  runtime.cursorTarget = null;
   runtime.autoExit = null;
   runtime.moving = false;
   runtime.keys.clear();
@@ -750,11 +891,11 @@ function die(cause, position = null) {
   audio.death();
 
   const message = cause === 'trial'
-    ? TRIAL.death
-    : `Тьма смыкается. Рюкзак остаётся в комнате «${dropRoom.title}».`;
+    ? t('death.trial')
+    : t('death.danger', { room: pick(dropRoom.title) || t('room.fallback') });
   ui.showToast(message, { ms: 3600 });
   log(message, 'error');
-  log('Душа возвращается к Скрижали. Рюкзак можно найти там, где оборвался путь.', 'system');
+  log(t('death.return'), 'system');
 
   state.currentRoomId = state.map.startId;
   const startRoom = state.rooms[state.map.startId];
@@ -763,7 +904,7 @@ function die(cause, position = null) {
   markRoomVisited(state, startRoom.id);
   saveNow();
   ui.setRoom(state, startRoom, { banner: true });
-  ui.setTerminalState('канал открыт');
+  ui.setTerminalState(t('terminal.state.open'));
   audio.playTrack(startRoom.musicId || 'tablet');
   if (ui.isCanvasOpen()) ui.setCanvasData(state, buildPalette());
 
@@ -772,19 +913,26 @@ function die(cause, position = null) {
   }, 650);
 }
 
-function changeRoom(direction) {
+function changeRoom(direction, options = {}) {
   const room = currentRoom(state);
   const nextId = room?.exits?.[direction];
   if (!nextId || !state.rooms[nextId]) return;
   const next = state.rooms[nextId];
   state.currentRoomId = next.id;
-  state.player = spawnPointForEntry(direction);
+  state.player = spawnPointForEntry(direction, next);
   runtime.facing = state.player.facing;
-  runtime.commandTarget = null;
-  runtime.autoExit = null;
-  runtime.moving = false;
   runtime.flash = 0.5;
   runtime.promptLabel = null;
+  if (!options.continueWalk) {
+    runtime.walk = null;
+    runtime.commandTarget = null;
+    runtime.cursorTarget = null;
+    runtime.autoExit = null;
+    runtime.moving = false;
+  } else if (runtime.walk) {
+    runtime.facing = runtime.walk.direction;
+    state.player.facing = runtime.walk.direction;
+  }
 
   const firstVisit = markRoomVisited(state, next.id);
   ui.setRoom(state, next, { banner: true });
@@ -793,18 +941,23 @@ function changeRoom(direction) {
   saveNow();
 
   if (firstVisit && next.kind === 'danger') {
-    log('Коридор дышит. Тень скользит по полу, и стены на миг теряют линии.', 'system');
+    log(t('room.dangerFirst'), 'system');
   }
   if (firstVisit && next.kind === 'story' && !state.flags.trialCleared) {
-    log('В центре комнаты собирается тёплый дрожащий свет.', 'system');
+    log(t('room.storyFirst'), 'system');
   }
   if (next.kind === 'find' && next.take && !next.take.taken) {
-    log('На низком выступе что-то светится. Подойди и нажми E.', 'system');
+    log(t('room.findFirst'), 'system');
   }
 }
 
 // ---------------------------------------------------------------------------
-// Rooms update
+// Room update
+
+function clampPlayer() {
+  state.player.x = Math.max(WALK_CLAMP, Math.min(1 - WALK_CLAMP, state.player.x));
+  state.player.y = Math.max(WALK_CLAMP, Math.min(1 - WALK_CLAMP, state.player.y));
+}
 
 function updateRoom(dt) {
   const room = currentRoom(state);
@@ -817,9 +970,11 @@ function updateRoom(dt) {
     .filter((ghost) => ghost.alpha > 0.03);
 
   const input = getInputVector();
-  const hadCommand = Boolean(runtime.commandTarget);
+  let blockedWalk = false;
   if (input.x !== 0 || input.y !== 0) {
+    runtime.walk = null;
     runtime.commandTarget = null;
+    runtime.cursorTarget = null;
     runtime.autoExit = null;
     runtime.facing = facingFromVector(input.x, input.y);
     state.player.facing = runtime.facing;
@@ -844,11 +999,24 @@ function updateRoom(dt) {
       });
     }
   } else if (input.x !== 0 || input.y !== 0) {
-    movePlayerByPixels(
-      state.player,
-      input.x * PLAYER_SPEED * dt,
-      input.y * PLAYER_SPEED * dt,
-    );
+    movePlayerByPixels(state.player, input.x * PLAYER_SPEED * dt, input.y * PLAYER_SPEED * dt);
+  } else if (runtime.walk) {
+    const beforeX = state.player.x;
+    const beforeY = state.player.y;
+    runtime.walk.remaining -= dt;
+    state.player.x += runtime.walk.x * WALK_SPEED * dt;
+    state.player.y += runtime.walk.y * WALK_SPEED * dt;
+    clampPlayer();
+    runtime.facing = runtime.walk.direction;
+    state.player.facing = runtime.facing;
+    runtime.moving = true;
+    const expectedX = Math.abs(runtime.walk.x * WALK_SPEED * dt);
+    const expectedY = Math.abs(runtime.walk.y * WALK_SPEED * dt);
+    const movedX = Math.abs(state.player.x - beforeX);
+    const movedY = Math.abs(state.player.y - beforeY);
+    blockedWalk = (expectedX > 0.0001 && movedX < expectedX * 0.2)
+      || (expectedY > 0.0001 && movedY < expectedY * 0.2);
+    if (runtime.walk.remaining <= 0) runtime.walk = null;
   } else if (runtime.commandTarget) {
     const rr = roomMetrics();
     const dx = (runtime.commandTarget.x - state.player.x) * rr.w;
@@ -857,17 +1025,38 @@ function updateRoom(dt) {
     if (distance < 2.4) {
       state.player.x = runtime.commandTarget.x;
       state.player.y = runtime.commandTarget.y;
-      const side = runtime.autoExit;
+      const side = runtime.commandTarget.exit || runtime.autoExit;
       runtime.commandTarget = null;
       runtime.autoExit = null;
       runtime.moving = false;
-      if (side && room.exits[side]) changeRoom(side);
-      return;
+      if (side && room.exits[side]) {
+        changeRoom(side);
+        return;
+      }
+    } else {
+      const step = Math.min(distance, PLAYER_SPEED * dt);
+      runtime.moving = true;
+      runtime.facing = facingFromVector(dx / distance, dy / distance);
+      movePlayerByPixels(state.player, (dx / distance) * step, (dy / distance) * step);
     }
-    const step = Math.min(distance, PLAYER_SPEED * dt);
-    runtime.moving = true;
-    runtime.facing = facingFromVector(dx / distance, dy / distance);
-    movePlayerByPixels(state.player, (dx / distance) * step, (dy / distance) * step);
+  } else if (runtime.cursorTarget && state.settings.cursorControl) {
+    const rr = roomMetrics();
+    const dx = (runtime.cursorTarget.x - state.player.x) * rr.w;
+    const dy = (runtime.cursorTarget.y - state.player.y) * rr.h;
+    const distance = Math.hypot(dx, dy);
+    if (distance < 2) {
+      state.player.x = runtime.cursorTarget.x;
+      state.player.y = runtime.cursorTarget.y;
+      runtime.cursorTarget = null;
+      runtime.moving = false;
+    } else {
+      const step = Math.min(distance, CURSOR_SPEED * dt);
+      runtime.moving = true;
+      runtime.facing = facingFromVector(dx / distance, dy / distance);
+      state.player.facing = runtime.facing;
+      runtime.lastMove = { x: dx / distance, y: dy / distance };
+      movePlayerByPixels(state.player, (dx / distance) * step, (dy / distance) * step);
+    }
   } else {
     runtime.moving = false;
   }
@@ -879,10 +1068,16 @@ function updateRoom(dt) {
     state.stats.steps += 1;
   }
 
-  const exit = exitAt(state, 0.026);
+  const exit = exitAt(state, 0.03);
   if (exit) {
-    changeRoom(exit.side);
+    changeRoom(exit.side, { continueWalk: Boolean(runtime.walk) });
     return;
+  }
+
+  if (blockedWalk) {
+    runtime.walk = null;
+    runtime.moving = false;
+    log(t('command.walkBlocked'), 'world');
   }
 
   if (room.threat && runtime.dashInvulnerable <= 0 && !runtime.dying) {
@@ -907,7 +1102,6 @@ function updateRoom(dt) {
     runtime.promptLabel = label;
     ui.setPrompt(label);
   }
-  void hadCommand;
 }
 
 // ---------------------------------------------------------------------------
@@ -940,19 +1134,9 @@ function requestDash() {
 }
 
 function onKeyDown(event) {
-  const typing = ui.isTypingTarget(event.target);
-  const inModal = ui.isPaused();
+  if (ui.isTypingTarget(event.target)) return;
+  if (ui.isPaused()) return;
 
-  if (typing && event.code !== 'Escape') {
-    const movement = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
-    if (movement.includes(event.code) && !event.target.value) {
-      event.target.blur();
-    } else {
-      return;
-    }
-  }
-
-  if (inModal) return;
   const movementMap = {
     KeyW: 'up', ArrowUp: 'up',
     KeyS: 'down', ArrowDown: 'down',
@@ -963,12 +1147,22 @@ function onKeyDown(event) {
   if (movementMap[event.code]) {
     event.preventDefault();
     runtime.keys.add(movementMap[event.code]);
+    runtime.walk = null;
+    runtime.cursorTarget = null;
+    runtime.commandTarget = null;
+    runtime.autoExit = null;
     return;
   }
   if (event.code === 'KeyE') {
     if (event.repeat) return;
     event.preventDefault();
     performAction();
+    return;
+  }
+  if (event.code === 'KeyO') {
+    if (event.repeat) return;
+    event.preventDefault();
+    openSettings();
     return;
   }
   if (event.code === 'ShiftLeft' || event.code === 'ShiftRight' || event.code === 'Space') {
@@ -991,131 +1185,239 @@ function onKeyUp(event) {
 }
 
 // ---------------------------------------------------------------------------
-// Command dispatcher
+// Cursor control
+
+function stagePoint(clientX, clientY) {
+  const stage = ui.stageElement;
+  const rect = stage.getBoundingClientRect();
+  return renderer.toRoom(clientX - rect.left, clientY - rect.top);
+}
+
+function onCursorDown(clientX, clientY) {
+  if (!state.settings.cursorControl || ui.isPaused()) return;
+  runtime.cursorTarget = stagePoint(clientX, clientY);
+  runtime.cursorHeld = true;
+  runtime.commandTarget = null;
+  runtime.autoExit = null;
+  runtime.walk = null;
+}
+
+function onCursorMove(clientX, clientY) {
+  if (!runtime.cursorHeld || !state.settings.cursorControl) return;
+  runtime.cursorTarget = stagePoint(clientX, clientY);
+}
+
+function onCursorUp() {
+  runtime.cursorHeld = false;
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+
+function showHelp() {
+  log(t('help.header'), 'system');
+  log(t('help.movement'), 'system');
+  for (const command of COMMANDS) {
+    if (!commandUnlocked(state, command)) continue;
+    log(pick(command.help), 'system');
+  }
+  for (const command of WALK_COMMAND_LIST) {
+    log(pick(command.help), 'system');
+  }
+  log(t('help.exits'), 'system');
+  log(t('help.history'), 'system');
+  log(t('help.language'), 'system');
+  log(t('help.lockedHint'), 'echo');
+}
+
+function showHistory() {
+  const used = ui.getHistory();
+  if (!used.length) {
+    log(t('history.empty'), 'system');
+    return;
+  }
+  log(t('history.header', { count: used.length }), 'system');
+  used.forEach((entry, index) => {
+    log(`${index + 1}. ${entry}`, 'terminal');
+  });
+  log(t('history.usage'), 'echo');
+}
+
+function parseWalkCommand(text) {
+  const normalized = String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+  const defaultSeconds = state.settings.walkSeconds ?? 1;
+  for (const command of WALK_COMMAND_LIST) {
+    for (const alias of command.aliases) {
+      if (normalized === alias) {
+        return { command, seconds: defaultSeconds };
+      }
+      if (normalized.startsWith(`${alias} `)) {
+        const rest = normalized.slice(alias.length + 1).trim().replace(/[сs]+$/i, '');
+        const value = Number(rest.replace(',', '.'));
+        if (Number.isFinite(value)) return { command, seconds: value };
+      }
+    }
+  }
+  return null;
+}
+
+function switchLanguage(next) {
+  const language = next || (state.settings.language === 'en' ? 'ru' : 'en');
+  setLanguage(language);
+  state.settings.language = language;
+  translateDocument(document);
+  ui.refreshAll(state, currentRoom(state), buildPalette(), state.settings);
+  ui.setSound(state.settings.sound);
+  saveNow();
+  log(t('language.current'), 'system');
+}
+
+function applySettings(partial) {
+  const merged = { ...state.settings, ...partial };
+  if (partial.logSources) {
+    merged.logSources = { ...state.settings.logSources, ...partial.logSources };
+  }
+  state.settings = normalizeSettings(merged);
+  if (state.settings.language !== (document.documentElement.lang === 'en' ? 'en' : 'ru')) {
+    setLanguage(state.settings.language);
+    translateDocument(document);
+  }
+  if (audio) {
+    audio.setVolume(state.settings.musicVolume);
+  }
+  ui.setSettings(state.settings);
+  ui.setMusic(audio?.snapshot());
+  scheduleSave();
+}
+
+function openSettings() {
+  ui.setSettings(state.settings);
+  ui.setMusic(audio?.snapshot());
+  ui.setAspect(aspectState);
+  ui.openSettings();
+}
+
+function storyModel() {
+  const unlocked = (requires) => {
+    if (!requires) return true;
+    return commandUnlocked(state, { unlock: requires });
+  };
+  const room = currentRoom(state);
+  const currentId = runtime.trial?.active
+    ? 'trial'
+    : room?.kind === 'tablet'
+      ? 'tablet'
+      : room?.kind === 'story'
+        ? 'story'
+        : room?.kind === 'danger'
+          ? 'danger'
+          : room?.kind === 'find'
+            ? 'find'
+            : 'walk';
+  return {
+    nodes: STORY_PLOT.nodes.map((node) => ({
+      ...node,
+      locked: !unlocked(node.requires),
+      current: node.id === currentId,
+    })),
+    edges: STORY_PLOT.edges,
+  };
+}
+
+function openStory() {
+  ui.openStory(storyModel());
+}
 
 function dispatchCommand(raw, source = 'terminal') {
-  const command = String(raw || '').trim().replace(/[.!?]+$/g, '').toLowerCase();
+  const command = String(raw || '').trim().replace(/[.!?]+$/g, '').replace(/\s+/g, ' ').toLowerCase();
   if (!command) return;
-  log(source === 'canvas' ? `холст › ${command}` : `> ${command}`, 'command');
+  log(source === 'canvas' ? `${t('canvas.labelCommand')} › ${command}` : `› ${command}`, 'command');
 
   if (runtime.trial?.active) {
-    log('Сейчас не до команд: свет не ждёт.', 'system');
+    log(t('command.trialBusy'), 'system');
     return;
   }
 
-  if (command === 'помоги' || command === 'команды') {
-    for (const line of HELP) log(line, 'system');
+  if (command === 'привет' || command === 'hello' || command === 'hi') {
+    log(t('command.hello'), 'world');
     return;
   }
-  if (command === 'привет') {
-    log('Привет!', 'world');
-    return;
-  }
-  if (command === 'ты куда пропал') {
-    log('Теперь я тут... Да уж. Местечко сомнительное.', 'world');
-    return;
-  }
-  if (command === 'осмотреться' || command === 'осмотреться.' || command === 'look') {
-    describeRoom();
-    return;
-  }
-  if (command === 'рюкзак' || command === 'инвентарь') {
-    describePack();
-    return;
-  }
-  if (command === 'холст' || command === 'canvas') {
-    if (ui.isCanvasOpen()) {
-      log('Холст уже открыт.', 'system');
-    } else {
-      openCanvas();
-    }
-    return;
-  }
-  if (command === 'взять' || command === 'поднять') {
-    performAction();
-    return;
-  }
-  if (command === 'подойди') {
-    approachNearest();
-    return;
-  }
-  if (command === 'стоп') {
-    runtime.commandTarget = null;
-    runtime.autoExit = null;
-    runtime.moving = false;
-    runtime.keys.clear();
-    runtime.virtual.clear();
-    log('Я остановился.', 'system');
-    return;
-  }
-  if (command === 'очисти' || command === 'clear') {
-    ui.clearTerminal();
-    return;
-  }
-  if (command === 'вверх') {
-    stepDirection(0, -1, 'вверх');
-    return;
-  }
-  if (command === 'вниз') {
-    stepDirection(0, 1, 'вниз');
-    return;
-  }
-  if (command === 'влево') {
-    stepDirection(-1, 0, 'влево');
-    return;
-  }
-  if (command === 'вправо') {
-    stepDirection(1, 0, 'вправо');
-    return;
-  }
-  if (command === 'север') {
-    goToExit('north');
-    return;
-  }
-  if (command === 'юг') {
-    goToExit('south');
-    return;
-  }
-  if (command === 'запад') {
-    goToExit('west');
-    return;
-  }
-  if (command === 'восток') {
-    goToExit('east');
-    return;
-  }
-  if (command === 'мел' || command === 'chalk') {
-    useItem('chalk');
-    return;
-  }
-  if (command === 'очарование' || command === 'charm') {
-    useItem('charm');
-    return;
-  }
-  if (command === 'звук') {
-    toggleSound();
-    return;
-  }
-  if (command === 'сброс' || command === 'reset') {
-    confirmReset();
+  if (command === 'ты куда пропал' || command === 'where did you go') {
+    log(t('command.where'), 'world');
     return;
   }
 
-  log(WORLD_RESPONSES.unknown(command), 'error');
+  const walk = parseWalkCommand(command);
+  if (walk) {
+    startWalk(walk.command, walk.seconds);
+    return;
+  }
+
+  const exit = DIRS.find((dir) => (
+    command === dir.label
+    || command === dir.id
+    || command === t(`dir.${dir.id}`)
+  ));
+  if (exit) {
+    goToExit(exit.id);
+    return;
+  }
+
+  const definition = commandForAlias(command);
+  if (!definition) {
+    log(t('command.unknown', { command }), 'error');
+    return;
+  }
+  if (!commandUnlocked(state, definition)) {
+    log(t('command.unknown', { command }), 'error');
+    return;
+  }
+
+  switch (definition.id) {
+    case 'look': describeRoom(); break;
+    case 'pack': describePack(); break;
+    case 'canvas': openCanvas(); break;
+    case 'story': openStory(); break;
+    case 'history': showHistory(); break;
+    case 'help': showHelp(); break;
+    case 'take': performAction(); break;
+    case 'approach': approachNearest(); break;
+    case 'stop':
+      runtime.walk = null;
+      runtime.commandTarget = null;
+      runtime.cursorTarget = null;
+      runtime.cursorHeld = false;
+      runtime.autoExit = null;
+      runtime.moving = false;
+      runtime.keys.clear();
+      runtime.virtual.clear();
+      log(t('command.stopped'), 'system');
+      break;
+    case 'dash': requestDash(); break;
+    case 'clear': ui.clearTerminal(); break;
+    case 'sound': toggleSound(); break;
+    case 'language': switchLanguage(); break;
+    case 'settings': openSettings(); break;
+    case 'reset': confirmReset(); break;
+    case 'charm': useItem('charm'); break;
+    case 'chalk': useItem('chalk'); break;
+    case 'card': showCards(); break;
+    default:
+      log(t('command.unknown', { command }), 'error');
+      break;
+  }
 }
 
 function confirmReset() {
   ui.showModal({
-    kicker: 'сброс',
-    title: 'Начать заново?',
-    paragraphs: [
-      'Текущий лабиринт, рюкзаки на полу и отметки на холсте будут потеряны.',
-      'Скрижаль останется, но карта комнат станет другой.',
-    ],
-    note: 'Это действие нельзя отменить.',
+    kicker: t('reset.kicker'),
+    title: t('reset.title'),
+    paragraphs: [t('reset.paragraphs.0'), t('reset.paragraphs.1')],
+    note: t('reset.note'),
     buttons: [
-      { label: 'Остаться', variant: 'quiet' },
-      { label: 'Сбросить', variant: 'primary', onClick: resetGame },
+      { label: t('reset.stay'), variant: 'quiet' },
+      { label: t('reset.confirm'), variant: 'primary', onClick: resetGame },
     ],
     dismissible: true,
   });
@@ -1124,16 +1426,25 @@ function confirmReset() {
 // ---------------------------------------------------------------------------
 // Canvas actions
 
+function nextCanvasPosition() {
+  const center = ui.canvasCenter?.() || { x: 120, y: 100 };
+  const index = state.canvas.elements.length;
+  return {
+    x: center.x - 70 + (index % 3) * 158,
+    y: center.y - 46 + (Math.floor(index / 3) % 3) * 124,
+  };
+}
+
 function openCanvas() {
   if (runtime.trial?.active) {
-    log('Холст недоступен, пока свет не отпустит.', 'system');
+    log(t('canvas.story') + ': ' + t('terminal.state.trial'), 'system');
     return;
   }
   ui.setCanvasData(state, buildPalette());
   ui.clearCanvasLog();
   ui.openCanvas();
-  ui.addCanvasLog('Холст открыт. Симуляция комнаты на паузе.', 'system');
-  ui.addCanvasLog('Добавь команду или карту, нажми на элемент, чтобы выполнить. Выход — «Выйти» или Esc.', 'system');
+  log(t('canvas.opened.0'), 'system');
+  log(t('canvas.opened.1'), 'system');
   scheduleSave();
 }
 
@@ -1143,64 +1454,106 @@ function closeCanvas() {
 }
 
 function canvasAdd(descriptor, x, y) {
-  const overrides = Number.isFinite(x) && Number.isFinite(y) ? { x, y } : {};
-  const element = makeCanvasElement(state, descriptor, overrides);
+  const spot = Number.isFinite(x) && Number.isFinite(y) ? { x, y } : nextCanvasPosition();
+  const element = makeCanvasElement(state, descriptor, spot);
   scheduleSave();
   ui.setCanvasData(state, buildPalette());
-  ui.addCanvasLog(`на холст: ${element.title}`, 'good');
+  ui.addCanvasLog(t('canvas.added', { title: pick(element.title) }), 'action');
+}
+
+function canvasAddKey(code) {
+  const action = KEY_ACTIONS[code];
+  if (!action) return;
+  const command = COMMAND_BY_ID[action.commandId];
+  const base = nextCanvasPosition();
+  const keyElement = makeCanvasElement(state, {
+    sourceType: 'key',
+    sourceId: `key:${code}`,
+    title: { ru: `Клавиша ${action.key}`, en: `Key ${action.key}` },
+    actionLabel: { ru: 'Нажать', en: 'Press' },
+    icon: action.key,
+    command: command?.command || null,
+    keyCode: code,
+    keyLabel: action.key,
+  }, base);
+  if (command) {
+    const commandElement = makeCanvasElement(state, command, {
+      x: base.x + 162,
+      y: base.y,
+    });
+    addCanvasLink(state, keyElement.id, commandElement.id);
+  }
+  scheduleSave();
+  ui.setCanvasData(state, buildPalette());
+  ui.addCanvasLog(t('canvas.keyboardLinked', {
+    key: action.key,
+    command: pick(command?.title) || action.key,
+  }), 'action');
+}
+
+function canvasLinkCreate(fromId, toId) {
+  const link = addCanvasLink(state, fromId, toId);
+  if (!link) return;
+  const from = state.canvas.elements.find((entry) => entry.id === fromId);
+  const to = state.canvas.elements.find((entry) => entry.id === toId);
+  scheduleSave();
+  ui.setCanvasData(state, buildPalette());
+  ui.addCanvasLog(t('canvas.linkCreated', {
+    from: pick(from?.title) || fromId,
+    to: pick(to?.title) || toId,
+  }), 'action');
 }
 
 function canvasExecute(element) {
   if (!elementAvailable(state, element)) {
-    const message = WORLD_RESPONSES.noItem;
-    log(message, 'error');
-    if (ui.isCanvasOpen()) ui.addCanvasLog(message, 'error');
+    log(t('command.noItem'), 'error');
+    if (ui.isCanvasOpen()) ui.addCanvasLog(t('command.noItem'), 'error');
     return;
   }
   if (element.command === 'холст') {
-    log('Холст уже открыт.', 'system');
+    log(t('command.canvasOpen'), 'system');
     return;
   }
-  dispatchCommand(element.command, 'canvas');
+  if (element.command) dispatchCommand(element.command, 'canvas');
 }
 
 function canvasMove(id, x, y) {
   const element = state.canvas.elements.find((entry) => entry.id === id);
   if (!element) return;
-  element.x = Math.max(0.08, Math.min(0.92, x));
-  element.y = Math.max(0.1, Math.min(0.9, y));
+  element.x = Number(x) || 0;
+  element.y = Number(y) || 0;
   scheduleSave();
-  ui.setCanvasData(state, buildPalette());
 }
 
 function canvasRemove(id) {
-  const index = state.canvas.elements.findIndex((entry) => entry.id === id);
-  if (index < 0) return;
-  const [removed] = state.canvas.elements.splice(index, 1);
+  const removed = removeCanvasElement(state, id);
+  if (!removed) return;
   scheduleSave();
   ui.setCanvasData(state, buildPalette());
-  ui.addCanvasLog(`убрано: ${removed.title}`, 'system');
+  ui.addCanvasLog(t('canvas.removed', { title: pick(removed.title) }), 'system');
 }
 
 function canvasClear() {
   if (!state.canvas.elements.length) {
-    ui.addCanvasLog('Холст уже пуст.', 'system');
+    ui.addCanvasLog(t('canvas.clearedEmpty'), 'system');
     return;
   }
   ui.showModal({
-    kicker: 'холст',
-    title: 'Очистить холст?',
-    paragraphs: ['Все элементы с холста будут убраны. Команды и предметы останутся в терминале и рюкзаке.'],
+    kicker: t('canvas.kicker'),
+    title: t('canvas.clearTitle'),
+    paragraphs: [t('canvas.clearBody')],
     buttons: [
-      { label: 'Оставить', variant: 'quiet' },
+      { label: t('canvas.keep'), variant: 'quiet' },
       {
-        label: 'Очистить',
+        label: t('canvas.clearConfirm'),
         variant: 'primary',
         onClick: () => {
           state.canvas.elements = [];
+          state.canvas.links = [];
+          state.canvas.linkSeq = 0;
           scheduleSave();
           ui.setCanvasData(state, buildPalette());
-          ui.addCanvasLog('Холст очищен.', 'system');
+          ui.addCanvasLog(t('canvas.cleared'), 'system');
         },
       },
     ],
@@ -1210,6 +1563,160 @@ function canvasClear() {
 
 function canvasQuick(value) {
   dispatchCommand(value, 'canvas');
+}
+
+function canvasViewChange(view) {
+  state.canvas.view = { ...view };
+  scheduleSave();
+}
+
+// ---------------------------------------------------------------------------
+// Save / load / export / import
+
+function saveAction(action, file = null) {
+  switch (action) {
+    case 'save':
+      saveNow();
+      ui.setSettingsStatus(t('settings.save.saved'));
+      ui.showToast(t('settings.save.saved'), { tone: 'info' });
+      break;
+    case 'load': {
+      let loaded = null;
+      try {
+        const raw = window.localStorage.getItem(SAVE_KEY);
+        if (raw) loaded = normalizeState(JSON.parse(raw));
+      } catch {
+        loaded = null;
+      }
+      if (!loaded) {
+        ui.setSettingsStatus(t('settings.save.noSave'));
+        ui.showToast(t('settings.save.noSave'), { ms: 3000 });
+        return;
+      }
+      adoptState(loaded, { banner: true });
+      ui.setSettingsStatus(t('settings.save.loaded'));
+      log(t('settings.save.loaded'), 'system');
+      break;
+    }
+    case 'export':
+      exportWorld();
+      ui.setSettingsStatus(t('settings.save.exported'));
+      break;
+    case 'import':
+      importWorld(file);
+      break;
+    case 'reset':
+      ui.showModal({
+        kicker: t('reset.kicker'),
+        title: t('settings.save.resetTitle'),
+        paragraphs: [t('settings.save.resetBody')],
+        note: t('reset.note'),
+        buttons: [
+          { label: t('settings.save.cancel'), variant: 'quiet' },
+          { label: t('settings.save.confirmReset'), variant: 'primary', onClick: resetGame },
+        ],
+        dismissible: true,
+      });
+      break;
+    default:
+      break;
+  }
+}
+
+function exportWorld() {
+  try {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `to-east-world-${state.seed}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+    ui.showToast(t('settings.save.exported'), { tone: 'info' });
+  } catch {
+    ui.setSettingsStatus(t('settings.save.importError'));
+  }
+}
+
+async function importWorld(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const loaded = normalizeState(JSON.parse(text));
+    if (!loaded) {
+      ui.setSettingsStatus(t('settings.save.importError'));
+      return;
+    }
+    adoptState(loaded, { banner: true });
+    ui.setSettingsStatus(t('settings.save.imported'));
+    log(t('settings.save.imported'), 'system');
+  } catch {
+    ui.setSettingsStatus(t('settings.save.importError'));
+    ui.showToast(t('settings.save.importError'), { ms: 3200 });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Suggestions
+
+function suggest(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return [];
+  const entries = [];
+  const push = (command) => {
+    if (!command) return;
+    if (!commandUnlocked(state, command)) return;
+    if (entries.some((entry) => entry.value === command.command)) return;
+    const haystack = [command.command, ...(command.aliases || [])].map((item) => item.toLowerCase());
+    if (!haystack.some((item) => item.startsWith(normalized) || item.includes(` ${normalized}`))) return;
+    entries.push({
+      value: command.command,
+      label: pick(command.title),
+      hint: pick(command.description),
+    });
+  };
+  for (const command of COMMANDS) push(command);
+  for (const command of WALK_COMMAND_LIST) push(command);
+  if ('история'.startsWith(normalized)) {
+    entries.push({ value: 'история', label: t('history.header', { count: '' }).replace(':', ''), hint: t('history.usage') });
+  }
+  if ('настройки'.startsWith(normalized)) {
+    entries.push({ value: 'настройки', label: t('settings.title'), hint: t('settings.general.copy') });
+  }
+  if ('язык'.startsWith(normalized)) {
+    entries.push({ value: 'язык', label: languageName(), hint: t('settings.language.copy') });
+  }
+  return entries.slice(0, 6);
+}
+
+// ---------------------------------------------------------------------------
+// Aspect
+
+function aspectLabel(width, height) {
+  if (Math.abs(width / height - 9 / 16) <= 0.08) return '9:16';
+  return `${Math.round(width)}:${Math.round(height)}`;
+}
+
+function updateAspect(announce = false) {
+  const width = Math.max(1, window.innerWidth);
+  const height = Math.max(1, window.innerHeight);
+  const ratio = width / height;
+  const ok = Math.abs(ratio - 9 / 16) <= 0.08;
+  const label = aspectLabel(width, height);
+  aspectState = { ratio: ratio.toFixed(2), ok, label };
+  ui.setAspect(aspectState);
+  if (announce && ok !== lastAspectOk) {
+    if (!ok) {
+      log(t('aspect.warning', { ratio: label }), 'system');
+    } else if (lastAspectOk === false) {
+      log(t('aspect.ok', { ratio: label }), 'system');
+    }
+    lastAspectOk = ok;
+  } else if (lastAspectOk == null) {
+    lastAspectOk = ok;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1229,7 +1736,7 @@ function showPrologue() {
         onClick: () => {
           state.flags.introSeen = true;
           saveNow();
-          for (const line of TUTORIAL_LINES) log(line, 'system');
+          for (const line of TUTORIAL_LINES) log(t(line), 'system');
           ui.focusTerminal();
           audio.unlock();
           playRoomMusic();
@@ -1241,13 +1748,38 @@ function showPrologue() {
 }
 
 function buildUI() {
+  audio = new AudioManager(MUSIC_MAP);
+  audio.setEnabled(state.settings.sound);
+  audio.setVolume(state.settings.musicVolume);
+  audio.subscribe((snapshot) => {
+    if (ui?.isSettingsOpen()) ui.setMusic(snapshot);
+  });
+
   ui = createUI({
     itemDefs: ITEM_DEFS,
+    keyboardRows: KEYBOARD_ROWS,
+    keyActions: KEY_ACTIONS,
+    musicTracks: Object.values(MUSIC_MAP),
     callbacks: {
       command: dispatchCommand,
       action: performAction,
       dash: requestDash,
       soundToggle: toggleSound,
+      settingsChange: applySettings,
+      settingsOpen: openSettings,
+      settingsClose: () => ui.closeSettings(),
+      settingsOpenCanvas: () => {
+        ui.closeSettings();
+        openCanvas();
+      },
+      settingsOpenStory: () => {
+        ui.closeSettings();
+        openStory();
+      },
+      storyOpen: openStory,
+      storyClose: () => ui.closeStory(),
+      languageChange: switchLanguage,
+      suggest,
       virtualMove: (direction, pressed) => {
         if (pressed) runtime.virtual.add(direction);
         else runtime.virtual.delete(direction);
@@ -1255,11 +1787,20 @@ function buildUI() {
       canvasOpen: openCanvas,
       canvasClose: closeCanvas,
       canvasAdd,
+      canvasAddKey,
       canvasExecute,
       canvasMove,
       canvasRemove,
       canvasClear,
       canvasQuick,
+      canvasLinkCreate,
+      canvasViewChange,
+      cursorDown: onCursorDown,
+      cursorMove: onCursorMove,
+      cursorUp: onCursorUp,
+      musicAction,
+      musicSnapshot: () => audio.snapshot(),
+      saveAction,
     },
   });
 }
@@ -1270,16 +1811,24 @@ function attachInput() {
   window.addEventListener('blur', () => {
     runtime.keys.clear();
     runtime.virtual.clear();
+    runtime.walk = null;
+    runtime.cursorHeld = false;
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       runtime.keys.clear();
       runtime.virtual.clear();
+      runtime.walk = null;
+      runtime.cursorHeld = false;
       saveNow();
     }
   });
   window.addEventListener('pagehide', saveNow);
-  window.addEventListener('resize', () => renderer.resize());
+  window.addEventListener('resize', () => {
+    renderer.resize();
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => updateAspect(true), 260);
+  });
   if ('ResizeObserver' in window) {
     const observer = new ResizeObserver(() => renderer.resize());
     observer.observe(document.getElementById('stage-wrap'));
@@ -1340,21 +1889,27 @@ async function boot() {
 
   renderer = new Renderer(canvas, { walk, tablet });
   buildUI();
-  audio = new AudioManager(MUSIC_MAP);
-  audio.setEnabled(state.settings.sound);
-  ui.setSound(state.settings.sound);
-  ui.setRoom(state, currentRoom(state));
-  ui.setPrompt(null);
-  ui.setCanvasData(state, buildPalette());
   attachInput();
 
-  log('Скрижаль молчит. Терминал ждёт команду.', 'system');
-  log('«помоги» — список команд. «холст» — рабочее пространство.', 'system');
+  translateDocument(document);
+  ui.setSettings(state.settings);
+  ui.setSound(state.settings.sound);
+  ui.setMusic(audio.snapshot());
+  ui.setRoom(state, currentRoom(state));
+  ui.setPrompt(null);
+  ui.setCanvasView(state.canvas.view);
+  ui.setCanvasData(state, buildPalette());
+  updateAspect(true);
+
+  const bootMs = Math.round(performance.now() - bootStartedAt);
+  log(t('boot.loaded', { ms: bootMs }), 'system');
+  log(t('boot.ready'), 'system');
+  log(t('boot.help'), 'system');
   if (state.flags.introSeen) {
-    for (const line of TUTORIAL_LINES) log(line, 'system');
+    for (const line of TUTORIAL_LINES) log(t(line), 'system');
   }
   if (state.packs.length) {
-    log('В лабиринте остались рюкзаки. Команда «рюкзак» покажет, где они.', 'system');
+    log(t('boot.packs'), 'system');
   }
 
   playRoomMusic();
@@ -1362,9 +1917,8 @@ async function boot() {
   requestAnimationFrame(() => renderer.resize());
 
   if (!state.flags.introSeen && !runtime.introShown) showPrologue();
-  else ui.setTerminalState('канал открыт');
+  else ui.setTerminalState(t('terminal.state.open'));
 
-  // Keep the navigation state honest after a browser restore with a stale tab.
   window.setTimeout(() => {
     if (state.rooms[state.currentRoomId]) ui.setRoom(state, currentRoom(state));
   }, 250);

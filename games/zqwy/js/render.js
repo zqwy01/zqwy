@@ -364,26 +364,30 @@
   }
 
   /* Пыль живёт в координатах мира. Она не приклеена к экрану: при
-     движении камеры одни пылинки уходят, другие появляются. */
+     движении камеры одни пылинки уходят, другие появляются. Индексы
+     сетки берутся от абсолютных координат, поэтому при ходьбе пыль
+     не пересоздаётся заново на каждом кадре. */
   function dustMotes(params) {
     const { view, now, cam, ts } = params;
     const spanX = view.w / ts + 8;
     const spanY = view.h / ts + 8;
     const step = 2.4;
-    const baseX = cam.x - spanX / 2;
-    const baseY = cam.y - spanY / 2;
-    const cols = Math.ceil(spanX / step) + 1;
-    const rows = Math.ceil(spanY / step) + 1;
+    const firstX = Math.floor((cam.x - spanX / 2) / step);
+    const firstY = Math.floor((cam.y - spanY / 2) / step);
+    const cols = Math.ceil(spanX / step) + 2;
+    const rows = Math.ceil(spanY / step) + 2;
     const motes = [];
     for (let gy = 0; gy < rows; gy++) {
       for (let gx = 0; gx < cols; gx++) {
-        const wx = baseX + gx * step;
-        const wy = baseY + gy * step;
-        const n = tileNoise(Math.floor(wx), Math.floor(wy), 31);
+        const cellX = firstX + gx;
+        const cellY = firstY + gy;
+        const n = tileNoise(cellX, cellY, 31);
         if (n < 0.74) continue;
+        const wx = cellX * step + Math.sin(now * 0.00012 + n * 20) * 0.8;
+        const wy = cellY * step + Math.cos(now * 0.00009 + n * 13) * 0.65;
         motes.push({
-          wx: wx + Math.sin(now * 0.00012 + n * 20) * 0.8,
-          wy: wy + Math.cos(now * 0.00009 + n * 13) * 0.65,
+          wx,
+          wy,
           r: 0.6 + n * 0.7,
           a: 0.05 + 0.11 * (0.5 + 0.5 * Math.sin(now * 0.001 + n * 8))
         });
@@ -404,6 +408,33 @@
       ctx.arc(px, py, mote.r, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  /* Точка назначения курсора: видно, куда именно идёт Zemic. */
+  function drawCursorTarget(ctx, params) {
+    const { cursor, toScreenX, toScreenY, ts, now } = params;
+    if (!cursor) return;
+    const px = toScreenX(cursor.x);
+    const py = toScreenY(cursor.y);
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.006);
+    ctx.save();
+    ctx.strokeStyle = `rgba(229, 161, 104, ${0.5 + pulse * 0.32})`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(px, py, ts * (0.16 + pulse * 0.05), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(229, 161, 104, 0.28)';
+    ctx.beginPath();
+    ctx.arc(px, py, ts * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(229, 161, 104, 0.22)';
+    ctx.beginPath();
+    ctx.moveTo(px - ts * 0.28, py);
+    ctx.lineTo(px + ts * 0.28, py);
+    ctx.moveTo(px, py - ts * 0.28);
+    ctx.lineTo(px, py + ts * 0.28);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -505,6 +536,14 @@
         now
       );
     }
+
+    drawCursorTarget(ctx, {
+      cursor: params.cursor,
+      toScreenX,
+      toScreenY,
+      ts,
+      now
+    });
 
     drawPlayer(
       ctx,
@@ -738,6 +777,7 @@
     tileNoise,
     frameForPlayer,
     dustMotes,
-    drawDust
+    drawDust,
+    drawCursorTarget
   };
 })();

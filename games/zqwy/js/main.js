@@ -360,7 +360,7 @@
     rt.images = window.Renderer.prepareImages();
     rt.loadMs = Math.max(0, Math.round(ZQ.now() - started));
 
-    ZQ.appendLog(`Мир загружен за ${rt.loadMs} мс. Seed: ${seed}`, 'sys', true);
+    ZQ.appendLog(ZQ.worldLoadMessage(seed), 'sys', true);
     C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
     C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
     ZQ.initDivider();

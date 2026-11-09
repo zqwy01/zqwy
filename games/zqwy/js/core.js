@@ -135,6 +135,7 @@
     canvasLinkToggle: $('canvas-link-toggle'),
     canvasHint: $('canvas-hint'),
     canvasWorkspace: $('canvas-workspace'),
+    canvasGrid: $('canvas-grid'),
     canvasStage: $('canvas-stage'),
     canvasElements: $('canvas-elements'),
     canvasLinks: $('canvas-links'),
@@ -510,6 +511,14 @@
     }
   }
 
+  function worldLoadMessage(seed) {
+    const rooms = rt.world && Array.isArray(rt.world.rooms) ? rt.world.rooms.length : 0;
+    const chunks = rt.world && Number.isFinite(rt.world.chunkCount) ? rt.world.chunkCount : 0;
+    const loadMs = Math.max(0, Math.round(rt.loadMs || 0));
+    const value = seed || (rt.state ? rt.state.seed : '');
+    return tr(`Мир загружен за ${loadMs} мс · комнат: ${rooms} · чанков: ${chunks} · seed: ${value}`);
+  }
+
   function aspectInfo() {
     const width = Math.max(1, window.innerWidth || 1);
     const height = Math.max(1, window.innerHeight || 1);
@@ -629,11 +638,14 @@
 
   function unlockHint(id) {
     const meta = C.terminal.unlocks[id];
-    return meta ? meta.hint : 'Это откроется позже.';
+    if (meta) return meta.hint;
+    return window.ZQI18N && window.ZQI18N.lang === 'en' ? 'This will open later.' : 'Это откроется позже.';
   }
 
   function denyLocked(id) {
-    return `Пока недоступно. ${unlockHint(id)}`;
+    return window.ZQI18N && window.ZQI18N.lang === 'en'
+      ? `Not available yet. ${unlockHint(id)}`
+      : `Пока недоступно. ${unlockHint(id)}`;
   }
 
   function setTerminalView(name) {
@@ -807,7 +819,7 @@
     ZQ.snapCamera();
     rt.loadMs = Math.max(0, Math.round(now() - started));
     ZQ.clearLog();
-    ZQ.appendLog(`Мир загружен за ${rt.loadMs} мс. Seed: ${seed}`, 'sys', true);
+    ZQ.appendLog(worldLoadMessage(seed), 'sys', true);
     C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
     C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
     setTerminalView('main');
@@ -851,6 +863,7 @@
     loadGame,
     exportGame,
     serializeState,
+    worldLoadMessage,
     aspectInfo,
     checkAspectRatio,
     resetTransientMotion,

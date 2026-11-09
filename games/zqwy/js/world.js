@@ -233,17 +233,30 @@
       return min + value;
     }
 
+    /* Проход входит в комнату не по центру стены, а в произвольном
+       месте её внутреннего отрезка. Позиция двери детерминирована для
+       ребра, поэтому соседние чанки прорезают одну и ту же стену. */
+    function doorStart(edge, from, to, width) {
+      const span = Math.max(0, to - from + 1 - width);
+      const offset = hashString(
+        `${seed}:door:${edge.ax}:${edge.ay}:${edge.bx}:${edge.by}:${width}`
+      ) % (span + 1);
+      return from + offset;
+    }
+
     function carveEdge(chunk, edge) {
       const width = corridorWidth(edge);
-      const half = Math.floor((width - 1) / 2);
       if (edge.ay === edge.by) {
-        /* Горизонтальный коридор: комнаты стоят слева и справа. */
+        /* Горизонтальный коридор: комнаты стоят слева и справа.
+           Ширина задаёт вертикальный раствор двери, а смещение —
+           место входа вдоль стены, а не только центр комнаты. */
         const ax = edge.ax * stepX;
         const bx = edge.bx * stepX;
         const left = Math.min(ax, bx);
         const right = Math.max(ax, bx);
-        const y0 = edge.ay * stepY + Math.floor(W.ROOM_H / 2);
-        const y1 = y0 - half;
+        const innerTop = edge.ay * stepY + 1;
+        const innerBottom = edge.ay * stepY + W.ROOM_H - 2;
+        const y1 = doorStart(edge, innerTop, innerBottom, width);
         const y2 = y1 + width - 1;
         for (let x = left + W.ROOM_W - 1; x <= right; x++) {
           for (let y = y1; y <= y2; y++) {
@@ -260,8 +273,9 @@
         const by = edge.by * stepY;
         const top = Math.min(ay, by);
         const bottom = Math.max(ay, by);
-        const x0 = edge.ax * stepX + Math.floor(W.ROOM_W / 2);
-        const x1 = x0 - half;
+        const innerLeft = edge.ax * stepX + 1;
+        const innerRight = edge.ax * stepX + W.ROOM_W - 2;
+        const x1 = doorStart(edge, innerLeft, innerRight, width);
         const x2 = x1 + width - 1;
         for (let y = top + W.ROOM_H - 1; y <= bottom; y++) {
           for (let x = x1; x <= x2; x++) {
@@ -516,18 +530,21 @@
         }
       }
 
-      for (const edge of edgeData.values()) {
-        const touchesChunk =
-          cellInChunk(edge.ax, edge.ay, ccx, ccy) ||
-          cellInChunk(edge.bx, edge.by, ccx, ccy);
-        if (touchesChunk) carveEdge(chunk, edge);
-      }
-
+      /* Украшения ставим до коридоров: смещённый проход должен
+         прорезать и стену, и случайно оказавшуюся на его пути
+         колонну, а не упираться в неё. */
       for (let iy = 0; iy < CHUNK; iy++) {
         for (let ix = 0; ix < CHUNK; ix++) {
           const room = roomsByCell.get(cellKey(cellX0 + ix, cellY0 + iy));
           if (room) decorateRoom(room, chunk);
         }
+      }
+
+      for (const edge of edgeData.values()) {
+        const touchesChunk =
+          cellInChunk(edge.ax, edge.ay, ccx, ccy) ||
+          cellInChunk(edge.bx, edge.by, ccx, ccy);
+        if (touchesChunk) carveEdge(chunk, edge);
       }
 
       recomputeDepths();

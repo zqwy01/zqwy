@@ -268,6 +268,7 @@
     applyTermSettings(false);
     ZQ.setTerminalView('settings');
     ZQ.resetKeys();
+    if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты общие настройки', 'терминал');
   }
 
   function openTermSettings() {
@@ -276,11 +277,13 @@
     applyTermSettings(false);
     ZQ.setTerminalView('termSettings');
     ZQ.resetKeys();
+    if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты настройки терминала', 'терминал');
   }
 
   function closeSettings() {
     ZQ.setTerminalView('main');
     ZQ.updatePrompt();
+    if (ZQ.logEvent) ZQ.logEvent('terminal', 'закрыты настройки', 'терминал');
   }
 
   /* ----------------------------- Лог ------------------------------- */
@@ -514,17 +517,60 @@
 
   /* ------------------------- Автодополнение ------------------------ */
 
-  function suggestionPool() {
+  function suggestionPool(needle) {
     const pool = [];
+    const add = (value) => {
+      if (value && !pool.includes(value)) pool.push(value);
+    };
     for (const group of C.terminal.helpGroups) {
       if (!ZQ.groupUnlocked(group)) continue;
       for (const entry of group.commands) {
         if (entry.bindable === false) continue;
-        if (!pool.includes(entry.command)) pool.push(entry.command);
+        add(entry.command);
       }
     }
     for (const command of rt.commandHistory) {
-      if (!pool.includes(command)) pool.push(command);
+      add(command);
+    }
+
+    const text = String(needle || '').toLowerCase();
+    const prefix = (value) => Boolean(text) && (text.startsWith(value) || value.startsWith(text));
+    if (prefix('идти ') || prefix('walk ')) {
+      for (const dir of ['вверх', 'вниз', 'влево', 'вправо']) {
+        add(`идти ${dir}`);
+        add(`идти ${dir} 5`);
+      }
+      for (const dir of ['up', 'down', 'left', 'right']) {
+        add(`walk ${dir}`);
+        add(`walk ${dir} 5`);
+      }
+    }
+    if (prefix('язык ') || prefix('language ')) {
+      for (const value of ['русский', 'английский', 'russian', 'english']) add(`язык ${value}`);
+      for (const value of ['russian', 'english']) add(`language ${value}`);
+    }
+    if (prefix('логгирование ') || prefix('logging ')) {
+      for (const value of ['включи', 'выключи', 'всё', 'ничего', 'терминал', 'сцены', 'система', 'мир', 'движение', 'действия', 'команды']) {
+        add(`логгирование ${value}`);
+      }
+      for (const value of ['on', 'off', 'all', 'none', 'terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands']) {
+        add(`logging ${value}`);
+      }
+    }
+    if (prefix('помоги ') || prefix('help ')) {
+      for (const group of C.terminal.helpGroups) {
+        if (!ZQ.groupUnlocked(group)) continue;
+        add(`помоги ${group.title}`);
+        add(`help ${group.title}`);
+      }
+    }
+    if (prefix('настройки ') || prefix('settings ')) {
+      add('настройки терминал');
+      add('settings terminal');
+    }
+    if (prefix('музыка ') || prefix('music ')) {
+      add('музыка');
+      add('music');
     }
     return pool;
   }
@@ -562,7 +608,7 @@
     }
     const value = dom.commandInput.value.trim();
     const needle = value.toLowerCase();
-    const pool = suggestionPool();
+    const pool = suggestionPool(needle);
     const matches = [];
     for (const command of pool) {
       const lower = command.toLowerCase();
@@ -840,7 +886,7 @@
         appendLog(t('Сохранения пока нет.', 'There is no save yet.'), 'sys', true);
       } else {
         appendLog(`Сохранение загружено. Seed: ${result.seed}.`, 'sys', true);
-        appendLog(`Мир загружен за ${rt.loadMs || 0} мс. Seed: ${result.seed}.`, 'sys', true);
+        appendLog(ZQ.worldLoadMessage(result.seed), 'sys', true);
       }
     }
     updateMusicUI();

@@ -119,7 +119,6 @@
         mode = 'cursor';
       }
     }
-
     if (!mx && !my) {
       rt.state.player.moving = false;
       rt.moveLogDir = '';
@@ -152,6 +151,11 @@
         rt.cursorMove.y - rt.state.player.y
       );
       step = Math.min(step, remaining);
+      /* Для шага со стола задаём длительность: одна клетка проходится
+         ровно за указанное время, без рывка. */
+      if (Number.isFinite(rt.cursorMove.speed) && rt.cursorMove.speed > 0) {
+        step = Math.min(step, rt.cursorMove.speed * dt);
+      }
     }
     const nx = rt.state.player.x + mx * step;
     if (canStandAt(nx, rt.state.player.y)) rt.state.player.x = nx;
@@ -206,13 +210,26 @@
     return ZQ.tr('Движение остановлено.');
   }
 
-  function setCursorDestination(x, y, hold) {
+  function setCursorDestination(x, y, hold, duration) {
     if (!rt.state || !rt.world) return false;
     const tx = Number(x);
     const ty = Number(y);
     if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
     rt.timedMove = null;
-    rt.cursorMove = { x: tx, y: ty, hold: Boolean(hold) };
+    const seconds = Number(duration);
+    const fromX = rt.state.player.x;
+    const fromY = rt.state.player.y;
+    const distance = Math.hypot(tx - fromX, ty - fromY);
+    const speed = Number.isFinite(seconds) && seconds > 0 && distance > 0
+      ? distance / seconds
+      : 0;
+    rt.cursorMove = {
+      x: tx,
+      y: ty,
+      hold: Boolean(hold),
+      speed,
+      duration: speed > 0 ? seconds : 0
+    };
     return true;
   }
 

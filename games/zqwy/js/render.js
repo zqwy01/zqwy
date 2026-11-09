@@ -484,8 +484,8 @@
 
     for (const room of world.rooms) {
       if (room.role !== 'trial') continue;
-      if (toScreenX(room.ox) > view.w + ts * 6 || toScreenX(room.ox + C.world.ROOM_W) < -ts * 6) continue;
-      if (toScreenY(room.oy) > view.h + ts * 6 || toScreenY(room.oy + C.world.ROOM_H) < -ts * 6) continue;
+      if (toScreenX(room.ox) > view.w + ts * 6 || toScreenX(room.ox + room.w) < -ts * 6) continue;
+      if (toScreenY(room.oy) > view.h + ts * 6 || toScreenY(room.oy + room.h) < -ts * 6) continue;
       drawSigil(ctx, room, toScreenX, toScreenY, ts, now);
     }
 
@@ -506,7 +506,7 @@
 
     if (world.hazardRoom) {
       const room = world.hazardRoom;
-      const visible = toScreenX(room.ox) < view.w + ts * 8 && toScreenX(room.ox + C.world.ROOM_W) > -ts * 8;
+      const visible = toScreenX(room.ox) < view.w + ts * 8 && toScreenX(room.ox + room.w) > -ts * 8;
       /* «Слепой зал» остался атмосферной комнатой, но без теней и урона. */
       if (visible) {
         ctx.save();
@@ -514,8 +514,8 @@
         ctx.fillRect(
           toScreenX(room.ox),
           toScreenY(room.oy),
-          C.world.ROOM_W * ts,
-          C.world.ROOM_H * ts
+          room.w * ts,
+          room.h * ts
         );
         ctx.restore();
       }

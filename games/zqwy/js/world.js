@@ -62,16 +62,73 @@
   }
 
   function generate(seed) {
-    const stepX = W.ROOM_W + W.GAP;
-    const stepY = W.ROOM_H + W.GAP;
+    const ROOM_W_MIN = Math.max(5, Math.round(W.ROOM_W_MIN || 7));
+    const ROOM_H_MIN = Math.max(5, Math.round(W.ROOM_H_MIN || 6));
+    const ROOM_W_MAX = Math.max(ROOM_W_MIN, Math.round(W.ROOM_W_MAX || W.ROOM_W || 21));
+    const ROOM_H_MAX = Math.max(ROOM_H_MIN, Math.round(W.ROOM_H_MAX || W.ROOM_H || 17));
+    const stepX = ROOM_W_MAX + W.GAP;
+    const stepY = ROOM_H_MAX + W.GAP;
     const chunkW = CHUNK * stepX;
     const chunkH = CHUNK * stepY;
+
+    /* Минимальные размеры сюжетных комнат: в них должны помещаться
+       Скрижаль, круг, полки и входы. Остальные комнаты свободно
+       гуляют от крошечных до огромных. */
+    const ROLE_MIN = {
+      tablet: [19, 15],
+      hazard: [15, 13],
+      low: [11, 9],
+      trial: [19, 15],
+      storage: [15, 13],
+      crossroad: [13, 11]
+    };
 
     const fixedByCell = new Map();
     for (const role of Object.keys(C.fixedRooms)) {
       const f = C.fixedRooms[role];
       fixedByCell.set(cellKey(f.cx, f.cy), role);
     }
+
+    function roleAt(cx, cy) {
+      return fixedByCell.get(cellKey(cx, cy)) || 'procedural';
+    }
+
+    /* Размер детерминирован для клетки и seed, поэтому соседние чанки
+       и прорезание дверей видят одну и ту же комнату, даже если она
+       ещё не материализована. */
+    function roomDims(cx, cy, role) {
+      const roleMin = ROLE_MIN[role] || [ROOM_W_MIN, ROOM_H_MIN];
+      const rangeW = ROOM_W_MAX - ROOM_W_MIN + 1;
+      const rangeH = ROOM_H_MAX - ROOM_H_MIN + 1;
+      const wRoll = hashString(`${seed}:roomw:${cx}:${cy}`) % rangeW;
+      const hRoll = hashString(`${seed}:roomh:${cx}:${cy}`) % rangeH;
+      const w = Math.min(ROOM_W_MAX, Math.max(ROOM_W_MIN, roleMin[0], ROOM_W_MIN + wRoll));
+      const h = Math.min(ROOM_H_MAX, Math.max(ROOM_H_MIN, roleMin[1], ROOM_H_MIN + hRoll));
+      return { w, h };
+    }
+
+    function roomBox(cx, cy, role) {
+      const dims = roomDims(cx, cy, role || roleAt(cx, cy));
+      const cellX = cx * stepX;
+      const cellY = cy * stepY;
+      const ox = cellX + Math.floor((ROOM_W_MAX - dims.w) / 2);
+      const oy = cellY + Math.floor((ROOM_H_MAX - dims.h) / 2);
+      return {
+        cx,
+        cy,
+        w: dims.w,
+        h: dims.h,
+        ox,
+        oy,
+        x1: ox + 1,
+        y1: oy + 1,
+        x2: ox + dims.w - 2,
+        y2: oy + dims.h - 2,
+        centerX: ox + Math.floor(dims.w / 2),
+        centerY: oy + Math.floor(dims.h / 2)
+      };
+    }
+
 
     const tabletCell = C.fixedRooms.tablet;
     const trialCell = C.fixedRooms.trial;
@@ -89,10 +146,6 @@
     const usedNames = new Map();
     const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
     let proceduralStoryCount = 0;
-
-    function roleAt(cx, cy) {
-      return fixedByCell.get(cellKey(cx, cy)) || 'procedural';
-    }
 
     function cellInChunk(cx, cy, ccx, ccy) {
       return Math.floor(cx / CHUNK) === ccx && Math.floor(cy / CHUNK) === ccy;
@@ -137,27 +190,28 @@
         if (seen > 0) name += ' · повтор';
       }
 
-      const ox = cx * stepX;
-      const oy = cy * stepY;
+      const box = roomBox(cx, cy, role);
       const room = {
         id: `r${cx}_${cy}`,
         cx,
         cy,
         chunkX: ccx,
         chunkY: ccy,
-        ox,
-        oy,
+        ox: box.ox,
+        oy: box.oy,
+        w: box.w,
+        h: box.h,
         role,
         storyIndex,
         name,
         tag: meta ? meta.tag : '',
         music: meta ? meta.music : 'labyrinth',
-        x1: ox + 1,
-        y1: oy + 1,
-        x2: ox + W.ROOM_W - 2,
-        y2: oy + W.ROOM_H - 2,
-        centerX: ox + Math.floor(W.ROOM_W / 2),
-        centerY: oy + Math.floor(W.ROOM_H / 2),
+        x1: box.x1,
+        y1: box.y1,
+        x2: box.x2,
+        y2: box.y2,
+        centerX: box.centerX,
+        centerY: box.centerY,
         depth: 0,
         links: []
       };
@@ -248,43 +302,51 @@
       const width = corridorWidth(edge);
       if (edge.ay === edge.by) {
         /* Горизонтальный коридор: комнаты стоят слева и справа.
-           Ширина задаёт вертикальный раствор двери, а смещение —
-           место входа вдоль стены, а не только центр комнаты. */
-        const ax = edge.ax * stepX;
-        const bx = edge.bx * stepX;
-        const left = Math.min(ax, bx);
-        const right = Math.max(ax, bx);
-        const innerTop = edge.ay * stepY + 1;
-        const innerBottom = edge.ay * stepY + W.ROOM_H - 2;
-        const y1 = doorStart(edge, innerTop, innerBottom, width);
-        const y2 = y1 + width - 1;
-        for (let x = left + W.ROOM_W - 1; x <= right; x++) {
+           Комнаты разной высоты и смещены внутри клетки, поэтому
+           проход ищет пересечение их внутренних отрезков. */
+        const leftCell = edge.ax < edge.bx ? [edge.ax, edge.ay] : [edge.bx, edge.by];
+        const rightCell = edge.ax < edge.bx ? [edge.bx, edge.by] : [edge.ax, edge.ay];
+        const leftBox = roomBox(leftCell[0], leftCell[1]);
+        const rightBox = roomBox(rightCell[0], rightCell[1]);
+        const innerTop = Math.max(leftBox.y1, rightBox.y1);
+        const innerBottom = Math.min(leftBox.y2, rightBox.y2);
+        const span = Math.max(1, innerBottom - innerTop + 1);
+        const doorWidth = Math.min(width, span);
+        const y1 = doorStart(edge, innerTop, innerBottom, doorWidth);
+        const y2 = y1 + doorWidth - 1;
+        const xStart = leftBox.ox + leftBox.w - 1;
+        const xEnd = rightBox.ox;
+        for (let x = xStart; x <= xEnd; x++) {
           for (let y = y1; y <= y2; y++) {
             setTileInChunk(chunk, x, y, 1);
           }
         }
         for (let y = y1; y <= y2; y++) {
-          setTileInChunk(chunk, left + W.ROOM_W - 1, y, 5);
-          setTileInChunk(chunk, right, y, 5);
+          setTileInChunk(chunk, xStart, y, 5);
+          setTileInChunk(chunk, xEnd, y, 5);
         }
       } else {
         /* Вертикальный коридор: комнаты стоят сверху и снизу. */
-        const ay = edge.ay * stepY;
-        const by = edge.by * stepY;
-        const top = Math.min(ay, by);
-        const bottom = Math.max(ay, by);
-        const innerLeft = edge.ax * stepX + 1;
-        const innerRight = edge.ax * stepX + W.ROOM_W - 2;
-        const x1 = doorStart(edge, innerLeft, innerRight, width);
-        const x2 = x1 + width - 1;
-        for (let y = top + W.ROOM_H - 1; y <= bottom; y++) {
+        const topCell = edge.ay < edge.by ? [edge.ax, edge.ay] : [edge.bx, edge.by];
+        const bottomCell = edge.ay < edge.by ? [edge.bx, edge.by] : [edge.ax, edge.ay];
+        const topBox = roomBox(topCell[0], topCell[1]);
+        const bottomBox = roomBox(bottomCell[0], bottomCell[1]);
+        const innerLeft = Math.max(topBox.x1, bottomBox.x1);
+        const innerRight = Math.min(topBox.x2, bottomBox.x2);
+        const span = Math.max(1, innerRight - innerLeft + 1);
+        const doorWidth = Math.min(width, span);
+        const x1 = doorStart(edge, innerLeft, innerRight, doorWidth);
+        const x2 = x1 + doorWidth - 1;
+        const yStart = topBox.oy + topBox.h - 1;
+        const yEnd = bottomBox.oy;
+        for (let y = yStart; y <= yEnd; y++) {
           for (let x = x1; x <= x2; x++) {
             setTileInChunk(chunk, x, y, 1);
           }
         }
         for (let x = x1; x <= x2; x++) {
-          setTileInChunk(chunk, top + W.ROOM_H - 1, x, 5);
-          setTileInChunk(chunk, bottom, x, 5);
+          setTileInChunk(chunk, x, yStart, 5);
+          setTileInChunk(chunk, x, yEnd, 5);
         }
       }
     }
@@ -345,18 +407,21 @@
       const oy = room.oy;
       const centerX = room.centerX;
       const centerY = room.centerY;
+      const dxWide = Math.max(2, Math.min(5, Math.floor(room.w / 4)));
+      const dyTall = Math.max(2, Math.min(4, Math.floor(room.h / 4)));
 
       if (room.role === 'tablet') {
-        for (const [dx, dy] of [[-5, -4], [5, -4], [-5, 4], [5, 4]]) {
+        for (const [dx, dy] of [[-dxWide, -dyTall], [dxWide, -dyTall], [-dxWide, dyTall], [dxWide, dyTall]]) {
           setTileInChunk(chunk, centerX + dx, centerY + dy, 3);
         }
       } else if (room.role === 'hazard') {
-        for (const [dx, dy] of [[-5, -4], [5, -4], [-5, 4], [5, 4], [-4, -2], [4, 2]]) {
+        for (const [dx, dy] of [[-dxWide, -dyTall], [dxWide, -dyTall], [-dxWide, dyTall], [dxWide, dyTall], [-dxWide + 1, -2], [dxWide - 1, 2]]) {
           setTileInChunk(chunk, centerX + dx, centerY + dy, 3);
         }
       } else if (room.role === 'storage') {
-        for (let x = ox + 4; x <= ox + 16; x++) {
-          if (x === ox + 8 || x === ox + 13) continue;
+        for (let x = room.x1 + 2; x <= room.x2 - 2; x++) {
+          if (x === room.x1 + Math.floor(room.w * 0.45) ||
+              x === room.x1 + Math.floor(room.w * 0.72)) continue;
           /* Центральная колонна остаётся свободной: через неё проходит
              вертикальный коридор и вход в комнату. */
           if (Math.abs(x - centerX) <= 1) continue;
@@ -364,8 +429,8 @@
           setTileInChunk(chunk, x, oy + 3, 4);
         }
         if (!itemPickups.some((p) => p.itemId === 'map_fragment')) {
-          itemPickups.push({ itemId: 'map_fragment', x: ox + 4.5, y: oy + 6.5, roomId: room.id });
-          itemPickups.push({ itemId: 'chalk', x: ox + 16.5, y: oy + 6.5, roomId: room.id });
+          itemPickups.push({ itemId: 'map_fragment', x: room.x1 + 2.5, y: oy + Math.min(room.h - 2, 6) + 0.5, roomId: room.id });
+          itemPickups.push({ itemId: 'chalk', x: room.x2 - 1.5, y: oy + Math.min(room.h - 2, 6) + 0.5, roomId: room.id });
         }
       } else if (room.role === 'crossroad') {
         if (!itemPickups.some((p) => p.itemId === 'bead')) {
@@ -378,8 +443,8 @@
         let attempts = 0;
         while (placed < count && attempts < 90) {
           attempts++;
-          const px = room.x1 + 2 + Math.floor(pillarRandom() * (W.ROOM_W - 6));
-          const py = room.y1 + 1 + Math.floor(pillarRandom() * (W.ROOM_H - 4));
+          const px = room.x1 + 2 + Math.floor(pillarRandom() * Math.max(1, room.w - 4));
+          const py = room.y1 + 1 + Math.floor(pillarRandom() * Math.max(1, room.h - 3));
           if (Math.abs(px - centerX) <= 1 || Math.abs(py - centerY) <= 1) continue;
           const index = localTile(chunk, px, py);
           if (index < 0 || chunk.tiles[index] !== 1) continue;
@@ -517,8 +582,8 @@
         for (let ix = 0; ix < CHUNK; ix++) {
           const room = roomsByCell.get(cellKey(cellX0 + ix, cellY0 + iy));
           if (!room) continue;
-          for (let y = room.oy; y < room.oy + W.ROOM_H; y++) {
-            for (let x = room.ox; x < room.ox + W.ROOM_W; x++) {
+          for (let y = room.oy; y < room.oy + room.h; y++) {
+            for (let x = room.ox; x < room.ox + room.w; x++) {
               setTileInChunk(chunk, x, y, 2);
             }
           }
@@ -567,8 +632,8 @@
       const cy = Math.floor(ty / stepY);
       const room = roomsByCell.get(cellKey(cx, cy));
       if (!room) return null;
-      if (tx >= room.ox && tx < room.ox + W.ROOM_W &&
-          ty >= room.oy && ty < room.oy + W.ROOM_H) {
+      if (tx >= room.ox && tx < room.ox + room.w &&
+          ty >= room.oy && ty < room.oy + room.h) {
         return room;
       }
       return null;

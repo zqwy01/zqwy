@@ -424,6 +424,404 @@
     }
   };
 
+  /* Английская справка получает те же группы «данные» и «музыка», что и
+     русская: сохранение/загрузка и плеер больше не спрятаны в «терминале». */
+  (function extendEnglishHelp() {
+    const groups = EN.terminal.helpGroups;
+    const terminal = groups.find((group) => group.id === 'терминал');
+    if (!terminal) return;
+    terminal.description = 'settings, history and language';
+    terminal.commands = terminal.commands.filter((entry) =>
+      !['save', 'load', 'export', 'music'].includes(entry.command)
+    );
+    const index = groups.indexOf(terminal) + 1;
+    groups.splice(index, 0,
+      {
+        id: 'данные',
+        title: 'data',
+        description: 'saving, loading and moving the world',
+        commands: [
+          { command: 'save', description: 'saves the world and state in the browser; also under “settings” → “Data”', bindable: true },
+          { command: 'load', description: 'loads the latest browser save', bindable: true },
+          { command: 'export', description: 'downloads a world file with seed and state', bindable: true }
+        ]
+      },
+      {
+        id: 'музыка',
+        title: 'music',
+        description: 'player, seek, volume and playback speed',
+        commands: [
+          { command: 'music', description: 'opens the player: stop, seek, volume, waveform and 0.5×–2× speed', bindable: true }
+        ]
+      }
+    );
+  })();
+
+  /* Немецкий — частичный оверлей. Он переводит интерфейс, команды,
+     описания и сюжетные тексты; недостающие повествовательные фрагменты
+     берутся из английского словаря, а затем из русского. */
+  const DE = {
+    title: 'Labyrinth der Bewusstseine',
+    subtitle: 'Zemic · Browser-Prototyp',
+    roomMeta: {
+      tablet: { name: 'Tafel', tag: 'Rückkehrpunkt' },
+      hazard: { name: 'Blinde Halle', tag: 'Stille' },
+      low: { name: 'Niedriges Gewölbe', tag: 'Durchgang' },
+      trial: { name: 'Kreis der Verzauberung', tag: 'Prüfung' },
+      storage: { name: 'Vorratskammer', tag: 'Funde' },
+      crossroad: { name: 'Stille Kreuzung', tag: 'Spur' }
+    },
+    proceduralNames: [
+      'Flüsterkorridor', 'Halle des Grinds', 'Raum mit dem Riss', 'Wiederholung',
+      'Niedriges Gewölbe', 'Trockene Galerie', 'Blinde Tasche', 'Langer Gang',
+      'Halle ohne Echo', 'Raum vergessener Dinge', 'Krummer Korridor', 'Warmer Stein',
+      'Wartehalle', 'Gabelung', 'Der Raum, der nicht war', 'Stiller Flug',
+      'Zerfallende Halle', 'Korridor der Kerben', 'Ort zum Atmen', 'Wiederkehrendes Motiv'
+    ],
+    ambientRoomLines: [
+      'Die Wände wiederholen einander mit kleinen Abweichungen. Du bist nicht sicher, ob du hier zum ersten Mal gehst.',
+      'Steinsplitter knirschen unter den Füßen. Der Klang kommt ein wenig zu spät zurück.',
+      'Die Luft hier ist trocken und still. Irgendwo weit weg tropft Wasser.',
+      'Eine Reihe alter Kerben markiert die Wand. Einige davon passen zu deinen Schritten.',
+      'Die Decke verliert sich im Dunkeln. Nur für wenige Schritte gibt es Licht.',
+      'Es riecht nach Staub und nach etwas anderem, wie vergessenes Papier.'
+    ],
+    items: {
+      card_angel: {
+        name: 'Verzauberung',
+        action: 'wirken',
+        description: 'Eine Bleistiftzeichnung auf kariertem Papier. Darunter steht: „Verzauberung“.',
+        note: 'Die Fähigkeit wird als eigenes Modul angebunden.'
+      },
+      map_fragment: {
+        name: 'Kartenfragment',
+        action: 'entfalten',
+        description: 'Ein von der Zeit weich gewordenes Blatt. Die örtlichen Räume und Gänge scheinen hindurch.',
+        note: 'Zeigt den Teil des Labyrinths, den du durchquert hast, und die Räume in der Nähe.'
+      },
+      chalk: {
+        name: 'Holzkohlekreide',
+        action: 'markieren',
+        description: 'Ein kurzer Stummel, warm von deiner Hand. Er hinterlässt eine klare Spur auf Stein.',
+        note: 'Setzt im aktuellen Raum eine Markierung auf der Karte.'
+      },
+      bead: {
+        name: 'Glasperle',
+        description: 'Eine trübe Perle mit einem Loch. Eine winzige Luftblase scheint darin eingefroren.',
+        note: 'Tut nichts. Sie ruht einfach in deinem Rucksack.'
+      }
+    },
+    controlActions: {
+      up: { label: 'oben' },
+      down: { label: 'unten' },
+      left: { label: 'links' },
+      right: { label: 'rechts' },
+      interact: { label: 'handlung' },
+      look: { label: 'umschauen' },
+      stop: { label: 'halt' },
+      inventory: { label: 'rucksack' },
+      map: { label: 'karte' },
+      canvas: { label: 'tisch' }
+    },
+    story: {
+      tablet: {
+        title: 'Tafel',
+        speaker: 'TAFEL',
+        lines: [
+          'Der flache Stein unter deiner Hand ist wärmer als die Luft.',
+          'Du erinnerst dich nicht, wie du hierher gekommen bist. Du erinnerst dich nur, dass du schon einmal gegangen bist.',
+          'Die Tafel ist kein Schutz. Nur ein Ort, an dem du wieder du selbst wirst.'
+        ]
+      },
+      hazard: {
+        title: 'Blinde Halle',
+        speaker: 'BLINDE HALLE',
+        lines: [
+          'Hier gibt es keine Schatten, keine Verfolger. Nur Wände, die zu lange geschwiegen haben.',
+          'Die Blinde Halle prüft nicht die Geschwindigkeit, sondern die Erinnerung an die Richtung.'
+        ]
+      },
+      trial: {
+        title: 'Kreis der Verzauberung',
+        speaker: 'KREIS',
+        lines: [
+          'Der Kreis tritt auf den Boden, als wäre er immer hier gewesen.',
+          'Er erklärt die Regeln nicht. Atme. Bewege dich. Schließe die Siegel.'
+        ]
+      },
+      storage: {
+        title: 'Vorratskammer',
+        speaker: 'VORRATSKAMMER',
+        lines: [
+          'Trockenes Papier, Staub, jemandes sorgfältige Regale.',
+          'Im Regal liegen ein Kartenfragment und Holzkohlekreide. Du nimmst sie, ohne zu fragen, wem sie gehören.'
+        ]
+      },
+      crossroad: {
+        title: 'Stille Kreuzung',
+        speaker: 'SPUR',
+        lines: [
+          'Vier Striche an der Wand: drei lange, einer kurz.',
+          'Jemand hat den Anfang eines Satzes darunter ausgelöscht. Geblieben ist: „…und doch, nach Osten“.',
+          'Du weißt nicht, wer es geschrieben hat. Die Handschrift kommt dir bekannt vor.'
+        ]
+      },
+      trialSuccess: {
+        title: 'Der Kreis hat angenommen',
+        speaker: 'KREIS',
+        lines: [
+          'Die Siegel erlöschen eines nach dem anderen. In der Mitte des Kreises bleibt eine Karte.',
+          'Darauf ist eine geflügelte Gestalt, mit Bleistift auf kariertes Papier gezeichnet.',
+          'Auf der Rückseite: „Verzauberung“.'
+        ]
+      },
+      death: {
+        title: 'Rückkehr',
+        speaker: 'TAFEL',
+        lines: [
+          'Dein Atem setzt aus. Der Stein liegt wieder unter deiner Hand.',
+          'Der Rucksack blieb, wo du warst. Er wird nicht verschwinden.'
+        ]
+      }
+    },
+    storyTree: {
+      title: 'Zweig des Labyrinths',
+      intro: 'Ein Zweig von vielen. Was durchschritten ist, ist markiert; was verfügbar ist, wartet; was geschlossen ist, ist noch nicht geschehen.',
+      nodes: {
+        awakening: {
+          stage: 'I · Erwachen',
+          title: 'An der Tafel',
+          summary: 'Du kommst neben einem warmen Stein zu dir und erinnerst dich nicht an den Weg hierher.',
+          finds: ['Tafel'],
+          seeking: ['erinnern, wie du hierher kamst'],
+          hint: 'Berühre die Tafel: gehe nach oben und drücke E.'
+        },
+        tablet: {
+          stage: 'I · Erwachen',
+          title: 'Tafel',
+          summary: 'Die Tafel öffnet Rucksack und Tisch — kein Schutz, sondern ein Rückkehrpunkt.',
+          finds: ['Rucksack', 'Tisch'],
+          seeking: ['das erste Gespräch mit der Tafel'],
+          hint: 'Die Tafel steht im Startraum.'
+        },
+        storage: {
+          stage: 'II · Erste Funde',
+          title: 'Vorratskammer',
+          summary: 'Sorgfältige Regale und fremde Erinnerung. Karte und Kreide liegen hier.',
+          finds: ['Kartenfragment', 'Holzkohlekreide'],
+          seeking: ['Kartenfragment'],
+          hint: 'Die Vorratskammer liegt westlich der Tafel.'
+        },
+        crossroad: {
+          stage: 'II · Erste Funde',
+          title: 'Stille Kreuzung',
+          summary: 'Vier Striche an der Wand und ein ausgelöschter Satz über den Osten.',
+          finds: ['Glasperle', 'fremde Spur'],
+          seeking: ['verstehen, wer die Spur hinterließ'],
+          hint: 'Die Kreuzung liegt östlich der Tafel.'
+        },
+        hazard: {
+          stage: 'II · Erste Funde',
+          title: 'Blinde Halle',
+          summary: 'Eine Halle ohne Schatten und Verfolger. Sie prüft die Erinnerung an die Richtung.',
+          finds: ['Erinnerung an die Richtung'],
+          seeking: ['die Halle durchqueren, ohne die Richtung zu verlieren'],
+          hint: 'Die Blinde Halle liegt nördlich der Tafel.'
+        },
+        map: {
+          stage: 'II · Erste Funde',
+          title: 'Örtliche Karte',
+          summary: 'Das Kartenfragment zeigt, was du durchquert hast, und die Räume in der Nähe.',
+          finds: ['örtliche Karte'],
+          seeking: ['die Karte entfalten und die erste Markierung setzen'],
+          hint: 'Der Befehl „map“ öffnet den Bereich; „mark“ setzt eine Markierung.'
+        },
+        low: {
+          stage: 'III · Kreis',
+          title: 'Niedriges Gewölbe',
+          summary: 'Ein Gang, in dem man leicht die Richtung verliert, führt zum Kreis auf dem Boden.',
+          finds: ['Eingang zum Kreis der Verzauberung'],
+          seeking: ['den Kreis auf dem Boden finden'],
+          hint: 'Folge dem Gang zum Kreis der Verzauberung.'
+        },
+        trial: {
+          stage: 'III · Kreis',
+          title: 'Kreis der Verzauberung',
+          summary: 'Der Kreis erklärt die Regeln nicht. Schließe zwei Siegel und halte durch.',
+          finds: ['die Karte „Verzauberung“'],
+          seeking: ['zwei Siegel schließen und bis zum Ende durchhalten'],
+          hint: 'Betritt den Kreis; ein Siegel schließt sich mit Leertaste.'
+        },
+        card: {
+          stage: 'IV · Fund',
+          title: 'Verzauberung',
+          summary: 'Eine Bleistiftkarte mit einer geflügelten Gestalt bleibt in der Mitte des Kreises.',
+          finds: ['die Karte „Verzauberung“'],
+          seeking: ['die Karte aus der Mitte des Kreises aufnehmen'],
+          hint: 'Nach der Prüfung liegt die Karte in der Mitte des Kreises.'
+        },
+        table: {
+          stage: 'IV · Fund',
+          title: 'Deine eigene Ordnung',
+          summary: 'Am Tisch lassen sich Funde auslegen, eine Taste erzeugen und mit Befehlen verknüpfen.',
+          finds: ['verknüpfte Tasten', 'Geschichte'],
+          seeking: ['mindestens eine Taste mit einem Befehl verknüpfen'],
+          hint: 'Füge am Tisch eine Taste hinzu und verknüpfe sie mit einem Befehl.'
+        },
+        death: {
+          stage: 'Nebenzweig',
+          title: 'Rückkehr',
+          optional: true,
+          summary: 'Der Tod bringt dich zur Tafel zurück, aber der Rucksack bleibt, wo er war.',
+          finds: ['der zurückgelassene Rucksack'],
+          seeking: ['den Rucksack zurückholen'],
+          hint: 'Der Rucksack kann dort aufgenommen werden, wo du warst.'
+        }
+      }
+    },
+    terminal: {
+      greeting: [
+        'Versionen: {Kern: 2} {Schrift: 1}',
+        'Terminal erwacht. Systemmeldungen tragen die Marke „system“. Tippe „hilfe“, um Befehlsgruppen zu sehen.'
+      ],
+      controls: [
+        'Steuerung: W/A/S/D oder Pfeile — gehen; E — Handlung; Enter — Befehl senden; ↑/↓ — Befehlsverlauf.',
+        'LMB auf die Welt — zum Punkt gehen; LMB halten — dem Cursor folgen.',
+        'Befehle öffnen sich mit der Geschichte. Einstellungen — „einstellungen“, Geschichtsweg — „geschichte“, Aktionsprotokoll — „protokoll“.'
+      ],
+      helpGroups: [
+        {
+          id: 'основное',
+          title: 'grundlagen',
+          description: 'Terminal und Orientierung',
+          commands: [
+            { command: 'help', description: 'zeigt Befehlsgruppen; „hilfe bewegung“ öffnet eine Gruppe', bindable: true },
+            { command: 'hello', description: 'kurze Antwort des Terminals; ändert nichts in der Welt', bindable: true },
+            { command: 'where did you go', description: 'erinnert daran, dass das Terminal nie gegangen ist und auf Eingabe wartet', bindable: true },
+            { command: 'come closer', description: 'prüft, ob die Tafel in der Nähe ist; das Terminal bewegt sich nicht', bindable: true },
+            { command: 'look around', description: 'beschreibt den aktuellen Raum, seine Ausgänge und was in der Nähe liegt', bindable: true }
+          ]
+        },
+        {
+          id: 'сюжет',
+          title: 'geschichte',
+          description: 'Geschichtszweig, Funde und Ziel',
+          commands: [
+            { command: 'story', description: 'öffnet den Geschichtszweig: aktuelle Etappe, Funde und Ziel', bindable: true }
+          ]
+        },
+        {
+          id: 'движение',
+          title: 'bewegung',
+          description: 'sanfte zeitgesteuerte Schritte und Halt',
+          commands: [
+            { command: 'walk up', description: 'geht eine Sekunde nach oben; „walk up 10“ — zehn Sekunden', bindable: true },
+            { command: 'walk down', description: 'geht eine Sekunde nach unten; „walk down 10“ — zehn Sekunden', bindable: true },
+            { command: 'walk left', description: 'geht eine Sekunde nach links; „walk left 10“ — zehn Sekunden', bindable: true },
+            { command: 'walk right', description: 'geht eine Sekunde nach rechts; „walk right 10“ — zehn Sekunden', bindable: true },
+            { command: 'stop', description: 'löst gehaltene Tasten und das Cursorziel', bindable: true }
+          ]
+        },
+        {
+          id: 'рюкзак',
+          title: 'rucksack',
+          description: 'Getragenes und Gefundenes',
+          unlock: 'backpack',
+          commands: [
+            { command: 'backpack', description: 'zeigt den Inhalt des Rucksacks und öffnet ihn im Terminal', bindable: true }
+          ]
+        },
+        {
+          id: 'карта',
+          title: 'karte',
+          description: 'Weg und Markierungen',
+          unlock: 'map',
+          commands: [
+            { command: 'map', description: 'entfaltet die örtliche Karte, wenn das Kartenfragment gefunden wurde', bindable: true },
+            { command: 'mark', description: 'setzt im aktuellen Raum eine Markierung auf der Karte; Holzkohlekreide nötig', bindable: true }
+          ]
+        },
+        {
+          id: 'стол',
+          title: 'tisch',
+          description: 'Arbeitsfläche und Tasten',
+          unlock: 'table',
+          commands: [
+            { command: 'table', description: 'öffnet die Arbeitsfläche für Gegenstände, Befehle und Steuerungstasten', bindable: true }
+          ]
+        },
+        {
+          id: 'карты',
+          title: 'karten',
+          description: 'Fähigkeiten',
+          unlock: 'cards',
+          commands: [
+            { command: 'enchant', description: 'aktiviert die Karte „Verzauberung“; derzeit ein neutraler Platzhalter', bindable: true }
+          ]
+        },
+        {
+          id: 'логгирование',
+          title: 'protokoll',
+          description: 'Aufzeichnung von Schritten, Handlungen, Szenen, Welt und Befehlen',
+          commands: [
+            { command: 'logging', description: 'schaltet die Ereignisaufzeichnung ein; „logging movement“ — nur Schritte', bindable: true }
+          ]
+        },
+        {
+          id: 'терминал',
+          title: 'terminal',
+          description: 'Einstellungen, Verlauf und Sprache',
+          commands: [
+            { command: 'history', description: 'zeigt den Befehlsverlauf — dieselbe Liste wie mit ↑/↓', bindable: true },
+            { command: 'settings', description: 'öffnet die allgemeinen Einstellungen: Sprache, Schrift, Musik und Daten', bindable: true },
+            { command: 'settings terminal', description: 'öffnet die Terminal-Einstellungen: Texttempo und Protokollierung', bindable: true },
+            { command: 'language', description: 'wechselt die Sprache: „sprache deutsch“, „sprache englisch“ oder „sprache russisch“', bindable: true },
+            { command: 'clear', description: 'leert das Terminal-Protokoll und stellt die Begrüßung wieder her', bindable: true },
+            { command: 'new game', description: 'erzeugt ein neues Labyrinth mit zufälligem Seed und beginnt von vorn', bindable: false }
+          ]
+        },
+        {
+          id: 'данные',
+          title: 'daten',
+          description: 'Speichern, Laden und Übertragen der Welt',
+          commands: [
+            { command: 'save', description: 'speichert Welt und Zustand im Browser; auch unter „einstellungen“ → „Daten“', bindable: true },
+            { command: 'load', description: 'lädt die letzte Speicherung aus dem Browser', bindable: true },
+            { command: 'export', description: 'lädt eine Weltdatei mit Seed und Zustand herunter', bindable: true }
+          ]
+        },
+        {
+          id: 'музыка',
+          title: 'musik',
+          description: 'Player, Spulen, Lautstärke und Geschwindigkeit',
+          commands: [
+            { command: 'music', description: 'öffnet den Player: Stopp, Spulen, Lautstärke, Welle und Tempo 0.5×–2×', bindable: true }
+          ]
+        }
+      ],
+      unlocks: {
+        backpack: { title: 'rucksack', hint: 'Die Tafel öffnet den Rucksack nach dem ersten Gespräch.' },
+        map: { title: 'karte', hint: 'Das Kartenfragment liegt in der Vorratskammer.' },
+        table: { title: 'tisch', hint: 'Die Tafel öffnet den Tisch nach dem ersten Gespräch.' },
+        cards: { title: 'karten', hint: 'Die Karte „Verzauberung“ wartet in der Mitte des Kreises.' }
+      },
+      helpHint: 'Gruppen: {groups}. Details: „hilfe bewegung“.',
+      helpGroup: 'Gruppe „{title}“: {description}',
+      helpLocked: 'Gruppe „{title}“ ist noch geschlossen. {hint}',
+      unknownGroup: 'Keine solche Befehlsgruppe: ',
+      unknown: 'Unbekannter Befehl: '
+    },
+    musicCues: {
+      tablet: { title: 'Tafel' },
+      hazard: { title: 'Blinde Halle' },
+      low: { title: 'Niedriges Gewölbe' },
+      trial: { title: 'Kreis' },
+      storage: { title: 'Vorratskammer' },
+      crossroad: { title: 'Spur' },
+      labyrinth: { title: 'Labyrinth' }
+    }
+  };
+
   const LABELS = {
     'система': 'system',
     'сцена': 'scene',
@@ -504,10 +902,206 @@
     'Добавить клавишу ': 'Add key ',
     ' на стол': ' to the table',
     'Ровно одна клетка за ': 'Exactly one tile in ',
-    ' с.': ' s.'
+    ' с.': ' s.',
+    'Ты в переходе между комнатами. Здесь только камень и твоё дыхание.': 'You are in the passage between rooms. Only stone and your breathing are here.',
+    'Плоский камень теплее воздуха. Скрижаль не укрытие — просто место, где ты снова становишься собой.': 'The flat stone is warmer than the air. The Tablet is not a shelter — just a place where you become yourself again.',
+    'Слепой зал молчит. Ни теней, ни преследователей — только стены и твоя память о направлении.': 'The Blind Hall is silent. No shadows, no pursuers — only walls and your memory of direction.',
+    'Низкий свод заставляет согнуться. Здесь легко потерять направление.': 'The Low Vault forces you to stoop. It is easy to lose direction here.',
+    'Круг молчит. Печати погасли, и в центре больше ничего нет.': 'The Circle is silent. The seals are out, and there is nothing left in the centre.',
+    'Круг проступает на полу. Он не объясняет правил.': 'The Circle surfaces on the floor. It does not explain the rules.',
+    'Сухая бумага, пыль, чьи-то аккуратные полки. Здесь что-то оставили до тебя.': 'Dry paper, dust, someone’s careful shelves. Something was left here before you.',
+    'На стене четыре чёрточки: три длинные, одна короткая. Под ними — стёртая фраза.': 'Four notches on the wall: three long, one short. Beneath them, a worn-out phrase.',
+    'У тебя нет угольного мелка. Метку не поставить.': 'You have no charcoal chalk. You cannot place a mark.',
+    'Здесь не на что поставить метку.': 'There is nothing here to mark.',
+    'Получена карта «Очарование»': 'Received the “Enchantment” card',
+    'Карта «Очарование» лежит в рюкзаке. Её можно вынести на стол.': 'The “Enchantment” card is in your backpack. You can place it on the table.',
+    'Рюкзак возвращён. Внутри ничего не было.': 'Backpack recovered. There was nothing inside.',
+    'Пусто. Всё, что было, осталось на месте смерти — или ещё не найдено.': 'Empty. Everything you had stayed where you died — or has not been found yet.',
+    'Предметы можно вынести на стол, связать с клавишей и запускать быстрым нажатием.': 'Items can be placed on the table, linked to a key and run with a quick press.',
+    'Обрывок карты разворачивается: видны комнаты вокруг и оставленные рюкзаки.': 'The map fragment unfolds: nearby rooms and left backpacks become visible.',
+    'Пока это только память о пройденном и о соседних комнатах.': 'For now this is only the memory of what you have crossed and the rooms nearby.',
+    'Двигайся. Печать закроется — нажми ПРОБЕЛ.': 'Move. The seal will close — press SPACE.',
+    'Круг выдохнул искры. Не стой на месте.': 'The Circle exhaled sparks. Do not stand still.',
+    'Печать проступила. Встань в неё и нажми ПРОБЕЛ.': 'A seal has surfaced. Stand in it and press SPACE.',
+    'Печать ещё не проступила. Жди и двигайся.': 'The seal has not surfaced yet. Wait and keep moving.',
+    'Печати сомкнуты. Додержись до конца круга.': 'The seals are closed. Hold out until the end of the Circle.',
+    'Ты не внутри печати.': 'You are not inside the seal.',
+    'Печать погасла. Следующая будет позже.': 'The seal went out. The next one will come later.',
+    'Круг принял печати. Додержись.': 'The Circle accepted the seals. Hold out.',
+    'Встань в печать и нажми ПРОБЕЛ.': 'Stand in the seal and press SPACE.',
+    'Круг остыл. Можно войти снова': 'The Circle has cooled. You can enter again',
+    'Ты покидаешь круг. Печати гаснут, но остаются на месте.': 'You leave the Circle. The seals fade but remain in place.',
+    'В центре круга лежит карта': 'A card lies in the centre of the Circle',
+    'элемент': 'element',
+    'готово': 'done',
+    'клавиша': 'key',
+    'команда': 'command',
+    'способность': 'ability',
+    'карта': 'map',
+    'инструмент': 'tool',
+    'кнопка управления': 'control button',
+    'без клавиши': 'without key',
+    'ни с чем не связана': 'not linked to anything',
+    'связка': 'bundle',
+    'кнопка': 'button',
+    'нажать': 'press',
+    'произнести': 'cast',
+    'развернуть': 'unfold',
+    'открыть': 'open',
+    'на стол': 'to table',
+    'выполнить': 'run',
+    'состояние: в рюкзаке': 'state: in backpack',
+    'состояние: размещена на столе': 'state: placed on the table',
+    'Убрать со стола': 'Remove from the table',
+    'ПРЕДМЕТЫ': 'ITEMS',
+    'УПРАВЛЕНИЕ': 'CONTROLS',
+    'КЛАВШИ': 'KEYS',
+    'ядро управления': 'control core',
+    'Добавить клавишу и связать её с элементами': 'Add a key and link it to elements',
+    'Кнопка без клавиши: свяжи её с клавишей': 'Button without a key: link it to a key',
+    'Пока нечего добавить. Найди предметы в Лабиринте.': 'Nothing to add yet. Find items in the Labyrinth.',
+    'Нажми на клавишу в схеме — она выполнит все связанные цели. На клавиатуре связанные клавиши работают, пока открыт стол.': 'Click a key in the scheme — it will run all linked targets. On the keyboard, linked keys work while the table is open.',
+    'Связанных клавиш пока нет. Добавь клавишу на стол через «+ элемент» → «+ клавиша».': 'No linked keys yet. Add a key to the table via “+ element” → “+ key”.',
+    'Геймпад остаётся для движения и действия. Клавиши стола настраиваются на клавиатуре и запускают связанные цели.': 'The gamepad is still used for movement and action. Table keys are configured on the keyboard and run linked targets.',
+    'На телефоне движение и действие остаются на экранных кнопках. Клавиши стола — для клавиатуры.': 'On a phone, movement and action stay on the on-screen buttons. Table keys are for the keyboard.',
+    'WASD или стрелки — идти · E — действие · Enter — команда · Space — печать': 'WASD or arrows — walk · E — action · Enter — command · Space — seal',
+    'Добавить клавишу': 'Add a key',
+    'Назначить клавишу': 'Assign a key',
+    'Нажми нужную клавишу. Esc — отмена.': 'Press the key you need. Esc — cancel.',
+    'Перетаскивай элементы. Нажми на элемент, чтобы выполнить. Клавиша запускает все связанные с ней цели.': 'Drag elements. Click an element to run it. A key launches all its linked targets.',
+    'Перетаскивай элементы. Нажми, чтобы выполнить. Свяжи клавишу с целями, чтобы запускать их одной кнопкой.': 'Drag elements. Click to run. Link a key to targets to launch them with one button.',
+    'Клавиша запускает все связанные с ней цели.': 'A key launches all its linked targets.',
+    'клавиатура': 'keyboard',
+    'телефон': 'phone',
+    'геймпад': 'gamepad',
+    'движение': 'movement',
+    'действие': 'action',
+    'стоп': 'stop',
+    'настройки': 'settings',
+    'закрыть раздел': 'close section',
+    'D-pad / левый стик': 'D-pad / left stick',
+    'D-pad': 'D-pad',
+    '✦': '✦',
+    'Масштаб и положение стола сброшены.': 'Table zoom and position reset.'
   };
 
+  const DE_LABELS = {
+    'система': 'system',
+    'сцена': 'szene',
+    'шаг': 'schritt',
+    'действие': 'handlung',
+    'команда': 'befehl',
+    'комната': 'raum',
+    'находка': 'fund',
+    'смерть': 'tod',
+    'карта': 'karte',
+    'рюкзак': 'rucksack',
+    'терминал': 'terminal',
+    'мир': 'welt',
+    'сюжет': 'geschichte',
+    'системы': 'system',
+    'сцены': 'szenen'
+  };
+
+  const DE_PHRASES = {
+    'Сейчас не до команд.': 'Jetzt ist keine Zeit für Befehle.',
+    'Готово.': 'Erledigt.',
+    'Движение остановлено.': 'Bewegung angehalten.',
+    'Рюкзак пуст.': 'Der Rucksack ist leer.',
+    'Рюкзак открыт.': 'Rucksack geöffnet.',
+    'Карта открыта.': 'Karte geöffnet.',
+    'Стол открыт. Предметы, команды и клавиши можно разложить самому.': 'Der Tisch ist offen. Gegenstände, Befehle und Tasten lassen sich selbst anordnen.',
+    'Ты уже за столом.': 'Du bist bereits am Tisch.',
+    'Мир сохранён.': 'Welt gespeichert.',
+    'Сохранение загружено.': 'Speicherung geladen.',
+    'Сохранения пока нет.': 'Es gibt noch keine Speicherung.',
+    'Мир выгружен в файл.': 'Welt in eine Datei exportiert.',
+    'Пока недоступно. ': 'Noch nicht verfügbar. ',
+    'Это откроется позже.': 'Das öffnet sich später.',
+    'сборка': 'Build',
+    'Версия ядра:': 'Kernversion:',
+    'Мир загружен:': 'Welt geladen:',
+    'за': 'in',
+    'мс': 'ms',
+    'комнат:': 'Räume:',
+    'чанков:': 'Chunks:',
+    'Управление: W/A/S/D или стрелки — идти; E — действие; Enter — отправить команду; ↑/↓ — история команд.': 'Steuerung: W/A/S/D oder Pfeile — gehen; E — Handlung; Enter — Befehl senden; ↑/↓ — Befehlsverlauf.',
+    'ЛКМ по миру — идти к точке; удержание ЛКМ — следовать за курсором.': 'LMB auf die Welt — zum Punkt gehen; LMB halten — dem Cursor folgen.',
+    'Введи «помоги», чтобы увидеть команды. Команды открываются по мере истории. Настройки — «настройки», сюжет — «сюжет», запись действий — «логгирование».': 'Tippe „hilfe“, um die Befehle zu sehen. Befehle öffnen sich mit der Geschichte. Einstellungen — „einstellungen“, Geschichte — „geschichte“, Aktionsprotokoll — „protokoll“.',
+    'Музыкальный плеер открывается из основной вкладки терминала командой «музыка».': 'Der Musikplayer öffnet sich aus der Hauptregisterkarte des Terminals mit dem Befehl „musik“.',
+    'Логгирование выключено.': 'Protokollierung aus.',
+    'Логгирование включено для всех категорий.': 'Protokollierung für alle Kategorien an.',
+    'Ветвь истории открывается из основной вкладки терминала командой «сюжет».': 'Der Geschichtszweig öffnet sich aus der Hauptregisterkarte des Terminals mit dem Befehl „geschichte“.',
+    'Настройки открываются из основной вкладки терминала.': 'Die Einstellungen öffnen sich aus der Hauptregisterkarte des Terminals.'
+  };
+
+  function translatePlace(text) {
+    const room = String(text || '').match(/^в комнате «(.+)»$/);
+    if (room) return `in the room “${room[1]}”`;
+    if (text === 'в переходе между комнатами') return 'in the passage between rooms';
+    return text;
+  }
+
+  function translateDirection(text) {
+    const map = {
+      'вверх': 'up',
+      'вниз': 'down',
+      'влево': 'left',
+      'вправо': 'right',
+      'вверх-влево': 'up-left',
+      'вверх-вправо': 'up-right',
+      'вниз-влево': 'down-left',
+      'вниз-вправо': 'down-right'
+    };
+    return map[text] || text;
+  }
+
+  function translateCause(text) {
+    const map = {
+      'искра': 'spark',
+      'неизвестно': 'unknown'
+    };
+    return map[text] || text;
+  }
+
   const PATTERNS = [
+    [/^(.+) \(([^()]*)\)\.$/, (m) => {
+      const parts = m[2].split('; ');
+      const known = parts.every((part) =>
+        /^выходов: \d+$/.test(part) ||
+        part === 'рядом что-то лежит' ||
+        part === 'здесь оставлен рюкзак'
+      );
+      if (!known) return `${tr(m[1])} (${m[2]}).`;
+      const details = parts.map((part) => {
+        const exits = part.match(/^выходов: (\d+)$/);
+        if (exits) return `exits: ${exits[1]}`;
+        if (part === 'рядом что-то лежит') return 'something lies nearby';
+        if (part === 'здесь оставлен рюкзак') return 'a backpack was left here';
+        return part;
+      });
+      return `${tr(m[1])} (${details.join('; ')}).`;
+    }],
+    [/^Ты снова у Скрижали\. Рюкзак остался (.+?): (\d+) (?:предмет|предмета|предметов)\. Он никуда не денется\.$/, (m) => `You are at the Tablet again. The backpack stayed ${translatePlace(m[1])}: ${m[2]} items. It will not go anywhere.`],
+    [/^Ты снова у Скрижали\. Рюкзак остался (.+?) — пустой, но никуда не денется\.$/, (m) => `You are at the Tablet again. The backpack stayed ${translatePlace(m[1])} — empty, but it will not go anywhere.`],
+    [/^Рюкзак возвращён\. Внутри: (.+)\.$/, (m) => `Backpack recovered. Inside: ${m[1]}.`],
+    [/^Печатей закрыто: (\d+)\. Круг принял\. В центре проступает карта\.$/, (m) => `Seals closed: ${m[1]}. The Circle accepted. A card surfaces in the centre.`],
+    [/^Печатей закрыто: (\d+)\. Нужно не меньше (\d+)\. Круг не принял, но можно войти снова — ничего не потеряно\.$/, (m) => `Seals closed: ${m[1]}. At least ${m[2]} are needed. The Circle did not accept, but you can enter again — nothing is lost.`],
+    [/^Печать закрыта \((\d+) \/ (\d+)\)\.$/, (m) => `Seal closed (${m[1]} / ${m[2]}).`],
+    [/^Искра обожгла\. Осталось искр: (\d+)\.$/, (m) => `A spark burned you. Sparks left: ${m[1]}.`],
+    [/^вошёл в комнату «(.+)»$/, (m) => `entered the room “${m[1]}”`],
+    [/^взял карту «Очарование»$/, () => 'took the “Enchantment” card'],
+    [/^взял «(.+)»$/, (m) => `took “${m[1]}”`],
+    [/^вернул рюкзак: (.+)$/, (m) => `recovered backpack: ${m[1]}`],
+    [/^вернул пустой рюкзак$/, () => 'recovered an empty backpack'],
+    [/^поставил метку: «(.+)»$/, (m) => `placed a mark: “${m[1]}”`],
+    [/^смерть: (.+)$/, (m) => `death: ${translateCause(m[1])}`],
+    [/^шаг (.+?)( \((\d+(?:[.,]\d+)?) с\)| \(к курсору\))?$/, (m) => {
+      const suffix = m[2] === ' (к курсору)'
+        ? ' (towards the cursor)'
+        : (m[3] ? ` (${m[3]} s)` : '');
+      return `step ${translateDirection(m[1])}${suffix}`;
+    }],
     [/^Новый Лабиринт\. Seed: (.+)$/, (m) => `New Labyrinth. Seed: ${m[1]}`],
     [/^Мир загружен за (\d+) мс · комнат: (\d+) · чанков: (\d+) · seed: (.*)$/, (m) => `World loaded in ${m[1]} ms · rooms: ${m[2]} · chunks: ${m[3]} · seed: ${m[4]}`],
     [/^Мир загружен за (\d+) мс\. (.*)$/, (m) => `World loaded in ${m[1]} ms. ${m[2]}`],
@@ -581,8 +1175,17 @@
 
   function tr(text) {
     if (text === null || text === undefined) return text;
-    if (lang !== 'en') return text;
     const value = String(text);
+    if (lang === 'de') {
+      if (Object.prototype.hasOwnProperty.call(DE_PHRASES, value)) return DE_PHRASES[value];
+      if (Object.prototype.hasOwnProperty.call(PHRASES, value)) return PHRASES[value];
+      for (const [re, fn] of PATTERNS) {
+        const match = value.match(re);
+        if (match) return fn(match);
+      }
+      return value;
+    }
+    if (lang !== 'en') return text;
     if (Object.prototype.hasOwnProperty.call(PHRASES, value)) return PHRASES[value];
     for (const [re, fn] of PATTERNS) {
       const match = value.match(re);
@@ -592,7 +1195,9 @@
   }
 
   function trLabel(label) {
-    if (lang !== 'en' || !label) return label;
+    if (!label) return label;
+    if (lang === 'de') return DE_LABELS[String(label).toLowerCase()] || label;
+    if (lang !== 'en') return label;
     return LABELS[String(label).toLowerCase()] || label;
   }
 
@@ -616,13 +1221,20 @@
 
   function translateDom() {
     const en = lang === 'en';
-    document.documentElement.lang = en ? 'en' : 'ru';
-    document.title = en ? 'Labyrinth of Minds · Zemic' : 'Лабиринт сознаний · Zemic';
+    const de = lang === 'de';
+    document.documentElement.lang = de ? 'de' : en ? 'en' : 'ru';
+    document.title = de
+      ? 'Labyrinth der Bewusstseine · Zemic'
+      : en
+        ? 'Labyrinth of Minds · Zemic'
+        : 'Лабиринт сознаний · Zemic';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', en
-        ? 'Labyrinth of Minds — a browser prototype about Zemic: rooms, the terminal and a table of linked keys.'
-        : 'Лабиринт сознаний — браузерный прототип о Zemic: комнаты, терминал и стол со связанными клавишами.');
+      meta.setAttribute('content', de
+        ? 'Labyrinth der Bewusstseine — ein Browser-Prototyp über Zemic: Räume, Terminal und ein Tisch mit verknüpften Tasten.'
+        : en
+          ? 'Labyrinth of Minds — a browser prototype about Zemic: rooms, the terminal and a table of linked keys.'
+          : 'Лабиринт сознаний — браузерный прототип о Zemic: комнаты, терминал и стол со связанными клавишами.');
     }
 
     if (en) {
@@ -647,7 +1259,8 @@
       setAttr('#map-close', 'aria-label', 'Close map');
 
       setText('#canvas-title', 'Table');
-      setText('#canvas-exit', 'Exit');
+      setText('#canvas-exit', '×');
+      setAttr('#canvas-exit', 'aria-label', 'Close table');
       setText('#canvas-add-toggle', '+');
       setAttr('#canvas-add-toggle', 'aria-label', 'Add element');
       setText('#canvas-link-toggle', '→');
@@ -666,6 +1279,7 @@
       setText('#canvas-keys [data-device="keyboard"]', 'keyboard');
       setText('#canvas-keys [data-device="gamepad"]', 'gamepad');
       setText('#canvas-keys [data-device="phone"]', 'phone');
+      setText('#canvas-keys [data-device="mouse"]', 'mouse');
       setText('#canvas-drawer .drawer-head > span', 'ADD TO THE TABLE');
       setAttr('#canvas-drawer-close', 'aria-label', 'Close panel');
       setText('#canvas-response-command', 'ready');
@@ -703,6 +1317,8 @@
       setText('#setting-music-title', 'Music');
       setText('#setting-data-title', 'Data');
       setText('#open-term-settings', 'Terminal settings →');
+      setText('#open-font-settings', 'Font settings →');
+      setText('#open-music', 'Open player →');
       setText('#settings-reset', 'reset to defaults');
       setText('#setting-font-note', 'The global size applies to the whole interface. Sections can inherit it or set their own value.');
       setText('#setting-overrides-note', '0 — inherit the global size. Items and keys on the table scale with the section.');
@@ -723,6 +1339,25 @@
       setText('#setting-log-actions-text', 'actions');
       setText('#setting-log-commands-text', 'commands');
       setText('#setting-log-note', 'The action log filters useful text. For example, “movement” records steps. The “logging” command enables everything or one category: “logging movement”, “logging actions”, “logging terminal”.');
+
+      setText('#view-font-settings .eyebrow', 'INTERFACE');
+      setText('#view-font-settings .settings-title', 'Settings: font');
+      setText('#view-font-settings .settings-subtitle', 'global size and sizes by section');
+      setAttr('#font-settings-close', 'aria-label', 'Close font settings');
+      setText('#font-settings-back', '← general settings');
+      setText('#setting-font-size-title', 'Global font size');
+      setText('#setting-font-size-note', 'The global size applies to the whole interface.');
+
+      setText('#view-music .eyebrow', 'SOUND');
+      setText('#view-music .settings-title', 'Music');
+      setText('#view-music .settings-subtitle', 'player of the Labyrinth');
+      setAttr('#music-close', 'aria-label', 'Close player');
+      setText('#music-toggle', 'play');
+      setText('#music-stop', 'stop');
+      setText('#music-rate-title', 'Speed');
+      setText('#music-rate-note', 'Slowing down and speeding up change the tempo without restarting the track.');
+      setText('#music-back', '← general settings');
+      setText('#music-player-state', 'on');
 
       setText('#view-trial .trial-head .eyebrow', 'CIRCLE OF ENCHANTMENT');
 
@@ -757,7 +1392,8 @@
       setAttr('#map-close', 'aria-label', 'Закрыть карту');
 
       setText('#canvas-title', 'Стол');
-      setText('#canvas-exit', 'Выход');
+      setText('#canvas-exit', '×');
+      setAttr('#canvas-exit', 'aria-label', 'Закрыть стол');
       setText('#canvas-add-toggle', '+');
       setText('#canvas-link-toggle', '→');
       setText('#canvas-keys-toggle', 'клавиши');
@@ -769,6 +1405,7 @@
       setText('#canvas-keys [data-device="keyboard"]', 'клавиатура');
       setText('#canvas-keys [data-device="gamepad"]', 'геймпад');
       setText('#canvas-keys [data-device="phone"]', 'телефон');
+      setText('#canvas-keys [data-device="mouse"]', 'мышь');
       setText('#canvas-drawer .drawer-head > span', 'ДОБАВИТЬ НА СТОЛ');
       setText('#canvas-response-command', 'готово');
       setText('#canvas-response-reply', 'Нажми на размещённый элемент, чтобы выполнить его команду.');
@@ -833,6 +1470,139 @@
       setText('#data-load', 'загрузить сохранение');
       setText('#data-export', 'экспорт мира');
     }
+
+    if (de) {
+      setPlaceholder('#command-input', 'Befehl eingeben und senden');
+      setAttr('#command-input', 'aria-label', 'Befehlseingabe');
+      setAttr('.term-send', 'aria-label', 'Befehl senden');
+      setAttr('#btn-action', 'aria-label', 'Handlung');
+      setAttr('.dpad-up', 'aria-label', 'Oben');
+      setAttr('.dpad-left', 'aria-label', 'Links');
+      setAttr('.dpad-right', 'aria-label', 'Rechts');
+      setAttr('.dpad-down', 'aria-label', 'Unten');
+      setAttr('#divider', 'aria-label', 'Trenner zwischen Spielfläche und Terminal');
+
+      setText('#view-inventory .eyebrow', 'GETRAGEN');
+      setText('#inv-title', 'Rucksack');
+      setText('#inventory-note', 'Gegenstände lassen sich auf den Tisch legen und ihre Befehle mit einem kurzen Druck ausführen.');
+      setAttr('#inventory-close', 'aria-label', 'Rucksack schließen');
+
+      setText('#view-map .eyebrow', 'ÖRTLICHER BEREICH');
+      setText('#map-title', 'Karte');
+      setText('#map-note', 'Vorerst ist dies nur die Erinnerung an das Durchquerte.');
+      setAttr('#map-close', 'aria-label', 'Karte schließen');
+
+      setText('#canvas-title', 'Tisch');
+      setText('#canvas-exit', '×');
+      setAttr('#canvas-exit', 'aria-label', 'Tisch schließen');
+      setText('#canvas-add-toggle', '+');
+      setAttr('#canvas-add-toggle', 'aria-label', 'Element hinzufügen');
+      setText('#canvas-link-toggle', '→');
+      setAttr('#canvas-link-toggle', 'aria-label', 'Verknüpfen');
+      setText('#canvas-keys-toggle', 'tasten');
+      setAttr('#canvas-keys-toggle', 'aria-label', 'Tasten');
+      setAttr('#canvas-zoom-out', 'aria-label', 'Verkleinern');
+      setAttr('#canvas-zoom-reset', 'aria-label', 'Zoom und Position zurücksetzen');
+      setAttr('#canvas-zoom-in', 'aria-label', 'Vergrößern');
+      setText('#canvas-hint', 'Elemente ziehen. Klicken zum Ausführen. Eine Taste mit Zielen verknüpfen, um sie mit einem Druck zu starten.');
+      setAttr('#canvas-workspace', 'aria-label', 'Arbeitsfläche des Tisches');
+      setText('#canvas-empty span', 'hier ist noch leer');
+      setText('#canvas-empty small', 'Füge einen Fund, einen Befehl oder eine Taste aus dem „+“-Panel hinzu. Eine Taste kann mit mehreren Zielen verknüpft werden.');
+      setText('#canvas-keyboard-hint', 'Klicke eine Taste — sie erscheint sofort auf dem Tisch.');
+      setText('#canvas-keys .keys-head > span', 'STEUERUNGSSCHEMA');
+      setText('#canvas-keys [data-device="keyboard"]', 'tastatur');
+      setText('#canvas-keys [data-device="gamepad"]', 'gamepad');
+      setText('#canvas-keys [data-device="phone"]', 'telefon');
+      setText('#canvas-keys [data-device="mouse"]', 'maus');
+      setText('#canvas-drawer .drawer-head > span', 'ZUM TISCH HINZUFÜGEN');
+      setAttr('#canvas-drawer-close', 'aria-label', 'Panel schließen');
+      setText('#canvas-response-command', 'bereit');
+      setText('#canvas-response-reply', 'Klicke ein platziertes Element, um seinen Befehl auszuführen.');
+      setText('#canvas-move-note', 'Bewegung: standardmäßig 1 s · „walk down 10“ — 10 s');
+      setText('#canvas-move-seconds-label', 'sekunden');
+      setAttr('[data-canvas-move="up"]', 'aria-label', 'Nach oben gehen');
+      setAttr('[data-canvas-move="down"]', 'aria-label', 'Nach unten gehen');
+      setAttr('[data-canvas-move="left"]', 'aria-label', 'Nach links gehen');
+      setAttr('[data-canvas-move="right"]', 'aria-label', 'Nach rechts gehen');
+      setAttr('#canvas-move-stop', 'aria-label', 'Bewegung anhalten');
+      setAttr('#canvas-move-seconds', 'aria-label', 'Bewegungsdauer in Sekunden');
+      setAttr('#music-seek', 'aria-label', 'Position im Track');
+      setAttr('#music-volume', 'aria-label', 'Musiklautstärke');
+      setText('#music-volume-label', 'lautstärke');
+
+      setText('#view-card .eyebrow', 'KARTE');
+      setAttr('#card-close', 'aria-label', 'Zum Tisch zurückkehren');
+      setText('#card-run', 'wirken');
+      setText('#card-place', 'auf den Tisch');
+      setText('#card-back', '← zum Tisch');
+
+      setText('#view-story .eyebrow', 'ZWEIG');
+      setText('#story-title', 'Geschichte');
+      setAttr('#story-close', 'aria-label', 'Geschichtszweig schließen');
+
+      setText('#view-settings .settings-title', 'Einstellungen');
+      setText('#view-settings .settings-subtitle', 'Oberfläche, Ton und Daten');
+      setAttr('#settings-close', 'aria-label', 'Einstellungen schließen');
+      setText('#setting-language-title', 'Sprache');
+      setText('#setting-font-title', 'Schriftgröße');
+      setText('#setting-overrides-title', 'Größen nach Bereichen');
+      setText('#setting-override-terminal-name', 'terminal');
+      setText('#setting-override-table-name', 'tisch');
+      setText('#setting-music-title', 'Musik');
+      setText('#setting-data-title', 'Daten');
+      setText('#open-term-settings', 'Terminal-Einstellungen →');
+      setText('#open-font-settings', 'Schrifteinstellungen →');
+      setText('#open-music', 'Musikplayer →');
+      setText('#settings-reset', 'auf Standard zurücksetzen');
+      setText('#setting-font-note', 'Die globale Größe gilt für die gesamte Oberfläche. Bereiche können sie erben oder einen eigenen Wert setzen.');
+      setText('#setting-overrides-note', '0 — globale Größe erben. Gegenstände und Tasten auf dem Tisch skalieren mit dem Bereich.');
+      setText('#setting-language-state', 'Deutsch');
+
+      setText('#view-term-settings .settings-title', 'Einstellungen: Terminal');
+      setText('#view-term-settings .settings-subtitle', 'Text und Ereignisaufzeichnung');
+      setAttr('#term-settings-close', 'aria-label', 'Terminal-Einstellungen schließen');
+      setText('#term-settings-back', '← allgemeine Einstellungen');
+      setText('#setting-speed-title', 'Geschwindigkeit der Textanzeige');
+      setText('#setting-log-title', 'Aktionsprotokoll');
+      setText('#setting-log-enable-text', 'Ereignisse im Terminal aufzeichnen');
+      setText('#setting-log-terminal-text', 'terminal');
+      setText('#setting-log-scenes-text', 'szenen');
+      setText('#setting-log-system-text', 'system');
+      setText('#setting-log-world-text', 'welt');
+      setText('#setting-log-movement-text', 'bewegung');
+      setText('#setting-log-actions-text', 'handlungen');
+      setText('#setting-log-commands-text', 'befehle');
+      setText('#setting-log-note', 'Das Aktionsprotokoll filtert nützlichen Text. „Bewegung“ zeichnet zum Beispiel Schritte auf. Der Befehl „protokoll“ aktiviert alles oder eine Kategorie: „logging movement“, „logging actions“, „logging terminal“.');
+
+      setText('#view-font-settings .eyebrow', 'OBERFLÄCHE');
+      setText('#view-font-settings .settings-title', 'Einstellungen: Schrift');
+      setText('#view-font-settings .settings-subtitle', 'globale Größe und Größen nach Bereichen');
+      setAttr('#font-settings-close', 'aria-label', 'Schrifteinstellungen schließen');
+      setText('#font-settings-back', '← allgemeine Einstellungen');
+      setText('#setting-font-size-title', 'Globale Schriftgröße');
+      setText('#setting-font-size-note', 'Die globale Größe gilt für die gesamte Oberfläche.');
+
+      setText('#view-music .eyebrow', 'TON');
+      setText('#view-music .settings-title', 'Musik');
+      setText('#view-music .settings-subtitle', 'Player des Labyrinths');
+      setAttr('#music-close', 'aria-label', 'Player schließen');
+      setText('#music-toggle', 'abspielen');
+      setText('#music-stop', 'stopp');
+      setText('#music-rate-title', 'Geschwindigkeit');
+      setText('#music-rate-note', 'Verlangsamen und Beschleunigen ändern das Tempo ohne Neustart des Tracks.');
+      setText('#music-back', '← allgemeine Einstellungen');
+      setText('#music-player-state', 'an');
+
+      setText('#view-trial .trial-head .eyebrow', 'KREIS DER VERZAUBERUNG');
+
+      setText('#btn-save', 'speichern');
+      setText('#btn-load', 'laden');
+      setText('#btn-export', 'exportieren');
+      setText('#data-save', 'welt speichern');
+      setText('#data-load', 'speicherung laden');
+      setText('#data-export', 'welt exportieren');
+      setAttr('#btn-settings', 'aria-label', 'Einstellungen');
+    }
     refreshLangButtons();
   }
 
@@ -852,9 +1622,10 @@
   }
 
   function apply(targetLang, quiet) {
-    lang = targetLang === 'en' ? 'en' : 'ru';
+    lang = targetLang === 'en' ? 'en' : targetLang === 'de' ? 'de' : 'ru';
     deepApply(C, RU);
-    if (lang === 'en') deepApply(C, EN);
+    if (lang === 'en' || lang === 'de') deepApply(C, EN);
+    if (lang === 'de') deepApply(C, DE);
     recomputeHelp();
     try {
       window.localStorage.setItem(KEY, lang);
@@ -877,9 +1648,15 @@
     }
     window.dispatchEvent(new CustomEvent('zqwy:lang', { detail: { lang } }));
     if (!quiet && ZQ) {
-      const name = lang === 'en' ? 'English' : 'русский';
-      const text = lang === 'en' ? `Language: ${name}` : `Язык: ${name}`;
-      if (typeof ZQ.appendLog === 'function') ZQ.appendLog(text, 'sys', true, lang === 'en' ? 'system' : 'система');
+      const name = lang === 'de' ? 'Deutsch' : lang === 'en' ? 'English' : 'русский';
+      const text = lang === 'de'
+        ? `Sprache: ${name}`
+        : lang === 'en'
+          ? `Language: ${name}`
+          : `Язык: ${name}`;
+      if (typeof ZQ.appendLog === 'function') {
+        ZQ.appendLog(text, 'sys', true, lang === 'de' ? 'system' : lang === 'en' ? 'system' : 'система');
+      }
     }
     return lang;
   }
@@ -887,7 +1664,8 @@
   function initial() {
     let saved = 'ru';
     try {
-      saved = window.localStorage.getItem(KEY) === 'en' ? 'en' : 'ru';
+      const stored = window.localStorage.getItem(KEY);
+      saved = stored === 'en' || stored === 'de' ? stored : 'ru';
     } catch (error) {
       saved = 'ru';
     }
@@ -896,18 +1674,20 @@
 
   const I18N = {
     get lang() { return lang; },
-    en: lang === 'en',
+    get en() { return lang === 'en'; },
+    get de() { return lang === 'de'; },
     tr,
     trLabel,
     apply,
     setLanguage(value) {
       const valueText = String(value || '').toLowerCase();
       if (valueText === 'en' || valueText === 'english' || valueText === 'английский') return apply('en');
+      if (valueText === 'de' || valueText === 'deutsch' || valueText === 'german' || valueText === 'немецкий') return apply('de');
       if (valueText === 'ru' || valueText === 'russian' || valueText === 'русский') return apply('ru');
       return lang;
     },
     toggle() {
-      return apply(lang === 'en' ? 'ru' : 'en');
+      return apply(lang === 'ru' ? 'en' : lang === 'en' ? 'de' : 'ru');
     },
     phrases: PHRASES
   };

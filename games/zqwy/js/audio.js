@@ -12,9 +12,18 @@
   const audio = {
     cue: 'tablet',
     started: false,
+    context: null,
+    analyser: null,
+    source: null,
+    waveData: null,
 
     element() {
       return dom.soundtrack || null;
+    },
+
+    rate() {
+      const value = Number(rt.termSettings && rt.termSettings.musicRate);
+      return Number.isFinite(value) ? ZQ.clamp(value, 0.5, 2) : 1;
     },
 
     volume() {
@@ -24,6 +33,65 @@
       return ZQ.clamp(fallback, 0, 1);
     },
 
+    ensureAnalyser() {
+      const el = this.element();
+      if (!el || this.analyser) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      try {
+        if (!this.context) this.context = new Ctx();
+        if (this.context.state === 'suspended') this.context.resume();
+        if (!this.source) this.source = this.context.createMediaElementSource(el);
+        this.analyser = this.context.createAnalyser();
+        this.analyser.fftSize = 512;
+        this.analyser.smoothingTimeConstant = 0.82;
+        this.waveData = new Uint8Array(this.analyser.fftSize);
+        this.source.connect(this.analyser);
+        this.analyser.connect(this.context.destination);
+      } catch (error) {
+        this.analyser = null;
+        this.waveData = null;
+      }
+    },
+
+    waveform(bars) {
+      const count = Math.max(8, Math.min(160, Math.round(bars || 64)));
+      const result = [];
+      if (this.analyser && this.waveData) {
+        try {
+          this.analyser.getByteTimeDomainData(this.waveData);
+          const step = Math.max(1, Math.floor(this.waveData.length / count));
+          for (let i = 0; i < count; i += 1) {
+            let peak = 0;
+            for (let j = 0; j < step; j += 1) {
+              peak = Math.max(peak, Math.abs(this.waveData[i * step + j] - 128) / 128);
+            }
+            result.push(Math.max(0.04, peak));
+          }
+          return result;
+        } catch (error) {
+          /* fall through to the synthetic shape */
+        }
+      }
+      const el = this.element();
+      const time = el && Number.isFinite(el.currentTime) ? el.currentTime : 0;
+      const total = el && Number.isFinite(el.duration) && el.duration > 0 ? el.duration : 1;
+      const progress = time / total;
+      for (let i = 0; i < count; i += 1) {
+        const x = i / count;
+        const wave = Math.abs(Math.sin((x * 11 + progress * 17) * Math.PI));
+        const beat = Math.abs(Math.sin((x * 47 + progress * 31) * Math.PI));
+        result.push(Math.max(0.04, 0.18 + wave * 0.55 + beat * 0.22));
+      }
+      return result;
+    },
+
+    progress() {
+      const el = this.element();
+      if (!el || !Number.isFinite(el.duration) || el.duration <= 0) return 0;
+      return ZQ.clamp(el.currentTime / el.duration, 0, 1);
+    },
+
     ensure() {
       const el = this.element();
       if (!el) return;
@@ -31,10 +99,12 @@
       if (!el.getAttribute('src')) el.setAttribute('src', C.music.file);
       el.loop = true;
       el.volume = this.volume();
+      el.playbackRate = this.rate();
       if (!rt.termSettings.music) {
         el.pause();
         return;
       }
+      this.ensureAnalyser();
       const play = el.play();
       if (play && typeof play.catch === 'function') {
         play.then(() => {
@@ -53,6 +123,7 @@
         current: el && Number.isFinite(el.currentTime) ? el.currentTime : 0,
         duration: el && Number.isFinite(el.duration) ? el.duration : 0,
         volume: this.volume(),
+        rate: el && Number.isFinite(el.playbackRate) ? el.playbackRate : this.rate(),
         cue: this.cue || 'labyrinth'
       };
     },
@@ -112,6 +183,14 @@
       const el = this.element();
       if (el) el.volume = volume;
       return volume;
+    },
+
+    setRate(value) {
+      const rate = ZQ.clamp(Number(value) || 1, 0.5, 2);
+      rt.termSettings.musicRate = rate;
+      const el = this.element();
+      if (el) el.playbackRate = rate;
+      return rate;
     },
 
     setCue(cue) {

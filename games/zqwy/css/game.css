@@ -120,6 +120,50 @@ button {
   display: block;
   width: 100%;
   height: 100%;
+  cursor: none;
+}
+
+/* Игровой курсор вместо системного: кольцо и точка. */
+.game-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.game-cursor.hidden {
+  opacity: 0;
+}
+
+.game-cursor-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(229, 161, 104, 0.72);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(229, 161, 104, 0.12), transparent 68%);
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.game-cursor-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: rgba(246, 234, 215, 0.92);
+  box-shadow: 0 0 6px rgba(229, 161, 104, 0.55);
+}
+
+.game-cursor.down .game-cursor-ring {
+  border-color: rgba(246, 234, 215, 0.92);
+  transform: scale(0.76);
 }
 
 .vignette {
@@ -469,10 +513,13 @@ button {
   letter-spacing: 0.04em;
 }
 
-/* Системные сообщения и ответы терминала — один цвет. */
+/* Системные сообщения, «оператор» и ответы терминала — один цвет.
+   Раньше поздние правила перекрашивали часть строк, из-за чего
+   сообщения системы выглядели иначе. Теперь цвет задан в одном месте. */
 .log-line.sys,
-.log-line.reply {
-  color: rgba(198, 201, 187, 0.72);
+.log-line.reply,
+.log-line.log-system {
+  color: rgba(210, 214, 201, 0.82);
 }
 
 .log-line.sys {
@@ -480,7 +527,8 @@ button {
 }
 
 .log-line.sys .log-label,
-.log-line.reply .log-label {
+.log-line.reply .log-label,
+.log-line.log-system .log-label {
   color: rgba(127, 155, 132, 0.74);
 }
 
@@ -526,9 +574,45 @@ button {
   font-weight: 700;
 }
 
+.term-field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+.command-ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 4px 0;
+  color: rgba(169, 173, 160, 0.38);
+  font-family: var(--font);
+  font-size: calc(var(--term-font) * 1.04);
+  letter-spacing: 0.01em;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.command-ghost.hidden {
+  display: none;
+}
+
+.command-ghost-prefix {
+  color: transparent;
+}
+
+.command-ghost-suffix {
+  color: rgba(169, 173, 160, 0.38);
+}
+
 #command-input {
   flex: 1;
   min-width: 0;
+  width: 100%;
   padding: 4px 0;
   border: 0;
   outline: 0;
@@ -2664,10 +2748,6 @@ body.split-dragging {
   flex: 0 0 auto;
 }
 
-.story-now {
-  flex: 0 0 auto;
-}
-
 .story-summary {
   display: flex;
   flex-direction: column;
@@ -3020,43 +3100,6 @@ body.split-dragging {
   font-size: var(--fs-sm);
 }
 
-.command-suggest {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 5px 0 4px;
-  border-top: 1px solid rgba(196, 204, 193, 0.08);
-  background: #080b0c;
-}
-
-.command-suggest-item {
-  padding: 3px 7px;
-  border: 1px solid rgba(196, 204, 193, 0.16);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(224, 218, 201, 0.78);
-  font-family: var(--font);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.02em;
-}
-
-.command-suggest-item b {
-  color: rgba(229, 161, 104, 0.92);
-  font-weight: 700;
-}
-
-.command-suggest-item.active,
-.command-suggest-item:hover,
-.command-suggest-item:focus-visible {
-  border-color: rgba(229, 161, 104, 0.55);
-  background: rgba(96, 51, 26, 0.42);
-  color: #f6ead7;
-  outline: none;
-}
-
 .settings-title {
   margin: 2px 0 0;
   color: #f0e6d4;
@@ -3134,6 +3177,20 @@ body.split-dragging {
   letter-spacing: 0.04em;
 }
 
+.music-wave {
+  display: block;
+  width: 100%;
+  height: 78px;
+  border: 1px solid rgba(196, 204, 193, 0.12);
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(208, 118, 60, 0.08), transparent 70%),
+    #080b0c;
+}
+
+.music-rate-presets [data-rate] {
+  min-width: 66px;
+}
+
 .music-volume {
   display: flex;
   align-items: center;
@@ -3150,30 +3207,6 @@ body.split-dragging {
   margin: 0;
   accent-color: var(--rust);
   cursor: pointer;
-}
-
-/* ------------------------------------------------------------------ */
-/* Предупреждение о пропорциях                                         */
-/* ------------------------------------------------------------------ */
-
-.aspect-warning {
-  position: absolute;
-  right: 10px;
-  bottom: 12px;
-  left: 10px;
-  z-index: 12;
-  padding: 8px 10px;
-  border: 1px solid rgba(229, 161, 104, 0.45);
-  border-left: 2px solid var(--rust-bright);
-  background: rgba(18, 14, 11, 0.88);
-  color: rgba(244, 231, 210, 0.9);
-  font-size: var(--fs-sm);
-  line-height: 1.4;
-  pointer-events: none;
-}
-
-.aspect-warning.hidden {
-  display: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -3371,6 +3404,12 @@ body.split-dragging {
   background:
     radial-gradient(circle at 50% 0%, rgba(208, 118, 60, 0.06), transparent 55%),
     #0a0e0f;
+  cursor: grab;
+  touch-action: none;
+}
+
+.story-tree.panning {
+  cursor: grabbing;
 }
 
 .story-board {
@@ -3381,6 +3420,21 @@ body.split-dragging {
     linear-gradient(rgba(178, 189, 177, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(178, 189, 177, 0.035) 1px, transparent 1px);
   background-size: 22px 22px;
+  cursor: grab;
+}
+
+.story-tree.panning .story-board {
+  cursor: grabbing;
+}
+
+.story-board .story-node {
+  cursor: grab;
+}
+
+.story-board .story-node.dragging {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: 0 0 0 1px rgba(229, 161, 104, 0.45), 0 14px 32px rgba(0, 0, 0, 0.5);
 }
 
 .story-edges {
@@ -3494,24 +3548,40 @@ body.split-dragging {
   white-space: nowrap;
 }
 
+#view-canvas .canvas-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-color: rgba(196, 204, 193, 0.24);
+  background: transparent;
+  color: rgba(227, 221, 204, 0.78);
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  line-height: 1;
+}
+
+#view-canvas .canvas-close:hover,
+#view-canvas .canvas-close:focus-visible {
+  border-color: rgba(229, 161, 104, 0.65);
+  background: rgba(96, 51, 26, 0.36);
+  color: #f3e7d4;
+}
+
 /* Отправленная команда ближе к ответу: меньше воздуха между строками. */
 .log-line.cmd {
   margin-bottom: 0;
+  line-height: 1.32;
 }
 
 .log-line.cmd + .log-line {
-  margin-top: 1px;
+  margin-top: 0;
+  line-height: 1.32;
 }
 
-/* «система» и «ЛАБИРИНТ» — ярче и различимее. */
-.log-line.sys {
-  color: rgba(224, 227, 215, 0.9);
-}
-
-.log-line.sys .log-label {
-  color: rgba(235, 168, 108, 0.95);
-}
-
+/* «система» и «ЛАБИРИНТ» используют тот же цвет, что и остальные
+   служебные строки. Здесь только размеры, без перекраски. */
 .log-line.story .log-label {
   color: rgba(154, 212, 175, 0.96);
 }

@@ -14,6 +14,10 @@
     <main id="app" aria-label="Лабиринт сознаний">
       <section id="play" class="play" aria-label="Лабиринт">
         <canvas id="world-canvas"></canvas>
+        <div id="game-cursor" class="game-cursor hidden" aria-hidden="true">
+          <span class="game-cursor-ring"></span>
+          <span class="game-cursor-dot"></span>
+        </div>
 
         <div class="touch-ui">
           <div class="dpad" aria-label="Управление движением">
@@ -26,8 +30,6 @@
         </div>
 
         <div class="vignette" aria-hidden="true"></div>
-
-        <div id="aspect-warning" class="aspect-warning hidden" role="status"></div>
 
         <div id="trial-stage" class="trial-stage hidden" aria-label="Испытание Круга Очарования">
           <canvas id="trial-canvas"></canvas>
@@ -52,10 +54,12 @@
           <div id="view-main" class="term-view">
             <div id="log" class="log" role="log" aria-live="polite"></div>
             <div id="term-context" class="term-context" aria-live="polite"></div>
-            <div id="command-suggest" class="command-suggest hidden" role="listbox" aria-label="Подсказки команд"></div>
             <form id="command-form" class="term-input" autocomplete="off">
               <label for="command-input" class="prompt-glyph">&gt;</label>
-              <input id="command-input" name="command" type="text" placeholder="Введите команду и нажмите отправить" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
+              <div class="term-field">
+                <span id="command-ghost" class="command-ghost hidden" aria-hidden="true"></span>
+                <input id="command-input" name="command" type="text" placeholder="Введите команду и нажмите отправить" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
+              </div>
               <button class="term-send" type="submit" aria-label="Отправить команду">↵</button>
             </form>
           </div>
@@ -100,7 +104,7 @@
                 <button id="canvas-zoom-reset" class="zoom-btn zoom-value" type="button" aria-label="Сбросить масштаб и положение"><span id="canvas-zoom-label">100%</span></button>
                 <button id="canvas-zoom-in" class="zoom-btn" type="button" aria-label="Увеличить масштаб">+</button>
               </div>
-              <button id="canvas-exit" class="exit-btn" type="button">Выход</button>
+              <button id="canvas-exit" class="exit-btn canvas-close" type="button" aria-label="Закрыть стол">×</button>
             </div>
             <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. Свяжи клавишу с целями, чтобы запускать их одной кнопкой.</span>
 
@@ -135,6 +139,7 @@
                   <button type="button" class="active" data-device="keyboard" role="tab" aria-selected="true">клавиатура</button>
                   <button type="button" data-device="gamepad" role="tab" aria-selected="false">геймпад</button>
                   <button type="button" data-device="phone" role="tab" aria-selected="false">телефон</button>
+                  <button type="button" data-device="mouse" role="tab" aria-selected="false">мышь</button>
                 </div>
               </div>
               <p id="canvas-keyboard-hint" class="scheme-intro">Нажми на клавишу — она сразу появится на столе.</p>
@@ -189,7 +194,6 @@
               </div>
               <button class="close-btn" id="story-close" type="button" aria-label="Закрыть ветвь истории">×</button>
             </header>
-            <div id="story-now" class="story-now"></div>
             <div id="story-tree" class="story-tree"></div>
           </div>
 
@@ -211,45 +215,17 @@
                 <div class="setting-presets" id="setting-language">
                   <button type="button" data-lang="ru">русский</button>
                   <button type="button" data-lang="en">English</button>
+                  <button type="button" data-lang="de">Deutsch</button>
                 </div>
               </section>
 
               <section class="setting-group">
                 <div class="setting-head">
-                  <span id="setting-font-title">Общий размер шрифта</span>
-                  <b id="setting-font-value">14 px</b>
+                  <span id="setting-font-title">Шрифт</span>
+                  <b id="setting-font-current">14 px</b>
                 </div>
-                <div class="setting-control-row">
-                  <input id="setting-font-number" class="setting-number" type="number" min="10" max="24" step="1" value="14" inputmode="numeric" aria-label="Общий размер шрифта в пикселях">
-                  <input id="setting-font" class="setting-range" type="range" min="10" max="24" step="1" value="14" aria-label="Общий размер шрифта">
-                </div>
-                <div class="setting-presets" id="setting-font-presets">
-                  <button type="button" data-font="12">12</button>
-                  <button type="button" data-font="14">14</button>
-                  <button type="button" data-font="16">16</button>
-                  <button type="button" data-font="18">18</button>
-                </div>
-                <p id="setting-font-note" class="setting-note-inline">Общий размер применяется ко всему интерфейсу.</p>
-              </section>
-
-              <section class="setting-group">
-                <div class="setting-head">
-                  <span id="setting-overrides-title">Размеры по разделам</span>
-                  <b>необязательно</b>
-                </div>
-                <div class="setting-override" data-override="terminal">
-                  <span class="setting-override-name" id="setting-override-terminal-name">терминал</span>
-                  <input id="setting-font-terminal-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта терминала; 0 — как общий">
-                  <input id="setting-font-terminal" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта терминала">
-                  <button type="button" class="setting-auto" data-font-clear="terminal">авто</button>
-                </div>
-                <div class="setting-override" data-override="table">
-                  <span class="setting-override-name" id="setting-override-table-name">стол</span>
-                  <input id="setting-font-table-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта стола; 0 — как общий">
-                  <input id="setting-font-table" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта стола">
-                  <button type="button" class="setting-auto" data-font-clear="table">авто</button>
-                </div>
-                <p id="setting-overrides-note" class="setting-note-inline">0 — наследовать общий размер. Предметы и клавиши на столе масштабируются вместе с разделом.</p>
+                <p id="setting-font-note" class="setting-note-inline">Общий размер и размеры по разделам настраиваются в отдельном разделе.</p>
+                <button id="open-font-settings" class="ghost-btn" type="button">Настройки шрифта →</button>
               </section>
 
               <section class="setting-group">
@@ -257,20 +233,8 @@
                   <span id="setting-music-title">Музыка</span>
                   <b id="music-state">включена</b>
                 </div>
-                <div class="music-player">
-                  <div class="music-controls">
-                    <button id="music-toggle" class="ghost-btn" type="button">играть</button>
-                    <button id="music-stop" class="ghost-btn" type="button">стоп</button>
-                  </div>
-                  <input id="music-seek" class="music-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
-                  <div class="music-meta">
-                    <span id="music-time">0:00 / 0:00</span>
-                    <span id="music-cue">Лабиринт</span>
-                  </div>
-                  <label class="music-volume"><span id="music-volume-label">громкость</span>
-                    <input id="music-volume" type="range" min="0" max="100" step="1" value="55" aria-label="Громкость музыки">
-                  </label>
-                </div>
+                <p id="setting-music-note" class="setting-note-inline">Плеер: остановка, перемотка, громкость, волна и скорость воспроизведения.</p>
+                <button id="open-music" class="ghost-btn" type="button">Открыть плеер →</button>
               </section>
 
               <section class="setting-group">
@@ -363,6 +327,112 @@
             </div>
           </div>
 
+          <div id="view-font-settings" class="term-view hidden" aria-label="Настройки шрифта">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ИНТЕРФЕЙС</span>
+                <h2 class="settings-title">Настройки: шрифт</h2>
+                <p class="settings-subtitle">общий размер и размеры по разделам</p>
+              </div>
+              <button class="close-btn" id="font-settings-close" type="button" aria-label="Закрыть настройки шрифта">×</button>
+            </header>
+            <div class="settings-body">
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-font-size-title">Общий размер шрифта</span>
+                  <b id="setting-font-value">14 px</b>
+                </div>
+                <div class="setting-control-row">
+                  <input id="setting-font-number" class="setting-number" type="number" min="10" max="24" step="1" value="14" inputmode="numeric" aria-label="Общий размер шрифта в пикселях">
+                  <input id="setting-font" class="setting-range" type="range" min="10" max="24" step="1" value="14" aria-label="Общий размер шрифта">
+                </div>
+                <div class="setting-presets" id="setting-font-presets">
+                  <button type="button" data-font="12">12</button>
+                  <button type="button" data-font="14">14</button>
+                  <button type="button" data-font="16">16</button>
+                  <button type="button" data-font="18">18</button>
+                </div>
+                <p id="setting-font-size-note" class="setting-note-inline">Общий размер применяется ко всему интерфейсу.</p>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-overrides-title">Размеры по разделам</span>
+                  <b>необязательно</b>
+                </div>
+                <div class="setting-override" data-override="terminal">
+                  <span class="setting-override-name" id="setting-override-terminal-name">терминал</span>
+                  <input id="setting-font-terminal-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта терминала; 0 — как общий">
+                  <input id="setting-font-terminal" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта терминала">
+                  <button type="button" class="setting-auto" data-font-clear="terminal">авто</button>
+                </div>
+                <div class="setting-override" data-override="table">
+                  <span class="setting-override-name" id="setting-override-table-name">стол</span>
+                  <input id="setting-font-table-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта стола; 0 — как общий">
+                  <input id="setting-font-table" class="setting-range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта стола">
+                  <button type="button" class="setting-auto" data-font-clear="table">авто</button>
+                </div>
+                <p id="setting-overrides-note" class="setting-note-inline">0 — наследовать общий размер. Предметы и клавиши на столе масштабируются вместе с разделом.</p>
+              </section>
+
+              <button id="font-settings-back" class="ghost-btn" type="button">← общие настройки</button>
+            </div>
+          </div>
+
+          <div id="view-music" class="term-view hidden" aria-label="Музыкальный плеер">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ЗВУК</span>
+                <h2 class="settings-title">Музыка</h2>
+                <p class="settings-subtitle">плеер лабиринта</p>
+              </div>
+              <button class="close-btn" id="music-close" type="button" aria-label="Закрыть плеер">×</button>
+            </header>
+            <div class="settings-body music-body">
+              <section class="setting-group music-card">
+                <div class="setting-head">
+                  <span>Трек</span>
+                  <b id="music-player-state">включена</b>
+                </div>
+                <div class="music-meta">
+                  <span id="music-cue">Лабиринт</span>
+                  <span id="music-time">0:00 / 0:00</span>
+                </div>
+                <canvas id="music-wave" class="music-wave" width="640" height="120" aria-label="Волна трека"></canvas>
+                <input id="music-seek" class="music-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
+                <div class="music-controls">
+                  <button id="music-toggle" class="ghost-btn" type="button">играть</button>
+                  <button id="music-stop" class="ghost-btn" type="button">стоп</button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="music-volume-label">Громкость</span>
+                  <b id="music-volume-value">55%</b>
+                </div>
+                <input id="music-volume" class="setting-range" type="range" min="0" max="100" step="1" value="55" aria-label="Громкость музыки">
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="music-rate-title">Скорость</span>
+                  <b id="music-rate-value">1.00×</b>
+                </div>
+                <input id="music-rate" class="setting-range" type="range" min="50" max="200" step="5" value="100" aria-label="Скорость воспроизведения">
+                <div class="setting-presets music-rate-presets">
+                  <button type="button" data-rate="75">медленно</button>
+                  <button type="button" data-rate="100">обычно</button>
+                  <button type="button" data-rate="125">быстро</button>
+                  <button type="button" data-rate="150">очень быстро</button>
+                </div>
+                <p id="music-rate-note" class="setting-note-inline">Замедление и ускорение меняют темп воспроизведения без перезапуска трека.</p>
+              </section>
+
+              <button id="music-back" class="ghost-btn" type="button">← общие настройки</button>
+            </div>
+          </div>
+
           <div id="view-trial" class="term-view hidden" aria-label="Испытание Круга Очарования">
             <div id="trial-console" class="trial-console">
               <div class="trial-head">
@@ -388,6 +458,7 @@
     <div class="noscript">Для этой игры нужен JavaScript. Включите его в браузере.</div>
   </noscript>
 
+  <script src="js/build-info.js"></script>
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/fonts.js"></script>
@@ -403,6 +474,7 @@
   <script src="js/table.js"></script>
   <script src="js/trial.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/music.js"></script>
   <script src="js/input.js"></script>
   <script src="js/main.js"></script>
 </body>

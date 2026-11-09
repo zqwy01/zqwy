@@ -24,7 +24,8 @@
     else if (rt.termView === 'canvas') ZQ.closeCanvas();
     else if (rt.termView === 'inventory') ZQ.closeInventory();
     else if (rt.termView === 'map') ZQ.closeMap();
-    else if (rt.termView === 'settings') ZQ.closeSettings();
+    else if (rt.termView === 'settings' || rt.termView === 'termSettings' || rt.termView === 'fontSettings') ZQ.closeSettings();
+    else if (rt.termView === 'music') ZQ.closeMusic();
     else if (rt.termView === 'story') ZQ.closeStory();
   }
 
@@ -235,6 +236,58 @@
     if (rt.trial && rt.trial.active) return false;
     return rt.termView === 'main' || rt.termView === 'canvas';
   }
+
+  /* --------------------- Свой курсор в мире ------------------------ */
+  function hideGameCursor() {
+    if (!dom.gameCursor) return;
+    dom.gameCursor.classList.add('hidden');
+    dom.gameCursor.classList.remove('down');
+    rt.cursorPos.inside = false;
+    rt.cursorPos.down = false;
+  }
+
+  function updateGameCursor(event) {
+    if (!dom.gameCursor) return;
+    if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') {
+      hideGameCursor();
+      return;
+    }
+    const canvasRect = dom.worldCanvas.getBoundingClientRect();
+    const inside = event.clientX >= canvasRect.left &&
+      event.clientX <= canvasRect.right &&
+      event.clientY >= canvasRect.top &&
+      event.clientY <= canvasRect.bottom;
+    if (!inside || ZQ.isTyping()) {
+      hideGameCursor();
+      return;
+    }
+    const host = dom.gameCursor.parentElement || dom.worldCanvas;
+    const hostRect = host.getBoundingClientRect();
+    const x = event.clientX - hostRect.left;
+    const y = event.clientY - hostRect.top;
+    rt.cursorPos.x = x;
+    rt.cursorPos.y = y;
+    rt.cursorPos.inside = true;
+    dom.gameCursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    dom.gameCursor.classList.remove('hidden');
+  }
+
+  dom.worldCanvas.addEventListener('pointerenter', updateGameCursor);
+  dom.worldCanvas.addEventListener('pointermove', updateGameCursor);
+  dom.worldCanvas.addEventListener('pointerleave', hideGameCursor);
+  dom.worldCanvas.addEventListener('pointerdown', (event) => {
+    if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+    updateGameCursor(event);
+    if (dom.gameCursor && !dom.gameCursor.classList.contains('hidden')) {
+      dom.gameCursor.classList.add('down');
+      rt.cursorPos.down = true;
+    }
+  });
+  window.addEventListener('pointerup', () => {
+    if (!dom.gameCursor) return;
+    dom.gameCursor.classList.remove('down');
+    rt.cursorPos.down = false;
+  });
 
   dom.worldCanvas.addEventListener('pointerdown', (event) => {
     if (event.button !== undefined && event.button !== 0) return;

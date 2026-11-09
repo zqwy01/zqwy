@@ -498,8 +498,7 @@
 
     if (room.storyIndex !== null && room.storyIndex !== undefined &&
         C.proceduralStories[room.storyIndex]) {
-      ZQ.queueProceduralStory(room);
-      return;
+      if (ZQ.queueProceduralStory(room)) return;
     }
 
     const ambient = C.ambientRoomLines[

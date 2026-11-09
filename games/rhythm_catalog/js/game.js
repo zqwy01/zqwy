@@ -91,7 +91,10 @@
     dpr: 1,
     safeTop: 0,
     lastAlbumId: null,
-    lastTrackId: null
+    lastTrackId: null,
+    searchActive: false,
+    searchQuery: '',
+    searchResults: []
   };
 
   let raf = 0;
@@ -241,10 +244,21 @@
     return (clean.replace(/\s/g, '').slice(0, 2) || 'ZQ').toUpperCase();
   }
 
-  function trackMeta(track) {
+  function applyReleaseColors(el, album) {
+    const theme = albumTheme(album);
+    el.style.setProperty('--rel-accent', theme.accent);
+    el.style.setProperty('--rel-accent2', theme.accent2);
+    el.style.setProperty('--rel-sun', theme.sun);
+    el.style.setProperty('--rel-fog', theme.fog);
+    el.style.setProperty('--rel-note', theme.note || theme.accent);
+    el.style.setProperty('--rel-glow', String((theme.ui && theme.ui.glow) || 0.2));
+  }
+
+  function trackMeta(track, album) {
+    const genre = track.genre || (album && album.genre) || '—';
     const bpm = Number.isFinite(track.bpm) ? track.bpm + ' BPM' : '— BPM';
     const diff = Number.isFinite(track.difficulty) ? track.difficulty + '/10' : '—';
-    return fmtTime(track.duration) + ' · ' + bpm + ' · ' + diff;
+    return genre + ' · ' + fmtTime(track.duration) + ' · ' + bpm + ' · ' + diff;
   }
 
   function rankNameForBest(best) {
@@ -281,6 +295,7 @@
     const track = S.track;
     $('sel-album').textContent = S.album.title.toUpperCase();
     $('sel-title').textContent = track.title;
+    $('sel-genre').textContent = track.genre || S.album.genre || '—';
     $('sel-duration').textContent = fmtTime(track.duration);
     $('sel-bpm').textContent = Number.isFinite(track.bpm) ? String(track.bpm) : '—';
     $('sel-diff').textContent = Number.isFinite(track.difficulty) ? track.difficulty + '/10' : '—';
@@ -295,6 +310,11 @@
     updateTrackPanel();
     updateSettingsUi();
     renderAlbumSheet();
+    if (S.searchActive) {
+      S.searchResults = searchCatalog(S.searchQuery);
+      updateSearchUi();
+      renderSearchResults();
+    }
     if (S.load && S.load.key) setLoadProgress(S.load.p, S.load.key);
     if (S.phase === 'end' && S.result) showResult(S.result);
     if (S.phase === 'error') {
@@ -313,13 +333,13 @@
 
   // ------------------------------------------------------------- colour flow
   const TINT_TAGS = {
-    intro: { key: 'fog', a: 0.055 },
-    build: { key: 'accent2', a: 0.060 },
-    theme: { key: 'accent', a: 0.050 },
-    drop: { key: 'accent2', a: 0.085 },
-    climax: { key: 'sun', a: 0.095 },
-    break: { key: 'fog', a: 0.045 },
-    outro: { key: 'sky', a: 0.170 }
+    intro: { key: 'fog', a: 0.100 },
+    build: { key: 'accent2', a: 0.135 },
+    theme: { key: 'accent', a: 0.115 },
+    drop: { key: 'accent2', a: 0.185 },
+    climax: { key: 'sun', a: 0.200 },
+    break: { key: 'fog', a: 0.100 },
+    outro: { key: 'sky', a: 0.220 }
   };
 
   function tintFor(tag) {
@@ -327,7 +347,7 @@
     if (!theme) return { r: 0, g: 0, b: 0, a: 0 };
     const spec = TINT_TAGS[tag] || TINT_TAGS.theme;
     let color;
-    if (spec.key === 'sky') color = theme.sky ? theme.sky[0] : '#02040a';
+    if (spec.key === 'sky') color = theme.sky ? (theme.sky[2] || theme.sky[0]) : '#02040a';
     else color = theme[spec.key] || theme.accent;
     const rgb = Art.parseColor(color);
     return { r: rgb[0], g: rgb[1], b: rgb[2], a: spec.a };
@@ -346,7 +366,7 @@
   }
 
   function updateTint(dt) {
-    const k = Math.min(1, dt * 2.4);
+    const k = Math.min(1, dt * 1.9);
     S.tint.r += (S.tintTarget.r - S.tint.r) * k;
     S.tint.g += (S.tintTarget.g - S.tint.g) * k;
     S.tint.b += (S.tintTarget.b - S.tint.b) * k;
@@ -382,6 +402,8 @@
     b.className = 'album-chip' + (i === S.albumIndex ? ' active' : '') + (inSheet ? ' album-card' : '');
     b.dataset.index = String(i);
     b.type = 'button';
+    b.title = album.genre || '';
+    applyReleaseColors(b, album);
     if (inSheet) {
       const badge = document.createElement('span');
       badge.className = 'album-card-badge';
@@ -393,7 +415,7 @@
       title.className = 'album-card-title';
       title.textContent = album.title;
       const count = document.createElement('em');
-      count.textContent = tCount('select.trackCount', album.tracks.length);
+      count.textContent = (album.genre ? album.genre + ' · ' : '') + tCount('select.trackCount', album.tracks.length);
       info.appendChild(title);
       info.appendChild(count);
       b.appendChild(info);
@@ -442,8 +464,9 @@
     const sheet = $('album-sheet');
     if (!sheet) return;
     renderAlbumSheet();
-    sheet.classList.remove('hidden');
+    sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('drawer-open');
     const active = sheet.querySelector('.album-chip.active');
     if (active) {
       requestAnimationFrame(function () {
@@ -455,8 +478,9 @@
   function closeAlbumSheet() {
     const sheet = $('album-sheet');
     if (!sheet) return;
-    sheet.classList.add('hidden');
+    sheet.classList.remove('open');
     sheet.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('drawer-open');
   }
 
   function renderTrackList() {
@@ -471,6 +495,7 @@
       b.dataset.trackId = track.id;
       b.setAttribute('role', 'option');
       b.setAttribute('aria-selected', i === S.trackIndex ? 'true' : 'false');
+      applyReleaseColors(b, album);
 
       const num = document.createElement('span');
       num.className = 'num';
@@ -483,7 +508,7 @@
       name.textContent = track.title;
       const meta = document.createElement('span');
       meta.className = 'sub';
-      meta.textContent = trackMeta(track);
+      meta.textContent = trackMeta(track, album);
       info.appendChild(name);
       info.appendChild(meta);
 
@@ -512,8 +537,212 @@
     });
   }
 
+  // ----------------------------------------------------------------- search
+  function normalizeSearchText(value) {
+    return String(value || '').toLocaleLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  }
+
+  function searchCatalog(query) {
+    const terms = normalizeSearchText(query).split(' ').filter(Boolean);
+    if (!terms.length) return [];
+    const out = [];
+    albums.forEach(function (album, ai) {
+      album.tracks.forEach(function (track, ti) {
+        const hay = normalizeSearchText([
+          track.title, album.title, track.genre || album.genre || '',
+          track.id, album.id
+        ].join(' '));
+        let ok = true;
+        for (const term of terms) {
+          if (hay.indexOf(term) < 0) { ok = false; break; }
+        }
+        if (ok) out.push({ ai: ai, ti: ti, album: album, track: track });
+      });
+    });
+    const q = normalizeSearchText(query);
+    out.sort(function (a, b) {
+      const at = normalizeSearchText(a.track.title);
+      const bt = normalizeSearchText(b.track.title);
+      const as = at === q ? 0 : at.indexOf(q) === 0 ? 1 : 2;
+      const bs = bt === q ? 0 : bt.indexOf(q) === 0 ? 1 : 2;
+      if (as !== bs) return as - bs;
+      return a.album.title.localeCompare(b.album.title) || a.ti - b.ti;
+    });
+    return out;
+  }
+
+  function updateSearchUi() {
+    const screen = $('screen-select');
+    const clear = $('search-clear');
+    const status = $('search-status');
+    if (screen) screen.classList.toggle('searching', S.searchActive);
+    if (clear) clear.classList.toggle('hidden', !S.searchActive);
+    if (status) {
+      if (!S.searchActive) status.textContent = '';
+      else if (S.searchResults.length) status.textContent = t('select.searchCount', { n: S.searchResults.length });
+      else status.textContent = t('select.searchEmpty');
+    }
+  }
+
+  function renderSearchResults() {
+    const list = $('track-list');
+    if (!list) return;
+    list.textContent = '';
+    if (!S.searchResults.length) {
+      const empty = document.createElement('p');
+      empty.className = 'search-empty';
+      empty.textContent = t('select.searchEmpty');
+      list.appendChild(empty);
+      return;
+    }
+    S.searchResults.forEach(function (item) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'track-item search-result' + (item.album === S.album && item.track === S.track ? ' active' : '');
+      b.dataset.ai = String(item.ai);
+      b.dataset.ti = String(item.ti);
+      b.setAttribute('role', 'option');
+      b.setAttribute('aria-selected', item.album === S.album && item.track === S.track ? 'true' : 'false');
+      applyReleaseColors(b, item.album);
+
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = String(item.ti + 1).padStart(2, '0');
+
+      const info = document.createElement('span');
+      info.className = 'info';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = item.track.title;
+      const meta = document.createElement('span');
+      meta.className = 'sub';
+      meta.textContent = item.album.title + ' · ' + trackMeta(item.track, item.album);
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      const best = document.createElement('span');
+      best.className = 'best';
+      const bscore = bestOf(item.track.id);
+      best.textContent = bscore ? fmtScore(bscore.score) : '—';
+
+      b.appendChild(num);
+      b.appendChild(info);
+      b.appendChild(best);
+      b.addEventListener('click', function () {
+        if (S.phase !== 'select') return;
+        chooseSearchResult(item.ai, item.ti);
+      });
+      b.addEventListener('dblclick', function () {
+        if (S.phase !== 'select') return;
+        chooseSearchResult(item.ai, item.ti);
+        ensureAudioUnlocked();
+        beginSelectedTrack();
+      });
+      list.appendChild(b);
+    });
+  }
+
+  function chooseSearchResult(ai, ti) {
+    const album = albums[ai];
+    if (!album) return;
+    const track = album.tracks[ti];
+    if (!track) return;
+    S.albumIndex = ai;
+    S.album = album;
+    S.trackIndex = ti;
+    S.track = track;
+    updateHeader();
+    updateTrackPanel();
+    previewTheme();
+    saveLast();
+    const rail = $('album-rail');
+    if (rail) {
+      for (let i = 0; i < rail.children.length; i++) {
+        rail.children[i].classList.toggle('active', i === ai);
+      }
+    }
+    const list = $('track-list');
+    if (!list) return;
+    for (let i = 0; i < list.children.length; i++) {
+      const el = list.children[i];
+      const on = el.dataset.ai === String(ai) && el.dataset.ti === String(ti);
+      el.classList.toggle('active', on);
+      if (el.hasAttribute('role')) el.setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+  }
+
+  function setSearchQuery(value) {
+    const query = String(value || '');
+    S.searchQuery = query;
+    if (!normalizeSearchText(query)) {
+      clearSearch();
+      return;
+    }
+    S.searchActive = true;
+    S.searchResults = searchCatalog(query);
+    updateSearchUi();
+    renderSearchResults();
+  }
+
+  function resetSearchState() {
+    S.searchActive = false;
+    S.searchQuery = '';
+    S.searchResults = [];
+    const input = $('search-input');
+    if (input && input.value) input.value = '';
+    updateSearchUi();
+  }
+
+  function clearSearch(skipRender) {
+    const wasActive = S.searchActive;
+    resetSearchState();
+    if (!wasActive || skipRender) return;
+    renderAlbumRail();
+    updateHeader();
+    renderTrackList();
+  }
+
+  function focusSearch() {
+    const input = $('search-input');
+    if (!input) return;
+    input.focus();
+    try { input.select(); } catch (e) {}
+  }
+
+  function moveSearchSelection(delta) {
+    if (!S.searchActive || !S.searchResults.length) return;
+    let idx = S.searchResults.findIndex(function (item) {
+      return item.album === S.album && item.track === S.track;
+    });
+    if (idx < 0) idx = delta > 0 ? -1 : 0;
+    idx = (idx + delta + S.searchResults.length) % S.searchResults.length;
+    const item = S.searchResults[idx];
+    chooseSearchResult(item.ai, item.ti);
+    const list = $('track-list');
+    if (!list) return;
+    const el = list.querySelector('.search-result[data-ai="' + item.ai + '"][data-ti="' + item.ti + '"]');
+    if (el) {
+      try { el.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+    }
+  }
+
+  function playSearchSelection() {
+    if (S.searchActive) {
+      const inResults = S.searchResults.some(function (item) {
+        return item.album === S.album && item.track === S.track;
+      });
+      if (!inResults && S.searchResults.length) {
+        const first = S.searchResults[0];
+        chooseSearchResult(first.ai, first.ti);
+      }
+    }
+    ensureAudioUnlocked();
+    beginSelectedTrack();
+  }
+
   function selectAlbum(index, trackIndex, silent) {
     if (index < 0 || index >= albums.length) return;
+    if (S.searchActive) resetSearchState();
     S.albumIndex = index;
     S.album = albums[index];
     S.trackIndex = clamp(trackIndex || 0, 0, S.album.tracks.length - 1);
@@ -534,7 +763,8 @@
   function updateHeader() {
     if (!S.album) return;
     $('album-heading').textContent = S.album.title;
-    $('album-count').textContent = tCount('select.trackCount', S.album.tracks.length);
+    const genre = S.album.genre ? S.album.genre + ' · ' : '';
+    $('album-count').textContent = genre + tCount('select.trackCount', S.album.tracks.length);
     const badge = $('album-badge');
     if (badge) badge.textContent = albumInitials(S.album.title);
     const albumsBtn = $('btn-albums');
@@ -818,9 +1048,10 @@
   }
 
   function toMenu() {
+    closeAlbumSheet();
+    if (S.searchActive) clearSearch(true);
     audio.stop();
     resetTint();
-    closeAlbumSheet();
     setPhase('menu');
     showPauseButton(false);
     hideScreens();
@@ -1660,12 +1891,50 @@
     const sheet = $('album-sheet');
     if (sheet) {
       sheet.addEventListener('click', function (e) {
-        if (e.target === sheet) closeAlbumSheet();
+        const target = e.target;
+        if (target === sheet || (target.closest && target.closest('[data-close-drawer]'))) {
+          closeAlbumSheet();
+        }
       });
     }
     document.querySelectorAll('[data-lang]').forEach(function (btn) {
       btn.addEventListener('click', function () { setLanguage(btn.dataset.lang); });
     });
+
+    const searchInput = $('search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () { setSearchQuery(searchInput.value); });
+      searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          clearSearch();
+          searchInput.blur();
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          playSearchSelection();
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          moveSearchSelection(1);
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          moveSearchSelection(-1);
+          return;
+        }
+      });
+    }
+    const searchClear = $('search-clear');
+    if (searchClear) {
+      searchClear.addEventListener('click', function () {
+        clearSearch();
+        focusSearch();
+      });
+    }
 
     $('btn-ready').addEventListener('click', async function () {
       hideScreens();
@@ -1696,8 +1965,22 @@
     window.addEventListener('keydown', function (e) {
       if (e.repeat) return;
       const code = e.code;
+      const target = e.target;
+      const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (typing && target !== $('search-input')) return;
+
       if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].indexOf(code) >= 0) {
         e.preventDefault();
+      }
+
+      if (code === 'KeyL' && !typing) {
+        setLanguage(S.settings.lang === 'ru' ? 'en' : 'ru');
+        return;
+      }
+      if (S.phase === 'select' && !typing && (code === 'Slash' || (code === 'KeyF' && (e.ctrlKey || e.metaKey)))) {
+        e.preventDefault();
+        focusSearch();
+        return;
       }
 
       if (S.phase === 'menu') {
@@ -1705,7 +1988,8 @@
           ensureAudioUnlocked(); openCatalog(); return;
         }
       } else if (S.phase === 'select') {
-        const sheetOpen = $('album-sheet') && !$('album-sheet').classList.contains('hidden');
+        const sheetEl = $('album-sheet');
+        const sheetOpen = sheetEl && sheetEl.classList.contains('open');
         if (sheetOpen) {
           if (code === 'Escape') { closeAlbumSheet(); return; }
           if (code === 'ArrowDown') { selectAlbum(S.albumIndex + 1, 0); return; }
@@ -1715,6 +1999,18 @@
           }
           if (code === 'KeyB') { closeAlbumSheet(); return; }
           return;
+        }
+        if (typing) {
+          return;
+        }
+        if (code === 'KeyB') { openAlbumSheet(); return; }
+        if (S.searchActive) {
+          if (code === 'Escape') { clearSearch(); return; }
+          if (code === 'ArrowDown') { moveSearchSelection(1); return; }
+          if (code === 'ArrowUp') { moveSearchSelection(-1); return; }
+          if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
+            playSearchSelection(); return;
+          }
         }
         if (code === 'ArrowDown') { selectTrack(S.trackIndex + 1); return; }
         if (code === 'ArrowUp') { selectTrack(S.trackIndex - 1); return; }

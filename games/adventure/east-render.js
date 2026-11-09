@@ -1,10 +1,12 @@
 import {
   DIRS,
   dangerPosition,
+  doorCenter,
   hashString,
   mulberry32,
   packsInRoom,
 } from './east-core.js';
+import { pick } from './east-i18n.js';
 
 const SPRITE = Object.freeze({
   frameWidth: 16,
@@ -87,6 +89,7 @@ export class Renderer {
     this.dpr = 1;
     this.roomRect = { x: 0, y: 0, w: 1, h: 1 };
     this.dust = [];
+    this.dustSeed = null;
     this.resize(true);
   }
 
@@ -115,12 +118,21 @@ export class Renderer {
       w: width * 0.85,
       h: height * 0.665,
     };
-    const random = mulberry32(hashString(`dust-${Math.round(width)}x${Math.round(height)}`));
-    this.dust = Array.from({ length: 46 }, () => ({
+  }
+
+  // Dust belongs to the world, not the camera. It is generated once per world
+  // seed and stored in room-normalized coordinates, so resizing the viewport or
+  // moving the player never regenerates or shifts the field.
+  ensureDust(seed = 'east') {
+    const key = String(seed);
+    if (this.dustSeed === key && this.dust.length) return;
+    this.dustSeed = key;
+    const random = mulberry32(hashString(`dust-world-${key}`));
+    this.dust = Array.from({ length: 64 }, () => ({
       x: random(),
       y: random(),
-      r: 0.4 + random() * 1.1,
-      speed: 0.008 + random() * 0.018,
+      r: 0.35 + random() * 1.15,
+      drift: 0.0015 + random() * 0.004,
       phase: random() * TAU,
       alpha: 0.06 + random() * 0.14,
     }));
@@ -130,6 +142,13 @@ export class Renderer {
     return {
       x: this.roomRect.x + x * this.roomRect.w,
       y: this.roomRect.y + y * this.roomRect.h,
+    };
+  }
+
+  toRoom(px, py) {
+    return {
+      x: clamp((px - this.roomRect.x) / this.roomRect.w, 0, 1),
+      y: clamp((py - this.roomRect.y) / this.roomRect.h, 0, 1),
     };
   }
 
@@ -160,6 +179,7 @@ export class Renderer {
     }
 
     this.drawRoom(ctx, room, state, now, trial);
+    this.ensureDust(state.seed ?? 'east');
     this.drawDust(ctx, now);
 
     if (state.flags?.trialCleared && room.kind === 'story') {
@@ -327,7 +347,7 @@ export class Renderer {
     for (const dir of DIRS) {
       const open = Boolean(room.exits[dir.id]);
       if (open) {
-        this.drawDoor(ctx, dir.id, pulse);
+        this.drawDoor(ctx, dir.id, room.doors?.[dir.id], pulse);
       } else {
         this.drawSealedWall(ctx, dir.id);
       }
@@ -346,16 +366,18 @@ export class Renderer {
     ctx.fillRect(r.x + r.w - thickness, r.y + r.h - corner, thickness, corner);
   }
 
-  drawDoor(ctx, side, pulse) {
+  drawDoor(ctx, side, door, pulse) {
     const r = this.roomRect;
-    const w = r.w * 0.21;
-    const h = r.h * 0.105;
+    const width = clamp(door?.width ?? 0.21, 1 / 16, 0.75);
+    const center = clamp(doorCenter(door), 0.05, 0.95);
+    const w = r.w * width;
+    const h = r.h * Math.min(0.18, width + 0.045);
     const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
 
     ctx.save();
     if (side === 'north' || side === 'south') {
       const y = side === 'north' ? r.y : r.y + r.h;
-      const cx = r.x + r.w / 2;
+      const cx = r.x + r.w * center;
       ctx.fillStyle = 'rgba(3, 6, 7, 0.95)';
       ctx.fillRect(cx - w / 2, y - 2, w, 10);
       // Light spill onto the floor.
@@ -373,7 +395,7 @@ export class Renderer {
       this.drawSideGlyph(ctx, side, cx, side === 'north' ? y + 16 : y - 16);
     } else {
       const x = side === 'west' ? r.x : r.x + r.w;
-      const cy = r.y + r.h / 2;
+      const cy = r.y + r.h * center;
       ctx.fillStyle = 'rgba(3, 6, 7, 0.95)';
       ctx.fillRect(x - 2, cy - w / 2, 10, w);
       const spill = ctx.createLinearGradient(x, 0, x + (side === 'west' ? h : -h), 0);
@@ -757,7 +779,7 @@ export class Renderer {
     ctx.fillStyle = 'rgba(159, 216, 200, 0.55)';
     ctx.font = '7px "Zqwy", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('СКРИЖАЛЬ', p.x, p.y + size * 0.77);
+    ctx.fillText(pick({ ru: 'СКРИЖАЛЬ', en: 'TABLET' }), p.x, p.y + size * 0.77);
     ctx.restore();
   }
 
@@ -1009,11 +1031,13 @@ export class Renderer {
   }
 
   drawDust(ctx, now) {
-    const { width: w, height: h } = this;
+    const r = this.roomRect;
     ctx.save();
     for (const mote of this.dust) {
-      const x = ((mote.x + now * mote.speed) % 1) * w;
-      const y = (mote.y + Math.sin(now * 0.3 + mote.phase) * 0.006) * h;
+      const driftX = Math.sin(now * 0.14 + mote.phase) * mote.drift;
+      const driftY = Math.cos(now * 0.1 + mote.phase * 1.3) * mote.drift;
+      const x = r.x + clamp(mote.x + driftX, 0, 1) * r.w;
+      const y = r.y + clamp(mote.y + driftY, 0, 1) * r.h;
       ctx.fillStyle = `rgba(205, 226, 217, ${mote.alpha})`;
       ctx.beginPath();
       ctx.arc(x, y, mote.r, 0, TAU);

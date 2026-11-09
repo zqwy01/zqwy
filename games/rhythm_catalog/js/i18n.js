@@ -35,6 +35,7 @@
       'select.trackCount.many': '{n} ТРЕКОВ',
       'select.menu': 'МЕНЮ',
       'select.albums': 'АЛЬБОМЫ',
+      'select.genre': 'ЖАНР',
       'select.duration': 'ДЛИТ.',
       'select.bpm': 'BPM',
       'select.diff': 'СЛОЖН.',
@@ -47,6 +48,13 @@
       'select.sheetTitle': 'ВСЕ РЕЛИЗЫ',
       'select.sheetHint': 'ВЫБЕРИ АЛЬБОМ',
       'select.sheetClose': 'ЗАКРЫТЬ',
+      'select.searchPlaceholder': 'ПОИСК: ТРЕК, АЛЬБОМ, ЖАНР',
+      'select.searchLabel': 'Поиск по каталогу',
+      'select.searchClear': 'Очистить поиск',
+      'select.searchEmpty': 'НИЧЕГО НЕ НАЙДЕНО',
+      'select.searchCount': '{n} НАЙДЕНО',
+      'select.searchResults': 'РЕЗУЛЬТАТЫ ПОИСКА',
+      'select.searchHint': 'ENTER — ИГРАТЬ · ESC — ОЧИСТИТЬ',
 
       'load.reading': 'ЧИТАЕМ ЧАРТ…',
       'load.chartReady': 'ЧАРТ ГОТОВ · ОТКРЫВАЕМ ЗВУК…',
@@ -135,6 +143,7 @@
       'section.outro.name': 'ФИНАЛ',
       'section.outro.sub': 'Последний такт.',
 
+      'toast.lang': 'ЯЗЫК: {lang}',
       'toast.offset': 'ЗАДЕРЖКА {value} {unit}',
       'toast.volume': 'ГРОМКОСТЬ {value}%',
       'toast.sfx': 'ЗВУК УДАРОВ {state}'
@@ -170,6 +179,7 @@
       'select.trackCount.many': '{n} TRACKS',
       'select.menu': 'MENU',
       'select.albums': 'ALBUMS',
+      'select.genre': 'GENRE',
       'select.duration': 'TIME',
       'select.bpm': 'BPM',
       'select.diff': 'DIFF.',
@@ -182,6 +192,13 @@
       'select.sheetTitle': 'ALL RELEASES',
       'select.sheetHint': 'PICK AN ALBUM',
       'select.sheetClose': 'CLOSE',
+      'select.searchPlaceholder': 'SEARCH TRACKS, ALBUMS, GENRES',
+      'select.searchLabel': 'Search the catalog',
+      'select.searchClear': 'Clear search',
+      'select.searchEmpty': 'NOTHING FOUND',
+      'select.searchCount': '{n} FOUND',
+      'select.searchResults': 'SEARCH RESULTS',
+      'select.searchHint': 'ENTER — PLAY · ESC — CLEAR',
 
       'load.reading': 'READING THE CHART…',
       'load.chartReady': 'CHART READY · OPENING AUDIO…',
@@ -270,6 +287,7 @@
       'section.outro.name': 'OUTRO',
       'section.outro.sub': 'The final bar.',
 
+      'toast.lang': 'LANGUAGE: {lang}',
       'toast.offset': 'OFFSET {value} {unit}',
       'toast.volume': 'VOLUME {value}%',
       'toast.sfx': 'HIT SOUND {state}'
@@ -326,6 +344,12 @@
     });
     root.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
       el.setAttribute('aria-label', t(el.dataset.i18nAria));
+    });
+    root.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder));
+    });
+    root.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+      el.setAttribute('title', t(el.dataset.i18nTitle));
     });
     root.querySelectorAll('[data-lang]').forEach(function (el) {
       const on = el.dataset.lang === lang;

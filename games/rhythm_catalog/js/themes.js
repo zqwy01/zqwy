@@ -99,8 +99,8 @@
     'everyday': {
       title: 'Everyday', scene: 'field', weather: 'petals',
       sky: ['#0b0d10', '#182028', '#2c3a42'], horizon: ['#435c52', '#688a6a'],
-      accent: '#ffd27a', accent2: '#8fe0c0', fog: '#8aa887', sun: '#fff0c0',
-      lane: ['#ffd27a', '#8fe0c0', '#ff9a8a', '#b8c8ff'], note: '#fff0c8'
+      accent: '#f7c95f', accent2: '#8fe0c0', fog: '#8aa887', sun: '#fff0c0',
+      lane: ['#f7c95f', '#8fe0c0', '#ff9a8a', '#b8c8ff'], note: '#fff0c8'
     },
     'forty-hours': {
       title: 'Forty Hours', scene: 'industrial', weather: 'dust',

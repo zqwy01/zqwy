@@ -9,6 +9,26 @@ export class AudioManager {
     this.unlocked = false;
     this.fadeFrame = 0;
     this.ctx = null;
+    this.userPaused = false;
+    this.masterVolume = 0.8;
+    this.listeners = new Set();
+    this.audio.addEventListener('timeupdate', () => this.emit());
+    this.audio.addEventListener('play', () => this.emit());
+    this.audio.addEventListener('pause', () => this.emit());
+    this.audio.addEventListener('loadedmetadata', () => this.emit());
+    this.audio.addEventListener('ended', () => this.emit());
+  }
+
+  subscribe(listener) {
+    if (typeof listener !== 'function') return () => {};
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  emit() {
+    for (const listener of this.listeners) {
+      try { listener(this.snapshot()); } catch { /* ignore listener errors */ }
+    }
   }
 
   async unlock() {
@@ -32,27 +52,84 @@ export class AudioManager {
     } else if (this.currentId) {
       this.playTrack(this.currentId, { force: true });
     }
+    this.emit();
+  }
+
+  setVolume(value) {
+    this.masterVolume = Math.max(0, Math.min(1, Number(value) || 0));
+    const track = this.currentId ? this.musicMap[this.currentId] : null;
+    const target = (track?.volume ?? 0.3) * this.masterVolume;
+    if (!this.audio.paused) this.fadeTo(target);
+    else this.audio.volume = target;
+    this.emit();
   }
 
   async playTrack(id, options = {}) {
     const track = this.musicMap[id];
     if (!track) return;
     this.currentId = id;
+    this.userPaused = false;
     if (!this.enabled || !this.unlocked) return;
     if (!options.force && this.audio.src.endsWith(track.src) && !this.audio.paused) return;
 
     const source = `${track.src}?v=1`;
     if (!this.audio.src.endsWith(source)) {
       this.audio.src = source;
+      this.audio.currentTime = 0;
     }
     this.audio.volume = 0;
     try {
       await this.audio.play();
-      this.fadeTo(track.volume ?? 0.3);
+      this.fadeTo((track.volume ?? 0.3) * this.masterVolume);
     } catch {
       // Browser may still block audio until the next explicit gesture.
       // The next pointer/keyboard event calls unlock() again.
     }
+    this.emit();
+  }
+
+  async pause() {
+    this.userPaused = true;
+    this.audio.pause();
+    this.emit();
+  }
+
+  async resume() {
+    if (!this.currentId) return;
+    this.userPaused = false;
+    if (!this.enabled || !this.unlocked) return;
+    try {
+      await this.audio.play();
+    } catch { /* blocked */ }
+    this.emit();
+  }
+
+  stop() {
+    this.userPaused = true;
+    this.audio.pause();
+    try { this.audio.currentTime = 0; } catch { /* ignore */ }
+    this.emit();
+  }
+
+  seek(seconds) {
+    const duration = Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
+    const value = Math.max(0, Math.min(duration || Number(seconds) || 0, Number(seconds) || 0));
+    try { this.audio.currentTime = value; } catch { /* ignore */ }
+    this.emit();
+  }
+
+  snapshot() {
+    const track = this.currentId ? this.musicMap[this.currentId] : null;
+    return {
+      id: this.currentId,
+      title: track?.title || null,
+      playing: Boolean(this.currentId && !this.audio.paused && this.enabled),
+      paused: Boolean(this.currentId && this.audio.paused),
+      enabled: this.enabled,
+      currentTime: Number.isFinite(this.audio.currentTime) ? this.audio.currentTime : 0,
+      duration: Number.isFinite(this.audio.duration) ? this.audio.duration : 0,
+      volume: this.masterVolume,
+    };
   }
 
   fadeTo(target) {

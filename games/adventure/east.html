@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#080b0c">
-<meta name="description" content="«К Востоку» — браузерный прототип: вертикальный лабиринт сознаний, Скрижаль, рюкзак и терминал с рабочим холстом.">
+<meta name="description" content="«К Востоку» — браузерный прототип: вертикальный лабиринт сознаний, Скрижаль, рюкзак, сюжетная схема и терминал с бесконечным холстом." data-i18n-content="app.description">
 <title>К Востоку — браузерный прототип</title>
+<link rel="stylesheet" href="east-fonts.css">
 <link rel="stylesheet" href="east.css">
 </head>
 <body>
-<noscript><p class="noscript">Для игры «К Востоку» нужен JavaScript.</p></noscript>
+<noscript><p class="noscript" data-i18n="app.noscript">Для игры «К Востоку» нужен JavaScript.</p></noscript>
 
 <main id="app" class="app">
   <section id="stage-wrap" class="stage-wrap" aria-label="Игровая сцена">
@@ -18,135 +19,292 @@
 
     <header class="hud">
       <div class="hud-brand">
-        <span class="hud-title">К ВОСТОКУ</span>
-        <span class="hud-subtitle">Лабиринт сознаний</span>
+        <span class="hud-title" data-i18n="app.title">К ВОСТОКУ</span>
+        <span class="hud-subtitle" data-i18n="app.subtitle">Лабиринт сознаний</span>
       </div>
       <div class="hud-tools">
-        <span id="pack-badge" class="pack-badge" title="Рюкзаки в этой комнате" hidden>▣ <b>0</b></span>
-        <button id="btn-sound" class="icon-btn" type="button" aria-pressed="true" title="Звук">звук вкл</button>
+        <button id="btn-sound" class="icon-btn" type="button" aria-pressed="true" title="звук">звук вкл</button>
+        <button id="btn-canvas" class="icon-btn" type="button" data-i18n-title="hud.canvas" data-i18n-aria="hud.canvas">⌗</button>
+        <button id="btn-story" class="icon-btn" type="button" data-i18n-title="hud.story" data-i18n-aria="hud.story">⇢</button>
+        <button id="btn-settings" class="icon-btn" type="button" data-i18n-title="hud.settings" data-i18n-aria="hud.settings">⚙</button>
       </div>
       <div class="hud-room">
-        <p id="room-kicker" class="hud-kicker">круг 0 · точка возвращения</p>
+        <p id="room-kicker" class="hud-kicker">круг 1</p>
         <h1 id="room-title" class="hud-room-title">Скрижаль</h1>
         <p id="room-subtitle" class="hud-room-subtitle">точка возвращения</p>
       </div>
-      <div id="hud-inventory" class="hud-inventory" aria-label="Содержимое рюкзака"></div>
+      <div id="hud-inventory" class="hud-inventory" data-i18n-aria="hud.inventory" aria-label="Содержимое рюкзака"></div>
+      <div id="pack-badge" class="pack-badge" hidden title="Рюкзаков в комнате">▣ <b>0</b></div>
     </header>
 
-    <div id="room-banner" class="room-banner" aria-live="polite" hidden>
-      <span id="room-banner-kicker"></span>
-      <strong id="room-banner-title"></strong>
+    <div id="room-banner" class="room-banner" hidden>
+      <span id="room-banner-kicker">круг 1</span>
+      <strong id="room-banner-title">Скрижаль</strong>
     </div>
 
     <div id="trial-hud" class="trial-hud" hidden>
       <div class="trial-line">
-        <span class="trial-name">дрожащий свет</span>
+        <span class="trial-name" data-i18n="terminal.state.trial">испытание · дрожащий свет</span>
         <span id="trial-time" class="trial-time">16.0</span>
       </div>
       <div class="trial-track"><span id="trial-fill"></span></div>
-      <p id="trial-hint" class="trial-hint">держи ритм · рывок даёт короткую неуязвимость</p>
+      <p class="trial-hint" data-i18n="trial.hint">Двигайся. Рывок — Shift, Space или кнопка «рывок».</p>
     </div>
 
     <div id="prompt" class="prompt" hidden>
-      <button id="prompt-action" class="prompt-btn" type="button">
-        <kbd>E</kbd><span id="prompt-text">действие</span>
-      </button>
+      <span id="prompt-text">Коснуться Скрижали</span>
+      <button id="prompt-action" class="prompt-btn" type="button" data-i18n="prompt.action">Действие</button>
     </div>
 
-    <div id="touch-controls" class="touch-controls" aria-label="Сенсорное управление">
+    <div class="touch-controls" aria-hidden="false">
       <div class="dpad">
-        <button class="touch-btn dpad-up" type="button" data-move="up" aria-label="Вверх">▲</button>
-        <button class="touch-btn dpad-left" type="button" data-move="left" aria-label="Влево">◀</button>
-        <button class="touch-btn dpad-right" type="button" data-move="right" aria-label="Вправо">▶</button>
-        <button class="touch-btn dpad-down" type="button" data-move="down" aria-label="Вниз">▼</button>
+        <button class="touch-btn dpad-up" type="button" data-move="up" data-i18n-aria="canvas.helpKeyW" aria-label="вверх">▲</button>
+        <button class="touch-btn dpad-left" type="button" data-move="left" data-i18n-aria="canvas.helpKeyA" aria-label="влево">◀</button>
+        <button class="touch-btn dpad-right" type="button" data-move="right" data-i18n-aria="canvas.helpKeyD" aria-label="вправо">▶</button>
+        <button class="touch-btn dpad-down" type="button" data-move="down" data-i18n-aria="canvas.helpKeyS" aria-label="вниз">▼</button>
       </div>
       <div class="touch-actions">
-        <button id="touch-dash" class="touch-btn round" type="button" aria-label="Рывок">рывок</button>
-        <button id="touch-action" class="touch-btn round accent" type="button" aria-label="Действие">E</button>
+        <button id="touch-action" class="touch-btn round" type="button" data-i18n-aria="prompt.actionKey" aria-label="действие">E</button>
+        <button id="touch-dash" class="touch-btn round accent" type="button" data-i18n-aria="prompt.dash" aria-label="рывок">≫</button>
       </div>
     </div>
 
+    <div id="toast" class="toast" hidden></div>
     <div id="death-flash" class="death-flash" aria-hidden="true"></div>
-    <div id="toast" class="toast" role="status" hidden></div>
   </section>
 
-  <section class="terminal" aria-label="Терминал Земика">
+  <section class="terminal">
     <header class="terminal-head">
-      <div>
-        <p class="terminal-kicker">ТЕРМИНАЛ · ZEMIC</p>
-        <p class="terminal-state" id="terminal-state">канал открыт</p>
+      <div class="terminal-head-main">
+        <p class="terminal-kicker" data-i18n="terminal.label">Терминал</p>
+        <p id="terminal-state" class="terminal-state" data-i18n="terminal.state.open">канал открыт</p>
       </div>
-      <div class="terminal-head-actions">
-        <button id="btn-canvas" class="mini-btn" type="button">холст</button>
-        <button id="btn-terminal-sound" class="mini-btn" type="button" aria-pressed="true">звук</button>
+      <div class="quick-row">
+        <button class="chip" type="button" data-command="осмотреться" data-i18n="quick.look">осмотреться</button>
+        <button class="chip" type="button" data-command="рюкзак" data-i18n="quick.pack">рюкзак</button>
+        <button class="chip" type="button" data-command="холст" data-i18n="quick.canvas">холст</button>
+        <button class="chip" type="button" data-command="взять" data-i18n="quick.take">взять</button>
+        <button class="chip" type="button" data-command="помоги" data-i18n="quick.help">помоги</button>
       </div>
     </header>
-
-    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite" aria-label="Вывод терминала"></div>
-
+    <div id="terminal-suggest" class="terminal-suggest" hidden></div>
+    <div id="terminal-log" class="terminal-log" role="log" aria-live="polite"></div>
     <form id="terminal-form" class="terminal-form" autocomplete="off">
-      <span class="terminal-caret" aria-hidden="true">›</span>
-      <input id="terminal-input" class="terminal-input" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="команда… (помоги)" aria-label="Команда терминала">
-      <button id="terminal-send" class="terminal-send" type="submit">ввод</button>
+      <input id="terminal-input" class="terminal-input" type="text" name="command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Введите команду и нажмите отправить" data-i18n-placeholder="terminal.placeholder" data-i18n-aria="terminal.aria" aria-label="Команда терминала">
+      <button class="terminal-send" type="submit" data-i18n="terminal.send">отправить</button>
     </form>
-
-    <div class="quick-row" aria-label="Быстрые команды">
-      <button class="chip" type="button" data-command="осмотреться">осмотреться</button>
-      <button class="chip" type="button" data-command="рюкзак">рюкзак</button>
-      <button class="chip" type="button" data-command="холст">холст</button>
-      <button class="chip" type="button" data-command="взять">взять</button>
-      <button class="chip" type="button" data-command="помоги">помоги</button>
-    </div>
   </section>
 
-  <section id="canvas-screen" class="canvas-screen" aria-label="Рабочий холст терминала" hidden>
-    <header class="canvas-head">
-      <div>
-        <p class="canvas-kicker">ТЕРМИНАЛ / CANVAS</p>
-        <h2 class="canvas-title">Рабочий холст</h2>
+  <!-- Workspace board ------------------------------------------------------ -->
+  <section id="canvas-screen" class="screen canvas-screen" hidden>
+    <header class="canvas-head screen-head">
+      <div class="screen-heading">
+        <p class="screen-kicker" data-i18n="canvas.kicker">бесконечный стол</p>
+        <h1 class="screen-title" data-i18n="canvas.title">Рабочий холст</h1>
       </div>
-      <button id="canvas-exit" class="canvas-exit" type="button" title="Закрыть холст (Esc)">Выйти</button>
+      <div class="canvas-head-actions">
+        <button id="canvas-link" class="mini-btn symbol-btn" type="button" title="->">-&gt;</button>
+        <button id="canvas-exit" class="mini-btn exit-btn" type="button" data-i18n-title="canvas.exit" data-i18n-aria="canvas.exit" aria-label="Выход">× <span data-i18n="canvas.exit">Выход</span></button>
+      </div>
     </header>
 
     <div class="canvas-body">
-      <section class="palette-panel" aria-label="Доступные команды и предметы">
-        <div class="panel-label">добавить на холст <span>перетащи или нажми</span></div>
-        <div id="canvas-palette" class="canvas-palette"></div>
-      </section>
+      <aside class="canvas-rail">
+        <div class="rail-group">
+          <p class="rail-label" data-i18n="canvas.palette">+ добавить</p>
+          <p class="rail-hint" data-i18n="canvas.paletteHint">нажми + или перетащи</p>
+          <div id="canvas-palette" class="canvas-palette"></div>
+        </div>
+        <div class="rail-group">
+          <p class="rail-label" data-i18n="canvas.keyboard">клавиатура</p>
+          <p class="rail-hint" data-i18n="canvas.keyboardHint">нажатие добавляет клавишу и связанную команду</p>
+          <div id="canvas-keyboard" class="canvas-keyboard"></div>
+        </div>
+        <div class="rail-group canvas-movement">
+          <p class="rail-label" data-i18n="canvas.movement">управление</p>
+          <label class="rail-field">
+            <span data-i18n="canvas.defaultSeconds">ходьба по умолчанию, с</span>
+            <input id="canvas-walk-seconds" type="number" min="0.1" max="60" step="0.1" value="1">
+          </label>
+          <label class="check-item compact">
+            <input id="canvas-cursor-control" type="checkbox" checked>
+            <span data-i18n="canvas.cursorControl">курсор: клик — маршрут, удержание — следование</span>
+          </label>
+        </div>
+      </aside>
 
-      <section id="canvas-board" class="canvas-board" aria-label="Поле холста. Перетаскивай элементы, нажимай для выполнения.">
-        <div class="board-grid" aria-hidden="true"></div>
-        <div id="canvas-elements" class="canvas-elements"></div>
-        <p id="canvas-empty" class="canvas-empty">Холст пуст. Добавь команду или карту из списка выше.</p>
-        <p class="board-hint">нажми на элемент — выполнить · перетащи — расположить</p>
-      </section>
-
-      <section class="canvas-output" aria-label="Вывод холста">
-        <div class="panel-label">вывод <span>без закрытия холста</span></div>
-        <div id="canvas-log" class="canvas-log" role="log" aria-live="polite"></div>
-      </section>
+      <div id="canvas-board" class="canvas-board">
+        <div id="canvas-world" class="canvas-world">
+          <div class="board-grid" aria-hidden="true"></div>
+          <svg id="canvas-links" class="canvas-links" aria-hidden="true"></svg>
+          <div id="canvas-elements" class="canvas-elements"></div>
+        </div>
+        <p id="canvas-empty" class="canvas-empty" data-i18n="canvas.empty">Стол пуст. Нажми «+» у команды или клавишу на клавиатуре.</p>
+        <div class="canvas-zoom" role="group" aria-label="масштаб">
+          <button id="canvas-zoom-out" class="mini-btn" type="button" data-i18n-title="canvas.zoomOut" data-i18n-aria="canvas.zoomOut" aria-label="Уменьшить масштаб">−</button>
+          <span id="canvas-zoom-label" class="zoom-label">100%</span>
+          <button id="canvas-zoom-in" class="mini-btn" type="button" data-i18n-title="canvas.zoomIn" data-i18n-aria="canvas.zoomIn" aria-label="Увеличить масштаб">+</button>
+          <button id="canvas-zoom-reset" class="mini-btn" type="button" data-i18n-title="canvas.zoomReset" data-i18n-aria="canvas.zoomReset" aria-label="Сбросить масштаб">1:1</button>
+        </div>
+        <p class="board-hint" data-i18n="canvas.hint">нажми — выполнить · перетащи — расположить · фон — двигать стол · колесо — масштаб</p>
+      </div>
     </div>
 
     <footer class="canvas-foot">
-      <form id="canvas-quick-form" class="canvas-quick" autocomplete="off">
-        <span class="terminal-caret" aria-hidden="true">›</span>
-        <input id="canvas-quick-input" class="terminal-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="быстрая команда…" aria-label="Быстрая команда на холсте">
-        <button class="terminal-send" type="submit">выполнить</button>
+      <div class="canvas-log-head">
+        <strong data-i18n="canvas.output">запись действий</strong>
+        <span data-i18n="canvas.outputHint">без закрытия холста</span>
+      </div>
+      <div id="canvas-log" class="canvas-log" role="log" aria-live="polite"></div>
+      <form id="canvas-quick-form" class="canvas-quick-form" autocomplete="off">
+        <input id="canvas-quick-input" type="text" autocomplete="off" spellcheck="false" placeholder="быстрая команда…" data-i18n-placeholder="canvas.quickPlaceholder">
+        <button type="submit" data-i18n="canvas.quickSend">выполнить</button>
+        <button id="canvas-clear" class="mini-btn danger" type="button" data-i18n="canvas.clear">очистить стол</button>
       </form>
-      <button id="canvas-clear" class="mini-btn danger" type="button">очистить холст</button>
     </footer>
   </section>
 
+  <!-- Settings ------------------------------------------------------------- -->
+  <section id="settings-screen" class="screen settings-screen" hidden>
+    <header class="screen-head settings-head">
+      <div class="screen-heading">
+        <p class="screen-kicker" data-i18n="settings.kicker">общие настройки прототипа</p>
+        <h1 class="screen-title" data-i18n="settings.title">Настройки</h1>
+      </div>
+      <button id="settings-close" class="mini-btn exit-btn" type="button" data-i18n="settings.close">Выход</button>
+    </header>
+
+    <div class="settings-body">
+      <section class="settings-card">
+        <h2 data-i18n="settings.general.title">Общее</h2>
+        <p data-i18n="settings.general.copy">Настройки лежат вне терминала.</p>
+        <div class="button-row">
+          <button id="settings-terminal-route" class="soft-btn" type="button" data-i18n="settings.general.terminal">Перейти в терминал</button>
+          <button id="settings-canvas" class="soft-btn" type="button" data-i18n="settings.general.canvas">Открыть рабочий стол</button>
+          <button id="settings-story" class="soft-btn" type="button" data-i18n="settings.general.story">Открыть сюжетную схему</button>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.terminal.title">Настройки: терминал</h2>
+        <p data-i18n="settings.terminal.copy">Параметры нижней панели и поля ввода.</p>
+        <p class="settings-note" data-i18n="settings.terminal.placeholder">Подсказка поля: «Введите команду и нажмите отправить»</p>
+        <label class="check-item">
+          <input id="setting-autocomplete" type="checkbox" checked>
+          <span data-i18n="settings.terminal.autocomplete">Показывать автодополнение команд</span>
+        </label>
+        <div class="button-row">
+          <button id="settings-terminal" class="soft-btn" type="button" data-i18n="settings.terminal.route">Вернуться в терминал</button>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.log.title">Запись действий</h2>
+        <p data-i18n="settings.log.copy">Это журнал шагов, команд и уведомлений.</p>
+        <p class="settings-note" data-i18n="settings.log.example">пример шага: &gt; идти вниз · 1 с</p>
+        <div id="settings-log-sources" class="check-grid"></div>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.movement.title">Управление</h2>
+        <p data-i18n="settings.movement.copy">Ходьба плавная, без прыжков на целый тайл.</p>
+        <label class="rail-field">
+          <span data-i18n="settings.movement.defaultSeconds">Время ходьбы по умолчанию</span>
+          <input id="settings-walk-seconds" type="number" min="0.1" max="60" step="0.1" value="1">
+          <span data-i18n="settings.movement.secondsUnit">с</span>
+        </label>
+        <label class="check-item">
+          <input id="settings-cursor-control" type="checkbox" checked>
+          <span data-i18n="settings.movement.cursor">Управление курсором</span>
+        </label>
+        <p class="settings-note" data-i18n="settings.movement.cursorHint">ЛКМ — маршрут; удержание ЛКМ — следование за курсором.</p>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.screen.title">Экран</h2>
+        <p data-i18n="settings.screen.copy">Пиксельной игре нужна вертикальная пропорция 9:16.</p>
+        <p class="settings-line">
+          <span data-i18n="settings.screen.ratio">Соотношение сцены</span>
+          <strong id="settings-aspect">сейчас 9:16</strong>
+          <span id="settings-aspect-state" class="aspect-state">в норме</span>
+        </p>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.music.title">Музыкальный плеер</h2>
+        <p data-i18n="settings.music.copy">Текущий трек, перемотка, пауза и громкость.</p>
+        <label class="rail-field">
+          <span data-i18n="settings.music.track">Трек</span>
+          <select id="music-track" class="music-track"></select>
+        </label>
+        <div class="button-row">
+          <button id="music-play" class="soft-btn" type="button" data-i18n="settings.music.play">Играть</button>
+          <button id="music-pause" class="soft-btn" type="button" data-i18n="settings.music.pause">Пауза</button>
+          <button id="music-stop" class="soft-btn" type="button" data-i18n="settings.music.stop">Стоп</button>
+        </div>
+        <label class="rail-field">
+          <span data-i18n="settings.music.seek">Перемотка</span>
+          <input id="music-seek" type="range" min="0" max="100" value="0" step="0.1">
+          <span id="music-time" class="music-time">0:00 / 0:00</span>
+        </label>
+        <label class="rail-field">
+          <span data-i18n="settings.music.volume">Громкость</span>
+          <input id="music-volume" type="range" min="0" max="100" value="80" step="1">
+        </label>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.language.title">Язык</h2>
+        <p data-i18n="settings.language.copy">Язык интерфейса, команд и подсказок.</p>
+        <div class="button-row">
+          <button id="lang-ru" class="soft-btn" type="button" data-i18n="settings.language.ru">Русский</button>
+          <button id="lang-en" class="soft-btn" type="button" data-i18n="settings.language.en">English</button>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 data-i18n="settings.save.title">Сохранение мира</h2>
+        <p data-i18n="settings.save.copy">Сохранение, загрузка и выгрузка мира — только здесь, вне интерфейса терминала.</p>
+        <div class="button-row">
+          <button id="settings-save" class="soft-btn" type="button" data-i18n="settings.save.save">Сохранить</button>
+          <button id="settings-load" class="soft-btn" type="button" data-i18n="settings.save.load">Загрузить</button>
+          <button id="settings-export" class="soft-btn" type="button" data-i18n="settings.save.export">Выгрузить мир</button>
+          <button id="settings-import" class="soft-btn" type="button" data-i18n="settings.save.import">Импорт мира</button>
+          <button id="settings-reset" class="soft-btn danger" type="button" data-i18n="settings.save.reset">Сброс</button>
+        </div>
+        <p id="settings-status" class="settings-status"></p>
+        <input id="world-import" type="file" accept="application/json,.json" hidden>
+      </section>
+    </div>
+  </section>
+
+  <!-- Story plot table ----------------------------------------------------- -->
+  <section id="story-screen" class="screen story-screen" hidden>
+    <header class="screen-head">
+      <div class="screen-heading">
+        <p class="screen-kicker" data-i18n="story.kicker">последовательность · ветки · -&gt;</p>
+        <h1 class="screen-title" data-i18n="story.title">Сюжетная схема</h1>
+      </div>
+      <button id="story-exit" class="mini-btn exit-btn" type="button" data-i18n="story.exit">Выход</button>
+    </header>
+    <div class="story-body">
+      <div id="story-board" class="story-board">
+        <svg id="story-links" class="story-links" aria-hidden="true"></svg>
+        <div id="story-nodes" class="story-nodes"></div>
+      </div>
+      <p id="story-legend" class="story-legend" data-i18n="story.legend">каждая нода соединена вектором -&gt;; ветки открываются по ходу игры</p>
+    </div>
+  </section>
+
+  <!-- Modal ---------------------------------------------------------------- -->
   <div id="modal-root" class="modal-root" hidden>
-    <div class="modal-backdrop"></div>
-    <div id="modal-card" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <figure id="modal-art" class="modal-art" hidden>
-        <img id="modal-image" src="/asset/angel.webp" alt="Карандашный рисунок крылатой девушки на клетчатой бумаге">
-      </figure>
+    <div class="modal-backdrop" aria-hidden="true"></div>
+    <div id="modal-card" class="modal-card" role="dialog" aria-modal="true">
+      <figure id="modal-art" class="modal-art" hidden><img id="modal-image" alt=""></figure>
       <p id="modal-kicker" class="modal-kicker"></p>
       <h2 id="modal-title" class="modal-title"></h2>
       <div id="modal-copy" class="modal-copy"></div>
-      <p id="modal-note" class="modal-note" hidden></p>
+      <p id="modal-note" class="modal-note"></p>
       <div id="modal-actions" class="modal-actions"></div>
     </div>
   </div>

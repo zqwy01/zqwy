@@ -926,7 +926,11 @@
     },
     isPaused() {
       if (document.hidden) return true;
-      return rt.termView !== 'main' && rt.termView !== 'canvas';
+      /* Вкладки терминала — читаемые представления, а не модальные окна:
+         рюкзак, карта, сюжет, настройки, музыка и стол не должны отбирать
+         управление у Zemic. Особый случай — испытание: это отдельный режим,
+         который действительно останавливает мир. */
+      return rt.termView === 'trial';
     },
     resetKeys() {
       rt.keys = Object.create(null);

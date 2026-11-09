@@ -54,6 +54,8 @@
       : label;
   }
 
+  /* Метки времени намеренно не выводятся: терминал — это поток текста,
+     а не журнал с часами. Правило зафиксировано в README. */
   function loggingFallback() {
     const result = { enabled: Boolean(DEFAULT.logging.enabled) };
     for (const key of LOG_KEYS) result[key] = DEFAULT.logging[key] !== false;
@@ -296,6 +298,7 @@
     ZQ.ensureTerminalShare(0.5);
     applyTermSettings(false);
     ZQ.setTerminalView('settings');
+    refreshSaveSlots();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты общие настройки', 'терминал');
   }
 
@@ -883,6 +886,14 @@
       if (document.activeElement !== dom.musicVolume) dom.musicVolume.value = String(value);
       if (dom.musicVolumeValue) dom.musicVolumeValue.textContent = `${value}%`;
     }
+    if (dom.musicMute) {
+      const muted = !(Number(state.volume) > 0);
+      dom.musicMute.setAttribute('aria-pressed', muted ? 'true' : 'false');
+      dom.musicMute.textContent = muted
+        ? t('🔇 включить', '🔇 unmute', '🔇 einschalten')
+        : t('🔇 выкл', '🔇 mute', '🔇 stumm');
+      dom.musicMute.classList.toggle('active', muted);
+    }
     if (dom.musicRate) {
       const rate = Number.isFinite(state.rate) ? state.rate : rt.termSettings.musicRate;
       if (document.activeElement !== dom.musicRate) dom.musicRate.value = String(Math.round(rate * 100));
@@ -931,7 +942,21 @@
   }
   if (dom.musicVolume) {
     dom.musicVolume.addEventListener('input', () => {
-      setMusicVolume(Number(dom.musicVolume.value) / 100);
+      const value = Number(dom.musicVolume.value) / 100;
+      if (value > 0) rt.musicLastVolume = value;
+      setMusicVolume(value);
+    });
+  }
+  if (dom.musicMute) {
+    dom.musicMute.addEventListener('click', () => {
+      const current = Number(rt.termSettings.musicVolume) || 0;
+      if (current > 0) {
+        rt.musicLastVolume = current;
+        setMusicVolume(0);
+      } else {
+        setMusicVolume(rt.musicLastVolume > 0 ? rt.musicLastVolume : 0.55);
+      }
+      updateMusicUI();
     });
   }
   if (dom.soundtrack) {
@@ -984,6 +1009,174 @@
     return ok;
   }
 
+  /* --------------------- Слоты и импорт мира ----------------------- */
+
+  function slotDate(timestamp) {
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return '';
+    try {
+      return new Date(timestamp).toLocaleString(languageName());
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function setSlotStatus(text) {
+    if (dom.saveSlotStatus) dom.saveSlotStatus.textContent = text;
+  }
+
+  function refreshSaveSlots() {
+    if (!dom.saveSlotSelect || typeof ZQ.listSaveSlots !== 'function') return [];
+    const previous = dom.saveSlotSelect.value;
+    const slots = ZQ.listSaveSlots();
+    dom.saveSlotSelect.textContent = '';
+    if (!slots.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = t('пока нет слотов', 'no slots yet', 'noch keine Slots');
+      dom.saveSlotSelect.appendChild(option);
+      dom.saveSlotSelect.disabled = true;
+    } else {
+      dom.saveSlotSelect.disabled = false;
+      for (const slot of slots) {
+        const option = document.createElement('option');
+        option.value = slot.name;
+        const date = slotDate(slot.savedAt);
+        option.textContent = `${slot.name}${date ? ` · ${date}` : ''}`;
+        option.title = `${slot.name} · seed: ${slot.seed || '—'} · ${t('комнат', 'rooms', 'Räume')}: ${slot.rooms}`;
+        dom.saveSlotSelect.appendChild(option);
+      }
+      const hasPrevious = slots.some((slot) => slot.name === previous);
+      dom.saveSlotSelect.value = hasPrevious ? previous : slots[0].name;
+    }
+    if (dom.saveSlotCount) dom.saveSlotCount.textContent = String(slots.length);
+    const empty = slots.length === 0;
+    for (const button of [dom.saveSlotLoad, dom.saveSlotRename, dom.saveSlotDelete]) {
+      if (button) button.disabled = empty;
+    }
+    return slots;
+  }
+
+  function slotListText() {
+    const slots = ZQ.listSaveSlots();
+    if (!slots.length) {
+      return t('Именованных сохранений пока нет.', 'There are no named saves yet.', 'Es gibt noch keine benannten Speicherungen.');
+    }
+    const lines = slots.map((slot) => {
+      const date = slotDate(slot.savedAt);
+      return `• ${slot.name} — seed: ${slot.seed || '—'} · ${t('комнат', 'rooms', 'Räume')}: ${slot.rooms}${date ? ` · ${date}` : ''}`;
+    });
+    return [t('Именованные сохранения:', 'Named saves:', 'Benannte Speicherungen:')].concat(lines).join('\n');
+  }
+
+  function saveSlotWorld(name, announce) {
+    const result = ZQ.saveToSlot(name);
+    if (result.ok) {
+      if (announce) {
+        appendLog(t(`Слот «${result.name}» сохранён.`, `Slot “${result.name}” saved.`, `Slot „${result.name}“ gespeichert.`), 'sys', true);
+      }
+      if (dom.saveSlotName) dom.saveSlotName.value = result.name;
+      refreshSaveSlots();
+      if (dom.saveSlotSelect) dom.saveSlotSelect.value = result.name;
+      setSlotStatus(t(`Слот «${result.name}» сохранён.`, `Slot “${result.name}” saved.`, `Slot „${result.name}“ gespeichert.`));
+    } else if (announce) {
+      const message = result.reason === 'name'
+        ? t('Введи имя слота.', 'Enter a slot name.', 'Gib einen Slot-Namen ein.')
+        : t('Не удалось сохранить слот.', 'Could not save the slot.', 'Der Slot konnte nicht gespeichert werden.');
+      appendLog(message, 'sys', true);
+      setSlotStatus(message);
+    }
+    return result;
+  }
+
+  function loadSlotWorld(name, announce) {
+    const result = ZQ.loadFromSlot(name);
+    if (result.ok) {
+      if (announce) {
+        appendLog(t(`Слот «${name}» загружен. Seed: ${result.seed}.`, `Slot “${name}” loaded. Seed: ${result.seed}.`, `Slot „${name}“ geladen. Seed: ${result.seed}.`), 'sys', true);
+        appendLog(ZQ.bootMessage(result.seed), 'sys', true);
+      }
+      refreshSaveSlots();
+      if (dom.saveSlotSelect) dom.saveSlotSelect.value = ZQ.normalizeSlotName(name);
+      updateMusicUI();
+      setSlotStatus(t(`Слот «${name}» загружен.`, `Slot “${name}” loaded.`, `Slot „${name}“ geladen.`));
+    } else if (announce) {
+      const message = result.reason === 'empty'
+        ? t('Такого слота нет.', 'There is no such slot.', 'Diesen Slot gibt es nicht.')
+        : t('Не удалось загрузить слот.', 'Could not load the slot.', 'Der Slot konnte nicht geladen werden.');
+      appendLog(message, 'sys', true);
+      setSlotStatus(message);
+    }
+    return result;
+  }
+
+  function renameSlot(from, to, announce) {
+    const result = ZQ.renameSaveSlot(from, to);
+    if (result.ok) {
+      if (announce) {
+        appendLog(t(`Слот «${result.from}» переименован в «${result.name}».`, `Slot “${result.from}” renamed to “${result.name}”.`, `Slot „${result.from}“ umbenannt in „${result.name}“.`), 'sys', true);
+      }
+      refreshSaveSlots();
+      if (dom.saveSlotSelect) dom.saveSlotSelect.value = result.name;
+      if (dom.saveSlotName) dom.saveSlotName.value = result.name;
+      setSlotStatus(t(`Слот переименован: «${result.name}».`, `Slot renamed: “${result.name}”.`, `Slot umbenannt: „${result.name}“.`));
+    } else if (announce) {
+      const message = result.reason === 'exists'
+        ? t('Слот с таким именем уже есть.', 'A slot with that name already exists.', 'Ein Slot mit diesem Namen existiert bereits.')
+        : result.reason === 'name'
+          ? t('Введи новое имя слота.', 'Enter a new slot name.', 'Gib einen neuen Slot-Namen ein.')
+          : t('Не удалось переименовать слот.', 'Could not rename the slot.', 'Der Slot konnte nicht umbenannt werden.');
+      appendLog(message, 'sys', true);
+      setSlotStatus(message);
+    }
+    return result;
+  }
+
+  function deleteSlot(name, announce) {
+    const result = ZQ.deleteSaveSlot(name);
+    if (result.ok) {
+      if (announce) {
+        appendLog(t(`Слот «${result.name}» удалён.`, `Slot “${result.name}” deleted.`, `Slot „${result.name}“ gelöscht.`), 'sys', true);
+      }
+      refreshSaveSlots();
+      setSlotStatus(t(`Слот «${result.name}» удалён.`, `Slot “${result.name}” deleted.`, `Slot „${result.name}“ gelöscht.`));
+    } else if (announce) {
+      appendLog(t('Не удалось удалить слот.', 'Could not delete the slot.', 'Der Slot konnte nicht gelöscht werden.'), 'sys', true);
+    }
+    return result;
+  }
+
+  function importWorldData(text, announce) {
+    const result = ZQ.importGame(text);
+    if (result.ok) {
+      if (announce) {
+        appendLog(t(`Мир импортирован. Seed: ${result.seed}.`, `World imported. Seed: ${result.seed}.`, `Welt importiert. Seed: ${result.seed}.`), 'sys', true);
+        appendLog(ZQ.bootMessage(result.seed), 'sys', true);
+      }
+      refreshSaveSlots();
+      updateMusicUI();
+    } else if (announce) {
+      const message = result.reason === 'json' || result.reason === 'format' || result.reason === 'seed'
+        ? t('Файл не похож на мир ZQwy.', 'The file does not look like a ZQwy world.', 'Die Datei sieht nicht wie eine ZQwy-Welt aus.')
+        : t('Не удалось импортировать мир.', 'Could not import the world.', 'Die Welt konnte nicht importiert werden.');
+      appendLog(message, 'sys', true);
+    }
+    return result;
+  }
+
+  function readImportFile(file) {
+    if (!file) return;
+    if (typeof file.text === 'function') {
+      file.text()
+        .then((text) => importWorldData(text, true))
+        .catch(() => appendLog(t('Не удалось прочитать файл.', 'Could not read the file.', 'Die Datei konnte nicht gelesen werden.'), 'sys', true));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => importWorldData(String(reader.result || ''), true);
+    reader.onerror = () => appendLog(t('Не удалось прочитать файл.', 'Could not read the file.', 'Die Datei konnte nicht gelesen werden.'), 'sys', true);
+    reader.readAsText(file);
+  }
+
   const onAction = (button, handler) => {
     if (button) button.addEventListener('click', handler);
   };
@@ -994,6 +1187,43 @@
   onAction(dom.dataSave, () => saveWorld(true));
   onAction(dom.dataLoad, () => loadWorld(true));
   onAction(dom.dataExport, () => exportWorld(true));
+  onAction(dom.dataImport, () => {
+    if (dom.dataImportFile) dom.dataImportFile.click();
+  });
+  if (dom.dataImportFile) {
+    dom.dataImportFile.addEventListener('change', () => {
+      const file = dom.dataImportFile.files && dom.dataImportFile.files[0];
+      readImportFile(file);
+      dom.dataImportFile.value = '';
+    });
+  }
+
+  onAction(dom.saveSlotSave, () => {
+    const typed = dom.saveSlotName ? dom.saveSlotName.value.trim() : '';
+    const selected = dom.saveSlotSelect ? dom.saveSlotSelect.value : '';
+    saveSlotWorld(typed || selected, true);
+  });
+  onAction(dom.saveSlotLoad, () => {
+    if (dom.saveSlotSelect && dom.saveSlotSelect.value) {
+      loadSlotWorld(dom.saveSlotSelect.value, true);
+    }
+  });
+  onAction(dom.saveSlotRename, () => {
+    const selected = dom.saveSlotSelect ? dom.saveSlotSelect.value : '';
+    const next = dom.saveSlotName ? dom.saveSlotName.value.trim() : '';
+    if (selected) renameSlot(selected, next || selected, true);
+  });
+  onAction(dom.saveSlotDelete, () => {
+    if (dom.saveSlotSelect && dom.saveSlotSelect.value) {
+      deleteSlot(dom.saveSlotSelect.value, true);
+    }
+  });
+  if (dom.saveSlotSelect) {
+    dom.saveSlotSelect.addEventListener('change', () => {
+      if (dom.saveSlotName) dom.saveSlotName.value = dom.saveSlotSelect.value;
+      setSlotStatus(t('Слот выбран.', 'Slot selected.', 'Slot ausgewählt.'));
+    });
+  }
 
   ZQ.readTermSettings = readTermSettings;
   ZQ.normalizeTermSettings = normalizeTermSettings;
@@ -1026,5 +1256,12 @@
   ZQ.saveWorld = saveWorld;
   ZQ.loadWorld = loadWorld;
   ZQ.exportWorld = exportWorld;
+  ZQ.refreshSaveSlots = refreshSaveSlots;
+  ZQ.slotListText = slotListText;
+  ZQ.saveSlotWorld = saveSlotWorld;
+  ZQ.loadSlotWorld = loadSlotWorld;
+  ZQ.renameSlot = renameSlot;
+  ZQ.deleteSlot = deleteSlot;
+  ZQ.importWorldData = importWorldData;
   ZQ.categoryName = categoryName;
 })();

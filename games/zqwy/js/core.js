@@ -106,6 +106,7 @@
     musicCue: $('music-cue'),
     musicVolume: $('music-volume'),
     musicVolumeValue: $('music-volume-value'),
+    musicMute: $('music-mute'),
     musicRate: $('music-rate'),
     musicRateValue: $('music-rate-value'),
     musicWave: $('music-wave'),
@@ -114,6 +115,16 @@
     dataSave: $('data-save'),
     dataLoad: $('data-load'),
     dataExport: $('data-export'),
+    dataImport: $('data-import'),
+    dataImportFile: $('data-import-file'),
+    saveSlotSelect: $('save-slot-select'),
+    saveSlotName: $('save-slot-name'),
+    saveSlotCount: $('save-slot-count'),
+    saveSlotSave: $('save-slot-save'),
+    saveSlotLoad: $('save-slot-load'),
+    saveSlotRename: $('save-slot-rename'),
+    saveSlotDelete: $('save-slot-delete'),
+    saveSlotStatus: $('save-slot-status'),
 
     gameCursor: $('game-cursor'),
 
@@ -132,8 +143,30 @@
     trialAbort: $('trial-abort'),
     trialSealBtn: $('trial-seal'),
 
+    battleView: $('view-battle'),
+    battleStage: $('battle-stage'),
+    battleCanvas: $('battle-canvas'),
+    battlePlayerBar: $('battle-player-bar'),
+    battleBeetleBar: $('battle-beetle-bar'),
+    battlePlayerHp: $('battle-player-hp'),
+    battleBeetleHp: $('battle-beetle-hp'),
+    battleEnemyName: $('battle-enemy-name'),
+    battleEyebrow: $('battle-eyebrow'),
+    battleHint: $('battle-hint'),
+    battleAbort: $('battle-abort'),
+    battleDash: $('battle-dash'),
+    battleDashState: $('battle-dash-state'),
+    battleDashTouch: $('battle-dash-touch'),
+    battleReflect: $('battle-reflect'),
+    battleReflectTouch: $('battle-reflect-touch'),
+    battleReflectState: $('battle-reflect-state'),
+
     inventoryView: $('view-inventory'),
-    inventoryList: $('inventory-list'),
+    inventoryGraph: $('inventory-graph'),
+    inventoryNodes: $('inventory-nodes'),
+    inventoryLinks: $('inventory-links'),
+    inventoryCapacity: $('inventory-capacity'),
+    inventoryDetail: $('inventory-detail'),
     inventoryClose: $('inventory-close'),
     inventoryNote: $('inventory-note'),
 
@@ -162,15 +195,13 @@
     canvasZoomOut: $('canvas-zoom-out'),
     canvasZoomReset: $('canvas-zoom-reset'),
     canvasZoomLabel: $('canvas-zoom-label'),
+    canvasLayoutSave: $('canvas-layout-save'),
     canvasKeys: $('canvas-keys'),
     canvasKeysToggle: $('canvas-keys-toggle'),
     canvasKeysTabs: $('canvas-keys-tabs'),
     canvasKeysBody: $('canvas-keys-body'),
     canvasKeyboard: $('canvas-keyboard'),
     canvasKeyboardHint: $('canvas-keyboard-hint'),
-    canvasMoveSeconds: $('canvas-move-seconds'),
-    canvasMoveNote: $('canvas-move-note'),
-    canvasMoveStop: $('canvas-move-stop'),
 
     cardView: $('view-card'),
     cardTitle: $('card-title'),
@@ -197,10 +228,12 @@
     termSettings: dom.termSettingsView,
     fontSettings: dom.fontSettingsView,
     music: dom.musicView,
-    trial: dom.trialView
+    trial: dom.trialView,
+    battle: dom.battleView
   };
 
   const SAVE_VERSION = 1;
+  const SAVE_SLOTS_KEY = 'zqwy.labyrinth.slots.v1';
   const TERM_SETTINGS_KEY = 'zqwy.labyrinth.terminal.v1';
   const SPLIT_KEY = 'zqwy.labyrinth.split.v1';
   const DIVIDER_H = 10;
@@ -269,6 +302,8 @@
 
     trial: null,
     trialRaf: 0,
+    battle: null,
+    battleRaf: 0,
 
     termSettings: {
       speed: DEFAULT_TERM_SETTINGS.speed,
@@ -300,6 +335,11 @@
     cursorPos: { x: 0, y: 0, inside: false, down: false },
     storyPositions: Object.create(null),
     storyPan: null,
+    storyZoom: 1,
+    storyPanX: 0,
+    storyPanY: 0,
+    inventoryPositions: Object.create(null),
+    inventorySelected: null,
     loadMs: 0,
     aspectRatio: 0,
     aspectWarned: false,
@@ -320,6 +360,7 @@
       backpacks: [],
       mapMarks: [],
       canvasElements: [],
+      canvasLayouts: {},
       storySeen: {},
       unlocks: { backpack: false, map: false, table: false, cards: false },
       deaths: 0
@@ -334,6 +375,55 @@
 
   function knownItemId(id) {
     return Object.prototype.hasOwnProperty.call(C.items, id);
+  }
+
+  /* Инвентарь ограничен числом ячеек. Базовое число задано в данных,
+     а предметы-контейнеры (например, рюкзак) добавляют ячейки своим
+     полем slotBonus. */
+  function inventoryCapacity() {
+    const base = C.inventory && Number.isFinite(C.inventory.baseSlots)
+      ? C.inventory.baseSlots
+      : 4;
+    let bonus = 0;
+    if (rt.state && Array.isArray(rt.state.items)) {
+      for (const id of rt.state.items) {
+        const item = C.items[id];
+        if (item && Number.isFinite(item.slotBonus)) bonus += item.slotBonus;
+      }
+    }
+    return base + bonus;
+  }
+
+  function inventoryUsed() {
+    return rt.state && Array.isArray(rt.state.items) ? rt.state.items.length : 0;
+  }
+
+  function inventoryFree() {
+    return Math.max(0, inventoryCapacity() - inventoryUsed());
+  }
+
+  function addInventoryItem(itemId, options) {
+    if (!rt.state || !Array.isArray(rt.state.items)) {
+      return { ok: false, reason: 'no-state' };
+    }
+    if (!knownItemId(itemId)) return { ok: false, reason: 'unknown' };
+    if (rt.state.items.includes(itemId)) {
+      return { ok: true, duplicate: true };
+    }
+    const force = Boolean(options && options.force);
+    if (!force && inventoryUsed() >= inventoryCapacity()) {
+      return { ok: false, reason: 'full', capacity: inventoryCapacity() };
+    }
+    rt.state.items.push(itemId);
+    return { ok: true };
+  }
+
+  function removeInventoryItem(itemId) {
+    if (!rt.state || !Array.isArray(rt.state.items)) return false;
+    const index = rt.state.items.indexOf(itemId);
+    if (index < 0) return false;
+    rt.state.items.splice(index, 1);
+    return true;
   }
 
   function normalizeCanvasElement(raw) {
@@ -356,8 +446,8 @@
       /* Старые сохранения хранили клавишу на самом элементе. Поле
          переносится в отдельный элемент-клавишу при загрузке. */
       legacyKey: typeof raw.key === 'string' ? raw.key : null,
-      nx: Number.isFinite(raw.nx) ? clamp(raw.nx, 0.04, 0.96) : 0.5,
-      ny: Number.isFinite(raw.ny) ? clamp(raw.ny, 0.04, 0.96) : 0.5,
+      nx: Number.isFinite(raw.nx) ? clamp(raw.nx, 0, 1) : 0.5,
+      ny: Number.isFinite(raw.ny) ? clamp(raw.ny, 0, 1) : 0.5,
       commands: Array.isArray(raw.commands)
         ? raw.commands.filter((c) => typeof c === 'string')
         : null,
@@ -419,6 +509,7 @@
       backpacks: state.backpacks,
       mapMarks: state.mapMarks,
       canvasElements: state.canvasElements,
+      canvasLayouts: state.canvasLayouts || {},
       storySeen: state.storySeen,
       unlocks: state.unlocks,
       deaths: state.deaths,
@@ -454,6 +545,10 @@
     rt.trialRaf = 0;
     rt.trial = null;
     if (typeof ZQ.hideTrialStage === 'function') ZQ.hideTrialStage();
+    if (rt.battleRaf) window.cancelAnimationFrame(rt.battleRaf);
+    rt.battleRaf = 0;
+    rt.battle = null;
+    if (typeof ZQ.hideBattleStage === 'function') ZQ.hideBattleStage();
     rt.canvasLinkMode = false;
     rt.linkFirstId = null;
     rt.keyBindingId = null;
@@ -464,9 +559,8 @@
     if (typeof ZQ.closeCanvasDrawer === 'function') ZQ.closeCanvasDrawer();
   }
 
-  function loadGame() {
-    const saved = readSave();
-    if (!saved) return { ok: false, reason: 'empty' };
+  function applySaveData(saved) {
+    if (!saved || typeof saved !== 'object') return { ok: false, reason: 'empty' };
 
     const started = now();
     const seed = typeof saved.seed === 'string' && saved.seed ? saved.seed : newSeed();
@@ -490,7 +584,130 @@
     ZQ.updatePrompt();
     if (rt.state.currentRoomId) rt.state.visited[rt.state.currentRoomId] = true;
     ZQ.saveGame();
-    return { ok: true, seed, savedAt: saved.savedAt || 0 };
+    return { ok: true, seed, savedAt: saved.savedAt || 0, source: saved.source || 'save' };
+  }
+
+  function loadGame() {
+    const saved = readSave();
+    if (!saved) return { ok: false, reason: 'empty' };
+    return applySaveData(saved);
+  }
+
+  /* ------------------------ Именованные слоты ----------------------- */
+
+  function normalizeSlotName(name) {
+    const text = String(name == null ? '' : name)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 40);
+    return text;
+  }
+
+  function readSlotStore() {
+    try {
+      const raw = window.localStorage.getItem(SAVE_SLOTS_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeSlotStore(store) {
+    try {
+      window.localStorage.setItem(SAVE_SLOTS_KEY, JSON.stringify(store));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function listSaveSlots() {
+    const store = readSlotStore();
+    return Object.keys(store)
+      .map((name) => {
+        const data = store[name] || {};
+        return {
+          name,
+          seed: typeof data.seed === 'string' ? data.seed : '',
+          savedAt: Number.isFinite(data.savedAt) ? data.savedAt : 0,
+          deaths: Number.isFinite(data.deaths) ? data.deaths : 0,
+          items: Array.isArray(data.items) ? data.items.length : 0,
+          rooms: data.visited && typeof data.visited === 'object'
+            ? Object.keys(data.visited).length
+            : 0
+        };
+      })
+      .sort((a, b) => b.savedAt - a.savedAt);
+  }
+
+  function saveToSlot(name) {
+    if (!rt.state || !rt.state.player) return { ok: false, reason: 'no-state' };
+    const key = normalizeSlotName(name);
+    if (!key) return { ok: false, reason: 'name' };
+    const store = readSlotStore();
+    const data = serializeState();
+    data.slotName = key;
+    data.savedAt = Date.now();
+    store[key] = data;
+    if (!writeSlotStore(store)) return { ok: false, reason: 'storage' };
+    return { ok: true, name: key, savedAt: data.savedAt };
+  }
+
+  function loadFromSlot(name) {
+    const key = normalizeSlotName(name);
+    if (!key) return { ok: false, reason: 'name' };
+    const store = readSlotStore();
+    const data = store[key];
+    if (!data) return { ok: false, reason: 'empty' };
+    return applySaveData(data);
+  }
+
+  function renameSaveSlot(from, to) {
+    const key = normalizeSlotName(from);
+    const next = normalizeSlotName(to);
+    if (!key || !next) return { ok: false, reason: 'name' };
+    if (key === next) return { ok: true, name: next, unchanged: true };
+    const store = readSlotStore();
+    if (!store[key]) return { ok: false, reason: 'empty' };
+    if (store[next]) return { ok: false, reason: 'exists' };
+    store[next] = Object.assign({}, store[key], { slotName: next });
+    delete store[key];
+    if (!writeSlotStore(store)) return { ok: false, reason: 'storage' };
+    return { ok: true, name: next, from: key };
+  }
+
+  function deleteSaveSlot(name) {
+    const key = normalizeSlotName(name);
+    if (!key) return { ok: false, reason: 'name' };
+    const store = readSlotStore();
+    if (!store[key]) return { ok: false, reason: 'empty' };
+    delete store[key];
+    if (!writeSlotStore(store)) return { ok: false, reason: 'storage' };
+    return { ok: true, name: key };
+  }
+
+  /* Импорт мира принимает JSON из экспорта или из именованного слота. */
+  function importGame(input) {
+    let data = input;
+    if (typeof input === 'string') {
+      try {
+        data = JSON.parse(input);
+      } catch (error) {
+        return { ok: false, reason: 'json' };
+      }
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return { ok: false, reason: 'format' };
+    }
+    if (typeof data.seed !== 'string' || !data.seed.trim()) {
+      return { ok: false, reason: 'seed' };
+    }
+    if (data.kind && data.kind !== 'zqwy-world' && data.kind !== 'zqwy-slot') {
+      return { ok: false, reason: 'format' };
+    }
+    return applySaveData(data);
   }
 
   function respawnPlayerAtSpawn() {
@@ -632,6 +849,24 @@
         .map(normalizeCanvasElement)
         .filter(Boolean);
       if (typeof ZQ.normalizeTableBindings === 'function') ZQ.normalizeTableBindings();
+    }
+    if (saved.canvasLayouts && typeof saved.canvasLayouts === 'object') {
+      for (const name of Object.keys(saved.canvasLayouts)) {
+        const layout = saved.canvasLayouts[name];
+        if (!layout || typeof layout !== 'object') continue;
+        state.canvasLayouts[name] = {
+          zoom: Number.isFinite(layout.zoom) ? layout.zoom : 1,
+          panX: Number.isFinite(layout.panX) ? layout.panX : 0,
+          panY: Number.isFinite(layout.panY) ? layout.panY : 0,
+          elements: Array.isArray(layout.elements)
+            ? layout.elements
+              .filter((entry) => entry && typeof entry.id === 'string' &&
+                Number.isFinite(entry.nx) && Number.isFinite(entry.ny))
+              .map((entry) => ({ id: entry.id, nx: entry.nx, ny: entry.ny }))
+            : [],
+          savedAt: Number.isFinite(layout.savedAt) ? layout.savedAt : 0
+        };
+      }
     }
     if (saved.storySeen && typeof saved.storySeen === 'object') state.storySeen = saved.storySeen;
     if (saved.unlocks && typeof saved.unlocks === 'object') {
@@ -834,6 +1069,10 @@
     rt.trialRaf = 0;
     rt.trial = null;
     ZQ.hideTrialStage();
+    if (rt.battleRaf) window.cancelAnimationFrame(rt.battleRaf);
+    rt.battleRaf = 0;
+    rt.battle = null;
+    if (typeof ZQ.hideBattleStage === 'function') ZQ.hideBattleStage();
 
     rt.state = defaultState(seed);
     rt.world = window.World.generate(seed);
@@ -877,6 +1116,7 @@
     rt,
     constants: {
       SAVE_VERSION,
+      SAVE_SLOTS_KEY,
       TERM_SETTINGS_KEY,
       SPLIT_KEY,
       DIVIDER_H,
@@ -902,6 +1142,14 @@
     saveGame,
     loadGame,
     exportGame,
+    applySaveData,
+    importGame,
+    normalizeSlotName,
+    listSaveSlots,
+    saveToSlot,
+    loadFromSlot,
+    renameSaveSlot,
+    deleteSaveSlot,
     serializeState,
     coreVersion,
     bootMessage,
@@ -910,6 +1158,11 @@
     checkAspectRatio,
     resetTransientMotion,
     knownItemId,
+    inventoryCapacity,
+    inventoryUsed,
+    inventoryFree,
+    addInventoryItem,
+    removeInventoryItem,
     normalizeCanvasElement,
     hydrateState,
     hasUnlock,
@@ -922,15 +1175,18 @@
     initDivider,
     startNewGame,
     isTrialBlocking() {
-      return rt.termView === 'trial';
+      return rt.termView === 'trial' || rt.termView === 'battle';
+    },
+    isBattleBlocking() {
+      return Boolean(rt.battle) || rt.termView === 'battle';
     },
     isPaused() {
       if (document.hidden) return true;
       /* Вкладки терминала — читаемые представления, а не модальные окна:
-         рюкзак, карта, сюжет, настройки, музыка и стол не должны отбирать
-         управление у Zemic. Особый случай — испытание: это отдельный режим,
-         который действительно останавливает мир. */
-      return rt.termView === 'trial';
+         инвентарь, карта, сюжет, настройки, музыка и стол не должны отбирать
+         управление у Zemic. Особые случаи — испытание и арена: это отдельные
+         режимы, которые действительно останавливают мир. */
+      return rt.termView === 'trial' || rt.termView === 'battle';
     },
     resetKeys() {
       rt.keys = Object.create(null);

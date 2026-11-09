@@ -466,13 +466,31 @@
     const firstVisit = !rt.state.visited[room.id];
     rt.state.currentRoomId = room.id;
     rt.state.visited[room.id] = true;
+    if (rt.survivalBlockedRoom && rt.survivalBlockedRoom !== room.id) {
+      rt.survivalBlockedRoom = null;
+    }
     if (ZQ.audio) ZQ.audio.setCue(room.music);
 
-    if (!firstVisit) return;
+    if (firstVisit) {
+      ZQ.saveGame();
+      ZQ.appendLog(`— ${room.name} —`, 'sys', true);
+      ZQ.logEvent('actions', `вошёл в комнату «${room.name}»`, 'комната');
+    }
 
-    ZQ.saveGame();
-    ZQ.appendLog(`— ${room.name} —`, 'sys', true);
-    ZQ.logEvent('actions', `вошёл в комнату «${room.name}»`, 'комната');
+    /* Вода приходит без разрешения: комната сама запускает выживание,
+       как только Zemic оказывается внутри. */
+    const survivalKind = room.role === 'beetle' || room.role === 'umbrella'
+      ? room.role
+      : null;
+    if (survivalKind) {
+      const flag = `${survivalKind}Done`;
+      if (!rt.state.flags[flag] && rt.survivalBlockedRoom !== room.id) {
+        ZQ.startBattle(survivalKind);
+        return;
+      }
+    }
+
+    if (!firstVisit) return;
 
     if (room.role === 'trial') {
       ZQ.queueStory('trial', () => {
@@ -491,7 +509,16 @@
           ZQ.unlock('table');
         });
       } else {
-        ZQ.queueStory(room.role);
+        ZQ.queueStory(room.role, () => ZQ.updatePrompt());
+      }
+      return;
+    }
+
+    if (room.faunaKind && C.fauna[room.faunaKind]) {
+      const fauna = C.fauna[room.faunaKind];
+      const speaker = String(room.name || fauna.name).toUpperCase();
+      for (const line of fauna.lines) {
+        ZQ.appendLog(line, 'story', false, speaker);
       }
       return;
     }
@@ -550,41 +577,81 @@
   }
 
   function collectItemPickup(pickup) {
-    if (rt.state.flags[`taken_${pickup.itemId}`]) return;
-    rt.state.flags[`taken_${pickup.itemId}`] = true;
-    if (!rt.state.items.includes(pickup.itemId)) rt.state.items.push(pickup.itemId);
+    if (rt.state.flags[`taken_${pickup.itemId}`]) return false;
     const item = C.items[pickup.itemId];
     const name = item ? item.name : pickup.itemId;
-    ZQ.appendLog(`В рюкзаке: ${name}`, 'sys', true);
+    const added = ZQ.addInventoryItem(pickup.itemId);
+    if (!added.ok) {
+      ZQ.appendLog(
+        `Инвентарь заполнен: ${ZQ.inventoryUsed()} из ${ZQ.inventoryCapacity()} ячеек. «${name}» остаётся на месте.`,
+        'sys',
+        true
+      );
+      updatePrompt();
+      return false;
+    }
+    rt.state.flags[`taken_${pickup.itemId}`] = true;
+    ZQ.appendLog(`В инвентаре: ${name}`, 'sys', true);
     ZQ.appendLog(`Взято: ${name}.`, 'reply', true);
     ZQ.logEvent('actions', `взял «${name}»`, 'находка');
     ZQ.unlock('backpack');
     if (pickup.itemId === 'map_fragment') ZQ.unlock('map');
     ZQ.saveGame();
     updatePrompt();
+    return true;
   }
 
   function takeCard() {
-    if (rt.state.flags.cardTaken) return;
+    if (rt.state.flags.cardTaken) return false;
+    const added = ZQ.addInventoryItem('card_angel');
+    if (!added.ok) {
+      ZQ.appendLog(
+        `Инвентарь заполнен: ${ZQ.inventoryUsed()} из ${ZQ.inventoryCapacity()} ячеек. Карта остаётся в круге.`,
+        'sys',
+        true
+      );
+      updatePrompt();
+      return false;
+    }
     rt.state.flags.cardTaken = true;
-    if (!rt.state.items.includes('card_angel')) rt.state.items.push('card_angel');
     ZQ.appendLog('Получена карта «Очарование»', 'sys', true);
-    ZQ.appendLog('Карта «Очарование» лежит в рюкзаке. Её можно вынести на стол.', 'reply');
+    ZQ.appendLog('Карта «Очарование» лежит в инвентаре. Её можно вынести на стол.', 'reply');
     ZQ.logEvent('actions', 'взял карту «Очарование»', 'находка');
     ZQ.saveGame();
     updatePrompt();
+    return true;
   }
 
   function retrieveBackpack(backpack) {
     const restored = [];
-    for (const itemId of backpack.items) {
-      if (!rt.state.items.includes(itemId)) {
-        rt.state.items.push(itemId);
-        const item = C.items[itemId];
-        restored.push(item ? item.name : itemId);
-      }
+    const leftover = [];
+    /* Сначала предметы-контейнеры: рюкзак внутри рюкзака должен успеть
+       расширить инвентарь до того, как в него вернут остальное. */
+    const ordered = backpack.items.slice().sort((a, b) => {
+      const aBonus = C.items[a] && Number.isFinite(C.items[a].slotBonus) ? 0 : 1;
+      const bBonus = C.items[b] && Number.isFinite(C.items[b].slotBonus) ? 0 : 1;
+      return aBonus - bBonus;
+    });
+    for (const itemId of ordered) {
+      if (rt.state.items.includes(itemId)) continue;
+      const result = ZQ.addInventoryItem(itemId);
+      const item = C.items[itemId];
+      const name = item ? item.name : itemId;
+      if (result.ok) restored.push(name);
+      else leftover.push(itemId);
     }
     rt.state.backpacks = rt.state.backpacks.filter((bp) => bp.id !== backpack.id);
+    if (leftover.length) {
+      rt.state.backpacks.push({
+        id: ZQ.makeId('bp'),
+        x: backpack.x,
+        y: backpack.y,
+        roomId: backpack.roomId,
+        items: leftover,
+        cause: backpack.cause,
+        createdAt: Date.now()
+      });
+    }
     if (restored.length) {
       ZQ.appendLog(`Рюкзак возвращён: ${restored.join(', ')}`, 'sys', true);
       ZQ.appendLog(`Рюкзак возвращён. Внутри: ${restored.join(', ')}.`, 'reply');
@@ -593,6 +660,14 @@
       ZQ.appendLog('Пустой рюкзак возвращён', 'sys', true);
       ZQ.appendLog('Рюкзак возвращён. Внутри ничего не было.', 'reply');
       ZQ.logEvent('actions', 'вернул пустой рюкзак', 'рюкзак');
+    }
+    if (leftover.length) {
+      const names = leftover.map((id) => (C.items[id] ? C.items[id].name : id));
+      ZQ.appendLog(
+        `Инвентарь полон: ${names.join(', ')} остаются в рюкзаке на месте.`,
+        'sys',
+        true
+      );
     }
     ZQ.saveGame();
     updatePrompt();
@@ -738,6 +813,16 @@
       text = 'Сухая бумага, пыль, чьи-то аккуратные полки. Здесь что-то оставили до тебя.';
     } else if (room.role === 'crossroad') {
       text = 'На стене четыре чёрточки: три длинные, одна короткая. Под ними — стёртая фраза.';
+    } else if (room.role === 'beetle') {
+      text = rt.state.flags.beetleDone
+        ? 'Арена опустела. Хитиновый панцирь больше не поднимается, и только царапины на камне помнят бой.'
+        : 'Низкий свод арены. В центре ждёт хитиновая фигура — человек-жук. Он не говорит, но уже примеряет твой вес.';
+    } else if (room.role === 'umbrella') {
+      text = rt.state.flags.umbrellaDone
+        ? 'Зал притих. На камне лежит сложенный зонт, и воздух больше не свистит от снарядов.'
+        : 'Зал кажется пустым. Под потолком медленно раскрывается огромный зонт, и спицы уже дрожат перед залпом.';
+    } else if (room.faunaKind && C.fauna[room.faunaKind]) {
+      text = C.fauna[room.faunaKind].lines.join(' ');
     } else {
       const index = window.World.hashString(`${rt.state.seed}:look:${room.id}`) % C.ambientRoomLines.length;
       text = C.ambientRoomLines[index];
@@ -756,9 +841,13 @@
   }
 
   function inventorySummary() {
-    if (!rt.state.items.length) return 'Рюкзак пуст.';
+    const used = ZQ.inventoryUsed();
+    const capacity = ZQ.inventoryCapacity();
+    if (!rt.state.items.length) {
+      return `Инвентарь пуст. Ячеек: 0 из ${capacity}.`;
+    }
     const names = rt.state.items.map((id) => (C.items[id] ? C.items[id].name : id));
-    return `Рюкзак: ${names.join(', ')}. Предметов: ${rt.state.items.length}.`;
+    return `Инвентарь: ${names.join(', ')}. Занято ${used} из ${capacity} ячеек.`;
   }
 
   function mapMark() {

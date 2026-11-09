@@ -7,6 +7,10 @@
   const rt = ZQ.rt;
   const dom = ZQ.dom;
 
+  const ZOOM_MIN = 0.22;
+  const ZOOM_MAX = 3.2;
+  const NODE_WIDTH = 176;
+
   function queueStory(key, onClose, force) {
     const story = C.story[key];
     if (!story) {
@@ -113,14 +117,6 @@
     return states;
   }
 
-  function stageOrder() {
-    const order = [];
-    for (const node of Object.values(C.storyTree.nodes)) {
-      if (!order.includes(node.stage)) order.push(node.stage);
-    }
-    return order;
-  }
-
   function createStoryCard(id, node, state) {
     const card = document.createElement('article');
     card.className = 'story-node';
@@ -200,11 +196,8 @@
     return card;
   }
 
-  function drawStoryEdges(svg, order, tree, states, positions, boardWidth, boardHeight) {
+  function drawStoryEdges(svg, order, tree, states, positions) {
     svg.textContent = '';
-    svg.setAttribute('width', String(boardWidth));
-    svg.setAttribute('height', String(boardHeight));
-    svg.setAttribute('viewBox', `0 0 ${boardWidth} ${boardHeight}`);
     for (const parentId of order) {
       const parent = tree.nodes[parentId];
       const parentPos = positions.get(parentId);
@@ -217,34 +210,51 @@
         const cls = childState.done && parentState.done
           ? 'done'
           : childState.available ? 'available' : '';
-        const x1 = parentPos.x + parentPos.width;
+
+        /* Карточки можно свободно перетаскивать, поэтому связь сама
+           выбирает сторону: если ребёнок левее родителя, стрелка идёт
+           влево, иначе — вправо. */
+        const rightward = (childPos.x + childPos.width / 2) >=
+          (parentPos.x + parentPos.width / 2);
+        const x1 = rightward ? parentPos.x + parentPos.width : parentPos.x;
+        const x2 = rightward ? childPos.x : childPos.x + childPos.width;
         const y1 = parentPos.y + parentPos.height / 2;
-        const x2 = childPos.x - 2;
         const y2 = childPos.y + childPos.height / 2;
-        const curve = Math.max(28, (x2 - x1) * 0.42);
+        const curve = Math.max(30, Math.abs(x2 - x1) * 0.42);
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d',
           `M ${x1.toFixed(1)} ${y1.toFixed(1)} ` +
-          `C ${(x1 + curve).toFixed(1)} ${y1.toFixed(1)}, ` +
-          `${(x2 - curve).toFixed(1)} ${y2.toFixed(1)}, ` +
+          `C ${(x1 + (rightward ? curve : -curve)).toFixed(1)} ${y1.toFixed(1)}, ` +
+          `${(x2 + (rightward ? -curve : curve)).toFixed(1)} ${y2.toFixed(1)}, ` +
           `${x2.toFixed(1)} ${y2.toFixed(1)}`);
         path.setAttribute('class', `story-edge${cls ? ` ${cls}` : ''}`);
         svg.appendChild(path);
 
         const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        const dir = rightward ? -1 : 1;
         arrow.setAttribute('points',
           `${x2.toFixed(1)},${y2.toFixed(1)} ` +
-          `${(x2 - 8).toFixed(1)},${(y2 - 4).toFixed(1)} ` +
-          `${(x2 - 8).toFixed(1)},${(y2 + 4).toFixed(1)}`);
+          `${(x2 + 8 * dir).toFixed(1)},${(y2 - 4).toFixed(1)} ` +
+          `${(x2 + 8 * dir).toFixed(1)},${(y2 + 4).toFixed(1)}`);
         arrow.setAttribute('class', `story-edge-arrow${cls ? ` ${cls}` : ''}`);
         svg.appendChild(arrow);
       }
     }
   }
 
+  function applyStoryView() {
+    const board = rt.storyBoard;
+    if (!board) return;
+    board.style.transform =
+      `translate(${rt.storyPanX.toFixed(2)}px, ${rt.storyPanY.toFixed(2)}px) ` +
+      `scale(${rt.storyZoom.toFixed(4)})`;
+  }
+
   /* Раскладка графа: колонка на глубину ветви, карточки по центру
-     колонки. Карточки можно перетаскивать, а пустое полотно — двигать
-     левой кнопкой мыши. Позиции карточек живут в rt.storyPositions. */
+     колонки. Карточки можно перетаскивать без ограничений, а пустое
+     полотно — двигать левой кнопкой мыши. Колесо мыши приближает ту
+     точку, над которой находится курсор. Позиции и вид живут в rt. */
   function layoutStoryGraph(tree, states, container) {
     const depth = new Map();
     const order = [];
@@ -273,14 +283,13 @@
     svg.setAttribute('aria-hidden', 'true');
     board.appendChild(svg);
     container.appendChild(board);
+    rt.storyBoard = board;
 
     const padX = 24;
     const padY = 20;
     const columnGap = 232;
     const rowGap = 18;
-    const nodeWidth = 176;
     const levels = Array.from(columns.keys()).sort((a, b) => a - b);
-    const maxDepth = levels.length ? levels[levels.length - 1] : 0;
     const entries = [];
 
     for (const level of levels) {
@@ -334,28 +343,22 @@
       positions.set(entry.id, {
         x,
         y,
-        width: nodeWidth,
+        width: NODE_WIDTH,
         height: entry.height
       });
     }
 
-    let boardWidth = Math.max(padX * 2 + maxDepth * columnGap + nodeWidth, 960);
-    let boardHeight = Math.max(padY * 2 + tallest, 480);
-    for (const pos of positions.values()) {
-      boardWidth = Math.max(boardWidth, pos.x + pos.width + padX);
-      boardHeight = Math.max(boardHeight, pos.y + pos.height + padY);
-    }
-    board.style.width = `${boardWidth}px`;
-    board.style.height = `${boardHeight}px`;
-
-    const redraw = () => drawStoryEdges(svg, order, tree, states, positions, boardWidth, boardHeight);
-    redraw();
+    const redraw = () => drawStoryEdges(svg, order, tree, states, positions);
 
     for (const entry of entries) {
       entry.card.addEventListener('pointerdown', (event) => {
         if (event.button !== undefined && event.button !== 0) return;
         event.preventDefault();
         event.stopPropagation();
+        if (window.getSelection) {
+          const selection = window.getSelection();
+          if (selection && selection.removeAllRanges) selection.removeAllRanges();
+        }
         const start = positions.get(entry.id);
         if (!start) return;
         const drag = {
@@ -376,16 +379,15 @@
         const move = (moveEvent) => {
           if (rt.storyDrag !== drag || moveEvent.pointerId !== drag.pointerId) return;
           moveEvent.preventDefault();
-          const maxX = Math.max(0, boardWidth - nodeWidth);
-          const maxY = Math.max(0, boardHeight - entry.height);
-          const x = ZQ.clamp(drag.originX + moveEvent.clientX - drag.startX, 0, maxX);
-          const y = ZQ.clamp(drag.originY + moveEvent.clientY - drag.startY, 0, maxY);
+          /* Никаких рамок: карточку можно унести сколько угодно далеко. */
+          const x = drag.originX + moveEvent.clientX - drag.startX;
+          const y = drag.originY + moveEvent.clientY - drag.startY;
           entry.card.style.left = `${x}px`;
           entry.card.style.top = `${y}px`;
           positions.set(entry.id, {
             x,
             y,
-            width: nodeWidth,
+            width: NODE_WIDTH,
             height: entry.height
           });
           redraw();
@@ -419,8 +421,8 @@
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
-        left: container.scrollLeft,
-        top: container.scrollTop
+        originX: rt.storyPanX,
+        originY: rt.storyPanY
       };
       rt.storyPan = pan;
       container.classList.add('panning');
@@ -432,8 +434,9 @@
       const move = (moveEvent) => {
         if (rt.storyPan !== pan || moveEvent.pointerId !== pan.pointerId) return;
         moveEvent.preventDefault();
-        container.scrollLeft = Math.max(0, pan.left - (moveEvent.clientX - pan.startX));
-        container.scrollTop = Math.max(0, pan.top - (moveEvent.clientY - pan.startY));
+        rt.storyPanX = pan.originX + (moveEvent.clientX - pan.startX);
+        rt.storyPanY = pan.originY + (moveEvent.clientY - pan.startY);
+        applyStoryView();
       };
       const finish = (finishEvent) => {
         if (finishEvent.pointerId !== pan.pointerId) return;
@@ -453,6 +456,8 @@
       board.addEventListener('pointercancel', finish);
     });
 
+    redraw();
+    applyStoryView();
     return board;
   }
 
@@ -461,13 +466,18 @@
     const tree = C.storyTree;
     const states = nodeStates();
     dom.storyTree.textContent = '';
+    rt.storyBoard = null;
     layoutStoryGraph(tree, states, dom.storyTree);
   }
 
   function openStory() {
     if (ZQ.isTrialBlocking()) return;
     ZQ.ensureTerminalShare(0.56);
+    if (!Number.isFinite(rt.storyZoom) || rt.storyZoom <= 0) rt.storyZoom = 1;
+    if (!Number.isFinite(rt.storyPanX)) rt.storyPanX = 0;
+    if (!Number.isFinite(rt.storyPanY)) rt.storyPanY = 0;
     ZQ.setTerminalView('story');
+    applyStoryView();
   }
 
   function closeStory() {
@@ -475,7 +485,37 @@
     ZQ.updatePrompt();
   }
 
+  /* Колесо мыши: плавный шаг и приближение к точке под курсором.
+     Слушатель пассивный только для чтения, поэтому preventDefault
+     работает и страница не прокручивается. */
+  function bindWheelZoom() {
+    if (!dom.storyTree) return;
+    dom.storyTree.addEventListener('selectstart', (event) => {
+      if (rt.termView === 'story') event.preventDefault();
+    });
+    dom.storyTree.addEventListener('dragstart', (event) => {
+      if (rt.termView === 'story') event.preventDefault();
+    });
+    dom.storyTree.addEventListener('wheel', (event) => {
+      if (rt.termView !== 'story') return;
+      event.preventDefault();
+      const rect = dom.storyTree.getBoundingClientRect();
+      const mx = event.clientX - rect.left;
+      const my = event.clientY - rect.top;
+      const oldZoom = rt.storyZoom;
+      const step = Math.exp(-event.deltaY * 0.0016);
+      const nextZoom = ZQ.clamp(oldZoom * step, ZOOM_MIN, ZOOM_MAX);
+      if (nextZoom === oldZoom) return;
+      const ratio = nextZoom / oldZoom;
+      rt.storyPanX = mx - (mx - rt.storyPanX) * ratio;
+      rt.storyPanY = my - (my - rt.storyPanY) * ratio;
+      rt.storyZoom = nextZoom;
+      applyStoryView();
+    }, { passive: false });
+  }
+
   dom.storyClose.addEventListener('click', closeStory);
+  bindWheelZoom();
 
   window.addEventListener('resize', () => {
     if (rt.termView === 'story') renderStory();
@@ -487,6 +527,7 @@
   ZQ.renderStory = renderStory;
   ZQ.openStory = openStory;
   ZQ.closeStory = closeStory;
+  ZQ.applyStoryView = applyStoryView;
   ZQ.storyInfo = function () {
     const states = nodeStates();
     return Array.from(states.entries()).map(([id, value]) => ({

@@ -21,10 +21,24 @@
     pumpStory();
   }
 
+  /* Процедурные сюжетные комнаты не входят в C.story: генератор
+     выбирает сцену по индексу, а не по имени роли. Показываем каждую
+     такую сцену один раз, как и обычные сюжетные комнаты. */
+  function queueProceduralStory(room) {
+    if (!room || !Array.isArray(C.proceduralStories)) return false;
+    const story = C.proceduralStories[room.storyIndex];
+    if (!story) return false;
+    const key = `procedural:${room.storyIndex}`;
+    if (rt.state.storySeen[key]) return false;
+    rt.storyQueue.push({ key, story });
+    pumpStory();
+    return true;
+  }
+
   function pumpStory() {
     if (rt.storyActive || !rt.storyQueue.length) return;
     const entry = rt.storyQueue.shift();
-    const story = C.story[entry.key];
+    const story = entry.story || C.story[entry.key];
     if (!story) {
       if (entry.onClose) entry.onClose();
       pumpStory();
@@ -469,6 +483,7 @@
   });
 
   ZQ.queueStory = queueStory;
+  ZQ.queueProceduralStory = queueProceduralStory;
   ZQ.clearStoryQueue = clearStoryQueue;
   ZQ.renderStory = renderStory;
   ZQ.openStory = openStory;

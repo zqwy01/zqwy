@@ -315,10 +315,16 @@
     ZQ.pollGamepad();
 
     if (!ZQ.isPaused()) {
-      ZQ.updateMovement(dt);
-      ZQ.updateRoomDetection();
-      ZQ.updateCamera();
-      if (!rt.trial) ZQ.updatePrompt();
+      /* Ошибка в одном кадре не должна останавливать цикл: иначе игра
+         выглядит зависшей, хотя достаточно было пропустить кадр. */
+      try {
+        ZQ.updateMovement(dt);
+        ZQ.updateRoomDetection();
+        ZQ.updateCamera();
+        if (!rt.trial) ZQ.updatePrompt();
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     if (rt.images) {

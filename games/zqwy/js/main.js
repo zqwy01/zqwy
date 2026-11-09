@@ -183,7 +183,7 @@
       },
 
       setScheme(device) {
-        rt.canvasDevice = ['keyboard', 'gamepad', 'phone'].includes(device)
+        rt.canvasDevice = ['keyboard', 'gamepad', 'phone', 'mouse'].includes(device)
           ? device
           : 'keyboard';
         ZQ.renderKeyScheme();
@@ -360,16 +360,14 @@
     rt.images = window.Renderer.prepareImages();
     rt.loadMs = Math.max(0, Math.round(ZQ.now() - started));
 
-    ZQ.appendLog(ZQ.worldLoadMessage(seed), 'sys', true);
-    C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
-    C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
+    ZQ.appendLog(ZQ.bootMessage(seed), 'sys', true);
     ZQ.initDivider();
     ZQ.resetCanvasView(false);
     ZQ.renderCanvasElements();
     ZQ.renderCanvasDrawer();
     ZQ.renderKeyScheme();
     ZQ.setTerminalView('main');
-    ZQ.checkAspectRatio(true);
+    ZQ.checkAspectRatio();
     installDebugApi();
 
     rt.lastFrame = ZQ.now();

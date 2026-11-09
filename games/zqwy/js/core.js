@@ -51,7 +51,7 @@
     termContext: $('term-context'),
     commandForm: $('command-form'),
     commandInput: $('command-input'),
-    commandSuggest: $('command-suggest'),
+    commandGhost: $('command-ghost'),
     viewMain: $('view-main'),
     terminal: $('terminal'),
 
@@ -66,6 +66,11 @@
     termSettingsClose: $('term-settings-close'),
     termSettingsBack: $('term-settings-back'),
     openTermSettings: $('open-term-settings'),
+    fontSettingsView: $('view-font-settings'),
+    fontSettingsClose: $('font-settings-close'),
+    fontSettingsBack: $('font-settings-back'),
+    openFontSettings: $('open-font-settings'),
+    settingFontCurrent: $('setting-font-current'),
     settingSpeed: $('setting-speed'),
     settingSpeedNumber: $('setting-speed-number'),
     settingSpeedValue: $('setting-speed-value'),
@@ -90,22 +95,30 @@
     settingLogState: $('setting-log-state'),
     settingLanguageState: $('setting-language-state'),
 
+    musicView: $('view-music'),
+    musicClose: $('music-close'),
+    musicBack: $('music-back'),
+    openMusic: $('open-music'),
     musicToggle: $('music-toggle'),
     musicStop: $('music-stop'),
     musicSeek: $('music-seek'),
     musicTime: $('music-time'),
     musicCue: $('music-cue'),
     musicVolume: $('music-volume'),
+    musicVolumeValue: $('music-volume-value'),
+    musicRate: $('music-rate'),
+    musicRateValue: $('music-rate-value'),
+    musicWave: $('music-wave'),
     musicState: $('music-state'),
+    musicPlayerState: $('music-player-state'),
     dataSave: $('data-save'),
     dataLoad: $('data-load'),
     dataExport: $('data-export'),
 
-    aspectWarning: $('aspect-warning'),
+    gameCursor: $('game-cursor'),
 
     storyView: $('view-story'),
     storyClose: $('story-close'),
-    storyNow: $('story-now'),
     storyTree: $('story-tree'),
 
     trialView: $('view-trial'),
@@ -182,6 +195,8 @@
     story: dom.storyView,
     settings: dom.settingsView,
     termSettings: dom.termSettingsView,
+    fontSettings: dom.fontSettingsView,
+    music: dom.musicView,
     trial: dom.trialView
   };
 
@@ -213,7 +228,8 @@
     fontOverrides: { terminal: 0, table: 0 },
     logging: loggingDefaults(),
     music: C.music ? C.music.enabled !== false : true,
-    musicVolume: C.music && Number.isFinite(C.music.volume) ? C.music.volume : 0.55
+    musicVolume: C.music && Number.isFinite(C.music.volume) ? C.music.volume : 0.55,
+    musicRate: C.music && Number.isFinite(C.music.rate) ? C.music.rate : 1
   };
 
   const rt = {
@@ -260,7 +276,8 @@
       fontOverrides: { ...DEFAULT_TERM_SETTINGS.fontOverrides },
       logging: { ...DEFAULT_TERM_SETTINGS.logging },
       music: DEFAULT_TERM_SETTINGS.music,
-      musicVolume: DEFAULT_TERM_SETTINGS.musicVolume
+      musicVolume: DEFAULT_TERM_SETTINGS.musicVolume,
+      musicRate: DEFAULT_TERM_SETTINGS.musicRate
     },
     logBusy: false,
     logToken: 0,
@@ -280,7 +297,11 @@
     cursorMove: null,
     cursorHold: false,
     cursorPointer: null,
+    cursorPos: { x: 0, y: 0, inside: false, down: false },
+    storyPositions: Object.create(null),
+    storyPan: null,
     loadMs: 0,
+    aspectRatio: 0,
     aspectWarned: false,
     musicTimer: 0
   };
@@ -511,12 +532,29 @@
     }
   }
 
-  function worldLoadMessage(seed) {
+  function coreVersion() {
+    const build = window.ZQ_BUILD || {};
+    const version = build.version || C.version || '0.0.0';
+    const number = Number.isFinite(Number(build.build)) ? Number(build.build) : 0;
+    return `${version} · ${tr('сборка')} ${number}`;
+  }
+
+  function bootMessage(seed) {
     const rooms = rt.world && Array.isArray(rt.world.rooms) ? rt.world.rooms.length : 0;
     const chunks = rt.world && Number.isFinite(rt.world.chunkCount) ? rt.world.chunkCount : 0;
     const loadMs = Math.max(0, Math.round(rt.loadMs || 0));
     const value = seed || (rt.state ? rt.state.seed : '');
-    return tr(`Мир загружен за ${loadMs} мс · комнат: ${rooms} · чанков: ${chunks} · seed: ${value}`);
+    return [
+      `${tr('Версия ядра:')} ${coreVersion()}`,
+      `${tr('Мир загружен:')} ${tr('за')} ${loadMs} ${tr('мс')} · ${tr('комнат:')} ${rooms} · ${tr('чанков:')} ${chunks} · seed: ${value}`,
+      tr('Управление: W/A/S/D или стрелки — идти; E — действие; Enter — отправить команду; ↑/↓ — история команд.'),
+      tr('ЛКМ по миру — идти к точке; удержание ЛКМ — следовать за курсором.'),
+      tr('Введи «помоги», чтобы увидеть команды. Команды открываются по мере истории. Настройки — «настройки», сюжет — «сюжет», запись действий — «логгирование».')
+    ].join('\n');
+  }
+
+  function worldLoadMessage(seed) {
+    return bootMessage(seed);
   }
 
   function aspectInfo() {
@@ -537,24 +575,22 @@
     };
   }
 
-  function checkAspectRatio(announce) {
-    if (!dom.aspectWarning) return null;
+  function checkAspectRatio() {
     const info = aspectInfo();
-    dom.aspectWarning.classList.toggle('hidden', info.ok);
-    if (!info.ok) {
-      dom.aspectWarning.textContent = ZQ.tr
-        ? ZQ.tr(`Пропорции экрана ${info.ratio.toFixed(2)}:1. Поддерживается примерно 16:9. Измени окно, чтобы не было визуальных дефектов.`)
-        : `Пропорции экрана ${info.ratio.toFixed(2)}:1. Поддерживается примерно 16:9.`;
-    }
-
+    const changed = Math.abs(info.ratio - rt.aspectRatio) >= 0.01;
+    rt.aspectRatio = info.ratio;
+    if (!changed) return info;
+    /* Предупреждение живёт только в терминале: отдельного визуального
+       баннера нет. Проверка срабатывает на каждое изменение пропорций,
+       но текст выводится один раз при выходе за диапазон. */
     if (info.ok) {
       rt.aspectWarned = false;
       return info;
     }
-    if (announce && !rt.aspectWarned) {
+    if (!rt.aspectWarned) {
+      const text = `Пропорции экрана ${info.ratio.toFixed(2)}:1 вне рекомендуемого диапазона ${info.min.toFixed(2)}–${info.max.toFixed(2)}:1 (≈16:9). Возможны визуальные дефекты.`;
+      ZQ.appendLog(tr(text), 'sys', true);
       rt.aspectWarned = true;
-      const text = `Пропорции экрана ${info.ratio.toFixed(2)}:1. Поддерживается примерно 16:9. Терминал предупреждает: возможны визуальные дефекты.`;
-      ZQ.appendLog(text, 'sys', true);
     }
     return info;
   }
@@ -639,13 +675,11 @@
   function unlockHint(id) {
     const meta = C.terminal.unlocks[id];
     if (meta) return meta.hint;
-    return window.ZQI18N && window.ZQI18N.lang === 'en' ? 'This will open later.' : 'Это откроется позже.';
+    return tr('Это откроется позже.');
   }
 
   function denyLocked(id) {
-    return window.ZQI18N && window.ZQI18N.lang === 'en'
-      ? `Not available yet. ${unlockHint(id)}`
-      : `Пока недоступно. ${unlockHint(id)}`;
+    return `${tr('Пока недоступно. ')}${unlockHint(id)}`;
   }
 
   function setTerminalView(name) {
@@ -773,6 +807,13 @@
     window.addEventListener('resize', () => {
       applySplit(rt.splitRatio, false);
       if (rt.termView === 'map') ZQ.drawMapNow();
+      checkAspectRatio();
+    });
+    window.addEventListener('orientationchange', () => {
+      window.setTimeout(() => {
+        applySplit(rt.splitRatio, false);
+        checkAspectRatio();
+      }, 120);
     });
   }
 
@@ -787,6 +828,8 @@
 
     rt.storyQueue.length = 0;
     rt.storyActive = false;
+    rt.storyPositions = Object.create(null);
+    rt.storyPan = null;
     if (rt.trialRaf) window.cancelAnimationFrame(rt.trialRaf);
     rt.trialRaf = 0;
     rt.trial = null;
@@ -812,16 +855,13 @@
     rt.canvasZoom = 1;
     rt.canvasPanX = 0;
     rt.canvasPanY = 0;
-    rt.aspectWarned = false;
     dom.canvasLinkToggle.classList.remove('active');
     ZQ.closeCanvasDrawer();
 
     ZQ.snapCamera();
     rt.loadMs = Math.max(0, Math.round(now() - started));
     ZQ.clearLog();
-    ZQ.appendLog(worldLoadMessage(seed), 'sys', true);
-    C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
-    C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
+    ZQ.appendLog(bootMessage(seed), 'sys', true);
     setTerminalView('main');
     ZQ.applyCanvasTransform();
     ZQ.renderCanvasElements();
@@ -863,6 +903,8 @@
     loadGame,
     exportGame,
     serializeState,
+    coreVersion,
+    bootMessage,
     worldLoadMessage,
     aspectInfo,
     checkAspectRatio,

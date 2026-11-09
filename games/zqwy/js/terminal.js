@@ -21,12 +21,25 @@
   const DEFAULT = ZQ.DEFAULT_TERM_SETTINGS;
   const LOG_KEYS = ZQ.LOG_KEYS || ['terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands'];
 
-  function isEn() {
-    return Boolean(window.ZQI18N && window.ZQI18N.lang === 'en');
+  function lang() {
+    return window.ZQI18N && window.ZQI18N.lang ? window.ZQI18N.lang : 'ru';
   }
 
-  function t(ru, en) {
-    return isEn() ? en : ru;
+  function isEn() {
+    return lang() === 'en';
+  }
+
+  function t(ru, en, de) {
+    const code = lang();
+    if (code === 'de') return de || en || ru;
+    return code === 'en' ? (en || ru) : ru;
+  }
+
+  function languageName() {
+    const code = lang();
+    if (code === 'de') return 'Deutsch';
+    if (code === 'en') return 'English';
+    return 'русский';
   }
 
   function translate(text) {
@@ -54,7 +67,8 @@
       fontOverrides: { ...DEFAULT.fontOverrides },
       logging: loggingFallback(),
       music: DEFAULT.music,
-      musicVolume: DEFAULT.musicVolume
+      musicVolume: DEFAULT.musicVolume,
+      musicRate: DEFAULT.musicRate
     };
     try {
       const raw = window.localStorage.getItem(TERM_SETTINGS_KEY);
@@ -79,7 +93,10 @@
         music: typeof parsed.music === 'boolean' ? parsed.music : fallback.music,
         musicVolume: Number.isFinite(parsed.musicVolume)
           ? parsed.musicVolume
-          : fallback.musicVolume
+          : fallback.musicVolume,
+        musicRate: Number.isFinite(parsed.musicRate)
+          ? parsed.musicRate
+          : fallback.musicRate
       };
       for (const key of LOG_KEYS) {
         result.logging[key] = typeof logging[key] === 'boolean'
@@ -118,6 +135,9 @@
     s.musicVolume = Number.isFinite(s.musicVolume)
       ? ZQ.clamp(s.musicVolume, 0, 1)
       : DEFAULT.musicVolume;
+    s.musicRate = Number.isFinite(s.musicRate)
+      ? ZQ.clamp(s.musicRate, 0.5, 2)
+      : DEFAULT.musicRate;
   }
 
   function categoryName(key) {
@@ -175,6 +195,9 @@
       setValue(dom.settingFontNumber, s.fontSize);
       dom.settingFontValue.textContent = `${s.fontSize} px`;
     }
+    if (dom.settingFontCurrent) {
+      dom.settingFontCurrent.textContent = `${s.fontSize} px`;
+    }
 
     const setOverrideInputs = (key) => {
       const value = s.fontOverrides[key];
@@ -210,12 +233,13 @@
     }
 
     if (dom.settingLanguageState) {
-      dom.settingLanguageState.textContent = isEn() ? 'English' : 'русский';
+      dom.settingLanguageState.textContent = languageName();
     }
 
     if (ZQ.audio) {
       if (typeof ZQ.audio.setVolume === 'function') ZQ.audio.setVolume(s.musicVolume);
       if (typeof ZQ.audio.setEnabled === 'function') ZQ.audio.setEnabled(s.music);
+      if (typeof ZQ.audio.setRate === 'function') ZQ.audio.setRate(s.musicRate);
     }
     updateMusicUI();
 
@@ -262,6 +286,11 @@
     applyTermSettings(true);
   }
 
+  function setMusicRate(value) {
+    rt.termSettings.musicRate = ZQ.clamp(Number(value), 0.5, 2);
+    applyTermSettings(true);
+  }
+
   function openSettings() {
     if (ZQ.isTrialBlocking()) return;
     ZQ.ensureTerminalShare(0.5);
@@ -278,6 +307,15 @@
     ZQ.setTerminalView('termSettings');
     ZQ.resetKeys();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты настройки терминала', 'терминал');
+  }
+
+  function openFontSettings() {
+    if (ZQ.isTrialBlocking()) return;
+    ZQ.ensureTerminalShare(0.5);
+    applyTermSettings(false);
+    ZQ.setTerminalView('fontSettings');
+    ZQ.resetKeys();
+    if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты настройки шрифта', 'терминал');
   }
 
   function closeSettings() {
@@ -535,42 +573,69 @@
 
     const text = String(needle || '').toLowerCase();
     const prefix = (value) => Boolean(text) && (text.startsWith(value) || value.startsWith(text));
-    if (prefix('идти ') || prefix('walk ')) {
+    if (prefix('идти ')) {
       for (const dir of ['вверх', 'вниз', 'влево', 'вправо']) {
         add(`идти ${dir}`);
         add(`идти ${dir} 5`);
       }
+    }
+    if (prefix('walk ')) {
       for (const dir of ['up', 'down', 'left', 'right']) {
         add(`walk ${dir}`);
         add(`walk ${dir} 5`);
       }
     }
-    if (prefix('язык ') || prefix('language ')) {
-      for (const value of ['русский', 'английский', 'russian', 'english']) add(`язык ${value}`);
-      for (const value of ['russian', 'english']) add(`language ${value}`);
-    }
-    if (prefix('логгирование ') || prefix('logging ')) {
-      for (const value of ['включи', 'выключи', 'всё', 'ничего', 'терминал', 'сцены', 'система', 'мир', 'движение', 'действия', 'команды']) {
-        add(`логгирование ${value}`);
-      }
-      for (const value of ['on', 'off', 'all', 'none', 'terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands']) {
-        add(`logging ${value}`);
+    if (prefix('laufen ')) {
+      for (const dir of ['oben', 'unten', 'links', 'rechts']) {
+        add(`laufen ${dir}`);
+        add(`laufen ${dir} 5`);
       }
     }
-    if (prefix('помоги ') || prefix('help ')) {
+    if (prefix('язык ') || prefix('language ') || prefix('sprache ')) {
+      if (prefix('язык ')) {
+        for (const value of ['русский', 'английский', 'немецкий']) add(`язык ${value}`);
+      }
+      if (prefix('language ')) {
+        for (const value of ['russian', 'english', 'german']) add(`language ${value}`);
+      }
+      if (prefix('sprache ')) {
+        for (const value of ['russisch', 'englisch', 'deutsch']) add(`sprache ${value}`);
+      }
+    }
+    if (prefix('логгирование ') || prefix('logging ') || prefix('protokoll ')) {
+      if (prefix('логгирование ')) {
+        for (const value of ['включи', 'выключи', 'всё', 'ничего', 'терминал', 'сцены', 'система', 'мир', 'движение', 'действия', 'команды']) {
+          add(`логгирование ${value}`);
+        }
+      }
+      if (prefix('logging ')) {
+        for (const value of ['on', 'off', 'all', 'none', 'terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands']) {
+          add(`logging ${value}`);
+        }
+      }
+      if (prefix('protokoll ')) {
+        for (const value of ['an', 'aus', 'alles', 'nichts', 'terminal', 'szenen', 'system', 'welt', 'bewegung', 'handlungen', 'befehle']) {
+          add(`protokoll ${value}`);
+        }
+      }
+    }
+    if (prefix('помоги ') || prefix('help ') || prefix('hilfe ')) {
       for (const group of C.terminal.helpGroups) {
         if (!ZQ.groupUnlocked(group)) continue;
-        add(`помоги ${group.title}`);
-        add(`help ${group.title}`);
+        if (prefix('помоги ')) add(`помоги ${group.title}`);
+        if (prefix('help ')) add(`help ${group.title}`);
+        if (prefix('hilfe ')) add(`hilfe ${group.title}`);
       }
     }
-    if (prefix('настройки ') || prefix('settings ')) {
-      add('настройки терминал');
-      add('settings terminal');
+    if (prefix('настройки ') || prefix('settings ') || prefix('einstellungen ')) {
+      if (prefix('настройки ')) add('настройки терминал');
+      if (prefix('settings ')) add('settings terminal');
+      if (prefix('einstellungen ')) add('einstellungen terminal');
     }
-    if (prefix('музыка ') || prefix('music ')) {
-      add('музыка');
-      add('music');
+    if (prefix('музыка ') || prefix('music ') || prefix('musik ')) {
+      if (prefix('музыка ')) add('музыка');
+      if (prefix('music ')) add('music');
+      if (prefix('musik ')) add('musik');
     }
     return pool;
   }
@@ -578,16 +643,19 @@
   function hideSuggestions() {
     rt.commandSuggestions = [];
     rt.commandSuggestIndex = -1;
-    if (dom.commandSuggest) {
-      dom.commandSuggest.textContent = '';
-      dom.commandSuggest.classList.add('hidden');
+    if (dom.commandGhost) {
+      dom.commandGhost.textContent = '';
+      dom.commandGhost.classList.add('hidden');
     }
   }
 
-  function completeSuggestion() {
-    if (!rt.commandSuggestions.length) return false;
-    const index = rt.commandSuggestIndex >= 0 ? rt.commandSuggestIndex : 0;
-    const value = rt.commandSuggestions[index];
+  function completeSuggestion(reverse) {
+    if (!rt.commandSuggestions.length) refreshCommandSuggestions();
+    const list = rt.commandSuggestions;
+    if (!list.length) return false;
+    const step = reverse ? -1 : 1;
+    rt.commandSuggestIndex = (rt.commandSuggestIndex + step + list.length) % list.length;
+    const value = list[rt.commandSuggestIndex];
     if (!value) return false;
     dom.commandInput.value = value;
     const end = value.length;
@@ -600,57 +668,45 @@
     return true;
   }
 
+  /* Подсказка — прозрачное продолжение прямо в поле ввода. Никакой
+     отдельной колонки или списка под терминалом нет. */
   function refreshCommandSuggestions() {
-    if (!dom.commandSuggest) return;
+    if (!dom.commandGhost) return;
     if (!isTyping()) {
       hideSuggestions();
       return;
     }
-    const value = dom.commandInput.value.trim();
-    const needle = value.toLowerCase();
-    const pool = suggestionPool(needle);
-    const matches = [];
-    for (const command of pool) {
-      const lower = command.toLowerCase();
-      if (!needle || lower.startsWith(needle) || lower.includes(needle)) {
-        matches.push(command);
-      }
-      if (matches.length >= 7) break;
-    }
-    rt.commandSuggestions = matches;
-    rt.commandSuggestIndex = matches.length ? 0 : -1;
-    dom.commandSuggest.textContent = '';
-    if (!matches.length) {
-      dom.commandSuggest.classList.add('hidden');
+    const value = dom.commandInput.value;
+    if (!value) {
+      hideSuggestions();
       return;
     }
-    dom.commandSuggest.classList.remove('hidden');
-    for (const [index, command] of matches.entries()) {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'command-suggest-item';
-      item.setAttribute('role', 'option');
-      item.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
-      item.dataset.command = command;
-
-      if (needle && command.toLowerCase().startsWith(needle)) {
-        const strong = document.createElement('b');
-        strong.textContent = command.slice(0, needle.length);
-        item.appendChild(strong);
-        item.appendChild(document.createTextNode(command.slice(needle.length)));
-      } else {
-        item.textContent = command;
+    const needle = value.toLowerCase();
+    const matches = [];
+    for (const command of suggestionPool(needle)) {
+      const lower = command.toLowerCase();
+      if (lower.startsWith(needle) && command.length > value.length) {
+        matches.push(command);
       }
-      item.addEventListener('pointerdown', (event) => {
-        event.preventDefault();
-      });
-      item.addEventListener('click', () => {
-        dom.commandInput.value = command;
-        hideSuggestions();
-        dom.commandInput.focus();
-      });
-      dom.commandSuggest.appendChild(item);
     }
+    rt.commandSuggestions = matches;
+    rt.commandSuggestIndex = -1;
+    if (!matches.length) {
+      hideSuggestions();
+      return;
+    }
+    const completion = matches[0];
+    dom.commandGhost.textContent = '';
+    const prefix = document.createElement('span');
+    prefix.className = 'command-ghost-prefix';
+    prefix.textContent = value;
+    const suffix = document.createElement('span');
+    suffix.className = 'command-ghost-suffix';
+    suffix.textContent = completion.slice(value.length);
+    dom.commandGhost.appendChild(prefix);
+    dom.commandGhost.appendChild(suffix);
+    dom.commandGhost.style.transform = `translateX(${-dom.commandInput.scrollLeft}px)`;
+    dom.commandGhost.classList.remove('hidden');
   }
 
   dom.commandInput.addEventListener('keydown', (event) => {
@@ -662,7 +718,7 @@
       showHistory(1);
     } else if (event.code === 'Tab' && rt.commandSuggestions.length) {
       event.preventDefault();
-      completeSuggestion();
+      completeSuggestion(event.shiftKey);
     } else if (event.code === 'Escape' && rt.commandSuggestions.length) {
       event.preventDefault();
       hideSuggestions();
@@ -672,6 +728,11 @@
   dom.commandInput.addEventListener('input', () => {
     if (rt.commandHistoryIndex !== -1) resetHistory();
     refreshCommandSuggestions();
+  });
+
+  dom.commandInput.addEventListener('scroll', () => {
+    if (!dom.commandGhost || dom.commandGhost.classList.contains('hidden')) return;
+    dom.commandGhost.style.transform = `translateX(${-dom.commandInput.scrollLeft}px)`;
   });
 
   dom.commandForm.addEventListener('submit', (event) => {
@@ -698,10 +759,7 @@
 
   dom.commandInput.addEventListener('blur', () => {
     window.setTimeout(() => {
-      if (!dom.commandInput.matches(':focus') &&
-          !dom.commandSuggest.contains(document.activeElement)) {
-        hideSuggestions();
-      }
+      if (document.activeElement !== dom.commandInput) hideSuggestions();
     }, 120);
     ZQ.updatePrompt();
   });
@@ -712,6 +770,9 @@
   dom.termSettingsClose.addEventListener('click', closeSettings);
   dom.termSettingsBack.addEventListener('click', openSettings);
   dom.openTermSettings.addEventListener('click', openTermSettings);
+  if (dom.fontSettingsClose) dom.fontSettingsClose.addEventListener('click', closeSettings);
+  if (dom.fontSettingsBack) dom.fontSettingsBack.addEventListener('click', openSettings);
+  if (dom.openFontSettings) dom.openFontSettings.addEventListener('click', openFontSettings);
 
   dom.settingSpeed.addEventListener('input', () => setSpeed(dom.settingSpeed.value));
   dom.settingSpeedNumber.addEventListener('change', () => setSpeed(dom.settingSpeedNumber.value));
@@ -745,7 +806,7 @@
     input.addEventListener('change', () => setLogging(key, input.checked));
   }
 
-  dom.settingsView.addEventListener('click', (event) => {
+  const handleSettingsClick = (event) => {
     const clear = event.target.closest('[data-font-clear]');
     if (clear) {
       setFontOverride(clear.dataset.fontClear, 0);
@@ -765,7 +826,9 @@
     if (languageButton && window.ZQI18N) {
       window.ZQI18N.apply(languageButton.dataset.lang);
     }
-  });
+  };
+  dom.settingsView.addEventListener('click', handleSettingsClick);
+  if (dom.fontSettingsView) dom.fontSettingsView.addEventListener('click', handleSettingsClick);
 
   dom.settingsReset.addEventListener('click', () => {
     rt.termSettings = {
@@ -774,7 +837,8 @@
       fontOverrides: { ...DEFAULT.fontOverrides },
       logging: loggingFallback(),
       music: DEFAULT.music,
-      musicVolume: DEFAULT.musicVolume
+      musicVolume: DEFAULT.musicVolume,
+      musicRate: DEFAULT.musicRate
     };
     applyTermSettings(true);
   });
@@ -796,12 +860,17 @@
       };
 
     dom.musicState.textContent = state.enabled
-      ? t('включена', 'on')
-      : t('выключена', 'off');
+      ? t('включена', 'on', 'an')
+      : t('выключена', 'off', 'aus');
+    if (dom.musicPlayerState) {
+      dom.musicPlayerState.textContent = state.enabled
+        ? (state.playing ? t('играет', 'playing', 'spielt') : t('пауза', 'paused', 'pausiert'))
+        : t('выключена', 'off', 'aus');
+    }
     if (dom.musicToggle) {
       dom.musicToggle.textContent = state.playing
-        ? t('пауза', 'pause')
-        : t('играть', 'play');
+        ? t('пауза', 'pause', 'Pause')
+        : t('играть', 'play', 'Abspielen');
     }
     if (dom.musicTime) {
       const total = Number.isFinite(state.duration) ? state.duration : 0;
@@ -815,11 +884,22 @@
     if (dom.musicVolume) {
       const value = Math.round((Number.isFinite(state.volume) ? state.volume : rt.termSettings.musicVolume) * 100);
       if (document.activeElement !== dom.musicVolume) dom.musicVolume.value = String(value);
+      if (dom.musicVolumeValue) dom.musicVolumeValue.textContent = `${value}%`;
+    }
+    if (dom.musicRate) {
+      const rate = Number.isFinite(state.rate) ? state.rate : rt.termSettings.musicRate;
+      if (document.activeElement !== dom.musicRate) dom.musicRate.value = String(Math.round(rate * 100));
+      if (dom.musicRateValue) dom.musicRateValue.textContent = `${rate.toFixed(2)}×`;
+      dom.musicRate.closest('.setting-group')
+        ?.querySelectorAll('[data-rate]')
+        .forEach((button) => {
+          button.classList.toggle('active', Number(button.dataset.rate) === Math.round(rate * 100));
+        });
     }
     if (dom.musicCue) {
       const cue = state.cue || 'labyrinth';
       const meta = C.musicCues && C.musicCues[cue];
-      dom.musicCue.textContent = meta ? meta.title : t('Лабиринт', 'Labyrinth');
+      dom.musicCue.textContent = meta ? meta.title : t('Лабиринт', 'Labyrinth', 'Labyrinth');
     }
   }
 
@@ -886,7 +966,7 @@
         appendLog(t('Сохранения пока нет.', 'There is no save yet.'), 'sys', true);
       } else {
         appendLog(`Сохранение загружено. Seed: ${result.seed}.`, 'sys', true);
-        appendLog(ZQ.worldLoadMessage(result.seed), 'sys', true);
+        appendLog(ZQ.bootMessage(result.seed), 'sys', true);
       }
     }
     updateMusicUI();
@@ -926,11 +1006,13 @@
   ZQ.setLogging = setLogging;
   ZQ.setMusicEnabled = setMusicEnabled;
   ZQ.setMusicVolume = setMusicVolume;
+  ZQ.setMusicRate = setMusicRate;
   ZQ.setSpeed = setSpeed;
   ZQ.setFontSize = setFontSize;
   ZQ.setFontOverride = setFontOverride;
   ZQ.openSettings = openSettings;
   ZQ.openTermSettings = openTermSettings;
+  ZQ.openFontSettings = openFontSettings;
   ZQ.closeSettings = closeSettings;
   ZQ.appendLog = appendLog;
   ZQ.logEvent = logEvent;

@@ -10,8 +10,10 @@
   const LOG_KEYS = ZQ.LOG_KEYS ||
     ['terminal', 'scenes', 'system', 'world', 'movement', 'actions', 'commands'];
 
-  function t(ru, en) {
-    return window.ZQI18N && window.ZQI18N.lang === 'en' ? en : ru;
+  function t(ru, en, de) {
+    const code = window.ZQI18N && window.ZQI18N.lang ? window.ZQI18N.lang : 'ru';
+    if (code === 'de') return de || en || ru;
+    return code === 'en' ? (en || ru) : ru;
   }
 
   /* Английские названия команд из подсказки работают и в русском
@@ -44,22 +46,58 @@
     up: 'вверх',
     down: 'вниз',
     left: 'влево',
-    right: 'вправо'
+    right: 'вправо',
+    hilfe: 'помоги',
+    musik: 'музыка',
+    sprache: 'язык',
+    einstellungen: 'настройки',
+    speichern: 'сохранить',
+    laden: 'загрузить',
+    exportieren: 'экспорт',
+    tabelle: 'стол',
+    karte: 'карта',
+    rucksack: 'рюкзак',
+    geschichte: 'сюжет',
+    protokoll: 'логгирование',
+    hallo: 'привет',
+    'neues spiel': 'новая игра',
+    halt: 'стоп',
+    markieren: 'пометить',
+    handlung: 'действие',
+    umschauen: 'осмотреться',
+    'komm näher': 'подойди'
   };
 
   const PREFIX_ALIASES = [
     [/^help\b/, 'помоги'],
+    [/^hilfe\b/, 'помоги'],
     [/^walk\b/, 'идти'],
+    [/^laufen\b/, 'идти'],
     [/^logging\b/, 'логгирование'],
-    [/^language\b/, 'язык']
+    [/^protokoll\b/, 'логгирование'],
+    [/^language\b/, 'язык'],
+    [/^sprache\b/, 'язык']
   ];
 
   const DIRECTION_EN = {
     up: 'вверх',
     down: 'вниз',
     left: 'влево',
-    right: 'вправо'
+    right: 'вправо',
+    oben: 'вверх',
+    unten: 'вниз',
+    links: 'влево',
+    rechts: 'вправо',
+    hoch: 'вверх',
+    runter: 'вниз',
+    halt: 'стоп',
+    markieren: 'пометить',
+    handlung: 'действие',
+    umschauen: 'осмотреться',
+    'komm näher': 'подойди'
   };
+
+  const DIRECTION_DE = DIRECTION_EN;
 
   function canonicalCommand(value) {
     let cmd = String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -71,7 +109,10 @@
       }
     }
     /* «идти down 10» после замены префикса становится «идти вниз 10». */
-    return cmd.replace(/\b(up|down|left|right)\b/g, (word) => DIRECTION_EN[word] || word);
+    cmd = cmd.replace(/\b(up|down|left|right)\b/g, (word) => DIRECTION_EN[word] || word);
+    /* Немецкие направления: «laufen oben» → «идти вверх». */
+    cmd = cmd.replace(/\b(oben|unten|links|rechts|hoch|runter)\b/g, (word) => DIRECTION_DE[word] || word);
+    return cmd;
   }
 
   function commandGroup(name) {
@@ -201,25 +242,35 @@
   }
 
   function languageText() {
-    const lang = window.ZQI18N && window.ZQI18N.lang === 'en' ? 'English' : 'русский';
+    const code = window.ZQI18N && window.ZQI18N.lang ? window.ZQI18N.lang : 'ru';
+    const name = code === 'de' ? 'Deutsch' : code === 'en' ? 'English' : 'русский';
     return t(
-      `Язык: ${lang}. Переключение: «язык английский» или «язык русский».`,
-      `Language: ${lang}. Switch with “language english” or “language russian”.`
+      `Язык: ${name}. Переключение: «язык английский», «язык немецкий» или «язык русский».`,
+      `Language: ${name}. Switch with “language english”, “language german” or “language russian”.`,
+      `Sprache: ${name}. Wechseln mit „sprache deutsch“, „sprache englisch“ oder „sprache russisch“.`
     );
   }
 
   function languageCommand(arg) {
     const value = String(arg || '').trim().toLowerCase();
     if (!value) return languageText();
-    if (value === 'английский' || value === 'англ' || value === 'english' || value === 'en') {
+    if (value === 'английский' || value === 'англ' || value === 'english' || value === 'eng' || value === 'englisch') {
       if (window.ZQI18N) window.ZQI18N.apply('en');
       return '';
     }
-    if (value === 'русский' || value === 'рус' || value === 'russian' || value === 'ru') {
+    if (value === 'немецкий' || value === 'нем' || value === 'deutsch' || value === 'german' || value === 'de') {
+      if (window.ZQI18N) window.ZQI18N.apply('de');
+      return '';
+    }
+    if (value === 'русский' || value === 'рус' || value === 'russian' || value === 'ru' || value === 'russisch') {
       if (window.ZQI18N) window.ZQI18N.apply('ru');
       return '';
     }
-    return t(`Неизвестный язык «${arg}». ${languageText()}`, `Unknown language “${arg}”. ${languageText()}`);
+    return t(
+      `Неизвестный язык «${arg}». ${languageText()}`,
+      `Unknown language “${arg}”. ${languageText()}`,
+      `Unbekannte Sprache „${arg}“. ${languageText()}`
+    );
   }
 
   function handleCommand(raw, source) {
@@ -320,11 +371,16 @@
       reply = languageCommand(cmd.replace(/^язык\s*/, ''));
       replyInstant = true;
     } else if (cmd === 'музыка') {
-      const next = !rt.termSettings.music;
-      ZQ.setMusicEnabled(next);
-      reply = next
-        ? t('Фоновый трек включён.', 'Background track enabled.')
-        : t('Фоновый трек выключен.', 'Background track disabled.');
+      if (source === 'terminal') {
+        ZQ.openMusic();
+        reply = '';
+      } else {
+        reply = t(
+          'Музыкальный плеер открывается из основной вкладки терминала командой «музыка».',
+          'The music player opens from the main terminal tab with the “music” command.',
+          'Der Musikplayer öffnet sich in der Hauptregisterkarte des Terminals mit dem Befehl „musik“.'
+        );
+      }
     } else if (cmd === 'сохранить') {
       const ok = ZQ.saveWorld(false);
       reply = ok
@@ -368,8 +424,7 @@
     } else if (cmd === 'очисти') {
       if (source === 'terminal') {
         ZQ.clearLog();
-        C.terminal.greeting.forEach((line) => ZQ.appendLog(line, 'sys', true));
-        C.terminal.controls.forEach((line) => ZQ.appendLog(line, 'sys', true));
+        ZQ.appendLog(ZQ.bootMessage(rt.state.seed), 'sys', true);
       }
       return '';
     } else {

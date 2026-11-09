@@ -186,8 +186,51 @@
     return card;
   }
 
+  function drawStoryEdges(svg, order, tree, states, positions, boardWidth, boardHeight) {
+    svg.textContent = '';
+    svg.setAttribute('width', String(boardWidth));
+    svg.setAttribute('height', String(boardHeight));
+    svg.setAttribute('viewBox', `0 0 ${boardWidth} ${boardHeight}`);
+    for (const parentId of order) {
+      const parent = tree.nodes[parentId];
+      const parentPos = positions.get(parentId);
+      if (!parentPos) continue;
+      const parentState = states.get(parentId);
+      for (const childId of parent.children || []) {
+        const childPos = positions.get(childId);
+        if (!childPos) continue;
+        const childState = states.get(childId);
+        const cls = childState.done && parentState.done
+          ? 'done'
+          : childState.available ? 'available' : '';
+        const x1 = parentPos.x + parentPos.width;
+        const y1 = parentPos.y + parentPos.height / 2;
+        const x2 = childPos.x - 2;
+        const y2 = childPos.y + childPos.height / 2;
+        const curve = Math.max(28, (x2 - x1) * 0.42);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d',
+          `M ${x1.toFixed(1)} ${y1.toFixed(1)} ` +
+          `C ${(x1 + curve).toFixed(1)} ${y1.toFixed(1)}, ` +
+          `${(x2 - curve).toFixed(1)} ${y2.toFixed(1)}, ` +
+          `${x2.toFixed(1)} ${y2.toFixed(1)}`);
+        path.setAttribute('class', `story-edge${cls ? ` ${cls}` : ''}`);
+        svg.appendChild(path);
+
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        arrow.setAttribute('points',
+          `${x2.toFixed(1)},${y2.toFixed(1)} ` +
+          `${(x2 - 8).toFixed(1)},${(y2 - 4).toFixed(1)} ` +
+          `${(x2 - 8).toFixed(1)},${(y2 + 4).toFixed(1)}`);
+        arrow.setAttribute('class', `story-edge-arrow${cls ? ` ${cls}` : ''}`);
+        svg.appendChild(arrow);
+      }
+    }
+  }
+
   /* Раскладка графа: колонка на глубину ветви, карточки по центру
-     колонки. Линии рисуются после измерения реальной высоты карточек. */
+     колонки. Карточки можно перетаскивать, а пустое полотно — двигать
+     левой кнопкой мыши. Позиции карточек живут в rt.storyPositions. */
   function layoutStoryGraph(tree, states, container) {
     const depth = new Map();
     const order = [];
@@ -224,11 +267,11 @@
     const nodeWidth = 176;
     const levels = Array.from(columns.keys()).sort((a, b) => a - b);
     const maxDepth = levels.length ? levels[levels.length - 1] : 0;
-    const positions = new Map();
+    const entries = [];
 
     for (const level of levels) {
       const ids = columns.get(level);
-      const entries = [];
+      const columnEntries = [];
       for (const id of ids) {
         const node = tree.nodes[id];
         const state = states.get(id);
@@ -238,183 +281,172 @@
         board.appendChild(card);
         const height = card.offsetHeight || Math.max(86, 58 + (node.summary ? 24 : 0) +
           (node.finds ? 20 : 0) + (node.seeking ? 18 : 0) + (node.hint ? 22 : 0));
-        entries.push({ id, card, height });
+        const entry = { id, card, height, level };
+        columnEntries.push(entry);
+        entries.push(entry);
       }
-      columns.set(level, entries);
+      columns.set(level, columnEntries);
     }
 
     let tallest = 0;
-    for (const entries of columns.values()) {
-      const total = entries.reduce((sum, entry) => sum + entry.height, 0) +
-        rowGap * Math.max(0, entries.length - 1);
+    for (const columnEntries of columns.values()) {
+      const total = columnEntries.reduce((sum, entry) => sum + entry.height, 0) +
+        rowGap * Math.max(0, columnEntries.length - 1);
       tallest = Math.max(tallest, total);
     }
 
-    for (const [level, entries] of columns) {
-      const total = entries.reduce((sum, entry) => sum + entry.height, 0) +
-        rowGap * Math.max(0, entries.length - 1);
+    const defaults = new Map();
+    for (const [level, columnEntries] of columns) {
+      const total = columnEntries.reduce((sum, entry) => sum + entry.height, 0) +
+        rowGap * Math.max(0, columnEntries.length - 1);
       let y = padY + (tallest - total) / 2;
-      for (const entry of entries) {
-        entry.card.style.top = `${y}px`;
-        positions.set(entry.id, {
+      for (const entry of columnEntries) {
+        defaults.set(entry.id, {
           x: padX + level * columnGap,
-          y,
-          width: nodeWidth,
-          height: entry.height
+          y
         });
         y += entry.height + rowGap;
       }
     }
 
-    const boardWidth = Math.max(padX * 2 + maxDepth * columnGap + nodeWidth, 680);
-    const boardHeight = Math.max(padY * 2 + tallest, 340);
+    const positions = new Map();
+    for (const entry of entries) {
+      const saved = rt.storyPositions[entry.id];
+      const fallback = defaults.get(entry.id);
+      const x = saved && Number.isFinite(saved.x) ? saved.x : fallback.x;
+      const y = saved && Number.isFinite(saved.y) ? saved.y : fallback.y;
+      entry.card.style.left = `${x}px`;
+      entry.card.style.top = `${y}px`;
+      positions.set(entry.id, {
+        x,
+        y,
+        width: nodeWidth,
+        height: entry.height
+      });
+    }
+
+    let boardWidth = Math.max(padX * 2 + maxDepth * columnGap + nodeWidth, 960);
+    let boardHeight = Math.max(padY * 2 + tallest, 480);
+    for (const pos of positions.values()) {
+      boardWidth = Math.max(boardWidth, pos.x + pos.width + padX);
+      boardHeight = Math.max(boardHeight, pos.y + pos.height + padY);
+    }
     board.style.width = `${boardWidth}px`;
     board.style.height = `${boardHeight}px`;
-    svg.setAttribute('width', String(boardWidth));
-    svg.setAttribute('height', String(boardHeight));
-    svg.setAttribute('viewBox', `0 0 ${boardWidth} ${boardHeight}`);
 
-    for (const parentId of order) {
-      const parent = tree.nodes[parentId];
-      const parentPos = positions.get(parentId);
-      if (!parentPos) continue;
-      const parentState = states.get(parentId);
-      for (const childId of parent.children || []) {
-        const childPos = positions.get(childId);
-        if (!childPos) continue;
-        const childState = states.get(childId);
-        const cls = childState.done && parentState.done
-          ? 'done'
-          : childState.available ? 'available' : '';
-        const x1 = parentPos.x + parentPos.width;
-        const y1 = parentPos.y + parentPos.height / 2;
-        const x2 = childPos.x - 2;
-        const y2 = childPos.y + childPos.height / 2;
-        const curve = Math.max(28, (x2 - x1) * 0.42);
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d',
-          `M ${x1.toFixed(1)} ${y1.toFixed(1)} ` +
-          `C ${(x1 + curve).toFixed(1)} ${y1.toFixed(1)}, ` +
-          `${(x2 - curve).toFixed(1)} ${y2.toFixed(1)}, ` +
-          `${x2.toFixed(1)} ${y2.toFixed(1)}`);
-        path.setAttribute('class', `story-edge${cls ? ` ${cls}` : ''}`);
-        svg.appendChild(path);
+    const redraw = () => drawStoryEdges(svg, order, tree, states, positions, boardWidth, boardHeight);
+    redraw();
 
-        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        arrow.setAttribute('points',
-          `${x2.toFixed(1)},${y2.toFixed(1)} ` +
-          `${(x2 - 8).toFixed(1)},${(y2 - 4).toFixed(1)} ` +
-          `${(x2 - 8).toFixed(1)},${(y2 + 4).toFixed(1)}`);
-        arrow.setAttribute('class', `story-edge-arrow${cls ? ` ${cls}` : ''}`);
-        svg.appendChild(arrow);
-      }
+    for (const entry of entries) {
+      entry.card.addEventListener('pointerdown', (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const start = positions.get(entry.id);
+        if (!start) return;
+        const drag = {
+          id: entry.id,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          originX: start.x,
+          originY: start.y
+        };
+        rt.storyDrag = drag;
+        entry.card.classList.add('dragging');
+        try {
+          entry.card.setPointerCapture(event.pointerId);
+        } catch (error) {
+          /* capture не обязателен */
+        }
+        const move = (moveEvent) => {
+          if (rt.storyDrag !== drag || moveEvent.pointerId !== drag.pointerId) return;
+          moveEvent.preventDefault();
+          const maxX = Math.max(0, boardWidth - nodeWidth);
+          const maxY = Math.max(0, boardHeight - entry.height);
+          const x = ZQ.clamp(drag.originX + moveEvent.clientX - drag.startX, 0, maxX);
+          const y = ZQ.clamp(drag.originY + moveEvent.clientY - drag.startY, 0, maxY);
+          entry.card.style.left = `${x}px`;
+          entry.card.style.top = `${y}px`;
+          positions.set(entry.id, {
+            x,
+            y,
+            width: nodeWidth,
+            height: entry.height
+          });
+          redraw();
+        };
+        const finish = (finishEvent) => {
+          if (finishEvent.pointerId !== drag.pointerId) return;
+          entry.card.removeEventListener('pointermove', move);
+          entry.card.removeEventListener('pointerup', finish);
+          entry.card.removeEventListener('pointercancel', finish);
+          entry.card.classList.remove('dragging');
+          if (rt.storyDrag === drag) rt.storyDrag = null;
+          const pos = positions.get(entry.id);
+          if (pos) rt.storyPositions[entry.id] = { x: pos.x, y: pos.y };
+          try {
+            entry.card.releasePointerCapture(finishEvent.pointerId);
+          } catch (error) {
+            /* ignored */
+          }
+        };
+        entry.card.addEventListener('pointermove', move);
+        entry.card.addEventListener('pointerup', finish);
+        entry.card.addEventListener('pointercancel', finish);
+      });
     }
+
+    board.addEventListener('pointerdown', (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      if (event.target.closest && event.target.closest('.story-node')) return;
+      event.preventDefault();
+      const pan = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        left: container.scrollLeft,
+        top: container.scrollTop
+      };
+      rt.storyPan = pan;
+      container.classList.add('panning');
+      try {
+        board.setPointerCapture(event.pointerId);
+      } catch (error) {
+        /* capture не обязателен */
+      }
+      const move = (moveEvent) => {
+        if (rt.storyPan !== pan || moveEvent.pointerId !== pan.pointerId) return;
+        moveEvent.preventDefault();
+        container.scrollLeft = Math.max(0, pan.left - (moveEvent.clientX - pan.startX));
+        container.scrollTop = Math.max(0, pan.top - (moveEvent.clientY - pan.startY));
+      };
+      const finish = (finishEvent) => {
+        if (finishEvent.pointerId !== pan.pointerId) return;
+        board.removeEventListener('pointermove', move);
+        board.removeEventListener('pointerup', finish);
+        board.removeEventListener('pointercancel', finish);
+        container.classList.remove('panning');
+        if (rt.storyPan === pan) rt.storyPan = null;
+        try {
+          board.releasePointerCapture(finishEvent.pointerId);
+        } catch (error) {
+          /* ignored */
+        }
+      };
+      board.addEventListener('pointermove', move);
+      board.addEventListener('pointerup', finish);
+      board.addEventListener('pointercancel', finish);
+    });
 
     return board;
   }
 
   function renderStory() {
-    if (!dom.storyTree || !dom.storyNow) return;
-    dom.storyTree.textContent = '';
-    dom.storyNow.textContent = '';
-
+    if (!dom.storyTree) return;
     const tree = C.storyTree;
     const states = nodeStates();
-    const order = stageOrder();
-    const available = [];
-    let lastDoneStage = '';
-    for (const id of Object.keys(tree.nodes)) {
-      const node = tree.nodes[id];
-      const state = states.get(id);
-      if (state.available && !node.optional) available.push(node);
-      if (state.done) {
-        const index = order.indexOf(node.stage);
-        if (index > order.indexOf(lastDoneStage)) lastDoneStage = node.stage;
-      }
-    }
-
-    const currentStage = available.length
-      ? available.reduce((best, node) =>
-        order.indexOf(node.stage) > order.indexOf(best) ? node.stage : best,
-      available[0].stage)
-      : (lastDoneStage || order[0]);
-
-    const summary = document.createElement('div');
-    summary.className = 'story-summary';
-
-    const top = document.createElement('div');
-    top.className = 'story-summary-top';
-    const stage = document.createElement('div');
-    stage.className = 'story-current-stage';
-    const stageLabel = document.createElement('span');
-    stageLabel.className = 'story-summary-label';
-    stageLabel.textContent = ZQ.tr('текущий этап');
-    const stageValue = document.createElement('b');
-    stageValue.textContent = currentStage;
-    stage.appendChild(stageLabel);
-    stage.appendChild(stageValue);
-    top.appendChild(stage);
-
-    const stateLabel = document.createElement('div');
-    stateLabel.className = 'story-current-state';
-    stateLabel.textContent = available.length
-      ? `${ZQ.tr('доступно узлов')}: ${available.length}`
-      : ZQ.tr('все доступные узлы пройдены');
-    top.appendChild(stateLabel);
-    summary.appendChild(top);
-
-    const goal = document.createElement('div');
-    goal.className = 'story-goal';
-    const goalLabel = document.createElement('span');
-    goalLabel.className = 'story-summary-label';
-    goalLabel.textContent = ZQ.tr('что ищешь');
-    goal.appendChild(goalLabel);
-    const goals = [];
-    for (const node of available) {
-      for (const item of node.seeking || []) {
-        if (!goals.includes(item)) goals.push(item);
-      }
-    }
-    const goalText = document.createElement('div');
-    goalText.className = 'story-goal-text';
-    goalText.textContent = goals.length
-      ? goals.join(' · ')
-      : ZQ.tr('Ветвь пройдена. Можно перечитать её или начать новый Лабиринт.');
-    goal.appendChild(goalText);
-    summary.appendChild(goal);
-
-    const finds = document.createElement('div');
-    finds.className = 'story-finds';
-    const findsLabel = document.createElement('span');
-    findsLabel.className = 'story-summary-label';
-    findsLabel.textContent = ZQ.tr('доступные находки');
-    finds.appendChild(findsLabel);
-    const findList = [];
-    for (const node of available) {
-      for (const item of node.finds || []) {
-        if (!findList.includes(item)) findList.push(item);
-      }
-    }
-    const findWrap = document.createElement('div');
-    findWrap.className = 'story-find-chips';
-    if (findList.length) {
-      for (const find of findList) {
-        const chip = document.createElement('span');
-        chip.className = 'story-find-chip';
-        chip.textContent = find;
-        findWrap.appendChild(chip);
-      }
-    } else {
-      const empty = document.createElement('span');
-      empty.className = 'story-empty';
-      empty.textContent = ZQ.tr('новых находок не осталось');
-      findWrap.appendChild(empty);
-    }
-    finds.appendChild(findWrap);
-    summary.appendChild(finds);
-
-    dom.storyNow.appendChild(summary);
-
+    dom.storyTree.textContent = '';
     layoutStoryGraph(tree, states, dom.storyTree);
   }
 

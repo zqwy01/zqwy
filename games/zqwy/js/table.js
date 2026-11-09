@@ -9,6 +9,12 @@
   const rt = ZQ.rt;
   const dom = ZQ.dom;
 
+  function tl(ru, en, de) {
+    const code = window.ZQI18N && window.ZQI18N.lang ? window.ZQI18N.lang : 'ru';
+    if (code === 'de') return de || en || ru;
+    return code === 'en' ? (en || ru) : ru;
+  }
+
   function keyLabel(code) {
     if (!code) return '—';
     const names = {
@@ -1208,6 +1214,40 @@
     body.appendChild(scheme);
   }
 
+  function renderMouseScheme(body) {
+    const scheme = document.createElement('div');
+    scheme.className = 'scheme-reference';
+    const title = document.createElement('p');
+    title.className = 'scheme-intro';
+    title.textContent = tl(
+      'Мышь работает на столе: перетаскивай элементы, двигай полотно и меняй масштаб.',
+      'The mouse works on the table: drag elements, move the canvas and change the scale.',
+      'Die Maus funktioniert am Tisch: Elemente ziehen, Fläche bewegen und Maßstab ändern.'
+    );
+    scheme.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'scheme-reference-grid';
+    for (const [control, action] of [
+      [tl('ЛКМ', 'LMB', 'LMB'), tl('выбрать или перетащить элемент', 'select or drag an element', 'Element auswählen oder ziehen')],
+      [tl('ЛКМ по пустому месту', 'LMB on empty space', 'LMB auf leerer Fläche'), tl('двигать полотно стола', 'pan the table canvas', 'Tischfläche verschieben')],
+      [tl('Колесо', 'Wheel', 'Rad'), tl('масштаб', 'scale', 'Maßstab')]
+    ]) {
+      const item = document.createElement('div');
+      item.className = 'scheme-reference-item';
+      const name = document.createElement('b');
+      name.textContent = control;
+      item.appendChild(name);
+      const value = document.createElement('span');
+      value.textContent = action;
+      item.appendChild(value);
+      grid.appendChild(item);
+    }
+    scheme.appendChild(grid);
+    appendCoreControls(scheme);
+    body.appendChild(scheme);
+  }
+
   function renderPhoneScheme(body) {
     const scheme = document.createElement('div');
     scheme.className = 'scheme-reference';
@@ -1332,6 +1372,7 @@
     }
     if (rt.canvasDevice === 'gamepad') renderGamepadScheme(dom.canvasKeysBody);
     else if (rt.canvasDevice === 'phone') renderPhoneScheme(dom.canvasKeysBody);
+    else if (rt.canvasDevice === 'mouse') renderMouseScheme(dom.canvasKeysBody);
     else {
       renderKeyboardScheme();
       renderBoundScheme(dom.canvasKeysBody);

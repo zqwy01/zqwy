@@ -81,6 +81,184 @@
     return vy < 0 ? 'вверх' : 'вниз';
   }
 
+  /* --------------------- Поиск пути по тайлам ---------------------- */
+  /* ЛКМ ведёт Zemic не напрямик через стены, а по проходимым клеткам.
+     A* работает по центрам тайлов; путь упрощается по прямой видимости. */
+
+  function tileStandable(tx, ty) {
+    return canStandAt(tx + 0.5, ty + 0.5);
+  }
+
+  function nearestStandableTile(tx, ty) {
+    if (tileStandable(tx, ty)) return { x: tx, y: ty };
+    for (let radius = 1; radius <= 28; radius += 1) {
+      let best = null;
+      let bestDistance = Infinity;
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+          const x = tx + dx;
+          const y = ty + dy;
+          if (!tileStandable(x, y)) continue;
+          const distance = dx * dx + dy * dy;
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            best = { x, y };
+          }
+        }
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
+  function lineWalkable(ax, ay, bx, by) {
+    const distance = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(1, Math.ceil(distance / 0.22));
+    for (let i = 1; i <= steps; i += 1) {
+      const t = i / steps;
+      if (!canStandAt(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+    }
+    return true;
+  }
+
+  function smoothPath(points) {
+    if (points.length <= 2) return points;
+    const result = [points[0]];
+    let index = 0;
+    while (index < points.length - 1) {
+      let next = points.length - 1;
+      for (; next > index + 1; next -= 1) {
+        if (lineWalkable(points[index].x, points[index].y, points[next].x, points[next].y)) {
+          break;
+        }
+      }
+      result.push(points[next]);
+      index = next;
+    }
+    return result;
+  }
+
+  function findPath(fromX, fromY, toX, toY) {
+    const startTile = nearestStandableTile(Math.floor(fromX), Math.floor(fromY));
+    const goalTile = nearestStandableTile(Math.floor(toX), Math.floor(toY));
+    if (!startTile || !goalTile) return null;
+    if (startTile.x === goalTile.x && startTile.y === goalTile.y) {
+      if (canStandAt(toX, toY) && lineWalkable(fromX, fromY, toX, toY)) {
+        return [{ x: toX, y: toY }];
+      }
+      return [{ x: goalTile.x + 0.5, y: goalTile.y + 0.5 }];
+    }
+
+    const key = (x, y) => `${x},${y}`;
+    const startKey = key(startTile.x, startTile.y);
+    const goalKey = key(goalTile.x, goalTile.y);
+    const open = [{ x: startTile.x, y: startTile.y, g: 0, f: 0 }];
+    const openKeys = new Set([startKey]);
+    const cameFrom = new Map();
+    const cost = new Map([[startKey, 0]]);
+    const directions = [
+      [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
+      [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]
+    ];
+    const heuristic = (x, y) => {
+      const dx = Math.abs(x - goalTile.x);
+      const dy = Math.abs(y - goalTile.y);
+      return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy);
+    };
+    let visited = 0;
+
+    while (open.length && visited < 12000) {
+      let bestIndex = 0;
+      for (let i = 1; i < open.length; i += 1) {
+        if (open[i].f < open[bestIndex].f) bestIndex = i;
+      }
+      const current = open.splice(bestIndex, 1)[0];
+      const currentKey = key(current.x, current.y);
+      openKeys.delete(currentKey);
+      visited += 1;
+
+      if (currentKey === goalKey) {
+        const tiles = [{ x: goalTile.x, y: goalTile.y }];
+        let cursorKey = goalKey;
+        while (cameFrom.has(cursorKey)) {
+          const previous = cameFrom.get(cursorKey);
+          tiles.push({ x: previous.x, y: previous.y });
+          cursorKey = key(previous.x, previous.y);
+        }
+        tiles.reverse();
+        const centers = tiles.map((tile) => ({ x: tile.x + 0.5, y: tile.y + 0.5 }));
+
+        /* Путь начинается в точной позиции игрока, а не в центре его
+           тайла. Иначе при каждом пересчёте (удержание ЛКМ) Zemic
+           сначала шагал назад к центру клетки — отсюда рывки. */
+        const points = [{ x: fromX, y: fromY }];
+        if (lineWalkable(fromX, fromY, centers[0].x, centers[0].y)) {
+          points.push(...centers.slice(1));
+        } else {
+          points.push(...centers);
+        }
+
+        /* Финальная точка — сам курсор, если до него можно дойти по
+           прямой. Так цель не «прилипает» к центру тайла. */
+        const lastCenter = centers[centers.length - 1];
+        if (canStandAt(toX, toY) && lineWalkable(lastCenter.x, lastCenter.y, toX, toY)) {
+          if (points.length > 1) {
+            points[points.length - 1] = { x: toX, y: toY };
+          } else {
+            points.push({ x: toX, y: toY });
+          }
+        }
+        return smoothPath(points);
+      }
+
+      for (const [dx, dy, step] of directions) {
+        const nx = current.x + dx;
+        const ny = current.y + dy;
+        if (!tileStandable(nx, ny)) continue;
+        /* Диагональ не должна срезать угол стены. */
+        if (dx !== 0 && dy !== 0) {
+          if (!tileStandable(current.x + dx, current.y) ||
+              !tileStandable(current.x, current.y + dy)) continue;
+        }
+        const neighbourKey = key(nx, ny);
+        const nextCost = current.g + step;
+        if (nextCost >= (cost.get(neighbourKey) ?? Infinity)) continue;
+        cost.set(neighbourKey, nextCost);
+        cameFrom.set(neighbourKey, { x: current.x, y: current.y });
+        const f = nextCost + heuristic(nx, ny);
+        if (openKeys.has(neighbourKey)) {
+          const existing = open.find((node) => node.x === nx && node.y === ny);
+          if (existing) {
+            existing.g = nextCost;
+            existing.f = f;
+          }
+        } else {
+          open.push({ x: nx, y: ny, g: nextCost, f });
+          openKeys.add(neighbourKey);
+        }
+      }
+    }
+    return null;
+  }
+
+  function pathLength(points) {
+    let total = 0;
+    for (let i = 1; i < points.length; i += 1) {
+      total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    }
+    return total;
+  }
+
+  function cursorWaypoint(cursor) {
+    if (!cursor) return null;
+    if (!Array.isArray(cursor.path) || !cursor.path.length) {
+      return { x: cursor.x, y: cursor.y };
+    }
+    const index = Math.min(cursor.pathIndex || 0, cursor.path.length - 1);
+    return cursor.path[index];
+  }
+
   function updateMovement(dt) {
     let mx = 0;
     let my = 0;
@@ -108,9 +286,18 @@
       }
     } else if (rt.cursorMove) {
       const cursor = rt.cursorMove;
-      const dx = cursor.x - rt.state.player.x;
-      const dy = cursor.y - rt.state.player.y;
-      const distance = Math.hypot(dx, dy);
+      let waypoint = cursorWaypoint(cursor);
+      let dx = waypoint.x - rt.state.player.x;
+      let dy = waypoint.y - rt.state.player.y;
+      let distance = Math.hypot(dx, dy);
+      if (distance <= 0.16 && Array.isArray(cursor.path) &&
+          (cursor.pathIndex || 0) < cursor.path.length - 1) {
+        cursor.pathIndex = (cursor.pathIndex || 0) + 1;
+        waypoint = cursorWaypoint(cursor);
+        dx = waypoint.x - rt.state.player.x;
+        dy = waypoint.y - rt.state.player.y;
+        distance = Math.hypot(dx, dy);
+      }
       if (distance <= 0.09) {
         rt.cursorMove = null;
       } else {
@@ -146,9 +333,10 @@
 
     let step = C.player.speed * dt;
     if (mode === 'cursor' && rt.cursorMove) {
+      const waypoint = cursorWaypoint(rt.cursorMove);
       const remaining = Math.hypot(
-        rt.cursorMove.x - rt.state.player.x,
-        rt.cursorMove.y - rt.state.player.y
+        waypoint.x - rt.state.player.x,
+        waypoint.y - rt.state.player.y
       );
       step = Math.min(step, remaining);
       /* Для шага со стола задаём длительность: одна клетка проходится
@@ -163,11 +351,14 @@
     if (canStandAt(rt.state.player.x, ny)) rt.state.player.y = ny;
 
     if (mode === 'cursor' && rt.cursorMove) {
+      const waypoint = cursorWaypoint(rt.cursorMove);
       const distance = Math.hypot(
-        rt.cursorMove.x - rt.state.player.x,
-        rt.cursorMove.y - rt.state.player.y
+        waypoint.x - rt.state.player.x,
+        waypoint.y - rt.state.player.y
       );
-      if (distance <= 0.1) rt.cursorMove = null;
+      const last = !Array.isArray(rt.cursorMove.path) ||
+        (rt.cursorMove.pathIndex || 0) >= rt.cursorMove.path.length - 1;
+      if (distance <= 0.1 && last) rt.cursorMove = null;
     }
   }
 
@@ -215,20 +406,50 @@
     const tx = Number(x);
     const ty = Number(y);
     if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    const goalTile = `${Math.floor(tx)},${Math.floor(ty)}`;
+    const existing = rt.cursorMove;
+    if (existing && existing.hold && hold &&
+        existing.goalTile === goalTile &&
+        Array.isArray(existing.path) && existing.path.length) {
+      /* Пока курсор в той же клетке, путь остаётся прежним: не
+         пересчитываем A* на каждый пиксель удержания. Но финальную
+         точку двигаем за курсором, если до неё есть прямая видимость. */
+      const path = existing.path;
+      const last = path[path.length - 1];
+      const base = path.length > 1
+        ? path[path.length - 2]
+        : { x: rt.state.player.x, y: rt.state.player.y };
+      if (canStandAt(tx, ty) && lineWalkable(base.x, base.y, tx, ty)) {
+        last.x = tx;
+        last.y = ty;
+        existing.x = tx;
+        existing.y = ty;
+      } else {
+        existing.x = last.x;
+        existing.y = last.y;
+      }
+      return true;
+    }
     rt.timedMove = null;
-    const seconds = Number(duration);
     const fromX = rt.state.player.x;
     const fromY = rt.state.player.y;
-    const distance = Math.hypot(tx - fromX, ty - fromY);
+    const path = findPath(fromX, fromY, tx, ty);
+    if (!path || !path.length) return false;
+    const distance = pathLength(path) || Math.hypot(tx - fromX, ty - fromY);
+    const seconds = Number(duration);
     const speed = Number.isFinite(seconds) && seconds > 0 && distance > 0
       ? distance / seconds
       : 0;
+    const last = path[path.length - 1];
     rt.cursorMove = {
-      x: tx,
-      y: ty,
+      x: last.x,
+      y: last.y,
       hold: Boolean(hold),
       speed,
-      duration: speed > 0 ? seconds : 0
+      duration: speed > 0 ? seconds : 0,
+      path,
+      pathIndex: 0,
+      goalTile
     };
     return true;
   }

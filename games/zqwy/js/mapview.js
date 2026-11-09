@@ -35,7 +35,6 @@
       drawMapNow();
       window.requestAnimationFrame(drawMapNow);
     });
-    ZQ.resetKeys();
   }
 
   function closeMap() {

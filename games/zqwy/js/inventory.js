@@ -119,7 +119,6 @@
     ZQ.ensureTerminalShare(0.42);
     renderInventory();
     ZQ.setTerminalView('inventory');
-    ZQ.resetKeys();
   }
 
   function closeInventory() {

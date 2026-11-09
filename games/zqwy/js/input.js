@@ -188,9 +188,11 @@
       directions.left = pressed(14) || axisX < -dead;
       directions.right = pressed(15) || axisX > dead;
 
-      const canAct = rt.termView === 'main' ||
-        rt.termView === 'canvas' ||
-        (rt.trial && rt.trial.active);
+      /* Открытая вкладка терминала не мешает геймпаду: ограничиваем
+         действие только паузой (скрытый документ или испытание).
+         Во время испытания оставляем кнопку действия для закрытия печати. */
+      const canAct = (rt.trial && rt.trial.active) ||
+        (!ZQ.isPaused() && !ZQ.isTyping());
       for (const key of Object.keys(GAMEPAD_BUTTONS)) {
         const index = Number(key);
         const info = GAMEPAD_BUTTONS[key];
@@ -234,7 +236,9 @@
     if (!rt.state || !rt.world) return false;
     if (ZQ.isTyping() || ZQ.isPaused()) return false;
     if (rt.trial && rt.trial.active) return false;
-    return rt.termView === 'main' || rt.termView === 'canvas';
+    /* Вкладки терминала не блокируют курсор: можно вести Zemic ЛКМ,
+       даже когда открыт рюкзак, карта, сюжет или настройки. */
+    return true;
   }
 
   /* --------------------- Свой курсор в мире ------------------------ */

@@ -468,7 +468,6 @@
     if (ZQ.isTrialBlocking()) return;
     ZQ.ensureTerminalShare(0.56);
     ZQ.setTerminalView('story');
-    ZQ.resetKeys();
   }
 
   function closeStory() {

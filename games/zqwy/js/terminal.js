@@ -296,7 +296,6 @@
     ZQ.ensureTerminalShare(0.5);
     applyTermSettings(false);
     ZQ.setTerminalView('settings');
-    ZQ.resetKeys();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты общие настройки', 'терминал');
   }
 
@@ -305,7 +304,6 @@
     ZQ.ensureTerminalShare(0.5);
     applyTermSettings(false);
     ZQ.setTerminalView('termSettings');
-    ZQ.resetKeys();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты настройки терминала', 'терминал');
   }
 
@@ -314,7 +312,6 @@
     ZQ.ensureTerminalShare(0.5);
     applyTermSettings(false);
     ZQ.setTerminalView('fontSettings');
-    ZQ.resetKeys();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыты настройки шрифта', 'терминал');
   }
 

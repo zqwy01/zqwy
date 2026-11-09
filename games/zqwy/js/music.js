@@ -19,7 +19,6 @@
     if (typeof ZQ.ensureTerminalShare === 'function') ZQ.ensureTerminalShare(0.5);
     if (typeof ZQ.applyTermSettings === 'function') ZQ.applyTermSettings(false);
     ZQ.setTerminalView('music');
-    ZQ.resetKeys();
     ZQ.updateMusicUI();
     drawWave();
     if (ZQ.logEvent) ZQ.logEvent('terminal', 'открыт музыкальный плеер', 'терминал');

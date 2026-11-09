@@ -1407,7 +1407,6 @@
       rt.cardOrigin === 'inventory' ? 'Вернуться к рюкзаку' : 'Вернуться к столу'
     );
     ZQ.setTerminalView('card');
-    ZQ.resetKeys();
   }
 
   function closeCardDetail() {
@@ -1436,7 +1435,6 @@
       'готово',
       'Перетаскивай элементы. Нажми на элемент, чтобы выполнить. Клавиша запускает все связанные с ней цели.'
     );
-    ZQ.resetKeys();
   }
 
   function closeCanvas() {

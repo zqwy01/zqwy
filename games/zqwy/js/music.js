@@ -154,7 +154,37 @@
       if (preset && typeof ZQ.setMusicRate === 'function') {
         ZQ.setMusicRate(Number(preset.dataset.rate) / 100);
         tick();
+        return;
       }
+      const algorithm = event.target.closest('[data-algorithm]');
+      if (algorithm && typeof ZQ.setMusicAlgorithm === 'function') {
+        ZQ.setMusicAlgorithm(algorithm.dataset.algorithm);
+        const meta = (C.music.rateAlgorithms || []).find((entry) =>
+          entry.id === algorithm.dataset.algorithm
+        );
+        if (dom.musicAlgorithmCurrent && meta) {
+          dom.musicAlgorithmCurrent.textContent = tr(meta.title);
+        }
+        if (ZQ.appendLog) {
+          ZQ.appendLog(
+            `Алгоритм скорости: «${meta ? tr(meta.title) : algorithm.dataset.algorithm}».`,
+            'reply',
+            true
+          );
+        }
+        tick();
+      }
+    });
+  }
+
+  if (dom.musicAlgorithmPresets) {
+    const active = rt.termSettings.musicAlgorithm;
+    const meta = (C.music.rateAlgorithms || []).find((entry) => entry.id === active);
+    if (dom.musicAlgorithmCurrent && meta) {
+      dom.musicAlgorithmCurrent.textContent = tr(meta.title);
+    }
+    dom.musicAlgorithmPresets.querySelectorAll('[data-algorithm]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.algorithm === active);
     });
   }
 

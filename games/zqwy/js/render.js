@@ -48,7 +48,15 @@
   }
 
   function tilePxFor(view) {
-    return Math.max(20, Math.min(42, Math.min(view.w / 14.5, view.h / 13.2)));
+    const d = C.display || {};
+    const minCols = Number.isFinite(d.minViewCols) ? d.minViewCols : 14.5;
+    const minRows = Number.isFinite(d.minViewRows) ? d.minViewRows : 13.2;
+    const raw = Math.min(view.w / minCols, view.h / minRows);
+    const lo = Number.isFinite(d.tileMin) ? d.tileMin : 11;
+    const hi = Number.isFinite(d.tileMax) ? d.tileMax : 46;
+    /* Никакого высокого пола: на узком экране тайл уменьшается, но
+       кадр сохраняет обещанное число клеток по каждой оси. */
+    return Math.max(lo, Math.min(hi, raw));
   }
 
   function drawFloor(ctx, sx, sy, ts, x, y, kind) {
@@ -411,6 +419,72 @@
     ctx.restore();
   }
 
+  /* Маршрут и выбранная клетка: курсор показывает не только точку,
+     но и режим — куда ведёт путь и какой тайл сейчас выбран. */
+  function drawCursorPlan(ctx, params) {
+    const {
+      cursorPath, cursorTile, cursorMode, cursorPathGoal,
+      toScreenX, toScreenY, ts, now
+    } = params;
+    if (!cursorPath && !cursorTile) return;
+    ctx.save();
+    if (Array.isArray(cursorPath) && cursorPath.length > 1) {
+      const pulse = 0.5 + 0.5 * Math.sin(now * 0.005);
+      ctx.strokeStyle = `rgba(138, 204, 190, ${0.35 + pulse * 0.22})`;
+      ctx.lineWidth = Math.max(1.1, ts * 0.055);
+      ctx.setLineDash([ts * 0.22, ts * 0.16]);
+      ctx.lineDashOffset = -(now * 0.02) % (ts * 0.38);
+      ctx.beginPath();
+      for (let i = 0; i < cursorPath.length; i += 1) {
+        const point = cursorPath[i];
+        const px = toScreenX(point.x);
+        const py = toScreenY(point.y);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const goal = cursorPath[cursorPath.length - 1];
+      const gx = toScreenX(goal.x);
+      const gy = toScreenY(goal.y);
+      ctx.strokeStyle = `rgba(138, 204, 190, ${0.45 + pulse * 0.3})`;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(gx, gy, ts * (0.22 + pulse * 0.05), 0, Math.PI * 2);
+      ctx.stroke();
+      if (cursorPathGoal) {
+        const [gxTile, gyTile] = String(cursorPathGoal).split(',').map(Number);
+        ctx.strokeStyle = 'rgba(138, 204, 190, 0.3)';
+        ctx.strokeRect(
+          toScreenX(gxTile) - ts * 0.02,
+          toScreenY(gyTile) - ts * 0.02,
+          ts * 1.04,
+          ts * 1.04
+        );
+      }
+    }
+    if (cursorTile) {
+      const [tx, ty] = String(cursorTile).split(',').map(Number);
+      if (Number.isFinite(tx) && Number.isFinite(ty)) {
+        const pulse = 0.5 + 0.5 * Math.sin(now * 0.006);
+        const x = toScreenX(tx);
+        const y = toScreenY(ty);
+        ctx.fillStyle = `rgba(229, 161, 104, ${0.08 + pulse * 0.06})`;
+        ctx.fillRect(x, y, ts, ts);
+        ctx.strokeStyle = `rgba(229, 161, 104, ${0.65 + pulse * 0.25})`;
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(x + 1, y + 1, ts - 2, ts - 2);
+        const modeLabel = cursorMode === 'inspect'
+          ? 'осмотр'
+          : cursorMode === 'path' ? 'путь' : 'клетка';
+        ctx.fillStyle = 'rgba(229, 161, 104, 0.82)';
+        ctx.font = `${Math.max(9, Math.round(ts * 0.26))}px sans-serif`;
+        ctx.fillText(modeLabel, x + ts * 0.14, y + ts * 0.34);
+      }
+    }
+    ctx.restore();
+  }
+
   /* Точка назначения курсора: видно, куда именно идёт Zemic. */
   function drawCursorTarget(ctx, params) {
     const { cursor, toScreenX, toScreenY, ts, now } = params;
@@ -490,52 +564,96 @@
   }
 
   function drawTitanoboa(ctx, sx, sy, ts, now, room) {
-    const r = Math.max(ts * 0.9, Math.min(room ? room.w : 8, 10) * ts * 0.28);
-    const sway = Math.sin(now * 0.0011) * 0.1;
+    const roomW = Math.max(6, room ? room.w : 10);
+    const roomH = Math.max(5, room ? room.h : 8);
+    const spanX = Math.max(ts * 3, roomW * ts * 0.62);
+    const spanY = Math.max(ts * 2, roomH * ts * 0.6);
+    const thickness = Math.max(ts * 0.34, Math.min(roomW, roomH) * ts * 0.11);
+    const t = now * 0.00028;
+    const segments = 20;
+    const points = [];
+    for (let i = 0; i < segments; i += 1) {
+      const u = i / (segments - 1);
+      /* Змея не лежит кольцами: она медленно перетекает по залу,
+         оставляя длинное тело в проходах. */
+      const x = (u - 0.5) * spanX * 1.08 +
+        Math.sin(u * 5.4 + t * 2.1) * spanX * 0.07;
+      const y = Math.sin(u * 4.2 - t * 1.3) * spanY * 0.44 +
+        Math.cos(u * 2.2 + t) * spanY * 0.09;
+      points.push({ x: x, y: y, r: thickness * (1 - u * 0.46) });
+    }
+
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.beginPath();
-    ctx.ellipse(0, r * 0.5, r * 1.5, r * 0.34, 0, 0, Math.PI * 2);
-    ctx.fill();
 
-    /* Кольца: змея занимает весь зал. */
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 4; i++) {
-      const rr = r * (1.25 - i * 0.2);
-      ctx.strokeStyle = i % 2 === 0 ? 'rgba(116, 122, 78, 0.85)' : 'rgba(78, 84, 52, 0.9)';
-      ctx.lineWidth = Math.max(2, r * 0.26);
+    /* Тень лежит на полу и смещена вправо-вниз: она не «висит» над
+       змеёй, а повторяет её тело с естественным сдвигом. */
+    ctx.save();
+    ctx.translate(ts * 0.42, ts * 0.66);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    for (const point of points) {
       ctx.beginPath();
-      ctx.ellipse(
-        Math.sin(sway + i) * r * 0.18,
-        Math.cos(sway + i * 0.7) * r * 0.14,
-        rr,
-        rr * 0.58,
-        0.35 + i * 0.18,
-        0,
-        Math.PI * 2
-      );
-      ctx.stroke();
-    }
-
-    /* Голова поднимается над кольцами. */
-    ctx.translate(Math.sin(sway * 2) * r * 0.2, -r * 0.46);
-    ctx.fillStyle = '#6e7448';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.34, r * 0.24, -0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(224, 168, 74, 0.75)';
-    for (const side of [-1, 1]) {
-      ctx.beginPath();
-      ctx.arc(side * r * 0.12, -r * 0.05, r * 0.045, 0, Math.PI * 2);
+      ctx.ellipse(point.x, point.y + ts * 0.12, point.r * 1.28, point.r * 0.7, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.strokeStyle = 'rgba(196, 70, 44, 0.8)';
-    ctx.lineWidth = Math.max(1, r * 0.035);
+    ctx.restore();
+
+    /* Тело: тёмные и светлые сегменты, без резких «колец». */
+    for (let i = points.length - 1; i >= 0; i -= 1) {
+      const point = points[i];
+      const body = ctx.createRadialGradient(
+        point.x - point.r * 0.3,
+        point.y - point.r * 0.35,
+        point.r * 0.1,
+        point.x,
+        point.y,
+        point.r * 1.2
+      );
+      body.addColorStop(0, i % 2 === 0 ? '#a39b63' : '#948c59');
+      body.addColorStop(0.55, '#6f6b46');
+      body.addColorStop(1, '#3d3b29');
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.ellipse(point.x, point.y, point.r * 1.12, point.r, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (i % 3 === 0) {
+        ctx.strokeStyle = 'rgba(32, 30, 20, 0.42)';
+        ctx.lineWidth = Math.max(1, point.r * 0.2);
+        ctx.beginPath();
+        ctx.ellipse(point.x, point.y, point.r * 0.68, point.r * 0.54, 0.35, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    /* Голова тянется к проходу и покачивается. */
+    const head = points[0];
+    const neck = points[1] || head;
+    const angle = Math.atan2(head.y - neck.y, head.x - neck.x);
+    ctx.save();
+    ctx.translate(head.x, head.y);
+    ctx.rotate(angle);
+    const headR = thickness * 1.18;
+    const headFill = ctx.createRadialGradient(-headR * 0.3, -headR * 0.35, headR * 0.12, 0, 0, headR);
+    headFill.addColorStop(0, '#b4ab70');
+    headFill.addColorStop(0.6, '#7d764d');
+    headFill.addColorStop(1, '#453f2b');
+    ctx.fillStyle = headFill;
     ctx.beginPath();
-    ctx.moveTo(-r * 0.24, r * 0.1);
-    ctx.lineTo(r * 0.24, r * 0.1);
+    ctx.ellipse(0, 0, headR * 1.2, headR * 0.78, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(232, 176, 82, 0.9)';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(headR * 0.26, side * headR * 0.34, headR * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(132, 42, 30, 0.86)';
+    ctx.lineWidth = Math.max(1, headR * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(headR * 0.55, 0);
+    ctx.lineTo(headR * 1.16, 0);
     ctx.stroke();
+    ctx.restore();
     ctx.restore();
   }
 
@@ -798,6 +916,7 @@
     for (const room of world.faunaRooms) {
       if (toScreenX(room.ox) > view.w + ts * 8 || toScreenX(room.ox + room.w) < -ts * 8) continue;
       if (toScreenY(room.oy) > view.h + ts * 8 || toScreenY(room.oy + room.h) < -ts * 8) continue;
+      if (room.faunaKind === 'titanoboa' && state.flags.titanoboaCalm) continue;
       drawFauna(
         ctx,
         room,
@@ -869,6 +988,31 @@
       );
     }
 
+    /* Титанобоа ползёт по настоящим клеткам мира. Тело рисуется под
+       аксолотлем, но поверх пола, стен и предметов. */
+    if (typeof window.ZQ !== 'undefined' && typeof window.ZQ.drawChaseWorld === 'function') {
+      window.ZQ.drawChaseWorld(ctx, {
+        state,
+        world,
+        view,
+        ts,
+        toScreenX,
+        toScreenY,
+        now
+      });
+    }
+
+    drawCursorPlan(ctx, {
+      cursorPath: params.cursorPath,
+      cursorTile: params.cursorTile,
+      cursorMode: params.cursorMode,
+      cursorPathGoal: params.cursorPathGoal,
+      toScreenX,
+      toScreenY,
+      ts,
+      now
+    });
+
     drawCursorTarget(ctx, {
       cursor: params.cursor,
       toScreenX,
@@ -885,6 +1029,20 @@
       ts,
       images
     );
+
+    /* Снаряды, след рывка и раскрытый зонт живут в тех же мировых
+       координатах, что и Zemic. */
+    if (typeof window.ZQ !== 'undefined' && typeof window.ZQ.drawBattleWorld === 'function') {
+      window.ZQ.drawBattleWorld(ctx, {
+        state,
+        world,
+        view,
+        ts,
+        toScreenX,
+        toScreenY,
+        now
+      });
+    }
 
     drawDust(ctx, { view, now, toScreenX, toScreenY, cam, ts });
   }

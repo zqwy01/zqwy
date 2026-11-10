@@ -45,6 +45,21 @@
 
     if (ZQ.isTyping()) return;
 
+    /* Погоня — отдельный режим: бег, рывок и выход из зала. */
+    if (rt.chase && rt.chase.active) {
+      if (event.code === 'Escape') {
+        event.preventDefault();
+        ZQ.finishChase('abort');
+        return;
+      }
+      if (event.code === 'Space' || event.code === 'KeyE' ||
+          event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+        event.preventDefault();
+        ZQ.chaseDash();
+        return;
+      }
+    }
+
     /* Выживание — отдельный режим: рывок, зонт и выход из воды. */
     if (rt.battle && rt.battle.active) {
       if (event.code === 'Escape') {
@@ -159,7 +174,6 @@
 
   bindDirectionPad(document.querySelector('.touch-ui .dpad'));
   bindDirectionPad(document.querySelector('.trial-touch .dpad'));
-  bindDirectionPad(document.querySelector('.battle-touch .dpad'));
 
   dom.btnAction.addEventListener('click', () => ZQ.interact());
 
@@ -217,6 +231,7 @@
          Во время испытания и арены оставляем кнопку действия. */
       const canAct = (rt.trial && rt.trial.active) ||
         (rt.battle && rt.battle.active) ||
+        (rt.chase && rt.chase.active) ||
         (!ZQ.isPaused() && !ZQ.isTyping());
       for (const key of Object.keys(GAMEPAD_BUTTONS)) {
         const index = Number(key);
@@ -226,6 +241,11 @@
         if (!isPressed || wasPressed || !canAct) continue;
         if (rt.trial && rt.trial.active) {
           if (info.action === 'interact') ZQ.attemptSeal();
+          continue;
+        }
+        if (rt.chase && rt.chase.active) {
+          if (info.action === 'interact' || info.action === 'reflect') ZQ.chaseDash();
+          else if (info.action === 'stop') ZQ.finishChase('abort');
           continue;
         }
         if (rt.battle && rt.battle.active) {
@@ -247,8 +267,9 @@
   }
 
   /* --------------------- Курсор по миру (ЛКМ) ---------------------- */
-  /* Короткий клик ставит точку назначения. Удержание и перетаскивание
-     ведут Zemic за курсором; отпускание останавливает следование. */
+  /* Короткий клик задаёт цель. В режиме «вектор» удержание ведёт Zemic
+     за курсором; остальные режимы сначала выбирают клетку или маршрут.
+     ПКМ и двойной клик/двойной тап переключают режим. */
   function screenToWorld(clientX, clientY) {
     if (!rt.state || !rt.state.camera) return null;
     const rect = dom.worldCanvas.getBoundingClientRect();
@@ -270,6 +291,10 @@
     /* Вкладки терминала не блокируют курсор: можно вести Zemic ЛКМ,
        даже когда открыт рюкзак, карта, сюжет или настройки. */
     return true;
+  }
+
+  function activeCursorMode() {
+    return typeof ZQ.cursorMode === 'function' ? ZQ.cursorMode() : 'vector';
   }
 
   /* --------------------- Свой курсор в мире ------------------------ */
@@ -303,8 +328,17 @@
     rt.cursorPos.x = x;
     rt.cursorPos.y = y;
     rt.cursorPos.inside = true;
+    dom.gameCursor.dataset.mode = activeCursorMode();
     dom.gameCursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     dom.gameCursor.classList.remove('hidden');
+  }
+
+  function cycleCursorFromPoint(event) {
+    if (typeof ZQ.cycleCursorMode !== 'function') return;
+    ZQ.cycleCursorMode();
+    ZQ.stopMovement();
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    if (dom.gameCursor) dom.gameCursor.dataset.mode = activeCursorMode();
   }
 
   dom.worldCanvas.addEventListener('pointerenter', updateGameCursor);
@@ -324,6 +358,19 @@
     rt.cursorPos.down = false;
   });
 
+  /* ПКМ переключает режим и не открывает контекстное меню. Один
+     обработчик на contextmenu: pointerdown для правой кнопки тоже
+     срабатывал и переключал режим дважды за одно нажатие. */
+  dom.worldCanvas.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    if (!canUseCursor()) return;
+    cycleCursorFromPoint(event);
+  });
+
+  let lastWorldTapAt = 0;
+  let lastWorldTapX = 0;
+  let lastWorldTapY = 0;
+
   dom.worldCanvas.addEventListener('pointerdown', (event) => {
     if (event.button !== undefined && event.button !== 0) return;
     if (!canUseCursor()) return;
@@ -331,11 +378,19 @@
     if (!target) return;
     rt.cursorPointer = {
       id: event.pointerId,
+      pointerType: event.pointerType || 'mouse',
       startX: event.clientX,
       startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
       moved: false
     };
-    ZQ.setCursorDestination(target.x, target.y, true);
+    /* Векторный режим сохраняет привычное «веди за курсором».
+       Остальные режимы срабатывают на отпускание, чтобы не потерять
+       выбор клетки при случайном сдвиге. */
+    if (activeCursorMode() === 'vector') {
+      ZQ.setCursorDestination(target.x, target.y, true);
+    }
     try {
       dom.worldCanvas.setPointerCapture(event.pointerId);
     } catch (error) {
@@ -349,10 +404,12 @@
     if (!pointer || pointer.id !== event.pointerId) return;
     if (event.buttons !== undefined && (event.buttons & 1) === 0) return;
     if (!canUseCursor()) return;
+    pointer.lastX = event.clientX;
+    pointer.lastY = event.clientY;
     const dx = event.clientX - pointer.startX;
     const dy = event.clientY - pointer.startY;
     if (Math.hypot(dx, dy) > 4) pointer.moved = true;
-    if (!pointer.moved) return;
+    if (!pointer.moved || activeCursorMode() !== 'vector') return;
     const target = screenToWorld(event.clientX, event.clientY);
     if (!target) return;
     ZQ.setCursorDestination(target.x, target.y, true);
@@ -371,6 +428,28 @@
     if (pointer.moved) {
       /* Ведение за курсором заканчивается вместе с удержанием. */
       ZQ.stopMovement();
+      return;
+    }
+
+    /* Двойной тап на телефоне — самый доступный способ сменить режим. */
+    const now = Date.now();
+    const isTouch = pointer.pointerType && pointer.pointerType !== 'mouse' &&
+      pointer.pointerType !== 'pen';
+    if (isTouch && now - lastWorldTapAt < 340 &&
+        Math.hypot(event.clientX - lastWorldTapX, event.clientY - lastWorldTapY) < 28) {
+      lastWorldTapAt = 0;
+      cycleCursorFromPoint(event);
+      return;
+    }
+    if (isTouch) {
+      lastWorldTapAt = now;
+      lastWorldTapX = event.clientX;
+      lastWorldTapY = event.clientY;
+    }
+    if (activeCursorMode() === 'vector') return;
+    const target = screenToWorld(event.clientX, event.clientY);
+    if (target && typeof ZQ.applyCursorClick === 'function') {
+      ZQ.applyCursorClick(target.x, target.y, { hold: true });
     }
   }
 
@@ -381,10 +460,17 @@
     ZQ.stopMovement();
   });
 
+  /* Двойной клик мышью тоже меняет режим (для настольных браузеров). */
+  dom.worldCanvas.addEventListener('dblclick', (event) => {
+    if (!canUseCursor()) return;
+    cycleCursorFromPoint(event);
+  });
+
   window.addEventListener('resize', () => {
     if (rt.termView === 'map') ZQ.drawMapNow();
     ZQ.resizeTrial();
     ZQ.resizeBattle();
+    if (typeof ZQ.resizeChase === 'function') ZQ.resizeChase();
     ZQ.updatePrompt();
   });
 

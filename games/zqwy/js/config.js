@@ -7,16 +7,26 @@
   const CONFIG = {
     title: 'Лабиринт сознаний',
     subtitle: 'Zemic · браузерный прототип',
-    version: '0.6.0',
+    version: '0.7.0',
     saveKey: 'zqwy.labyrinth.prototype.v1',
 
-    /* Пиксельная сетка рассчитана на широкий экран. Слишком узкое или
-       слишком растянутое окно даёт визуальные дефекты, о которых
-       терминал сообщает один раз. */
+    /* Пиксельная сетка рассчитана на широкий экран. Если окно выходит
+       за допустимые пропорции, сцена обрезается до ближайшего
+       допустимого соотношения, а не показывает дефекты по краям. */
+    /* Кадр больше не обрезается под 16:9. Сцена всегда занимает весь
+       экран, а количество видимых клеток гарантируется размером тайла.
+       Портрет и ландшафт равноправны: меняется только раскладка панелей. */
     display: {
-      minAspect: 1.32,
-      maxAspect: 2.4,
-      ideal: 16 / 9
+      minAspect: 0.4,
+      maxAspect: 3.4,
+      ideal: 16 / 9,
+      crop: false,
+      /* Минимум клеток, которые обязаны оставаться в кадре по каждой
+         оси. Тайл выбирается как min(ширина/колонки, высота/строки). */
+      minViewCols: 14.5,
+      minViewRows: 13.2,
+      tileMin: 11,
+      tileMax: 46
     },
 
     world: {
@@ -34,14 +44,26 @@
       ROOM_W: 39,
       ROOM_H: 31,
       GAP: 6,
-      /* Ширина прохода в тайлах: от одного до двенадцати. */
+      /* Ширина прохода в тайлах: от одного до четырёх. */
       corridorMin: 1,
-      corridorMax: 12,
-      /* Шанс сюжетной комнаты: первая попытка — 25%, дальнейшие — 8%. */
+      corridorMax: 4,
+      /* Большинство комнат маленькие: мир должен ощущаться как граф
+         из множества залов и переходов, а не как поле огромных зал. */
+      smallRoomBias: 0.72,
+      midRoomBias: 0.23,
+      /* Шанс сюжетной комнаты: первая попытка — 25%, дальнейшие — 12%. */
       storyFirstChance: 0.25,
-      storyNextChance: 0.08,
+      storyNextChance: 0.12,
       /* Шанс комнаты флоры/фауны среди процедурных клеток. */
-      faunaChance: 0.18
+      faunaChance: 0.22,
+      /* Доля бельзебуфо среди фауны: жаба встречается чаще прочих. */
+      belzebufoShare: 0.62,
+      /* Плотность петель и дверей на границах чанков. */
+      loopFactor: 0.82,
+      boundaryChance: 0.42,
+      /* Титанобоа ровно одна на весь мир и только в стартовом чанке. */
+      titanoboaRooms: 1,
+      titanoboa: { cx: 4, cy: 0 }
     },
 
     player: {
@@ -66,7 +88,8 @@
       storage: { cx: 0, cy: 3 },
       crossroad: { cx: 4, cy: 3 },
       beetle: { cx: 2, cy: 4 },
-      umbrella: { cx: 3, cy: 4 }
+      umbrella: { cx: 3, cy: 4 },
+      titanoboa: { cx: 4, cy: 0 }
     },
 
     roomMeta: {
@@ -121,6 +144,7 @@
         tag: 'ядовитая жаба',
         minW: 13,
         minH: 11,
+        chance: 0.62,
         lines: [
           'На тёплом камне сидит бельзебуфо. Кожа у неё влажная, а окрас слишком яркий, чтобы быть случайным.',
           'Апосематизм не прячет жабу — он предупреждает. Даже титанобоа обходит такое пятно стороной.'
@@ -168,22 +192,22 @@
     items: {
       card_angel: {
         id: 'card_angel',
-        name: 'Очарование',
+        name: 'Карта Очарования',
         kind: 'card',
         command: 'очаровать',
         action: 'произнести',
         art: 'assets/img/angel.webp',
-        description: 'Карандашный рисунок на клетчатой бумаге. Внизу подписано: «Очарование».',
-        note: 'Способность подключится отдельным модулем.'
+        description: 'Карандашный рисунок крылатой фигуры на клетчатой бумаге. Внизу подписано: «Очарование».',
+        note: 'Карта способности. Не имеет отношения к карте Лабиринта.'
       },
       map_fragment: {
         id: 'map_fragment',
-        name: 'Обрывок карты',
+        name: 'Карта Лабиринта',
         kind: 'map',
         command: 'карта',
         action: 'развернуть',
-        description: 'Мягкий от времени лист. На нём проступают здешние комнаты и проходы.',
-        note: 'Показывает уже пройденный и соседний участок Лабиринта.'
+        description: 'Мягкий от времени лист с планом здешних комнат и проходов.',
+        note: 'Показывает пройденный и соседний участок Лабиринта. Это не карта Очарования.'
       },
       chalk: {
         id: 'chalk',
@@ -217,30 +241,70 @@
         id: 'umbrella',
         name: 'Зонтик',
         kind: 'tool',
-        command: 'инвентарь',
+        command: 'зонт',
         action: 'раскрыть',
         description: 'Тяжёлый чёрный зонт с костяной ручкой. Спицы гудят, будто помнят течение.',
-        note: 'Под водой отводит снаряды. Перезарядка 12 секунд.',
+        note: 'Зонт нужно подобрать в зале. Он отводит и отражает снаряды, перезарядка 12 секунд.',
         reflectCooldown: 12
+      },
+      music_player: {
+        id: 'music_player',
+        name: 'Проигрыватель',
+        kind: 'player',
+        command: 'музыка',
+        action: 'включить',
+        description: 'Плоская коробка с латунной ручкой и гнездом для кассет. Внутри уже стоит плёнка Лабиринта.',
+        note: 'Хранит кассеты. Комнаты, в которых ты побывал, добавляют свои кассеты в коллекцию.',
+        container: 'cassettes'
+      },
+      cassette_forest: {
+        id: 'cassette_forest',
+        name: 'Кассета · Лес внутри',
+        kind: 'cassette',
+        command: 'музыка',
+        action: 'поставить',
+        trackId: 'forest',
+        description: 'Тёмная кассета с едва различимым шорохом листвы на плёнке.',
+        note: 'Вставь в проигрыватель. Комната, где ты её нашёл, ещё помнит этот трек.'
+      },
+      cassette_umbrella: {
+        id: 'cassette_umbrella',
+        name: 'Кассета · Зонт и вода',
+        kind: 'cassette',
+        command: 'музыка',
+        action: 'поставить',
+        trackId: 'umbrella',
+        description: 'Плёнка пахнет мокрым камнем. На наклейке нарисован раскрытый зонт.',
+        note: 'Вставь в проигрыватель, чтобы вернуть ритм зала с зонтом.'
+      },
+      cassette_gall: {
+        id: 'cassette_gall',
+        name: 'Кассета · Жёлчный пузырь',
+        kind: 'cassette',
+        command: 'музыка',
+        action: 'поставить',
+        trackId: 'gall',
+        description: 'Тяжёлая кассета с низким гулом, будто внутри перекатывается вода.',
+        note: 'Вставь в проигрыватель. Этот трек звучит в самых тёмных залах.'
       }
     },
 
     /* Инвентарь — не список, а маленький граф: узлы предметов и
        смысловые связи между ними. Рюкзак дополнительно связывается
-       со всем, что переносит. */
+       со всем, что переносит, а проигрыватель — с кассетами. */
     inventory: {
-      baseSlots: 4
+      baseSlots: 4,
+      slotColumns: 4
     },
 
     inventoryLinks: [
       { from: 'map_fragment', to: 'chalk', label: 'метки' },
-      { from: 'map_fragment', to: 'card_angel', label: 'путь' },
       { from: 'chalk', to: 'map_fragment', label: 'след' },
       { from: 'bead', to: 'card_angel', label: 'отблеск' },
       { from: 'bead', to: 'chalk', label: 'стекло и уголь' },
       { from: 'card_angel', to: 'bead', label: 'очарование' },
-      { from: 'card_angel', to: 'map_fragment', label: 'нарисована' },
-      { from: 'backpack', to: 'umbrella', label: 'снаряды' }
+      { from: 'backpack', to: 'umbrella', label: 'снаряды' },
+      { from: 'music_player', to: 'cassette_forest', label: 'кассета' }
     ],
 
     /* Кнопки на столе не получают клавишу заранее. Клавиша — отдельный
@@ -300,9 +364,27 @@
         title: 'Зонтик на дне',
         speaker: 'ГЛУБИНА',
         lines: [
-          'Последняя волна гаснет. Вода отступает, оставляя на камне зонтик.',
-          'В рукояти ещё гудит отведённый удар. Теперь этот зонт твой.',
-          'Он отводит снаряды. Перезарядка — двенадцать секунд. Под водой жми F.'
+          'Последняя волна гаснет. Вода отступает, оставляя на камне сложенный зонтик.',
+          'В рукояти ещё гудит отведённый удар. Подойди и подбери его — теперь он твой.',
+          'Зонт отводит и отражает снаряды. Перезарядка — двенадцать секунд. Под водой жми F.'
+        ]
+      },
+      belzebufoSuccess: {
+        title: 'Жаба отступила',
+        speaker: 'БЕЛЬЗЕБУФО',
+        lines: [
+          'Ядовитый узор распадается. Бельзебуфо сдувается и уходит в щель между камнями, оставляя после себя запах мокрой кожи.',
+          'Она не убита. Такие, как она, возвращаются — но в этот раз зал свободен.'
+        ]
+      },
+      titanoboaCalm: {
+        title: 'Змея успокоилась',
+        speaker: 'ТИТАНОБОА',
+        lines: [
+          'Кольца замедляются. Громадная голова опускается на камень, и гул в полу стихает.',
+          '«Ты долго бежал, — говорит титанобоа голосом, похожим на трение камня. — Я не хотела тебя съесть. Я хотела посмотреть, как ты ищешь выход, когда его нет».',
+          'Она поднимает голову и уходит в узкий проход, который явно уже её тела. Камень смыкается за ней без единого звука.',
+          '«Скрижаль ждёт. Иди».'
         ]
       },
       hazard: {
@@ -588,7 +670,17 @@
             { command: 'привет', description: 'короткий ответ терминала; ничего не меняет в мире', bindable: true },
             { command: 'ты куда пропал', description: 'напоминает, что терминал никуда не уходил и ждёт ввода', bindable: true },
             { command: 'подойди', description: 'проверяет, рядом ли Скрижаль; терминал не двигается с места', bindable: true },
-            { command: 'осмотреться', description: 'описывает текущую комнату, число выходов и то, что рядом лежит', bindable: true }
+            { command: 'осмотреться', description: 'описывает текущую комнату, число выходов и то, что рядом лежит', bindable: true },
+            { command: 'курсор', description: 'показывает режим курсора; «курсор клетка», «курсор осмотр», «курсор путь» переключают его', bindable: true }
+          ]
+        },
+        {
+          id: 'читы',
+          title: 'читы',
+          description: 'телепорт к нужной комнате и шансы генерации',
+          commands: [
+            { command: 'телепорт', description: 'переносит к ближайшей комнате нужного типа: «телепорт титанобоа», «телепорт зонт», «телепорт чанк 2 -1»', bindable: true },
+            { command: 'шансы', description: 'показывает шансы фауны и сюжетных комнат; «шанс фауны 0.4» меняет их', bindable: true }
           ]
         },
         {
@@ -617,7 +709,8 @@
           description: 'переносимое и найденное',
           unlock: 'backpack',
           commands: [
-            { command: 'инвентарь', description: 'открывает граф предметов, связи между ними и число ячеек', bindable: true }
+            { command: 'инвентарь', description: 'печатает таблицу содержимого и открывает граф предметов, связи и ячейки', bindable: true },
+            { command: 'зонт', description: 'раскрывает зонт: отражает снаряды, если зонт уже подобран', bindable: true }
           ]
         },
         {
@@ -701,8 +794,10 @@
           title: 'читы',
           description: 'отладка генерации',
           commands: [
+            { command: 'шансы', description: 'показывает все шансы генерации: фауну, сюжет и каждый вид фауны', bindable: true },
             { command: 'шанс сюжет', description: 'задаёт шанс сюжетной комнаты: «шанс сюжет 0.25»', bindable: true },
-            { command: 'шанс фауны', description: 'задаёт шанс комнаты фауны: «шанс фауны 0.4»', bindable: true }
+            { command: 'шанс фауны', description: 'задаёт шанс комнаты фауны: «шанс фауны 0.4»', bindable: true },
+            { command: 'шанс бельзебуфо', description: 'задаёт шанс бельзебуфо внутри комнат фауны: «шанс бельзебуфо 0.5»', bindable: true }
           ]
         }
       ],
@@ -731,21 +826,55 @@
       unknown: 'Неизвестная команда: '
     },
 
-    /* Один зацикленный трек на весь Лабиринт. Подсказка комнаты
-       меняет только подпись, а не запускает отдельный файл. */
+    /* У каждой комнаты своя кассета. Файлов пока три, но каждая
+       кассета — отдельная запись с названием и обложкой; плеер
+       автоматически переключает её при входе в комнату. */
     music: {
       file: 'assets/music/1_zqwy_in_forest.opus',
       volume: 0.55,
-      enabled: true
+      enabled: true,
+      rate: 1,
+      /* Алгоритмы изменения скорости. tempo сохраняет высоту голоса,
+         pitch меняет её вместе с темпом, drift слегка растягивает
+         соседние доли. */
+      rateAlgorithms: [
+        { id: 'tempo', title: 'темп', note: 'скорость без изменения высоты' },
+        { id: 'pitch', title: 'высота', note: 'скорость вместе с высотой' },
+        { id: 'drift', title: 'дрейф', note: 'медленное дыхание скорости' }
+      ],
+      tracks: {
+        forest: {
+          file: 'assets/music/1_zqwy_in_forest.opus',
+          title: 'Лес внутри',
+          cassette: 'cassette_forest',
+          cassetteTitle: 'кассета · Лес внутри'
+        },
+        umbrella: {
+          file: 'assets/music/1_zqwy_umbrella.opus',
+          title: 'Зонт и вода',
+          cassette: 'cassette_umbrella',
+          cassetteTitle: 'кассета · Зонт и вода'
+        },
+        gall: {
+          file: 'assets/music/8_zqwy_gall_bladder.opus',
+          title: 'Жёлчный пузырь',
+          cassette: 'cassette_gall',
+          cassetteTitle: 'кассета · Жёлчный пузырь'
+        }
+      }
     },
     musicCues: {
-      tablet: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'Скрижаль' },
-      hazard: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'Слепой зал' },
-      low: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'Низкий свод' },
-      trial: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'Круг' },
-      storage: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'Кладовая' },
-      crossroad: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'След' },
-      labyrinth: { file: 'assets/music/1_zqwy_in_forest.opus', title: 'Лабиринт' }
+      tablet: { track: 'forest', title: 'Скрижаль' },
+      hazard: { track: 'gall', title: 'Слепой зал', slow: true },
+      low: { track: 'forest', title: 'Низкий свод' },
+      trial: { track: 'gall', title: 'Круг' },
+      storage: { track: 'forest', title: 'Кладовая' },
+      crossroad: { track: 'forest', title: 'След' },
+      beetle: { track: 'umbrella', title: 'Внезапная вода' },
+      umbrella: { track: 'umbrella', title: 'Зал с зонтиком' },
+      titanoboa: { track: 'gall', title: 'Титанобоа', hard: true },
+      belzebufo: { track: 'gall', title: 'Бельзебуфо', hard: true },
+      labyrinth: { track: 'forest', title: 'Лабиринт' }
     },
 
     trial: {
@@ -756,24 +885,24 @@
       sealWindow: 2.6
     },
 
-    /* Внезапное выживание: одна водная арена на канвасе. Противника
-       нет — есть волны снарядов и таймер. Зонтик отводит снаряды. */
+    /* Внезапное выживание идёт прямо в Лабиринте: снаряды, рывок и
+       зонт живут в мировых клетках. Отдельной арены и канваса нет. */
     battle: {
-      arenaW: 640,
-      arenaH: 400,
       playerHp: 6,
-      playerSpeed: 170,
-      playerRadius: 12,
-      dashSpeed: 460,
+      playerSpeed: 4.9,
+      playerRadius: 0.34,
+      dashSpeed: 12.5,
       dashDuration: 0.2,
       dashCooldown: 2.4,
       dashInvuln: 0.3,
-      bulletRadius: 4.5,
+      bulletRadius: 0.13,
       bulletDamage: 1,
       playerInvuln: 0.9,
       reflectDuration: 1.1,
-      reflectRadius: 48,
+      reflectRadius: 1.55,
       reflectCooldown: 12,
+      bulletLife: 8,
+      spawnDistance: 6.5,
       encounters: {
         beetle: {
           title: 'Выживание · аксолотль',
@@ -784,7 +913,7 @@
           deathCause: 'глубина',
           survivalTime: 18,
           waveInterval: 1.55,
-          waveSpeed: 118,
+          waveSpeed: 3.4,
           waveCount: 5,
           spread: 0.5,
           ringCount: 16,
@@ -792,22 +921,103 @@
           introSpeaker: 'ГЛУБИНА'
         },
         umbrella: {
-          title: 'Выживание · аксолотль',
-          hudLabel: 'продержаться',
+          title: 'Ритм · зонт',
+          hudLabel: 'держать ритм',
           flag: 'umbrellaDone',
           rewardItem: 'umbrella',
           successStory: 'umbrellaSuccess',
           deathCause: 'глубина',
+          mode: 'rhythm',
+          trackCue: 'umbrella',
+          borrowUmbrella: true,
+          bpm: 92,
+          beatWindow: 0.34,
           survivalTime: 24,
           waveInterval: 1.18,
-          waveSpeed: 140,
+          waveSpeed: 3.9,
           waveCount: 6,
           spread: 0.62,
           ringCount: 20,
-          intro: 'Вода поднимается прямо посреди зала. Снаряды идут чаще, но на дне уже лежит зонтик. Продержись и забери его.',
+          reflectDuration: 0.58,
+          reflectCooldown: 2.4,
+          reflectRadius: 1.75,
+          intro: 'Вода поднимается прямо посреди зала. Снаряды идут в такт с гулом зонта. Поймай ритм, раскрывай зонт на долю и забери его.',
           introSpeaker: 'ГЛУБИНА'
+        },
+        belzebufo: {
+          title: 'Схватка · бельзебуфо',
+          hudLabel: 'ядовитые залпы',
+          rewardItem: null,
+          successStory: 'belzebufoSuccess',
+          deathCause: 'яд бельзебуфо',
+          mode: 'bullethell',
+          perRoom: true,
+          repeatable: true,
+          trackCue: 'belzebufo',
+          survivalTime: 22,
+          waveInterval: 0.72,
+          waveSpeed: 4.3,
+          waveCount: 7,
+          spread: 0.78,
+          ringCount: 24,
+          bulletRadius: 0.12,
+          bulletDamage: 1,
+          intro: 'Бельзебуфо раздувается и бьёт по площади. Это не вода: ядовитые снаряды идут плотным узором. Двигайся между ними и не стой на месте.',
+          introSpeaker: 'БЕЛЬЗЕБУФО'
         }
       }
+    },
+
+    /* Курсор: ЛКМ задаёт цель, ПКМ или двойной клик меняют режим.
+       vector — привычное движение к точке, tile — выбор клетки,
+       inspect — осмотр без движения, path — маршрут по проходам. */
+    cursor: {
+      modes: [
+        {
+          id: 'vector',
+          title: 'вектор',
+          note: 'клик задаёт точку, удержание ведёт за курсором'
+        },
+        {
+          id: 'tile',
+          title: 'клетка',
+          note: 'клик выбирает клетку, повторный клик ведёт к ней'
+        },
+        {
+          id: 'inspect',
+          title: 'осмотр',
+          note: 'клик описывает клетку и комнату, не двигая Zemic'
+        },
+        {
+          id: 'path',
+          title: 'путь',
+          note: 'клик показывает маршрут, второй клик идёт по нему'
+        }
+      ],
+      tileRadius: 1.2
+    },
+
+    /* Погоня титанобоа: длинное истощающее преследование по настоящему
+       Лабиринту. Змея ползёт по клеткам мира, повторяет тело за головой,
+       при усталости пропихивается сквозь стены и пытается замкнуть кольцо. */
+    chase: {
+      duration: 44,
+      bodyLength: 26,
+      playerSpeed: 4.8,
+      dashSpeed: 12.5,
+      dashDuration: 0.24,
+      dashCooldown: 0.34,
+      staminaDrain: 0.26,
+      staminaRegen: 0.24,
+      baseSpeed: 3.0,
+      maxSpeed: 5.6,
+      squeezeSpeed: 4.4,
+      squeezeChance: 0.16,
+      turnBias: 0.35,
+      calmDialogue: 'titanoboaCalm',
+      trackCue: 'titanoboa',
+      intro: 'Пол вздрагивает. Кольца приходят в движение — титанобоа больше не лежит. Она не бьёт первой: она просто начинает сжимать зал, и тебе остаётся бежать, пока она не устанет.',
+      introSpeaker: 'ТИТАНОБОА'
     }
   };
 

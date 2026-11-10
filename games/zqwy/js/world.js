@@ -109,10 +109,17 @@
       if (chance <= 0) return 'procedural';
       const roll = hashString(`${seed}:fauna:${cx}:${cy}`) / 4294967296;
       if (roll >= chance) return 'procedural';
-      const kinds = Object.keys(C.fauna || {});
+      const kinds = Object.keys(C.fauna || {}).filter((kind) => kind !== 'titanoboa');
       if (!kinds.length) return 'procedural';
-      const pick = hashString(`${seed}:faunapick:${cx}:${cy}`) % kinds.length;
-      return kinds[pick];
+      /* Титанобоа существует ровно одна на весь мир и только в
+         закреплённой комнате стартового чанка. Остальная фауна
+         выбирается с перевесом бельзебуфо: она встречается чаще. */
+      const share = Number.isFinite(W.belzebufoShare) ? W.belzebufoShare : 0.62;
+      const pickRoll = hashString(`${seed}:faunapick:${cx}:${cy}`) / 4294967296;
+      if (kinds.includes('belzebufo') && pickRoll < share) return 'belzebufo';
+      const others = kinds.filter((kind) => kind !== 'belzebufo');
+      const pool = others.length ? others : kinds;
+      return pool[hashString(`${seed}:faunapick2:${cx}:${cy}`) % pool.length];
     }
 
     /* Размер детерминирован для клетки и seed, поэтому соседние чанки
@@ -120,12 +127,33 @@
        ещё не материализована. */
     function roomDims(cx, cy, role) {
       const roleMin = ROLE_MIN[role] || [ROOM_W_MIN, ROOM_H_MIN];
-      const rangeW = ROOM_W_MAX - ROOM_W_MIN + 1;
-      const rangeH = ROOM_H_MAX - ROOM_H_MIN + 1;
-      const wRoll = hashString(`${seed}:roomw:${cx}:${cy}`) % rangeW;
-      const hRoll = hashString(`${seed}:roomh:${cx}:${cy}`) % rangeH;
-      const w = Math.min(ROOM_W_MAX, Math.max(ROOM_W_MIN, roleMin[0], ROOM_W_MIN + wRoll));
-      const h = Math.min(ROOM_H_MAX, Math.max(ROOM_H_MIN, roleMin[1], ROOM_H_MIN + hRoll));
+      const rangeW = Math.max(0, ROOM_W_MAX - ROOM_W_MIN);
+      const rangeH = Math.max(0, ROOM_H_MAX - ROOM_H_MIN);
+      /* Мир — граф из множества небольших залов. Размер выбирается
+         детерминированной корзиной: большинство комнат маленькие,
+         часть средние, и лишь немногие огромные. Сюжетные и фаунные
+         комнаты остаются не меньше своего минимума. */
+      const small = Number.isFinite(W.smallRoomBias) ? W.smallRoomBias : 0.72;
+      const mid = Number.isFinite(W.midRoomBias) ? W.midRoomBias : 0.23;
+      const bucket = hashString(`${seed}:roomsize:${cx}:${cy}`) / 4294967296;
+      let low;
+      let high;
+      if (bucket < small) {
+        low = 0.04;
+        high = 0.28;
+      } else if (bucket < small + mid) {
+        low = 0.34;
+        high = 0.6;
+      } else {
+        low = 0.68;
+        high = 1;
+      }
+      const wNoise = hashString(`${seed}:roomw:${cx}:${cy}`) / 4294967296;
+      const hNoise = hashString(`${seed}:roomh:${cx}:${cy}`) / 4294967296;
+      const wFrac = low + (high - low) * wNoise;
+      const hFrac = low + (high - low) * hNoise;
+      const w = Math.min(ROOM_W_MAX, Math.max(ROOM_W_MIN, roleMin[0], ROOM_W_MIN + Math.round(rangeW * wFrac)));
+      const h = Math.min(ROOM_H_MAX, Math.max(ROOM_H_MIN, roleMin[1], ROOM_H_MIN + Math.round(rangeH * hFrac)));
       return { w, h };
     }
 
@@ -201,6 +229,7 @@
         }
       }
       const meta = C.roomMeta[role];
+      const musicCue = C.musicCues && C.musicCues[role] ? role : 'labyrinth';
       let name;
 
       if (meta) {
@@ -231,7 +260,7 @@
         storyIndex,
         name,
         tag: meta ? meta.tag : (faunaMeta ? faunaMeta.tag : ''),
-        music: meta ? meta.music : 'labyrinth',
+        music: meta ? meta.music : musicCue,
         x1: box.x1,
         y1: box.y1,
         x2: box.x2,
@@ -401,7 +430,8 @@
         const y = cellY0 + i;
         if (roleAt(leftCx, y) === 'trial' || roleAt(rightCx, y) === 'trial') continue;
         const chance = hashString(`${seed}:ve:${leftCx}:${y}`) / 4294967296;
-        if (i === base || chance < 0.3) addEdge(leftCx, y, rightCx, y);
+        const edgeChance = Number.isFinite(W.boundaryChance) ? W.boundaryChance : 0.42;
+        if (i === base || chance < edgeChance) addEdge(leftCx, y, rightCx, y);
       }
     }
 
@@ -411,7 +441,8 @@
         const x = cellX0 + i;
         if (roleAt(x, topCy) === 'trial' || roleAt(x, bottomCy) === 'trial') continue;
         const chance = hashString(`${seed}:he:${x}:${topCy}`) / 4294967296;
-        if (i === base || chance < 0.3) addEdge(x, topCy, x, bottomCy);
+        const edgeChance = Number.isFinite(W.boundaryChance) ? W.boundaryChance : 0.42;
+        if (i === base || chance < edgeChance) addEdge(x, topCy, x, bottomCy);
       }
     }
 
@@ -571,7 +602,8 @@
         }
       }
       shuffle(loopCandidates, random);
-      const loops = Math.max(4, Math.round(loopCandidates.length * 0.58));
+      const loopFactor = Number.isFinite(W.loopFactor) ? W.loopFactor : 0.82;
+      const loops = Math.max(6, Math.round(loopCandidates.length * loopFactor));
       for (let i = 0; i < Math.min(loops, loopCandidates.length); i++) {
         const [ax, ay, bx, by] = loopCandidates[i];
         addEdge(ax, ay, bx, by);

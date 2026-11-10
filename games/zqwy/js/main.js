@@ -320,6 +320,8 @@
       try {
         ZQ.updateMovement(dt);
         ZQ.updateRoomDetection();
+        if (typeof ZQ.updateBattle === 'function') ZQ.updateBattle(dt);
+        if (typeof ZQ.updateChase === 'function') ZQ.updateChase(dt);
         ZQ.updateCamera();
         if (!rt.trial) ZQ.updatePrompt();
       } catch (error) {
@@ -337,6 +339,10 @@
           images: rt.images,
           view,
           cursor: rt.cursorMove,
+          cursorMode: rt.cursorMode,
+          cursorPath: rt.cursorPath,
+          cursorPathGoal: rt.cursorPathGoal,
+          cursorTile: rt.cursorTile,
           now: time
         });
       } catch (error) {
@@ -366,7 +372,13 @@
     rt.images = window.Renderer.prepareImages();
     rt.loadMs = Math.max(0, Math.round(ZQ.now() - started));
 
-    ZQ.appendLog(ZQ.bootMessage(seed), 'sys', true);
+    ZQ.appendLog(
+      ZQ.bootMessage(seed, saved
+        ? { kind: 'load', slotName: saved.slotName || '' }
+        : { kind: 'new' }),
+      'sys',
+      true
+    );
     ZQ.initDivider();
     ZQ.resetCanvasView(false);
     ZQ.renderCanvasElements();

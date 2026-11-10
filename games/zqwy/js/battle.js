@@ -1,7 +1,7 @@
-/* Внезапное выживание: Zemic на время становится аксолотлем.
-   Это не бой с противником и не требует согласия игрока: комната
-   сама включает воду, а цель одна — продержаться до конца.
-   Управление: движение, рывок и зонтик, который отводит снаряды. */
+/* Схватка идёт прямо в Лабиринте: Zemic становится аксолотлем, но
+   продолжает двигаться по настоящим клеткам мира. Снаряды, рывок и
+   раскрытый зонт живут в тех же координатах, что и игрок. Отдельной
+   арены, второго канваса и отдельной вкладки терминала больше нет. */
 (function () {
   'use strict';
 
@@ -41,31 +41,18 @@
     return code === 'en' ? (en || ru) : ru;
   }
 
-  function layoutBattle() {
-    const battle = rt.battle;
-    if (!battle) return null;
-    const size = window.Renderer.makeCanvasSize(dom.battleCanvas);
-    const config = battleConfig();
-    const arenaW = Number.isFinite(config.arenaW) ? config.arenaW : 640;
-    const arenaH = Number.isFinite(config.arenaH) ? config.arenaH : 400;
-    battle.w = size.w;
-    battle.h = size.h;
-    battle.arenaW = arenaW;
-    battle.arenaH = arenaH;
-    battle.scale = Math.max(0.05, Math.min(size.w / arenaW, size.h / arenaH));
-    battle.offsetX = (size.w - arenaW * battle.scale) / 2;
-    battle.offsetY = (size.h - arenaH * battle.scale) / 2;
-    return size;
-  }
-
-  function clampFighter(fighter, radius, battle) {
-    fighter.x = ZQ.clamp(fighter.x, radius + 4, battle.arenaW - radius - 4);
-    fighter.y = ZQ.clamp(fighter.y, radius + 4, battle.arenaH - radius - 4);
-  }
-
   function survivalProgress(battle) {
     const duration = Number.isFinite(battle.survivalTime) ? battle.survivalTime : 1;
     return ZQ.clamp(battle.elapsed / Math.max(0.001, duration), 0, 1);
+  }
+
+  function refreshRoom(battle) {
+    if (!rt.world || !rt.state) return;
+    const under = rt.world.roomAtTile(
+      Math.floor(rt.state.player.x),
+      Math.floor(rt.state.player.y)
+    );
+    if (under) battle.room = under;
   }
 
   function updateHud() {
@@ -91,24 +78,28 @@
     if (dom.battlePlayerBar) {
       dom.battlePlayerBar.style.width = `${(playerHp / Math.max(1, playerMax)) * 100}%`;
     }
-    if (dom.battleEnemyBar) {
-      dom.battleEnemyBar.style.width = `${progress * 100}%`;
+    if (dom.battleBeetleBar) {
+      dom.battleBeetleBar.style.width = `${progress * 100}%`;
     }
     if (dom.battleReflectState) {
       let text = t('зонт: —', 'umbrella: —', 'Schirm: —');
       if (battle.hasUmbrella) {
-        text = battle.reflectCooldown > 0
-          ? t(
-            `зонт: ${Math.ceil(battle.reflectCooldown)} с`,
-            `umbrella: ${Math.ceil(battle.reflectCooldown)} s`,
-            `Schirm: ${Math.ceil(battle.reflectCooldown)} s`
-          )
-          : t('зонт: готов', 'umbrella: ready', 'Schirm: bereit');
+        text = battle.rhythmMode
+          ? (battle.beatWindow > 0
+            ? t('зонт: в долю', 'umbrella: on beat', 'Schirm: im Takt')
+            : t('зонт: жди долю', 'umbrella: wait for the beat', 'Schirm: warte auf den Schlag'))
+          : battle.reflectCooldown > 0
+            ? t(
+              `зонт: ${Math.ceil(battle.reflectCooldown)} с`,
+              `umbrella: ${Math.ceil(battle.reflectCooldown)} s`,
+              `Schirm: ${Math.ceil(battle.reflectCooldown)} s`
+            )
+            : t('зонт: готов', 'umbrella: ready', 'Schirm: bereit');
       }
       dom.battleReflectState.textContent = text;
       dom.battleReflectState.classList.toggle(
         'ready',
-        battle.hasUmbrella && battle.reflectCooldown <= 0
+        battle.hasUmbrella && (battle.rhythmMode ? battle.beatWindow > 0 : battle.reflectCooldown <= 0)
       );
     }
     if (dom.battleDashState) {
@@ -122,13 +113,35 @@
       dom.battleDashState.classList.toggle('ready', battle.dashCooldown <= 0);
     }
     if (dom.battleReflect) {
-      dom.battleReflect.disabled = !battle.hasUmbrella || battle.reflectCooldown > 0;
+      dom.battleReflect.disabled = !battle.hasUmbrella ||
+        (battle.reflectCooldown > 0 && !battle.rhythmMode);
     }
     if (dom.battleReflectTouch) {
-      dom.battleReflectTouch.disabled = !battle.hasUmbrella || battle.reflectCooldown > 0;
+      dom.battleReflectTouch.disabled = !battle.hasUmbrella ||
+        (battle.reflectCooldown > 0 && !battle.rhythmMode);
     }
     if (dom.battleDash) dom.battleDash.disabled = battle.dashCooldown > 0;
     if (dom.battleDashTouch) dom.battleDashTouch.disabled = battle.dashCooldown > 0;
+
+    if (dom.battleRhythm) {
+      dom.battleRhythm.classList.toggle('hidden', !battle.rhythmMode);
+      if (battle.rhythmMode) {
+        const beat = Number.isFinite(battle.beat) ? battle.beat : 0;
+        const interval = Math.max(0.2, battle.beatInterval || 0.65);
+        const phase = 1 - ZQ.clamp((battle.beatTimer || 0) / interval, 0, 1);
+        if (dom.battleRhythmBeat) {
+          dom.battleRhythmBeat.style.left = `${(phase * 100).toFixed(2)}%`;
+          dom.battleRhythmBeat.classList.toggle('hot', battle.beatWindow > 0);
+        }
+        if (dom.battleRhythmCombo) {
+          dom.battleRhythmCombo.textContent = t(
+            `ритм ×${battle.combo || 0} · доля ${beat + 1}`,
+            `rhythm ×${battle.combo || 0} · beat ${beat + 1}`,
+            `Rhythmus ×${battle.combo || 0} · Schlag ${beat + 1}`
+          );
+        }
+      }
+    }
   }
 
   function pushHint(text, time) {
@@ -146,9 +159,9 @@
     const seconds = Math.round(battle ? battle.survivalTime : config.survivalTime || 18);
     const parts = [
       t(
-        `Продержись ${seconds} секунд под водой.`,
-        `Hold out for ${seconds} seconds underwater.`,
-        `Halte ${seconds} Sekunden unter Wasser durch.`
+        `Продержись ${seconds} секунд. Снаряды идут по настоящему Лабиринту.`,
+        `Hold out for ${seconds} seconds. Projectiles move through the real labyrinth.`,
+        `Halte ${seconds} Sekunden durch. Die Geschosse fliegen durch das echte Labyrinth.`
       ),
       t(
         'Shift, ПРОБЕЛ или E — рывок.',
@@ -156,7 +169,13 @@
         'Shift, LEERTASTE oder E — Ausweichen.'
       )
     ];
-    if (battle && battle.hasUmbrella) {
+    if (battle && battle.rhythmMode) {
+      parts.push(t(
+        'Жми F или «зонт» в долю: попадание в ритм продлевает зонт и копит комбо.',
+        'Press F or the umbrella button on the beat: timing extends the umbrella and builds combo.',
+        'Drücke F oder die Schirmtaste im Takt: Timing verlängert den Schirm und baut Combo auf.'
+      ));
+    } else if (battle && battle.hasUmbrella) {
       parts.push(t(
         'F или кнопка «зонт» отводит снаряды (перезарядка 12 с).',
         'F or the umbrella button turns projectiles aside (12 s cooldown).',
@@ -164,9 +183,9 @@
       ));
     } else {
       parts.push(t(
-        'Снаряды идут волнами: двигайся и ныряй в разрывы.',
-        'Projectiles come in waves: move and slip through the gaps.',
-        'Die Geschosse kommen in Wellen: bewege dich und gleite durch die Lücken.'
+        'Двигайся между волнами и ныряй в разрывы.',
+        'Move between waves and slip through the gaps.',
+        'Bewege dich zwischen den Wellen und gleite durch die Lücken.'
       ));
     }
     dom.battleHint.textContent = parts.join(' ');
@@ -196,14 +215,13 @@
     let dx = input.x;
     let dy = input.y;
     if (!dx && !dy) {
-      dx = battle.player.facingX || 0;
-      dy = battle.player.facingY || -1;
+      dx = rt.state.player.facingX || 0;
+      dy = rt.state.player.facingY || -1;
     }
     const length = Math.hypot(dx, dy) || 1;
     battle.dashVX = dx / length;
     battle.dashVY = dy / length;
-    battle.player.facingX = battle.dashVX;
-    battle.player.facingY = battle.dashVY;
+    battle.dashSpeed = Number.isFinite(config.dashSpeed) ? config.dashSpeed : 12.5;
     battle.dashTimer = Number.isFinite(config.dashDuration) ? config.dashDuration : 0.2;
     battle.dashCooldown = Number.isFinite(config.dashCooldown) ? config.dashCooldown : 2.4;
     battle.playerInvuln = Math.max(
@@ -231,7 +249,8 @@
       ), 1.8);
       return false;
     }
-    if (battle.reflectCooldown > 0) {
+    const onBeat = battle.rhythmMode && battle.beatWindow > 0;
+    if (battle.reflectCooldown > 0 && !onBeat) {
       pushHint(t(
         `Зонтик перезаряжается: ${Math.ceil(battle.reflectCooldown)} с.`,
         `The umbrella is recharging: ${Math.ceil(battle.reflectCooldown)} s.`,
@@ -241,16 +260,40 @@
     }
     const config = battleConfig();
     battle.reflectDuration = Number.isFinite(config.reflectDuration) ? config.reflectDuration : 1.1;
+    if (battle.rhythmMode) {
+      battle.reflectDuration = Math.max(
+        battle.reflectDuration,
+        onBeat ? 0.9 : 0.42
+      );
+      battle.reflectCooldown = onBeat
+        ? Math.min(battle.reflectCooldown, 0.12)
+        : (Number.isFinite(config.reflectCooldown) ? config.reflectCooldown : 2.4);
+      if (onBeat) {
+        battle.combo = (battle.combo || 0) + 1;
+        battle.beatWindow = 0;
+        battle.lastBeatScore = 'perfect';
+      } else {
+        battle.combo = 0;
+        battle.lastBeatScore = 'miss';
+      }
+    } else {
+      battle.reflectCooldown = Number.isFinite(config.reflectCooldown)
+        ? config.reflectCooldown
+        : 12;
+    }
     battle.reflectTimer = battle.reflectDuration;
-    battle.reflectCooldown = Number.isFinite(config.reflectCooldown)
-      ? config.reflectCooldown
-      : 12;
     battle.reflectFlash = 1;
-    pushHint(t(
-      'Зонтик раскрыт: снаряды уходят в стороны.',
-      'The umbrella is open: projectiles are turned aside.',
-      'Der Schirm ist offen: Geschosse werden abgelenkt.'
-    ), 1.2);
+    pushHint(onBeat
+      ? t(
+        `В долю. Ритм ×${battle.combo}.`,
+        `On the beat. Rhythm ×${battle.combo}.`,
+        `Im Takt. Rhythmus ×${battle.combo}.`
+      )
+      : t(
+        'Зонтик раскрыт: снаряды уходят в стороны.',
+        'The umbrella is open: projectiles are turned aside.',
+        'Der Schirm ist offen: Geschosse werden abgelenkt.'
+      ), 1.2);
     updateHud();
     return true;
   }
@@ -264,28 +307,47 @@
       r: radius,
       reflected: false,
       homing: Number.isFinite(homing) ? homing : 0,
-      life: 7
+      life: battle.bulletLife
     });
   }
 
-  function edgePoint(pad) {
-    const battle = rt.battle;
-    const margin = pad || 18;
-    const side = Math.floor(Math.random() * 4);
-    if (side === 0) {
-      return { x: margin + Math.random() * (battle.arenaW - margin * 2), y: margin };
+  /* Точка появления выбирается на полу текущего зала: снаряд не
+     возникает внутри стены и не гаснет в первом же кадре. */
+  function pickSpawn(battle, minDist) {
+    const player = rt.state.player;
+    const room = battle.room;
+    const min = Number.isFinite(minDist) ? minDist : 4;
+    for (let i = 0; i < 48; i += 1) {
+      let x;
+      let y;
+      if (room) {
+        x = room.ox + 0.5 + Math.random() * Math.max(0.5, room.w - 1);
+        y = room.oy + 0.5 + Math.random() * Math.max(0.5, room.h - 1);
+      } else {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = min + Math.random() * 3;
+        x = player.x + Math.cos(angle) * distance;
+        y = player.y + Math.sin(angle) * distance;
+      }
+      if (Math.hypot(x - player.x, y - player.y) < min) continue;
+      if (!rt.world || !rt.world.isWalkable(Math.floor(x), Math.floor(y))) continue;
+      return { x, y };
     }
-    if (side === 1) {
-      return { x: battle.arenaW - margin, y: margin + Math.random() * (battle.arenaH - margin * 2) };
-    }
-    if (side === 2) {
-      return { x: margin + Math.random() * (battle.arenaW - margin * 2), y: battle.arenaH - margin };
-    }
-    return { x: margin, y: margin + Math.random() * (battle.arenaH - margin * 2) };
+    const angle = Math.random() * Math.PI * 2;
+    return {
+      x: player.x + Math.cos(angle) * min,
+      y: player.y + Math.sin(angle) * min
+    };
   }
 
   function angleTo(battle, x, y) {
     return Math.atan2(battle.player.y - y, battle.player.x - x);
+  }
+
+  function roomCenter(battle) {
+    const room = battle.room;
+    if (room) return { x: room.centerX + 0.5, y: room.centerY + 0.5 };
+    return { x: rt.state.player.x, y: rt.state.player.y };
   }
 
   function aimedFan(battle, speed, radius, progress) {
@@ -294,11 +356,11 @@
       (Number.isFinite(config.waveCount) ? config.waveCount : 5) + progress * 2
     ));
     const spread = Number.isFinite(config.spread) ? config.spread : 0.5;
-    const origin = edgePoint(20);
+    const origin = pickSpawn(battle, Number.isFinite(config.spawnDistance) ? config.spawnDistance : 6);
     const base = angleTo(battle, origin.x, origin.y);
-    for (let i = 0; i < count; i++) {
-      const t = count > 1 ? i / (count - 1) - 0.5 : 0;
-      spawnBullet(battle, origin.x, origin.y, base + t * spread, speed, radius);
+    for (let i = 0; i < count; i += 1) {
+      const part = count > 1 ? i / (count - 1) - 0.5 : 0;
+      spawnBullet(battle, origin.x, origin.y, base + part * spread, speed, radius);
     }
   }
 
@@ -307,19 +369,21 @@
     const count = Math.round(
       (Number.isFinite(config.ringCount) ? config.ringCount : 16) + progress * 6
     );
-    const cx = battle.arenaW / 2;
-    const cy = battle.arenaH / 2;
-    const gapAngle = Math.atan2(battle.player.y - cy, battle.player.x - cx);
+    const center = roomCenter(battle);
+    const gapAngle = Math.atan2(
+      battle.player.y - center.y,
+      battle.player.x - center.x
+    );
     const offset = battle.volley * 0.23;
     const gap = 0.5;
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i += 1) {
       const angle = (i / count) * Math.PI * 2 + offset;
-      let diff = Math.atan2(Math.sin(angle - gapAngle), Math.cos(angle - gapAngle));
+      const diff = Math.atan2(Math.sin(angle - gapAngle), Math.cos(angle - gapAngle));
       if (Math.abs(diff) < gap) continue;
       spawnBullet(
         battle,
-        cx + Math.cos(angle) * 14,
-        cy + Math.sin(angle) * 14,
+        center.x + Math.cos(angle) * 0.85,
+        center.y + Math.sin(angle) * 0.85,
         angle,
         speed * 0.92,
         radius
@@ -330,14 +394,13 @@
   function spiralWave(battle, speed, radius) {
     const arms = 3;
     const base = battle.volley * 0.55;
-    const cx = battle.arenaW / 2;
-    const cy = battle.arenaH / 2;
-    for (let arm = 0; arm < arms; arm++) {
+    const center = roomCenter(battle);
+    for (let arm = 0; arm < arms; arm += 1) {
       const angle = base + (arm / arms) * Math.PI * 2;
       spawnBullet(
         battle,
-        cx + Math.cos(angle) * 12,
-        cy + Math.sin(angle) * 12,
+        center.x + Math.cos(angle) * 0.7,
+        center.y + Math.sin(angle) * 0.7,
         angle,
         speed * 0.84,
         radius
@@ -350,26 +413,35 @@
     const count = Math.max(4, Math.round(
       (Number.isFinite(config.waveCount) ? config.waveCount : 5) + 3 + progress * 4
     ));
-    const gapWidth = 62;
-    const gapX = 70 + Math.random() * Math.max(1, battle.arenaW - 140);
-    for (let i = 0; i < count; i++) {
-      const x = 40 + (i / Math.max(1, count - 1)) * (battle.arenaW - 80);
+    const room = battle.room;
+    const player = rt.state.player;
+    const span = room ? Math.max(4, room.w - 2) : 9;
+    const startX = room ? room.ox + 1 : player.x - span / 2;
+    const topY = room ? room.oy + 1 : player.y - 6;
+    const gapX = player.x + (Math.random() - 0.5) * 1.6;
+    const gapWidth = 1.6;
+    for (let i = 0; i < count; i += 1) {
+      const x = startX + (i / Math.max(1, count - 1)) * span;
       if (Math.abs(x - gapX) < gapWidth * 0.5) continue;
-      const drift = (x - gapX) / battle.arenaW * 0.45;
-      spawnBullet(battle, x, -12, Math.PI / 2 + drift, speed * 0.86, radius);
+      if (!rt.world.isWalkable(Math.floor(x), Math.floor(topY))) continue;
+      const drift = (x - gapX) / Math.max(1, span) * 0.35;
+      spawnBullet(battle, x, topY, Math.PI / 2 + drift, speed * 0.86, radius);
     }
   }
 
   function crossfireWave(battle, speed, radius) {
+    const player = rt.state.player;
+    const distance = 5.5;
     const points = [
-      { x: 24, y: battle.arenaH / 2 },
-      { x: battle.arenaW - 24, y: battle.arenaH / 2 },
-      { x: battle.arenaW / 2, y: 24 },
-      { x: battle.arenaW / 2, y: battle.arenaH - 24 }
+      { x: player.x, y: player.y - distance },
+      { x: player.x, y: player.y + distance },
+      { x: player.x - distance, y: player.y },
+      { x: player.x + distance, y: player.y }
     ];
     for (const point of points) {
+      if (!rt.world.isWalkable(Math.floor(point.x), Math.floor(point.y))) continue;
       const base = angleTo(battle, point.x, point.y);
-      for (let i = -1; i <= 1; i++) {
+      for (let i = -1; i <= 1; i += 1) {
         spawnBullet(battle, point.x, point.y, base + i * 0.14, speed * 0.9, radius);
       }
     }
@@ -377,8 +449,8 @@
 
   function homingWave(battle, speed, radius, progress) {
     const count = 2 + Math.round(progress * 2);
-    for (let i = 0; i < count; i++) {
-      const origin = edgePoint(30);
+    for (let i = 0; i < count; i += 1) {
+      const origin = pickSpawn(battle, 6.5);
       const base = angleTo(battle, origin.x, origin.y);
       spawnBullet(
         battle,
@@ -404,11 +476,10 @@
     battle.waveCooldown = Math.max(0.5, baseInterval * (1 - progress * 0.42));
     battle.volley += 1;
 
-    const speed = (Number.isFinite(config.waveSpeed) ? config.waveSpeed : 118) *
+    const speed = (Number.isFinite(config.waveSpeed) ? config.waveSpeed : 3.4) *
       (1 + progress * 0.32);
-    const radius = Number.isFinite(config.bulletRadius) ? config.bulletRadius : 4.5;
+    const radius = Number.isFinite(config.bulletRadius) ? config.bulletRadius : 0.13;
 
-    /* Волны чередуются, чтобы игрок читал рисунок и не стоял на месте. */
     switch ((battle.volley - 1) % 6) {
       case 0: aimedFan(battle, speed, radius, progress); break;
       case 1: rainWave(battle, speed, radius, progress); break;
@@ -421,13 +492,15 @@
 
   function updateBullets(dt) {
     const battle = rt.battle;
-    if (!battle || !battle.active) return;
+    if (!battle || !battle.active || !rt.world) return;
     const config = battleConfig();
-    const playerRadius = battle.playerRadius;
-    const reflectRadius = Number.isFinite(config.reflectRadius) ? config.reflectRadius : 48;
+    const playerRadius = Number.isFinite(battle.playerRadius)
+      ? battle.playerRadius
+      : (Number.isFinite(C.battle && C.battle.playerRadius) ? C.battle.playerRadius : 0.34);
+    const reflectRadius = Number.isFinite(config.reflectRadius) ? config.reflectRadius : 1.55;
     const bullets = battle.bullets;
 
-    for (let i = bullets.length - 1; i >= 0; i--) {
+    for (let i = bullets.length - 1; i >= 0; i -= 1) {
       const bullet = bullets[i];
 
       if (!bullet.reflected && bullet.homing > 0) {
@@ -448,9 +521,10 @@
       bullet.y += bullet.vy * dt;
       bullet.life -= dt;
 
-      if (bullet.life <= 0 ||
-          bullet.x < -40 || bullet.x > battle.arenaW + 40 ||
-          bullet.y < -40 || bullet.y > battle.arenaH + 40) {
+      /* Снаряд гаснет о стены настоящего Лабиринта. */
+      const tileX = Math.floor(bullet.x);
+      const tileY = Math.floor(bullet.y);
+      if (bullet.life <= 0 || !rt.world.isWalkable(tileX, tileY)) {
         bullets.splice(i, 1);
         continue;
       }
@@ -459,10 +533,9 @@
       const pdy = bullet.y - battle.player.y;
       const playerDistance = Math.hypot(pdx, pdy);
 
-      /* Раскрытый зонтик разворачивает снаряды в стороны. */
       if (!bullet.reflected && battle.reflectTimer > 0 &&
           playerDistance <= reflectRadius + bullet.r) {
-        const speed = Math.max(60, Math.hypot(bullet.vx, bullet.vy) * 1.25);
+        const speed = Math.max(1.6, Math.hypot(bullet.vx, bullet.vy) * 1.25);
         const angle = playerDistance > 0.001
           ? Math.atan2(pdy, pdx)
           : Math.atan2(bullet.vy, bullet.vx);
@@ -470,7 +543,7 @@
         bullet.vy = Math.sin(angle) * speed;
         bullet.reflected = true;
         bullet.homing = 0;
-        bullet.life = 2.4;
+        bullet.life = Math.min(bullet.life, 2.4);
         battle.reflectFlash = 1;
         continue;
       }
@@ -502,6 +575,7 @@
     battle.elapsed += dt;
 
     if (battle.dashCooldown > 0) battle.dashCooldown = Math.max(0, battle.dashCooldown - dt);
+    if (battle.dashTimer > 0) battle.dashTimer = Math.max(0, battle.dashTimer - dt);
     if (battle.playerInvuln > 0) battle.playerInvuln = Math.max(0, battle.playerInvuln - dt);
     if (battle.reflectTimer > 0) battle.reflectTimer = Math.max(0, battle.reflectTimer - dt);
     if (battle.reflectCooldown > 0) battle.reflectCooldown = Math.max(0, battle.reflectCooldown - dt);
@@ -509,40 +583,33 @@
     if (battle.reflectFlash > 0) battle.reflectFlash = Math.max(0, battle.reflectFlash - dt * 3);
     if (battle.flash > 0) battle.flash = Math.max(0, battle.flash - dt * 2.8);
 
-    for (let i = battle.trail.length - 1; i >= 0; i--) {
+    if (battle.rhythmMode) {
+      battle.beatTimer = Math.max(0, (battle.beatTimer || 0) - dt);
+      if (battle.beatWindow > 0) battle.beatWindow = Math.max(0, battle.beatWindow - dt);
+      if (battle.beatTimer <= 0) {
+        battle.beatTimer = battle.beatInterval;
+        battle.beat = (battle.beat || 0) + 1;
+        battle.beatWindow = battle.beatWindowLength;
+        battle.beatPulse = 1;
+      }
+      if (battle.beatPulse > 0) battle.beatPulse = Math.max(0, battle.beatPulse - dt * 3.4);
+    }
+
+    for (let i = battle.trail.length - 1; i >= 0; i -= 1) {
       battle.trail[i].life -= dt;
       if (battle.trail[i].life <= 0) battle.trail.splice(i, 1);
     }
-
-    const config = battleConfig();
-    const speed = Number.isFinite(config.playerSpeed) ? config.playerSpeed : 170;
-
-    if (battle.dashTimer > 0) {
-      battle.dashTimer = Math.max(0, battle.dashTimer - dt);
-      const dashSpeed = Number.isFinite(config.dashSpeed) ? config.dashSpeed : 460;
-      battle.player.x += battle.dashVX * dashSpeed * dt;
-      battle.player.y += battle.dashVY * dashSpeed * dt;
-      battle.player.facingX = battle.dashVX;
-      battle.player.facingY = battle.dashVY;
-      if (Math.random() < 0.75) {
-        battle.trail.push({
-          x: battle.player.x,
-          y: battle.player.y,
-          life: 0.32,
-          max: 0.32
-        });
-      }
-    } else {
-      const input = inputVector();
-      if (input.x || input.y) {
-        battle.player.x += input.x * speed * dt;
-        battle.player.y += input.y * speed * dt;
-        battle.player.facingX = input.x;
-        battle.player.facingY = input.y;
-      }
+    if (battle.dashTimer > 0 && rt.state && rt.state.player) {
+      battle.trail.push({
+        x: rt.state.player.x,
+        y: rt.state.player.y,
+        life: 0.32,
+        max: 0.32
+      });
+      if (battle.trail.length > 90) battle.trail.shift();
     }
-    clampFighter(battle.player, battle.playerRadius, battle);
 
+    refreshRoom(battle);
     emitWave(dt);
     updateBullets(dt);
     if (!rt.battle || !rt.battle.active) return;
@@ -559,265 +626,37 @@
     updateHud();
   }
 
-  function drawWater(ctx, w, h, time) {
-    const bg = ctx.createLinearGradient(0, 0, 0, h);
-    bg.addColorStop(0, '#0a262b');
-    bg.addColorStop(0.52, '#061a1e');
-    bg.addColorStop(1, '#03100f');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.save();
-    ctx.strokeStyle = 'rgba(126, 211, 205, 0.09)';
-    ctx.lineWidth = 1.4;
-    for (let band = 0; band < 6; band++) {
-      ctx.beginPath();
-      const baseY = h * (0.16 + band * 0.14);
-      for (let x = -20; x <= w + 20; x += 18) {
-        const y = baseY +
-          Math.sin(x * 0.018 + time * 0.0007 + band * 1.7) * (9 + band * 2) +
-          Math.sin(x * 0.041 - time * 0.0011) * 4;
-        if (x === -20) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+  function dropRewardPickup(itemId, roomId) {
+    if (!rt.world || !Array.isArray(rt.world.itemPickups)) return false;
+    if (rt.world.itemPickups.some((pickup) => pickup.itemId === itemId)) return false;
+    const room = roomId && rt.world.roomById ? rt.world.roomById(roomId) : null;
+    let x = room ? room.centerX + 0.5 : rt.state.player.x;
+    let y = room ? room.centerY + 0.5 : rt.state.player.y;
+    if (!ZQ.canStandAt(x, y)) {
+      let found = null;
+      for (let radius = 1; radius <= 12 && !found; radius += 1) {
+        for (let dy = -radius; dy <= radius && !found; dy += 1) {
+          for (let dx = -radius; dx <= radius && !found; dx += 1) {
+            const nx = Math.floor(x) + dx + 0.5;
+            const ny = Math.floor(y) + dy + 0.5;
+            if (ZQ.canStandAt(nx, ny)) found = { x: nx, y: ny };
+          }
+        }
       }
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    /* Пузыри и пыль, поднимающиеся со дна. */
-    for (let i = 0; i < 26; i++) {
-      const x = ((i * 173) % 997) / 997 * w;
-      const drift = Math.sin(time * 0.0009 + i) * 8;
-      const y = h - ((time * 0.018 + i * 61) % (h + 50)) + 20;
-      const radius = 1 + ((i * 7) % 5) * 0.7;
-      ctx.fillStyle = `rgba(170, 235, 226, ${0.05 + (i % 4) * 0.02})`;
-      ctx.beginPath();
-      ctx.arc(x + drift, y, radius, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const vignette = ctx.createRadialGradient(w / 2, h / 2, h * 0.2, w / 2, h / 2, Math.max(w, h) * 0.74);
-    vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    vignette.addColorStop(0.72, 'rgba(0, 8, 9, 0.24)');
-    vignette.addColorStop(1, 'rgba(0, 4, 5, 0.72)');
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, w, h);
-  }
-
-  function drawAxolotl(ctx, x, y, radius, battle, time) {
-    const angle = Math.atan2(battle.player.facingY || -1, battle.player.facingX || 0) + Math.PI / 2;
-    const hurt = battle.playerInvuln > 0 &&
-      battle.dashTimer <= 0 &&
-      Math.floor(battle.elapsed * 14) % 2 === 0;
-    const pulse = 0.5 + 0.5 * Math.sin(time * 0.004);
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-
-    const glow = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius * 3.2);
-    glow.addColorStop(0, 'rgba(255, 176, 156, 0.3)');
-    glow.addColorStop(1, 'rgba(255, 148, 128, 0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius * 3.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* Хвост. */
-    ctx.fillStyle = hurt ? 'rgba(255, 132, 104, 0.9)' : 'rgba(238, 142, 128, 0.92)';
-    ctx.beginPath();
-    ctx.moveTo(0, radius * 0.62);
-    ctx.quadraticCurveTo(radius * 0.62, radius * 1.36, 0, radius * 2.1);
-    ctx.quadraticCurveTo(-radius * 0.62, radius * 1.36, 0, radius * 0.62);
-    ctx.fill();
-
-    /* Тело. */
-    const body = ctx.createLinearGradient(0, -radius, 0, radius);
-    body.addColorStop(0, hurt ? '#ffb49a' : '#ffad9b');
-    body.addColorStop(0.55, hurt ? '#f08a78' : '#eb8c80');
-    body.addColorStop(1, '#c9625f');
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, radius * 0.8, radius * 1.02, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = `rgba(255, 214, 198, ${0.35 + pulse * 0.25})`;
-    ctx.lineWidth = Math.max(1, radius * 0.07);
-    ctx.stroke();
-
-    /* Голова. */
-    ctx.fillStyle = hurt ? '#ffc1a8' : '#ffbca8';
-    ctx.beginPath();
-    ctx.ellipse(0, -radius * 0.62, radius * 0.72, radius * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* Жабры: три перистые ветви с каждой стороны. */
-    ctx.strokeStyle = hurt ? 'rgba(255, 160, 140, 0.95)' : 'rgba(255, 176, 158, 0.9)';
-    ctx.lineWidth = Math.max(1.2, radius * 0.08);
-    for (let side = -1; side <= 1; side += 2) {
-      for (let i = 0; i < 3; i++) {
-        const sy = -radius * (0.78 - i * 0.18);
-        const sx = side * radius * 0.52;
-        const ex = side * radius * (1.2 + i * 0.05);
-        const ey = sy - radius * (0.28 - i * 0.12);
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.quadraticCurveTo(side * radius * 0.92, sy - radius * 0.12, ex, ey);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(side * radius * 0.86, sy - radius * 0.1);
-        ctx.lineTo(side * radius * (0.98 + i * 0.04), sy + radius * (0.06 - i * 0.03));
-        ctx.stroke();
+      if (found) {
+        x = found.x;
+        y = found.y;
       }
     }
-
-    /* Глаза и улыбка. */
-    ctx.fillStyle = '#25201f';
-    ctx.beginPath();
-    ctx.arc(-radius * 0.27, -radius * 0.72, radius * 0.1, 0, Math.PI * 2);
-    ctx.arc(radius * 0.27, -radius * 0.72, radius * 0.1, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.beginPath();
-    ctx.arc(-radius * 0.24, -radius * 0.75, radius * 0.035, 0, Math.PI * 2);
-    ctx.arc(radius * 0.3, -radius * 0.75, radius * 0.035, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(90, 48, 46, 0.7)';
-    ctx.lineWidth = Math.max(1, radius * 0.055);
-    ctx.beginPath();
-    ctx.arc(0, -radius * 0.46, radius * 0.18, 0.2, Math.PI - 0.2);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawBullets(ctx, battle, sx, sy, scale) {
-    for (const bullet of battle.bullets) {
-      const bx = sx(bullet.x);
-      const by = sy(bullet.y);
-      const br = Math.max(2, bullet.r * scale);
-      const glow = ctx.createRadialGradient(bx, by, br * 0.2, bx, by, br * 3);
-      if (bullet.reflected) {
-        glow.addColorStop(0, 'rgba(255, 242, 206, 0.95)');
-        glow.addColorStop(0.42, 'rgba(245, 211, 146, 0.58)');
-        glow.addColorStop(1, 'rgba(245, 211, 146, 0)');
-      } else if (bullet.homing > 0) {
-        glow.addColorStop(0, 'rgba(196, 244, 255, 0.95)');
-        glow.addColorStop(0.42, 'rgba(96, 196, 214, 0.55)');
-        glow.addColorStop(1, 'rgba(96, 196, 214, 0)');
-      } else {
-        glow.addColorStop(0, 'rgba(255, 196, 132, 0.95)');
-        glow.addColorStop(0.42, 'rgba(236, 122, 58, 0.55)');
-        glow.addColorStop(1, 'rgba(236, 122, 58, 0)');
-      }
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(bx, by, br * 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = bullet.reflected
-        ? '#fff1cf'
-        : bullet.homing > 0 ? '#c8f4ff' : '#f0a45e';
-      ctx.beginPath();
-      ctx.arc(bx, by, br, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (bullet.homing > 0) {
-        ctx.strokeStyle = 'rgba(200, 244, 255, 0.75)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(bx, by, br * 1.7, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
-  }
-
-  function drawBattle(time) {
-    const battle = rt.battle;
-    const size = layoutBattle();
-    if (!battle || !size) return;
-    const ctx = size.ctx;
-    const config = battleConfig();
-    const w = size.w;
-    const h = size.h;
-    const scale = battle.scale;
-    const sx = (x) => battle.offsetX + x * scale;
-    const sy = (y) => battle.offsetY + y * scale;
-
-    drawWater(ctx, w, h, time);
-
-    const playerSx = sx(battle.player.x);
-    const playerSy = sy(battle.player.y);
-    const playerR = battle.playerRadius * scale;
-
-    /* Остаток времени — тонкая дуга вокруг аксолотля. */
-    const progress = survivalProgress(battle);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(126, 211, 205, 0.16)';
-    ctx.lineWidth = Math.max(2, scale * 2.2);
-    ctx.beginPath();
-    ctx.arc(playerSx, playerSy, playerR * 2.5, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = progress > 0.78
-      ? `rgba(255, 148, 112, ${0.6 + 0.3 * Math.sin(time * 0.008)})`
-      : 'rgba(140, 226, 214, 0.72)';
-    ctx.beginPath();
-    ctx.arc(
-      playerSx,
-      playerSy,
-      playerR * 2.5,
-      -Math.PI / 2,
-      -Math.PI / 2 + Math.PI * 2 * (1 - progress)
-    );
-    ctx.stroke();
-    ctx.restore();
-
-    for (const point of battle.trail) {
-      const px = sx(point.x);
-      const py = sy(point.y);
-      const alpha = point.life / point.max;
-      ctx.fillStyle = `rgba(255, 176, 156, ${alpha * 0.24})`;
-      ctx.beginPath();
-      ctx.arc(px, py, playerR * (0.8 + alpha * 0.5), 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    drawAxolotl(ctx, playerSx, playerSy, playerR, battle, time);
-    drawBullets(ctx, battle, sx, sy, scale);
-
-    /* Раскрытый зонтик: временное поле, отводящее снаряды. */
-    if (battle.reflectTimer > 0) {
-      const duration = battle.reflectDuration || 1.1;
-      const reflectProgress = 1 - battle.reflectTimer / duration;
-      const radius = (config.reflectRadius || 48) * scale * (0.72 + reflectProgress * 0.5);
-      ctx.save();
-      ctx.strokeStyle = `rgba(245, 211, 146, ${0.78 - reflectProgress * 0.36})`;
-      ctx.lineWidth = Math.max(2, scale * 2.2);
-      ctx.beginPath();
-      ctx.arc(playerSx, playerSy, radius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([5, 7]);
-      ctx.strokeStyle = 'rgba(236, 224, 184, 0.42)';
-      ctx.beginPath();
-      ctx.arc(playerSx, playerSy, radius * 0.72, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    if (battle.flash > 0) {
-      ctx.fillStyle = `rgba(214, 74, 58, ${battle.flash * 0.22})`;
-      ctx.fillRect(0, 0, w, h);
-    }
-  }
-
-  function battleLoop(time) {
-    const battle = rt.battle;
-    if (!battle || !battle.active) return;
-    const dt = Math.min(0.05, (time - battle.lastT) / 1000 || 0);
-    battle.lastT = time;
-    if (dt > 0) updateBattle(dt);
-    if (!rt.battle || !rt.battle.active) return;
-    drawBattle(time);
-    rt.battleRaf = window.requestAnimationFrame(battleLoop);
+    rt.world.itemPickups.push({
+      itemId,
+      x,
+      y,
+      roomId: roomId || null,
+      dropped: true
+    });
+    rt.state.flags[`taken_${itemId}`] = false;
+    return true;
   }
 
   function finishBattle(outcome) {
@@ -825,22 +664,29 @@
     if (!battle) return;
     const config = battleConfig();
     const kind = battle.kind || 'beetle';
+    const roomId = battle.roomId || rt.state.currentRoomId || null;
     battle.active = false;
-    if (rt.battleRaf) {
-      window.cancelAnimationFrame(rt.battleRaf);
-      rt.battleRaf = 0;
-    }
     ZQ.resetKeys();
-    hideBattleStage();
+    hideBattleHud();
     rt.battle = null;
 
     if (outcome === 'success') {
       const flag = config.flag || `${kind}Done`;
-      rt.state.flags[flag] = true;
+      if (config.perRoom && roomId) {
+        rt.state.flags[`${kind}_${roomId}`] = true;
+      } else {
+        rt.state.flags[flag] = true;
+      }
       rt.state.flags[`${kind}Attempted`] = true;
       const rewardId = config.rewardItem;
       const reward = rewardId ? C.items[rewardId] : null;
-      const added = rewardId ? ZQ.addInventoryItem(rewardId, { force: true }) : { ok: false };
+      const floorReward = rewardId === 'umbrella';
+      const added = rewardId && !floorReward
+        ? ZQ.addInventoryItem(rewardId, { force: true })
+        : { ok: false };
+      if (floorReward && rewardId) {
+        dropRewardPickup(rewardId, roomId);
+      }
       ZQ.unlock('backpack', true);
       ZQ.ensureTerminalShare(0.46);
       ZQ.setTerminalView('main');
@@ -849,6 +695,13 @@
         'The water falls still. You survived — and become yourself again.',
         'Das Wasser wird still. Du hast überlebt — und wirst wieder du selbst.'
       ), 'sys', true);
+      if (floorReward && reward) {
+        ZQ.appendLog(t(
+          `На полу лежит «${reward.name}». Подойди и подбери его.`,
+          `“${reward.name}” lies on the floor. Walk over and pick it up.`,
+          `„${reward.name}“ liegt auf dem Boden. Geh hin und heb ihn auf.`
+        ), 'sys', true);
+      }
       if (added.ok && reward) {
         const bonus = Number.isFinite(reward.slotBonus)
           ? t(`: +${reward.slotBonus} ячеек`, `: +${reward.slotBonus} slots`, `: +${reward.slotBonus} Plätze`)
@@ -878,7 +731,6 @@
       return;
     }
 
-    /* Игрок сам выбрал выбраться. В комнату можно войти снова. */
     rt.survivalBlockedRoom = rt.state.currentRoomId || null;
     ZQ.ensureTerminalShare(0.46);
     ZQ.setTerminalView('main');
@@ -896,53 +748,55 @@
     ZQ.updatePrompt();
   }
 
-  function showBattleStage() {
+  function showBattleHud() {
     if (dom.battleStage) dom.battleStage.classList.remove('hidden');
   }
 
-  function hideBattleStage() {
+  function hideBattleHud() {
     if (dom.battleStage) dom.battleStage.classList.add('hidden');
   }
 
   function startBattle(kind) {
-    kind = kind === 'umbrella' ? 'umbrella' : 'beetle';
+    const encounters = (C.battle && C.battle.encounters) || {};
+    if (!Object.prototype.hasOwnProperty.call(encounters, kind)) kind = 'beetle';
     if (!rt.state || rt.battle) return false;
     const config = configFor(kind);
     const flag = config.flag || `${kind}Done`;
-    if (rt.state.flags[flag]) return false;
-    if (rt.trial || rt.termView === 'trial') return false;
+    const roomId = rt.state.currentRoomId || null;
+    const perRoomFlag = config.perRoom && roomId ? `${kind}_${roomId}` : '';
+    if (!config.repeatable && rt.state.flags[flag]) return false;
+    if (perRoomFlag && rt.state.flags[perRoomFlag]) return false;
+    if (rt.trial) return false;
+    if (rt.chase) return false;
+
+    const rhythmMode = config.mode === 'rhythm';
+    const bpm = Number.isFinite(config.bpm) ? config.bpm : 92;
+    const beatInterval = 60 / Math.max(30, bpm);
+    const beatWindowLength = Number.isFinite(config.beatWindow) ? config.beatWindow : 0.34;
+    const player = rt.state.player;
+    const room = rt.world && rt.world.roomAtTile
+      ? rt.world.roomAtTile(Math.floor(player.x), Math.floor(player.y))
+      : null;
 
     rt.state.flags[`${kind}Attempted`] = true;
     ZQ.resetKeys();
 
-    const arenaW = Number.isFinite(config.arenaW) ? config.arenaW : 640;
-    const arenaH = Number.isFinite(config.arenaH) ? config.arenaH : 400;
-    const playerRadius = Number.isFinite(config.playerRadius) ? config.playerRadius : 12;
-    const playerHp = Number.isFinite(config.playerHp) ? config.playerHp : 6;
-    const survivalTime = Number.isFinite(config.survivalTime) ? config.survivalTime : 18;
-
     rt.battle = {
       active: true,
       kind,
+      roomId,
+      room,
+      world: rt.world,
       elapsed: 0,
-      lastT: ZQ.now(),
-      w: 0,
-      h: 0,
-      arenaW,
-      arenaH,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0,
-      survivalTime,
-      player: {
-        x: arenaW / 2,
-        y: arenaH * 0.74,
-        facingX: 0,
-        facingY: -1
-      },
-      playerRadius,
-      playerHp,
-      playerMaxHp: playerHp,
+      survivalTime: Number.isFinite(config.survivalTime) ? config.survivalTime : 18,
+      player,
+      playerRadius: Number.isFinite(config.playerRadius)
+        ? config.playerRadius
+        : (Number.isFinite(C.player && C.player.radius) ? C.player.radius : 0.34),
+      playerSpeed: Number.isFinite(config.playerSpeed) ? config.playerSpeed : 4.9,
+      dashSpeed: Number.isFinite(config.dashSpeed) ? config.dashSpeed : 12.5,
+      playerHp: Number.isFinite(config.playerHp) ? config.playerHp : 6,
+      playerMaxHp: Number.isFinite(config.playerHp) ? config.playerHp : 6,
       playerInvuln: 0.9,
       dashTimer: 0,
       dashCooldown: 0,
@@ -951,24 +805,34 @@
       dashFlash: 0,
       trail: [],
       bullets: [],
+      bulletLife: Number.isFinite(config.bulletLife) ? config.bulletLife : 8,
       waveCooldown: 1.1,
       volley: 0,
-      hasUmbrella: hasUmbrella(),
+      hasUmbrella: hasUmbrella() || Boolean(config.borrowUmbrella),
       reflectTimer: 0,
       reflectCooldown: 0,
       reflectDuration: Number.isFinite(config.reflectDuration) ? config.reflectDuration : 1.1,
       reflectFlash: 0,
       flash: 0,
       hint: '',
-      hintUntil: 0
+      hintUntil: 0,
+      rhythmMode,
+      beatInterval,
+      beatWindowLength,
+      beatTimer: beatInterval,
+      beatWindow: 0,
+      beat: 0,
+      beatPulse: 0,
+      combo: 0
     };
 
+    if (config.trackCue && ZQ.audio) ZQ.audio.setCue(config.trackCue);
+
     ZQ.ensureTerminalShare(0.4);
-    showBattleStage();
-    ZQ.setTerminalView('battle');
+    showBattleHud();
+    ZQ.setTerminalView('main');
     updateHud();
     resetHint();
-    layoutBattle();
     if (config.intro) {
       ZQ.appendLog(config.intro, 'story', true, config.introSpeaker || 'ГЛУБИНА');
     }
@@ -978,19 +842,97 @@
       `Überleben: ${config.title || kind}`
     ), t('вода', 'water', 'Wasser'));
     ZQ.saveGame();
-    rt.battleRaf = window.requestAnimationFrame(battleLoop);
     return true;
   }
 
+  /* Отрисовка поверх мира. Функция получает уже готовые координаты
+     экрана, поэтому снаряды, зонт и след не расходятся с Zemic. */
+  function drawBattleWorld(ctx, params) {
+    const battle = rt.battle;
+    if (!battle || !battle.active) return;
+    const ts = params.ts;
+    const player = rt.state.player;
+
+    if (battle.trail.length) {
+      for (const point of battle.trail) {
+        const alpha = ZQ.clamp(point.life / (point.max || 0.32), 0, 1) * 0.32;
+        ctx.fillStyle = `rgba(255, 188, 152, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(params.toScreenX(point.x), params.toScreenY(point.y), ts * 0.24, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    /* Вода вокруг аксолотля: тонкие кольца, а не отдельный кадр. */
+    const px = params.toScreenX(player.x);
+    const py = params.toScreenY(player.y);
+    ctx.save();
+    ctx.strokeStyle = `rgba(150, 220, 214, ${0.12 + (battle.beatPulse || 0) * 0.2})`;
+    ctx.lineWidth = Math.max(1, ts * 0.06);
+    ctx.beginPath();
+    ctx.arc(px, py, ts * (0.7 + (1 - (battle.beatPulse || 0)) * 0.3), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    if (battle.reflectTimer > 0) {
+      const config = battleConfig();
+      const radius = (Number.isFinite(config.reflectRadius) ? config.reflectRadius : 1.55) * ts;
+      ctx.save();
+      ctx.strokeStyle = `rgba(186, 236, 226, ${0.4 + battle.reflectFlash * 0.3})`;
+      ctx.fillStyle = 'rgba(150, 214, 206, 0.10)';
+      ctx.lineWidth = Math.max(1.5, ts * 0.09);
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    for (const bullet of battle.bullets) {
+      const bx = params.toScreenX(bullet.x);
+      const by = params.toScreenY(bullet.y);
+      const radius = Math.max(2, bullet.r * ts);
+      ctx.save();
+      const glow = ctx.createRadialGradient(bx, by, radius * 0.2, bx, by, radius * 2.6);
+      const tint = bullet.reflected
+        ? '236, 198, 118'
+        : (battle.kind === 'belzebufo' ? '142, 210, 118' : '138, 216, 220');
+      glow.addColorStop(0, `rgba(${tint}, 0.95)`);
+      glow.addColorStop(0.45, `rgba(${tint}, 0.35)`);
+      glow.addColorStop(1, `rgba(${tint}, 0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(bx, by, radius * 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = bullet.reflected ? '#ffe0a6' : '#d9fbf4';
+      ctx.beginPath();
+      ctx.arc(bx, by, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (battle.flash > 0 && battle.playerInvuln > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(190, 40, 24, ${battle.flash * 0.16})`;
+      ctx.fillRect(0, 0, params.view.w, params.view.h);
+      ctx.restore();
+    }
+  }
+
+  function layoutBattle() {
+    if (rt.battle && rt.battle.active) updateHud();
+  }
+
   function resizeBattle() {
-    if (!rt.battle || !rt.battle.active) return;
     layoutBattle();
   }
 
-  dom.battleAbort.addEventListener('click', () => {
-    if (!rt.battle || !rt.battle.active) return;
-    finishBattle('abort');
-  });
+  if (dom.battleAbort) {
+    dom.battleAbort.addEventListener('click', () => {
+      if (!rt.battle || !rt.battle.active) return;
+      finishBattle('abort');
+    });
+  }
 
   if (dom.battleDash) dom.battleDash.addEventListener('click', attemptDash);
   if (dom.battleDashTouch) dom.battleDashTouch.addEventListener('click', attemptDash);
@@ -1004,8 +946,10 @@
   ZQ.attemptDash = attemptDash;
   ZQ.attemptReflect = attemptReflect;
   ZQ.finishBattle = finishBattle;
-  ZQ.showBattleStage = showBattleStage;
-  ZQ.hideBattleStage = hideBattleStage;
+  ZQ.showBattleStage = showBattleHud;
+  ZQ.hideBattleStage = hideBattleHud;
   ZQ.startBattle = startBattle;
   ZQ.resizeBattle = resizeBattle;
+  ZQ.updateBattle = updateBattle;
+  ZQ.drawBattleWorld = drawBattleWorld;
 })();

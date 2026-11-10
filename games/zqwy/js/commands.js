@@ -48,6 +48,13 @@
     table: 'стол',
     enchant: 'очаровать',
     action: 'действие',
+    cursor: 'курсор',
+    umbrella: 'зонт',
+    chances: 'шансы',
+    'belzebufo chance': 'шанс бельзебуфо',
+    teleport: 'телепорт',
+    tp: 'телепорт',
+    тп: 'телепорт',
     stop: 'стоп',
     up: 'вверх',
     down: 'вниз',
@@ -91,6 +98,12 @@
     [/^import\b/, 'импорт'],
     [/^story chance\b/, 'шанс сюжет'],
     [/^fauna chance\b/, 'шанс фауны'],
+    [/^belzebufo chance\b/, 'шанс бельзебуфо'],
+    [/^teleport\b/, 'телепорт'],
+    [/^tp\b/, 'телепорт'],
+    [/^тп\b/, 'телепорт'],
+    [/^cursor\b/, 'курсор'],
+    [/^umbrella\b/, 'зонт'],
     [/^help\b/, 'помоги'],
     [/^hilfe\b/, 'помоги'],
     [/^walk\b/, 'идти'],
@@ -324,13 +337,29 @@
     return true;
   }
 
+  function chancesCommand() {
+    const world = C.world || {};
+    const fauna = C.fauna || {};
+    const lines = [
+      'Шансы генерации:',
+      `• фауна среди процедурных клеток: ${percent(world.faunaChance === undefined ? 0.22 : world.faunaChance)}`,
+      `• сюжетная комната (первая): ${percent(world.storyFirstChance === undefined ? 0.25 : world.storyFirstChance)}`,
+      `• сюжетная комната (следующая): ${percent(world.storyNextChance === undefined ? 0.12 : world.storyNextChance)}`,
+      `• доля бельзебуфо среди фауны: ${percent(world.belzebufoShare === undefined ? 0.62 : world.belzebufoShare)}`,
+      `• встреча с бельзебуфо в комнате фауны: ${percent(fauna.belzebufo && fauna.belzebufo.chance !== undefined ? fauna.belzebufo.chance : 0.62)}`
+    ];
+    lines.push('Титанобоа: ровно одна комната в мире, шансом не управляется.');
+    lines.push('Использование: «шанс фауны 0.4», «шанс сюжет 0.25», «шанс бельзебуфо 0.5».');
+    return lines.join('\n');
+  }
+
   function chanceCommand(kind, arg) {
     const world = (C.world || {});
     const value = askNumber(arg);
     if (kind === 'фауны') {
       if (value === null) {
         return t(
-          `Шанс фауны: ${percent(world.faunaChance === undefined ? 0.18 : world.faunaChance)}. ` +
+          `Шанс фауны: ${percent(world.faunaChance === undefined ? 0.22 : world.faunaChance)}. ` +
             'Использование: «шанс фауны 0.4».',
           `Fauna chance: ${percent(world.faunaChance === undefined ? 0.18 : world.faunaChance)}. ` +
             'Usage: “fauna chance 0.4”.'
@@ -341,6 +370,28 @@
       return t(
         `Шанс фауны теперь ${percent(world.faunaChance)}. Мир пересобран.`,
         `Fauna chance is now ${percent(world.faunaChance)}. The world has been rebuilt.`
+      );
+    }
+    if (kind === 'бельзебуфо') {
+      const fauna = C.fauna && C.fauna.belzebufo ? C.fauna.belzebufo : null;
+      if (!fauna) return t('Бельзебуфо не настроена.', 'Belzebufo is not configured.');
+      if (value === null) {
+        return t(
+          `Шанс бельзебуфо в комнате фауны: ${percent(fauna.chance === undefined ? 0.62 : fauna.chance)}. ` +
+            'Использование: «шанс бельзебуфо 0.5».',
+          `Belzebufo chance inside a fauna room: ${percent(fauna.chance === undefined ? 0.62 : fauna.chance)}. ` +
+            'Usage: “belzebufo chance 0.5”.'
+        );
+      }
+      fauna.chance = ZQ.clamp(value, 0, 1);
+      const flag = C.world && Number.isFinite(C.world.belzebufoShare)
+        ? C.world.belzebufoShare
+        : null;
+      return t(
+        `Шанс бельзебуфо теперь ${percent(fauna.chance)}` +
+          (flag === null ? '.' : `; доля среди фауны ${percent(flag)}.`),
+        `Belzebufo chance is now ${percent(fauna.chance)}` +
+          (flag === null ? '.' : `; share among fauna ${percent(flag)}.`)
       );
     }
     if (value === null) {
@@ -362,8 +413,193 @@
     );
   }
 
-  function layoutCommand(arg) {
-    const value = String(arg || '').trim();
+  /* Чит-телепорт: ищет ближайший уже созданный чанк, в котором есть
+     нужная комната, при необходимости досоздаёт чанки кольцами вокруг
+     игрока. Полезен, чтобы проверять титанобоа, зонт и особые залы без
+     долгого блуждания по бесконечному Лабиринту. */
+  const TELEPORT_ROLES = {
+    скрижаль: 'tablet',
+    табличка: 'tablet',
+    tablet: 'tablet',
+    испытание: 'trial',
+    круг: 'trial',
+    trial: 'trial',
+    опасность: 'hazard',
+    слепой: 'hazard',
+    hazard: 'hazard',
+    низкий: 'low',
+    low: 'low',
+    склад: 'storage',
+    хранилище: 'storage',
+    storage: 'storage',
+    перекрёсток: 'crossroad',
+    перекресток: 'crossroad',
+    crossroad: 'crossroad',
+    жук: 'beetle',
+    beetle: 'beetle',
+    зонт: 'umbrella',
+    зонтик: 'umbrella',
+    umbrella: 'umbrella',
+    титанобоа: 'titanoboa',
+    змея: 'titanoboa',
+    titanoboa: 'titanoboa',
+    бельзебуфо: 'belzebufo',
+    жаба: 'belzebufo',
+    belzebufo: 'belzebufo',
+    процедурная: 'procedural',
+    обычная: 'procedural',
+    procedural: 'procedural'
+  };
+
+  function normalizeTarget(value) {
+    return String(value || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+  }
+
+  function roomMatches(room, needle) {
+    const target = normalizeTarget(needle);
+    if (!target) return false;
+    const role = TELEPORT_ROLES[target] || target;
+    if (room.role === role || room.faunaKind === role) return true;
+    if (String(room.id).toLowerCase() === target) return true;
+    const name = normalizeTarget(room.name);
+    if (name.includes(target)) return true;
+    return false;
+  }
+
+  function roomDistance(room) {
+    const player = rt.state.player;
+    return Math.hypot(room.centerX - player.x, room.centerY - player.y);
+  }
+
+  function nearestRoom(target) {
+    const world = rt.world;
+    if (!world || !rt.state) return null;
+    const player = rt.state.player;
+    const pcx = Math.floor(player.x / world.chunkW);
+    const pcy = Math.floor(player.y / world.chunkH);
+    const maxRing = 9;
+    for (let ring = 0; ring <= maxRing; ring += 1) {
+      for (let dx = -ring; dx <= ring; dx += 1) {
+        for (let dy = -ring; dy <= ring; dy += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          world.ensureChunk(pcx + dx, pcy + dy);
+        }
+      }
+      const candidates = world.rooms.filter((room) => roomMatches(room, target));
+      if (candidates.length) {
+        candidates.sort((a, b) => roomDistance(a) - roomDistance(b));
+        return candidates[0];
+      }
+    }
+    return null;
+  }
+
+  function safeSpotInRoom(room) {
+    const center = { x: room.centerX + 0.5, y: room.centerY + 0.5 };
+    if (ZQ.canStandAt(center.x, center.y)) return center;
+    for (let radius = 1; radius <= Math.max(room.w, room.h); radius += 1) {
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+          const x = room.centerX + 0.5 + dx;
+          const y = room.centerY + 0.5 + dy;
+          if (x < room.ox + 1 || y < room.oy + 1) continue;
+          if (x > room.ox + room.w - 1 || y > room.oy + room.h - 1) continue;
+          if (ZQ.canStandAt(x, y)) return { x, y };
+        }
+      }
+    }
+    return null;
+  }
+
+  function teleportToRoom(room) {
+    if (!room) return null;
+    const spot = safeSpotInRoom(room);
+    if (!spot) return null;
+    const player = rt.state.player;
+    player.x = spot.x;
+    player.y = spot.y;
+    player.facingX = 0;
+    player.facingY = -1;
+    player.moving = false;
+    rt.cursorMove = null;
+    rt.timedMove = null;
+    rt.cursorPath = null;
+    rt.cursorPathGoal = null;
+    rt.state.currentRoomId = room.id;
+    ZQ.resetKeys();
+    if (typeof ZQ.snapCamera === 'function') ZQ.snapCamera();
+    if (typeof ZQ.updateRoomDetection === 'function') ZQ.updateRoomDetection();
+    if (typeof ZQ.updatePrompt === 'function') ZQ.updatePrompt();
+    ZQ.logEvent('world', `телепорт: ${room.name} (${room.id})`, 'телепорт');
+    return room;
+  }
+
+  function teleportHelp() {
+    return [
+      t('Чит-телепорт к ближайшей нужной комнате.', 'Cheat teleport to the nearest needed room.'),
+      t(
+        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт чанк 2 -1».',
+        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport tablet”, “teleport belzebufo”, “teleport chunk 2 -1”.'
+      ),
+      t(
+        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, жук, зонт, титанобоа, бельзебуфо, процедурная. Можно указать часть имени комнаты.',
+        'Targets: tablet, trial, hazard, low, storage, crossroad, beetle, umbrella, titanoboa, belzebufo, procedural. A part of the room name also works.'
+      )
+    ].join('\n');
+  }
+
+  function teleportCommand(arg) {
+    if (!rt.world || !rt.state) {
+      return t('Мир ещё не создан.', 'The world has not been created yet.');
+    }
+    if (rt.battle && rt.battle.active) {
+      return t('Сначала закончи схватку.', 'Finish the fight first.');
+    }
+    if (rt.chase && rt.chase.active) {
+      return t('Сначала уйди от титанобоа.', 'Escape the titanoboa first.');
+    }
+    const raw = String(arg || '').trim();
+    if (!raw) return teleportHelp();
+
+    const chunkMatch = normalizeTarget(raw).match(/^(?:чанк|chunk)\s+(-?\d+)\s+(-?\d+)$/);
+    if (chunkMatch) {
+      const cx = Number(chunkMatch[1]);
+      const cy = Number(chunkMatch[2]);
+      rt.world.ensureChunk(cx, cy);
+      const rooms = rt.world.rooms.filter((room) => room.chunkX === cx && room.chunkY === cy);
+      if (!rooms.length) {
+        return t(`В чанке ${cx},${cy} нет комнат.`, `Chunk ${cx},${cy} has no rooms.`);
+      }
+      rooms.sort((a, b) => roomDistance(a) - roomDistance(b));
+      const room = teleportToRoom(rooms[0]);
+      return room
+        ? t(
+          `Телепорт в чанк ${cx},${cy}: «${room.name}».`,
+          `Teleported to chunk ${cx},${cy}: “${room.name}”.`
+        )
+        : t('В этом чанке нет места для шага.', 'No safe tile in that chunk.');
+    }
+
+    const room = nearestRoom(raw);
+    if (!room) {
+      return t(
+        `Комната «${raw}» не найдена в девяти кольцах чанков. Попробуй другое название.`,
+        `No room “${raw}” was found within nine chunk rings. Try another name.`
+      );
+    }
+    const distance = roomDistance(room);
+    if (!teleportToRoom(room)) {
+      return t('Комната найдена, но в ней нет свободного места.', 'The room was found but has no free tile.');
+    }
+    const chunk = `${room.chunkX},${room.chunkY}`;
+    return t(
+      `Телепорт: «${room.name}» (${room.id}), чанк ${chunk}, ${Math.round(distance)} кл. от прежнего места.`,
+      `Teleported: “${room.name}” (${room.id}), chunk ${chunk}, ${Math.round(distance)} tiles from the old spot.`
+    );
+  }
+
+  function layoutCommand(arg) {    const value = String(arg || '').trim();
     if (!value) {
       return typeof ZQ.listCanvasLayouts === 'function'
         ? ZQ.listCanvasLayouts()
@@ -447,13 +683,21 @@
     } else if (cmd === 'инвентарь' || cmd === 'рюкзак') {
       if (!ZQ.hasUnlock('backpack')) {
         reply = ZQ.denyLocked('backpack');
+      } else if (rt.termView === 'inventory') {
+        ZQ.closeInventory();
+        reply = t('Инвентарь закрыт.', 'Inventory closed.');
       } else {
-        reply = ZQ.inventorySummary();
+        reply = typeof ZQ.inventoryTable === 'function'
+          ? ZQ.inventoryTable()
+          : ZQ.inventorySummary();
         if (source === 'terminal') ZQ.openInventory();
       }
     } else if (cmd === 'карта') {
       if (!ZQ.hasUnlock('map')) {
         reply = ZQ.denyLocked('map');
+      } else if (rt.termView === 'map') {
+        ZQ.closeMap();
+        reply = t('Карта закрыта.', 'Map closed.');
       } else if (rt.state.items.includes('map_fragment')) {
         reply = t('Обрывок карты разворачивается. Виден весь участок и твои метки.',
           'The map fragment unfolds. You can see the whole local area and your marks.');
@@ -465,6 +709,9 @@
     } else if (cmd === 'стол') {
       if (!ZQ.hasUnlock('table')) {
         reply = ZQ.denyLocked('table');
+      } else if (rt.termView === 'canvas') {
+        ZQ.closeCanvas();
+        reply = t('Стол закрыт.', 'Table closed.');
       } else {
         reply = source === 'terminal'
           ? t('Стол открыт. Предметы, команды и клавиши можно разложить самому.',
@@ -481,11 +728,43 @@
     } else if (cmd === 'макет' || cmd.startsWith('макет ')) {
       reply = layoutCommand(cmd.replace(/^макет\s*/, ''));
       replyInstant = true;
+    } else if (cmd === 'курсор' || cmd.startsWith('курсор ')) {
+      reply = typeof ZQ.cursorModeCommand === 'function'
+        ? ZQ.cursorModeCommand(cmd.replace(/^курсор\s*/, ''))
+        : t('Режимы курсора ещё не подключены.', 'Cursor modes are not connected yet.');
+      replyInstant = true;
+    } else if (cmd === 'зонт' || cmd.startsWith('зонт ')) {
+      const arg = cmd.replace(/^зонт\s*/, '');
+      if (rt.battle && rt.battle.active) {
+        const reflected = ZQ.attemptReflect();
+        reply = reflected
+          ? t('Зонт раскрыт: снаряды отведены.', 'Umbrella open: projectiles turned aside.')
+          : '';
+      } else if (arg === 'взять' || arg === 'поднять') {
+        reply = typeof ZQ.takeUmbrellaNearby === 'function'
+          ? ZQ.takeUmbrellaNearby()
+          : t('Рядом нет зонта.', 'There is no umbrella nearby.');
+      } else if (rt.state.items.includes('umbrella')) {
+        reply = t('Зонт сложен. В бою он раскрывается сам или по команде «зонт».',
+          'The umbrella is folded. In battle it opens on its own or with the “umbrella” command.');
+      } else {
+        reply = t('Зонта пока нет. Он ждёт в зале с зонтиком.',
+          'No umbrella yet. It waits in the umbrella hall.');
+      }
+    } else if (cmd === 'шансы') {
+      reply = chancesCommand();
+      replyInstant = true;
+    } else if (cmd === 'телепорт' || cmd.startsWith('телепорт ')) {
+      reply = teleportCommand(cmd.replace(/^телепорт\s*/, ''));
+      replyInstant = true;
     } else if (cmd === 'шанс сюжет' || cmd.startsWith('шанс сюжет ')) {
       reply = chanceCommand('сюжет', cmd.replace(/^шанс сюжет\s*/, ''));
       replyInstant = true;
     } else if (cmd === 'шанс фауны' || cmd.startsWith('шанс фауны ')) {
       reply = chanceCommand('фауны', cmd.replace(/^шанс фауны\s*/, ''));
+      replyInstant = true;
+    } else if (cmd === 'шанс бельзебуфо' || cmd.startsWith('шанс бельзебуфо ')) {
+      reply = chanceCommand('бельзебуфо', cmd.replace(/^шанс бельзебуфо\s*/, ''));
       replyInstant = true;
     } else if (cmd === 'пометить') {
       if (!ZQ.hasUnlock('map')) {
@@ -499,8 +778,13 @@
         'Interaction performed if there was something nearby.');
     } else if (cmd === 'сюжет') {
       if (source === 'terminal') {
-        ZQ.openStory();
-        reply = '';
+        if (rt.termView === 'story') {
+          ZQ.closeStory();
+          reply = t('Ветвь истории закрыта.', 'The story branch is closed.');
+        } else {
+          ZQ.openStory();
+          reply = '';
+        }
       } else {
         reply = t('Ветвь истории открывается из основной вкладки терминала командой «сюжет».',
           'The story branch opens from the main terminal tab with the “story” command.');
@@ -516,8 +800,13 @@
       replyInstant = true;
     } else if (cmd === 'музыка') {
       if (source === 'terminal') {
-        ZQ.openMusic();
-        reply = '';
+        if (rt.termView === 'music') {
+          ZQ.closeMusic();
+          reply = t('Плеер закрыт.', 'The player is closed.');
+        } else {
+          ZQ.openMusic();
+          reply = '';
+        }
       } else {
         reply = t(
           'Музыкальный плеер открывается из основной вкладки терминала командой «музыка».',
@@ -532,9 +821,12 @@
         : t('Не удалось сохранить мир.', 'Could not save the world.');
       replyInstant = true;
     } else if (cmd === 'загрузить') {
-      const ok = ZQ.loadWorld(false);
-      reply = ok
-        ? t(`Сохранение загружено. Seed: ${rt.state.seed}.`, `Save loaded. Seed: ${rt.state.seed}.`)
+      const result = ZQ.loadWorld(false);
+      reply = result && result.ok
+        ? t(
+          `Загружен мир${result.slotName ? ` «${result.slotName}»` : ''}. Seed: ${result.seed}.`,
+          `Loaded world${result.slotName ? ` “${result.slotName}”` : ''}. Seed: ${result.seed}.`
+        )
         : t('Сохранения пока нет.', 'There is no save yet.');
       replyInstant = true;
     } else if (cmd === 'экспорт') {
@@ -617,16 +909,26 @@
         'Enchantment: the ability is not connected yet. This is a temporary neutral placeholder — the effect will come later.');
     } else if (cmd === 'настройки' || cmd === 'настройка') {
       if (source === 'terminal') {
-        ZQ.openSettings();
-        reply = '';
+        if (rt.termView === 'settings') {
+          ZQ.closeSettings();
+          reply = t('Настройки закрыты.', 'Settings closed.');
+        } else {
+          ZQ.openSettings();
+          reply = '';
+        }
       } else {
         reply = t('Настройки открываются из основной вкладки терминала.',
           'Settings open from the main terminal tab.');
       }
     } else if (cmd === 'настройки терминал' || cmd === 'настройки терминала') {
       if (source === 'terminal') {
-        ZQ.openTermSettings();
-        reply = '';
+        if (rt.termView === 'termSettings') {
+          ZQ.closeSettings();
+          reply = t('Настройки терминала закрыты.', 'Terminal settings closed.');
+        } else {
+          ZQ.openTermSettings();
+          reply = '';
+        }
       } else {
         reply = t('Настройки терминала открываются из основной вкладки терминала.',
           'Terminal settings open from the main terminal tab.');

@@ -419,7 +419,7 @@
     return ZQ.handleCommand(meta.command, 'canvas') || 'Готово.';
   }
 
-  function executeTarget(element) {
+  function executeTarget(element, source) {
     if (!element) return '';
     if (!elementAvailable(element)) {
       return 'Недоступно: предмет остался в рюкзаке на месте смерти.';
@@ -429,7 +429,7 @@
     if (!commands.length) return 'У этого элемента нет команды.';
     const replies = [];
     for (const command of commands) {
-      const reply = ZQ.handleCommand(command, 'canvas');
+      const reply = ZQ.handleCommand(command, source || 'canvas');
       if (reply) replies.push(reply);
     }
     return replies.filter(Boolean).join(' ');
@@ -445,7 +445,10 @@
       setCanvasReply(name, 'Клавиша пока ни с чем не связана. Включи «связать» и выбери цели.');
       return '';
     }
-    const replies = targets.map((target) => executeTarget(target)).filter(Boolean);
+    /* Клавиша — это не клик по столу: она должна открывать и закрывать
+       разделы так же, как команда из терминала. Поэтому источник
+       помечается как терминал, а ответ всё равно остаётся на столе. */
+    const replies = targets.map((target) => executeTarget(target, 'terminal')).filter(Boolean);
     setCanvasReply(
       `${name} → ${targets.map(elementLabel).join(', ')}`,
       replies.join(' ') || 'Готово.'
@@ -1262,21 +1265,62 @@
     body.appendChild(scheme);
   }
 
+  function deviceCaption(text) {
+    const caption = document.createElement('p');
+    caption.className = 'device-caption';
+    caption.textContent = text;
+    return caption;
+  }
+
   function renderGamepadScheme(body) {
     const scheme = document.createElement('div');
     scheme.className = 'scheme-reference';
     const title = document.createElement('p');
     title.className = 'scheme-intro';
-    title.textContent = 'Геймпад остаётся для движения и действия. Клавиши стола настраиваются на клавиатуре и запускают связанные цели.';
+    title.textContent = tl(
+      'Геймпад остаётся для движения и действия. Клавиши стола настраиваются на клавиатуре и запускают связанные цели.',
+      'The gamepad stays for movement and action. Table keys are configured on the keyboard and run linked targets.',
+      'Der Gamepad bleibt für Bewegung und Aktion. Tisch-Tasten werden auf der Tastatur belegt und lösen verknüpfte Ziele aus.'
+    );
     scheme.appendChild(title);
+
+    const visual = document.createElement('div');
+    visual.className = 'device-visual device-gamepad';
+    const shell = document.createElement('div');
+    shell.className = 'gamepad-body';
+    const dpad = document.createElement('div');
+    dpad.className = 'gamepad-dpad';
+    for (const [cls, label] of [['up', '▲'], ['left', '◀'], ['right', '▶'], ['down', '▼']]) {
+      const key = document.createElement('span');
+      key.className = `gamepad-dir ${cls}`;
+      key.textContent = label;
+      dpad.appendChild(key);
+    }
+    shell.appendChild(dpad);
+    const face = document.createElement('div');
+    face.className = 'gamepad-face';
+    for (const [cls, label] of [['a', 'A'], ['b', 'B'], ['x', 'X'], ['start', 'START']]) {
+      const key = document.createElement('span');
+      key.className = `gamepad-btn ${cls}`;
+      key.textContent = label;
+      face.appendChild(key);
+    }
+    shell.appendChild(face);
+    visual.appendChild(shell);
+    visual.appendChild(deviceCaption(tl(
+      'D-pad и левый стик — движение, A — действие, B — стоп, START — настройки.',
+      'D-pad and left stick move, A acts, B stops, START opens settings.',
+      'D-pad und linker Stick bewegen, A handelt, B stoppt, START öffnet Einstellungen.'
+    )));
+    scheme.appendChild(visual);
 
     const grid = document.createElement('div');
     grid.className = 'scheme-reference-grid';
     const rows = [
-      ['D-pad / левый стик', 'движение'],
-      ['A', 'действие'],
-      ['B / SELECT', 'стоп'],
-      ['START', 'настройки']
+      [tl('D-pad / левый стик', 'D-pad / left stick', 'D-pad / linker Stick'), tl('движение', 'movement', 'Bewegung')],
+      [tl('A', 'A', 'A'), tl('действие', 'action', 'Aktion')],
+      [tl('B / SELECT', 'B / SELECT', 'B / SELECT'), tl('стоп', 'stop', 'Stopp')],
+      [tl('START', 'START', 'START'), tl('настройки', 'settings', 'Einstellungen')]
     ];
     for (const [control, action] of rows) {
       const item = document.createElement('div');
@@ -1299,18 +1343,42 @@
     const title = document.createElement('p');
     title.className = 'scheme-intro';
     title.textContent = tl(
-      'Мышь работает на столе: перетаскивай элементы, двигай полотно и меняй масштаб.',
-      'The mouse works on the table: drag elements, move the canvas and change the scale.',
-      'Die Maus funktioniert am Tisch: Elemente ziehen, Fläche bewegen und Maßstab ändern.'
+      'Мышь работает на столе и в мире: перетаскивай элементы, двигай полотно, меняй масштаб и переключай режим курсора.',
+      'The mouse works on the table and in the world: drag elements, pan the canvas, zoom and switch cursor modes.',
+      'Die Maus funktioniert am Tisch und in der Welt: Elemente ziehen, Fläche bewegen, zoomen und den Cursormodus wechseln.'
     );
     scheme.appendChild(title);
+
+    const visual = document.createElement('div');
+    visual.className = 'device-visual device-mouse';
+    const mouse = document.createElement('div');
+    mouse.className = 'mouse-body';
+    const left = document.createElement('span');
+    left.className = 'mouse-button left';
+    left.textContent = tl('ЛКМ', 'LMB', 'LMB');
+    const right = document.createElement('span');
+    right.className = 'mouse-button right';
+    right.textContent = tl('ПКМ', 'RMB', 'RMB');
+    const wheel = document.createElement('span');
+    wheel.className = 'mouse-wheel';
+    mouse.appendChild(left);
+    mouse.appendChild(right);
+    mouse.appendChild(wheel);
+    visual.appendChild(mouse);
+    visual.appendChild(deviceCaption(tl(
+      'ЛКМ — цель или перетаскивание, ПКМ — режим курсора, колесо — масштаб.',
+      'LMB — target or drag, RMB — cursor mode, wheel — zoom.',
+      'LMB — Ziel oder Ziehen, RMB — Cursormodus, Rad — Zoom.'
+    )));
+    scheme.appendChild(visual);
 
     const grid = document.createElement('div');
     grid.className = 'scheme-reference-grid';
     for (const [control, action] of [
-      [tl('ЛКМ', 'LMB', 'LMB'), tl('выбрать или перетащить элемент', 'select or drag an element', 'Element auswählen oder ziehen')],
-      [tl('ЛКМ по пустому месту', 'LMB on empty space', 'LMB auf leerer Fläche'), tl('двигать полотно стола', 'pan the table canvas', 'Tischfläche verschieben')],
-      [tl('Колесо', 'Wheel', 'Rad'), tl('масштаб', 'scale', 'Maßstab')]
+      [tl('ЛКМ', 'LMB', 'LMB'), tl('выбрать, перетащить или задать цель', 'select, drag or set a target', 'auswählen, ziehen oder Ziel setzen')],
+      [tl('ПКМ / двойной клик', 'RMB / double click', 'RMB / Doppelklick'), tl('сменить режим курсора', 'switch cursor mode', 'Cursormodus wechseln')],
+      [tl('Колесо', 'Wheel', 'Rad'), tl('масштаб вокруг курсора', 'zoom around the cursor', 'rund um den Cursor zoomen')],
+      [tl('ЛКМ по пустому месту', 'LMB on empty space', 'LMB auf leerer Fläche'), tl('двигать полотно', 'pan the canvas', 'Fläche verschieben')]
     ]) {
       const item = document.createElement('div');
       item.className = 'scheme-reference-item';
@@ -1331,15 +1399,52 @@
     scheme.className = 'scheme-reference';
     const title = document.createElement('p');
     title.className = 'scheme-intro';
-    title.textContent = 'На телефоне движение и действие остаются на экранных кнопках. Клавиши стола — для клавиатуры.';
+    title.textContent = tl(
+      'На телефоне движение и действие остаются на экранных кнопках. Двойной тап по миру меняет режим курсора.',
+      'On a phone, movement and action stay on the on-screen buttons. Double-tap the world to change the cursor mode.',
+      'Auf dem Telefon bleiben Bewegung und Aktion auf den Bildschirmtasten. Doppeltippen auf die Welt wechselt den Cursormodus.'
+    );
     scheme.appendChild(title);
+
+    const visual = document.createElement('div');
+    visual.className = 'device-visual device-phone';
+    const phone = document.createElement('div');
+    phone.className = 'phone-body';
+    const screen = document.createElement('div');
+    screen.className = 'phone-screen';
+    const miniDpad = document.createElement('div');
+    miniDpad.className = 'phone-dpad';
+    for (const [cls, label] of [['up', '▲'], ['left', '◀'], ['right', '▶'], ['down', '▼']]) {
+      const key = document.createElement('span');
+      key.className = `gamepad-dir ${cls}`;
+      key.textContent = label;
+      miniDpad.appendChild(key);
+    }
+    screen.appendChild(miniDpad);
+    const action = document.createElement('span');
+    action.className = 'phone-action';
+    action.textContent = '✦';
+    screen.appendChild(action);
+    const tap = document.createElement('span');
+    tap.className = 'phone-tap';
+    tap.textContent = '×2';
+    screen.appendChild(tap);
+    phone.appendChild(screen);
+    visual.appendChild(phone);
+    visual.appendChild(deviceCaption(tl(
+      'D-pad — движение, ✦ — действие, двойной тап — режим курсора.',
+      'D-pad moves, ✦ acts, double-tap changes the cursor mode.',
+      'D-pad bewegt, ✦ handelt, Doppeltippen wechselt den Cursormodus.'
+    )));
+    scheme.appendChild(visual);
 
     const grid = document.createElement('div');
     grid.className = 'scheme-reference-grid';
     for (const [control, action] of [
-      ['D-pad', 'движение'],
-      ['✦', 'действие'],
-      ['Escape', 'закрыть раздел']
+      [tl('D-pad', 'D-pad', 'D-pad'), tl('движение', 'movement', 'Bewegung')],
+      [tl('✦', '✦', '✦'), tl('действие', 'action', 'Aktion')],
+      [tl('двойной тап', 'double-tap', 'Doppeltippen'), tl('режим курсора', 'cursor mode', 'Cursormodus')],
+      [tl('Escape', 'Escape', 'Escape'), tl('закрыть раздел', 'close a section', 'Bereich schließen')]
     ]) {
       const item = document.createElement('div');
       item.className = 'scheme-reference-item';
@@ -1585,82 +1690,37 @@
     renderCanvasLinks();
   });
 
-  /* Масштаб и панорамирование стола: колесо, щипок и ЛКМ по пустому месту. */
-  dom.canvasWorkspace.addEventListener('wheel', (event) => {
-    if (event.deltaY === 0) return;
-    event.preventDefault();
-    const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
-    setCanvasZoom(rt.canvasZoom * factor, true);
-  }, { passive: false });
-
-  const canvasPointers = new Map();
-
-  function pinchingDistance() {
-    const points = Array.from(canvasPointers.values());
-    if (points.length < 2) return 0;
-    return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+  /* Масштаб и панорамирование стола используют общий модуль Viewport:
+     те же жесты, что в инвентаре и других холстах. */
+  if (ZQ.Viewport && dom.canvasWorkspace) {
+    ZQ.Viewport.attach({
+      surface: dom.canvasWorkspace,
+      content: dom.canvasStage,
+      get: () => ({
+        zoom: rt.canvasZoom,
+        panX: rt.canvasPanX,
+        panY: rt.canvasPanY
+      }),
+      set: (state) => {
+        rt.canvasZoom = ZQ.Viewport.clampZoom(state.zoom);
+        rt.canvasPanX = state.panX;
+        rt.canvasPanY = state.panY;
+      },
+      onChange: () => {
+        applyCanvasTransform();
+        if (dom.canvasZoomLabel) {
+          dom.canvasZoomLabel.textContent = `${Math.round(rt.canvasZoom * 100)}%`;
+        }
+      },
+      onReset: () => resetCanvasView(true),
+      canStart: (event) => {
+        if (event.target.closest('.cv-el')) return false;
+        if (dom.canvasDrawer && dom.canvasDrawer.contains(event.target)) return false;
+        if (dom.canvasKeys && dom.canvasKeys.contains(event.target)) return false;
+        return true;
+      }
+    });
   }
-
-  dom.canvasWorkspace.addEventListener('pointerdown', (event) => {
-    canvasPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (canvasPointers.size === 2) {
-      event.stopPropagation();
-      rt.canvasDrag = null;
-      rt.workspacePan = null;
-      dom.canvasWorkspace.classList.remove('panning');
-      dom.canvasElements.querySelectorAll('.cv-el.dragging').forEach((node) => {
-        node.classList.remove('dragging');
-      });
-      rt.canvasPinch = {
-        distance: pinchingDistance(),
-        zoom: rt.canvasZoom
-      };
-      return;
-    }
-    if (event.button !== undefined && event.button !== 0) return;
-    if (event.target.closest('.cv-el')) return;
-    if (dom.canvasDrawer && dom.canvasDrawer.contains(event.target)) return;
-    if (dom.canvasKeys && dom.canvasKeys.contains(event.target)) return;
-    rt.workspacePan = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      panX: rt.canvasPanX,
-      panY: rt.canvasPanY
-    };
-    dom.canvasWorkspace.classList.add('panning');
-    event.preventDefault();
-  }, { capture: true });
-
-  window.addEventListener('pointermove', (event) => {
-    if (rt.workspacePan && rt.workspacePan.pointerId === event.pointerId) {
-      event.preventDefault();
-      setCanvasPan(
-        rt.workspacePan.panX + (event.clientX - rt.workspacePan.startX),
-        rt.workspacePan.panY + (event.clientY - rt.workspacePan.startY)
-      );
-      return;
-    }
-    if (!canvasPointers.has(event.pointerId)) return;
-    canvasPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (!rt.canvasPinch || canvasPointers.size < 2) return;
-    event.preventDefault();
-    const distance = pinchingDistance();
-    if (rt.canvasPinch.distance > 0 && distance > 0) {
-      setCanvasZoom(rt.canvasPinch.zoom * (distance / rt.canvasPinch.distance), false);
-    }
-  }, { passive: false });
-
-  const clearCanvasPointer = (event) => {
-    canvasPointers.delete(event.pointerId);
-    if (canvasPointers.size < 2) rt.canvasPinch = null;
-    if (rt.workspacePan && rt.workspacePan.pointerId === event.pointerId) {
-      rt.workspacePan = null;
-      dom.canvasWorkspace.classList.remove('panning');
-    }
-  };
-  window.addEventListener('pointerup', clearCanvasPointer);
-  window.addEventListener('pointercancel', clearCanvasPointer);
 
   ZQ.keyLabel = keyLabel;
   ZQ.elementLabel = elementLabel;

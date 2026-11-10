@@ -70,7 +70,8 @@
       logging: loggingFallback(),
       music: DEFAULT.music,
       musicVolume: DEFAULT.musicVolume,
-      musicRate: DEFAULT.musicRate
+      musicRate: DEFAULT.musicRate,
+      musicAlgorithm: DEFAULT.musicAlgorithm
     };
     try {
       const raw = window.localStorage.getItem(TERM_SETTINGS_KEY);
@@ -98,7 +99,10 @@
           : fallback.musicVolume,
         musicRate: Number.isFinite(parsed.musicRate)
           ? parsed.musicRate
-          : fallback.musicRate
+          : fallback.musicRate,
+        musicAlgorithm: typeof parsed.musicAlgorithm === 'string'
+          ? parsed.musicAlgorithm
+          : fallback.musicAlgorithm
       };
       for (const key of LOG_KEYS) {
         result.logging[key] = typeof logging[key] === 'boolean'
@@ -140,6 +144,13 @@
     s.musicRate = Number.isFinite(s.musicRate)
       ? ZQ.clamp(s.musicRate, 0.5, 2)
       : DEFAULT.musicRate;
+    const algorithms = C.music && Array.isArray(C.music.rateAlgorithms)
+      ? C.music.rateAlgorithms
+      : [];
+    const ids = algorithms.map((entry) => entry.id);
+    s.musicAlgorithm = typeof s.musicAlgorithm === 'string' && ids.includes(s.musicAlgorithm)
+      ? s.musicAlgorithm
+      : (ids[0] || DEFAULT.musicAlgorithm || 'tempo');
   }
 
   function categoryName(key) {
@@ -242,6 +253,7 @@
       if (typeof ZQ.audio.setVolume === 'function') ZQ.audio.setVolume(s.musicVolume);
       if (typeof ZQ.audio.setEnabled === 'function') ZQ.audio.setEnabled(s.music);
       if (typeof ZQ.audio.setRate === 'function') ZQ.audio.setRate(s.musicRate);
+      if (typeof ZQ.audio.setAlgorithm === 'function') ZQ.audio.setAlgorithm(s.musicAlgorithm);
     }
     updateMusicUI();
 
@@ -290,6 +302,15 @@
 
   function setMusicRate(value) {
     rt.termSettings.musicRate = ZQ.clamp(Number(value), 0.5, 2);
+    applyTermSettings(true);
+  }
+
+  function setMusicAlgorithm(value) {
+    const algorithms = C.music && Array.isArray(C.music.rateAlgorithms)
+      ? C.music.rateAlgorithms
+      : [];
+    const ids = algorithms.map((entry) => entry.id);
+    rt.termSettings.musicAlgorithm = ids.includes(value) ? value : (ids[0] || 'tempo');
     applyTermSettings(true);
   }
 
@@ -838,7 +859,8 @@
       logging: loggingFallback(),
       music: DEFAULT.music,
       musicVolume: DEFAULT.musicVolume,
-      musicRate: DEFAULT.musicRate
+      musicRate: DEFAULT.musicRate,
+      musicAlgorithm: DEFAULT.musicAlgorithm
     };
     applyTermSettings(true);
   });
@@ -907,7 +929,18 @@
     if (dom.musicCue) {
       const cue = state.cue || 'labyrinth';
       const meta = C.musicCues && C.musicCues[cue];
-      dom.musicCue.textContent = meta ? meta.title : t('Лабиринт', 'Labyrinth', 'Labyrinth');
+      const track = C.music && C.music.tracks && state.track
+        ? C.music.tracks[state.track]
+        : null;
+      dom.musicCue.textContent = track
+        ? track.title
+        : (meta ? meta.title : t('Лабиринт', 'Labyrinth', 'Labyrinth'));
+    }
+    if (dom.musicAlgorithmPresets) {
+      const active = state.algorithm || rt.termSettings.musicAlgorithm;
+      dom.musicAlgorithmPresets.querySelectorAll('[data-algorithm]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.algorithm === active);
+      });
     }
   }
 
@@ -988,11 +1021,14 @@
         appendLog(t('Сохранения пока нет.', 'There is no save yet.'), 'sys', true);
       } else {
         appendLog(`Сохранение загружено. Seed: ${result.seed}.`, 'sys', true);
-        appendLog(ZQ.bootMessage(result.seed), 'sys', true);
+        appendLog(ZQ.bootMessage(result.seed, {
+          kind: 'load',
+          slotName: result.slotName || ''
+        }), 'sys', true);
       }
     }
     updateMusicUI();
-    return Boolean(result && result.ok);
+    return result || { ok: false };
   }
 
   function exportWorld(announce) {
@@ -1093,7 +1129,10 @@
     if (result.ok) {
       if (announce) {
         appendLog(t(`Слот «${name}» загружен. Seed: ${result.seed}.`, `Slot “${name}” loaded. Seed: ${result.seed}.`, `Slot „${name}“ geladen. Seed: ${result.seed}.`), 'sys', true);
-        appendLog(ZQ.bootMessage(result.seed), 'sys', true);
+        appendLog(ZQ.bootMessage(result.seed, {
+          kind: 'load',
+          slotName: ZQ.normalizeSlotName(name)
+        }), 'sys', true);
       }
       refreshSaveSlots();
       if (dom.saveSlotSelect) dom.saveSlotSelect.value = ZQ.normalizeSlotName(name);
@@ -1234,6 +1273,7 @@
   ZQ.setMusicEnabled = setMusicEnabled;
   ZQ.setMusicVolume = setMusicVolume;
   ZQ.setMusicRate = setMusicRate;
+  ZQ.setMusicAlgorithm = setMusicAlgorithm;
   ZQ.setSpeed = setSpeed;
   ZQ.setFontSize = setFontSize;
   ZQ.setFontOverride = setFontOverride;

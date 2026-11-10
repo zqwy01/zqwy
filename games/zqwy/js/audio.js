@@ -1,6 +1,9 @@
-/* Фоновый трек: один зацикленный файл на весь Лабиринт.
-   Модуль также даёт настройкам небольшой API проигрывателя:
-   play/pause/stop, перемотка и громкость. */
+/* Музыка Лабиринта: не один файл, а кассеты.
+   Плеер — предмет инвентаря, кассеты лежат внутри него, а каждая
+   комната включает свою запись. Модуль даёт настройкам API
+   play/pause/stop, перемотку, громкость, скорость и алгоритмы:
+   tempo (без изменения высоты), pitch (вместе с высотой) и drift
+   (медленное дыхание скорости). */
 (function () {
   'use strict';
 
@@ -9,8 +12,25 @@
   const rt = ZQ.rt;
   const dom = ZQ.dom;
 
+  const FADE_MS = 520;
+
+  function tracks() {
+    return (C.music && C.music.tracks) || {};
+  }
+
+  function cueMeta(cue) {
+    return (C.musicCues && C.musicCues[cue]) || null;
+  }
+
+  function trackForCue(cue) {
+    const meta = cueMeta(cue);
+    const id = meta && meta.track ? meta.track : 'forest';
+    return tracks()[id] ? id : 'forest';
+  }
+
   const audio = {
     cue: 'tablet',
+    trackId: 'forest',
     started: false,
     context: null,
     analyser: null,
@@ -20,14 +40,38 @@
     peakSamples: 720,
     peakPromise: null,
     peakFile: '',
+    fadeTimer: 0,
+    driftTimer: 0,
+    driftPhase: 0,
+    switching: false,
 
     element() {
       return dom.soundtrack || null;
     },
 
-    rate() {
+    baseRate() {
       const value = Number(rt.termSettings && rt.termSettings.musicRate);
       return Number.isFinite(value) ? ZQ.clamp(value, 0.5, 2) : 1;
+    },
+
+    /* Скорость с учётом сцены: слепой зал замедляет, погоня и
+       жаба подгоняют темп. Пользовательская скорость остаётся
+       множителем, а не заменой. */
+    sceneRate() {
+      const meta = cueMeta(this.cue);
+      let factor = 1;
+      if (meta && meta.slow) factor *= 0.82;
+      if (meta && meta.hard) factor *= 1.08;
+      return ZQ.clamp(this.baseRate() * factor, 0.5, 2);
+    },
+
+    algorithm() {
+      const value = rt.termSettings && rt.termSettings.musicAlgorithm;
+      const algorithms = C.music && Array.isArray(C.music.rateAlgorithms)
+        ? C.music.rateAlgorithms
+        : [];
+      const ids = algorithms.map((entry) => entry.id);
+      return ids.includes(value) ? value : (ids[0] || 'tempo');
     },
 
     volume() {
@@ -73,8 +117,9 @@
       if (this.peaks && this.peaks.length) return Promise.resolve(this.peaks);
       if (this.peakPromise) return this.peakPromise;
       const el = this.element();
-      if (!el || !C.music || !C.music.file) return Promise.resolve(null);
-      const src = el.getAttribute('src') || C.music.file;
+      const track = tracks()[this.trackId];
+      if (!el || !track || !track.file) return Promise.resolve(null);
+      const src = el.getAttribute('src') || track.file;
       if (this.peakFile && this.peakFile !== src) {
         this.peaks = null;
         this.peakPromise = null;
@@ -193,14 +238,145 @@
       return ZQ.clamp(el.currentTime / el.duration, 0, 1);
     },
 
+    applyRate() {
+      const el = this.element();
+      if (!el) return;
+      const algorithm = this.algorithm();
+      const preserved = algorithm !== 'pitch';
+      if ('preservesPitch' in el) el.preservesPitch = preserved;
+      if ('webkitPreservesPitch' in el) el.webkitPreservesPitch = preserved;
+      if ('mozPreservesPitch' in el) el.mozPreservesPitch = preserved;
+      el.playbackRate = this.sceneRate();
+    },
+
+    stopDrift() {
+      if (!this.driftTimer) return;
+      window.clearInterval(this.driftTimer);
+      this.driftTimer = 0;
+      this.driftPhase = 0;
+      const el = this.element();
+      if (el) el.playbackRate = this.sceneRate();
+    },
+
+    startDrift() {
+      this.stopDrift();
+      if (this.algorithm() !== 'drift') return;
+      this.driftTimer = window.setInterval(() => {
+        const el = this.element();
+        if (!el || rt.termSettings.music === false) return;
+        this.driftPhase += 0.42;
+        const breath = 1 + Math.sin(this.driftPhase) * 0.055;
+        el.playbackRate = ZQ.clamp(this.sceneRate() * breath, 0.5, 2);
+      }, 420);
+    },
+
+    setAlgorithm(value) {
+      const algorithms = C.music && Array.isArray(C.music.rateAlgorithms)
+        ? C.music.rateAlgorithms
+        : [];
+      const ids = algorithms.map((entry) => entry.id);
+      rt.termSettings.musicAlgorithm = ids.includes(value)
+        ? value
+        : (ids[0] || 'tempo');
+      this.applyRate();
+      this.startDrift();
+      return rt.termSettings.musicAlgorithm;
+    },
+
+    /* Мягкое переключение: старый трек гаснет, новый появляется.
+       Жёсткое (hard) меняет источник сразу, чтобы погоня не ждала. */
+    switchTrack(trackId, hard) {
+      const el = this.element();
+      const track = tracks()[trackId];
+      if (!el || !track || !track.file) return false;
+      const targetSrc = track.file;
+      const current = el.getAttribute('src') || '';
+      if (current.endsWith(track.file) && this.trackId === trackId) {
+        this.applyRate();
+        this.startDrift();
+        return true;
+      }
+      const finish = () => {
+        this.trackId = trackId;
+        this.peaks = null;
+        this.peakPromise = null;
+        this.peakFile = '';
+        el.setAttribute('src', targetSrc);
+        try {
+          el.load();
+        } catch (error) {
+          /* источник всё равно применится */
+        }
+        this.applyRate();
+        this.startDrift();
+        el.volume = 0;
+        const fadeIn = () => {
+          this.fadeTo(this.volume(), FADE_MS);
+        };
+        if (!rt.termSettings.music) {
+          if (this.decodePeaks) this.decodePeaks();
+          return;
+        }
+        this.ensureAnalyser();
+        if (this.decodePeaks) this.decodePeaks();
+        const play = el.play();
+        if (play && typeof play.catch === 'function') {
+          play.then(() => {
+            this.started = true;
+            fadeIn();
+          }).catch(() => {
+            /* Браузер ждёт жеста — следующий жест запустит. */
+          });
+        } else {
+          fadeIn();
+        }
+      };
+      this.stopDrift();
+      this.switching = true;
+      if (hard || !this.started) {
+        finish();
+        this.switching = false;
+        return true;
+      }
+      this.fadeTo(0, FADE_MS, () => {
+        finish();
+        this.switching = false;
+      });
+      return true;
+    },
+
+    fadeTo(target, duration, done) {
+      const el = this.element();
+      if (!el) return;
+      if (this.fadeTimer) {
+        window.clearInterval(this.fadeTimer);
+        this.fadeTimer = 0;
+      }
+      const from = Number.isFinite(el.volume) ? el.volume : 0;
+      const to = ZQ.clamp(target, 0, 1);
+      const steps = Math.max(1, Math.round(duration / 40));
+      let step = 0;
+      this.fadeTimer = window.setInterval(() => {
+        step += 1;
+        el.volume = ZQ.clamp(from + (to - from) * (step / steps), 0, 1);
+        if (step >= steps) {
+          window.clearInterval(this.fadeTimer);
+          this.fadeTimer = 0;
+          if (typeof done === 'function') done();
+        }
+      }, 40);
+    },
+
     ensure() {
       const el = this.element();
       if (!el) return;
-      if (!C.music || !C.music.file) return;
-      if (!el.getAttribute('src')) el.setAttribute('src', C.music.file);
+      const track = tracks()[this.trackId] || tracks().forest;
+      if (!track || !track.file) return;
+      if (!el.getAttribute('src')) el.setAttribute('src', track.file);
       el.loop = true;
       el.volume = this.volume();
-      el.playbackRate = this.rate();
+      this.applyRate();
+      this.startDrift();
       if (!rt.termSettings.music) {
         el.pause();
         if (this.decodePeaks) this.decodePeaks();
@@ -220,14 +396,19 @@
 
     state() {
       const el = this.element();
+      const track = tracks()[this.trackId] || null;
       return {
         enabled: Boolean(rt.termSettings.music),
         playing: Boolean(el && !el.paused && !el.ended),
         current: el && Number.isFinite(el.currentTime) ? el.currentTime : 0,
         duration: el && Number.isFinite(el.duration) ? el.duration : 0,
         volume: this.volume(),
-        rate: el && Number.isFinite(el.playbackRate) ? el.playbackRate : this.rate(),
-        cue: this.cue || 'labyrinth'
+        rate: el && Number.isFinite(el.playbackRate) ? el.playbackRate : this.sceneRate(),
+        cue: this.cue || 'labyrinth',
+        track: this.trackId,
+        trackTitle: track ? track.title : '',
+        cassette: track ? track.cassette : '',
+        algorithm: this.algorithm()
       };
     },
 
@@ -239,6 +420,7 @@
         this.ensure();
       } else {
         el.pause();
+        this.stopDrift();
       }
     },
 
@@ -289,19 +471,51 @@
     },
 
     setRate(value) {
-      const rate = ZQ.clamp(Number(value) || 1, 0.5, 2);
-      rt.termSettings.musicRate = rate;
-      const el = this.element();
-      if (el) el.playbackRate = rate;
-      return rate;
+      rt.termSettings.musicRate = ZQ.clamp(Number(value) || 1, 0.5, 2);
+      this.applyRate();
+      this.startDrift();
+      return rt.termSettings.musicRate;
     },
 
+    /* Открыть кассету для комнаты: запись добавляется в плеер, а
+       активной становится именно она. */
     setCue(cue) {
       this.cue = cue || 'labyrinth';
-      if (!C.music || !C.music.file) return;
-      const el = this.element();
-      if (!el) return;
-      if (!el.getAttribute('src')) el.setAttribute('src', C.music.file);
+      const trackId = trackForCue(this.cue);
+      const meta = cueMeta(this.cue);
+      const track = tracks()[trackId];
+      if (!track) return;
+      if (rt.state) {
+        if (!Array.isArray(rt.state.cassettes)) rt.state.cassettes = ['forest'];
+        if (!rt.state.cassettes.includes(trackId)) {
+          rt.state.cassettes.push(trackId);
+          if (track.cassette && C.items[track.cassette]) {
+            ZQ.appendLog(
+              `Найдена кассета: «${track.title}». Она лежит в проигрывателе.`,
+              'sys',
+              true
+            );
+          }
+        }
+        rt.state.activeCassette = trackId;
+      }
+      this.switchTrack(trackId, Boolean(meta && meta.hard));
+    },
+
+    playCassette(trackId) {
+      const track = tracks()[trackId];
+      if (!track) return false;
+      if (rt.state) {
+        if (!Array.isArray(rt.state.cassettes)) rt.state.cassettes = ['forest'];
+        if (!rt.state.cassettes.includes(trackId)) rt.state.cassettes.push(trackId);
+        rt.state.activeCassette = trackId;
+      }
+      this.cue = trackId;
+      rt.termSettings.music = true;
+      const switched = this.switchTrack(trackId, false);
+      if (!switched) this.ensure();
+      if (typeof ZQ.updateMusicUI === 'function') ZQ.updateMusicUI();
+      return switched;
     },
 
     toggle() {

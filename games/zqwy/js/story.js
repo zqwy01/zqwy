@@ -413,49 +413,6 @@
       });
     }
 
-    board.addEventListener('pointerdown', (event) => {
-      if (event.button !== undefined && event.button !== 0) return;
-      if (event.target.closest && event.target.closest('.story-node')) return;
-      event.preventDefault();
-      const pan = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        originX: rt.storyPanX,
-        originY: rt.storyPanY
-      };
-      rt.storyPan = pan;
-      container.classList.add('panning');
-      try {
-        board.setPointerCapture(event.pointerId);
-      } catch (error) {
-        /* capture не обязателен */
-      }
-      const move = (moveEvent) => {
-        if (rt.storyPan !== pan || moveEvent.pointerId !== pan.pointerId) return;
-        moveEvent.preventDefault();
-        rt.storyPanX = pan.originX + (moveEvent.clientX - pan.startX);
-        rt.storyPanY = pan.originY + (moveEvent.clientY - pan.startY);
-        applyStoryView();
-      };
-      const finish = (finishEvent) => {
-        if (finishEvent.pointerId !== pan.pointerId) return;
-        board.removeEventListener('pointermove', move);
-        board.removeEventListener('pointerup', finish);
-        board.removeEventListener('pointercancel', finish);
-        container.classList.remove('panning');
-        if (rt.storyPan === pan) rt.storyPan = null;
-        try {
-          board.releasePointerCapture(finishEvent.pointerId);
-        } catch (error) {
-          /* ignored */
-        }
-      };
-      board.addEventListener('pointermove', move);
-      board.addEventListener('pointerup', finish);
-      board.addEventListener('pointercancel', finish);
-    });
-
     redraw();
     applyStoryView();
     return board;
@@ -485,10 +442,17 @@
     ZQ.updatePrompt();
   }
 
-  /* Колесо мыши: плавный шаг и приближение к точке под курсором.
-     Слушатель пассивный только для чтения, поэтому preventDefault
-     работает и страница не прокручивается. */
-  function bindWheelZoom() {
+  /* Сюжетный граф использует тот же Viewport, что стол и инвентарь:
+     колесо приближает точку под курсором, фон двигается, двойной
+     клик сбрасывает вид, щипок работает на телефоне. */
+  function resetStoryView() {
+    rt.storyZoom = 1;
+    rt.storyPanX = 0;
+    rt.storyPanY = 0;
+    applyStoryView();
+  }
+
+  function bindStoryViewport() {
     if (!dom.storyTree) return;
     dom.storyTree.addEventListener('selectstart', (event) => {
       if (rt.termView === 'story') event.preventDefault();
@@ -496,26 +460,34 @@
     dom.storyTree.addEventListener('dragstart', (event) => {
       if (rt.termView === 'story') event.preventDefault();
     });
-    dom.storyTree.addEventListener('wheel', (event) => {
-      if (rt.termView !== 'story') return;
-      event.preventDefault();
-      const rect = dom.storyTree.getBoundingClientRect();
-      const mx = event.clientX - rect.left;
-      const my = event.clientY - rect.top;
-      const oldZoom = rt.storyZoom;
-      const step = Math.exp(-event.deltaY * 0.0016);
-      const nextZoom = ZQ.clamp(oldZoom * step, ZOOM_MIN, ZOOM_MAX);
-      if (nextZoom === oldZoom) return;
-      const ratio = nextZoom / oldZoom;
-      rt.storyPanX = mx - (mx - rt.storyPanX) * ratio;
-      rt.storyPanY = my - (my - rt.storyPanY) * ratio;
-      rt.storyZoom = nextZoom;
-      applyStoryView();
-    }, { passive: false });
+    if (!ZQ.Viewport) return;
+    ZQ.Viewport.attach({
+      surface: dom.storyTree,
+      content: () => rt.storyBoard || dom.storyTree,
+      origin: '0 0',
+      min: ZOOM_MIN,
+      max: ZOOM_MAX,
+      get: () => ({
+        zoom: rt.storyZoom,
+        panX: rt.storyPanX,
+        panY: rt.storyPanY
+      }),
+      set: (state) => {
+        rt.storyZoom = state.zoom;
+        rt.storyPanX = state.panX;
+        rt.storyPanY = state.panY;
+      },
+      onChange: () => applyStoryView(),
+      onReset: resetStoryView,
+      canStart: (event) => {
+        if (!event.target.closest) return true;
+        return !event.target.closest('.story-node');
+      }
+    });
   }
 
   dom.storyClose.addEventListener('click', closeStory);
-  bindWheelZoom();
+  bindStoryViewport();
 
   window.addEventListener('resize', () => {
     if (rt.termView === 'story') renderStory();

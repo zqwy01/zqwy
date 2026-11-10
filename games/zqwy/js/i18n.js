@@ -1543,6 +1543,18 @@
       setText('#inv-title', 'Inventory');
       setText('#inventory-note', 'Items can be placed on the table and their commands run with a quick press.');
       setAttr('#inventory-close', 'aria-label', 'Close inventory');
+      setAttr('#inventory-zoom-out', 'aria-label', 'Zoom out inventory');
+      setAttr('#inventory-zoom-in', 'aria-label', 'Zoom in inventory');
+      setAttr('#inventory-zoom-reset', 'aria-label', 'Reset inventory zoom');
+
+      setText('#chase-stage .fight-eyebrow', 'ESCAPE · TITANOBOA');
+      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'breaths');
+      setText('#chase-stage .fight-stat:nth-child(2) .fight-label', 'distance');
+      setText('#chase-hint', 'Run. The snake will not tire — you will. Shift to dash.');
+      setText('#chase-abort', 'give up');
+      setAttr('#chase-abort', 'aria-label', 'Give up the escape');
+      setAttr('#chase-stage', 'aria-label', 'Titanoboa chase');
+      setAttr('#chase-dash-touch', 'aria-label', 'Dash');
 
       setText('#view-map .eyebrow', 'LOCAL AREA');
       setText('#map-title', 'Map');
@@ -1687,6 +1699,18 @@
       setText('#inv-title', 'Инвентарь');
       setText('#inventory-note', 'Предметы можно вынести на стол и запускать их команды быстрым нажатием.');
       setAttr('#inventory-close', 'aria-label', 'Закрыть инвентарь');
+      setAttr('#inventory-zoom-out', 'aria-label', 'Отдалить инвентарь');
+      setAttr('#inventory-zoom-in', 'aria-label', 'Приблизить инвентарь');
+      setAttr('#inventory-zoom-reset', 'aria-label', 'Сбросить масштаб инвентаря');
+
+      setText('#chase-stage .fight-eyebrow', 'ПОБЕГ · ТИТАНОБОА');
+      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'вдохи');
+      setText('#chase-stage .fight-stat:nth-child(2) .fight-label', 'дистанция');
+      setText('#chase-hint', 'Уходи. Змея не устанет — устанешь ты. Shift — рывок.');
+      setText('#chase-abort', 'сдаться');
+      setAttr('#chase-abort', 'aria-label', 'Сдаться и прекратить побег');
+      setAttr('#chase-stage', 'aria-label', 'Погоня титанобоа');
+      setAttr('#chase-dash-touch', 'aria-label', 'Ускориться');
 
       setText('#view-map .eyebrow', 'ЛОКАЛЬНЫЙ УЧАСТОК');
       setText('#map-title', 'Карта');
@@ -1799,6 +1823,18 @@
       setText('#inv-title', 'Inventar');
       setText('#inventory-note', 'Gegenstände lassen sich auf den Tisch legen und ihre Befehle mit einem kurzen Druck ausführen.');
       setAttr('#inventory-close', 'aria-label', 'Inventar schließen');
+      setAttr('#inventory-zoom-out', 'aria-label', 'Inventar verkleinern');
+      setAttr('#inventory-zoom-in', 'aria-label', 'Inventar vergrößern');
+      setAttr('#inventory-zoom-reset', 'aria-label', 'Inventarzoom zurücksetzen');
+
+      setText('#chase-stage .fight-eyebrow', 'FLUCH · TITANOBOA');
+      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'Atemzüge');
+      setText('#chase-stage .fight-stat:nth-child(2) .fight-label', 'Distanz');
+      setText('#chase-hint', 'Lauf. Die Schlange ermüdet nicht — du. Shift für den Sprint.');
+      setText('#chase-abort', 'aufgeben');
+      setAttr('#chase-abort', 'aria-label', 'Flucht aufgeben');
+      setAttr('#chase-stage', 'aria-label', 'Verfolgung durch die Titanoboa');
+      setAttr('#chase-dash-touch', 'aria-label', 'Sprint');
 
       setText('#view-map .eyebrow', 'ÖRTLICHER BEREICH');
       setText('#map-title', 'Karte');

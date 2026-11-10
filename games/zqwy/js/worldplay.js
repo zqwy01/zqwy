@@ -306,6 +306,18 @@
         mode = 'cursor';
       }
     }
+
+    /* Схватка и погоня задают собственный темп и рывок, но двигают
+       настоящего Zemic через ту же коллизию, что и обычный шаг. */
+    const boost = (rt.battle && rt.battle.active)
+      ? rt.battle
+      : ((rt.chase && rt.chase.active) ? rt.chase : null);
+    if (boost && boost.dashTimer > 0) {
+      mx = boost.dashVX || 0;
+      my = boost.dashVY || 0;
+      mode = 'dash';
+    }
+
     if (!mx && !my) {
       rt.state.player.moving = false;
       rt.moveLogDir = '';
@@ -325,13 +337,20 @@
     if (rt.moveLogDir !== name || time - rt.moveLogAt > 1200) {
       rt.moveLogDir = name;
       rt.moveLogAt = time;
-      const suffix = mode === 'timed' && rt.timedMove
-        ? ` (${rt.timedMove.remaining.toFixed(1)} с)`
-        : mode === 'cursor' ? ' (к курсору)' : '';
+      const suffix = mode === 'dash'
+        ? ' (рывок)'
+        : mode === 'timed' && rt.timedMove
+          ? ` (${rt.timedMove.remaining.toFixed(1)} с)`
+          : mode === 'cursor' ? ' (к курсору)' : '';
       ZQ.logEvent('movement', `шаг ${name}${suffix}`, 'шаг');
     }
 
-    let step = C.player.speed * dt;
+    let step = (boost && Number.isFinite(boost.playerSpeed)
+      ? boost.playerSpeed
+      : C.player.speed) * dt;
+    if (mode === 'dash') {
+      step = (Number.isFinite(boost.dashSpeed) ? boost.dashSpeed : 12.5) * dt;
+    }
     if (mode === 'cursor' && rt.cursorMove) {
       const waypoint = cursorWaypoint(rt.cursorMove);
       const remaining = Math.hypot(
@@ -461,6 +480,145 @@
     rt.state.camera.y = rt.state.player.y;
   }
 
+  /* -------------------------- Режимы курсора ----------------------- */
+  /* ПКМ или двойной клик переключают режим. Вектор — привычная цель,
+     клетка — выбор тайла, осмотр — описание без движения, путь —
+     предпросмотр маршрута перед шагом. */
+  function cursorModes() {
+    return C.cursor && Array.isArray(C.cursor.modes) ? C.cursor.modes : [];
+  }
+
+  function cursorMode() {
+    const modes = cursorModes();
+    const fallback = modes[0] ? modes[0].id : 'vector';
+    return modes.some((mode) => mode.id === rt.cursorMode) ? rt.cursorMode : fallback;
+  }
+
+  function cursorModeMeta(id) {
+    return cursorModes().find((mode) => mode.id === id) || null;
+  }
+
+  function setCursorMode(id, announce) {
+    const meta = cursorModeMeta(id);
+    if (!meta) return false;
+    rt.cursorMode = meta.id;
+    rt.cursorPath = null;
+    rt.cursorTile = null;
+    rt.cursorPathGoal = null;
+    if (announce) {
+      ZQ.appendLog(
+        `Курсор: ${meta.title}. ${meta.note}.`,
+        'reply',
+        true
+      );
+    }
+    ZQ.logEvent('actions', `режим курсора: ${meta.title}`, 'курсор');
+    return true;
+  }
+
+  function cycleCursorMode() {
+    const modes = cursorModes();
+    if (!modes.length) return null;
+    const current = cursorMode();
+    const index = modes.findIndex((mode) => mode.id === current);
+    const next = modes[(index + 1) % modes.length];
+    setCursorMode(next.id, true);
+    if (ZQ.updatePrompt) ZQ.updatePrompt();
+    return next;
+  }
+
+  function cursorModeCommand(arg) {
+    const value = String(arg || '').trim().toLowerCase();
+    const modes = cursorModes();
+    if (!modes.length) return 'Режимы курсора не настроены.';
+    if (!value) {
+      const current = cursorModeMeta(cursorMode());
+      const lines = [
+        `Режим курсора: ${current ? current.title : 'вектор'}.`,
+        'Режимы:'
+      ];
+      for (const mode of modes) {
+        lines.push(`• ${mode.title} — ${mode.note}`);
+      }
+      lines.push('Переключение: «курсор клетка», «курсор осмотр», ПКМ или двойной клик по миру.');
+      return lines.join('\n');
+    }
+    const meta = modes.find((mode) =>
+      mode.id === value || String(mode.title).toLowerCase() === value
+    );
+    if (!meta) return `Нет режима «${arg}». ${cursorModeCommand('')}`;
+    setCursorMode(meta.id, false);
+    return `Курсор: ${meta.title}. ${meta.note}.`;
+  }
+
+  function tileDescription(tx, ty) {
+    if (!rt.world) return 'Мир ещё не создан.';
+    const room = rt.world.roomAtTile(tx, ty);
+    const walkable = rt.world.isWalkable(tx, ty);
+    const parts = [`Клетка ${tx}, ${ty}.`];
+    parts.push(walkable ? 'Проходима.' : 'Стена или край.');
+    if (room) {
+      parts.push(`Комната «${room.name}», роль: ${room.role}.`);
+    } else {
+      parts.push('Это переход между комнатами.');
+    }
+    return parts.join(' ');
+  }
+
+  function applyCursorClick(x, y, options) {
+    if (!rt.state || !rt.world) return false;
+    const tx = Number(x);
+    const ty = Number(y);
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    const opts = options || {};
+    const mode = cursorMode();
+    if (mode === 'inspect') {
+      const text = tileDescription(Math.floor(tx), Math.floor(ty));
+      ZQ.appendLog(text, 'reply', true);
+      rt.cursorMove = null;
+      rt.cursorPath = null;
+      return true;
+    }
+    if (mode === 'tile') {
+      const key = `${Math.floor(tx)},${Math.floor(ty)}`;
+      if (rt.cursorTile === key) {
+        rt.cursorTile = null;
+        return setCursorDestination(tx, ty, Boolean(opts.hold), opts.duration);
+      }
+      rt.cursorTile = key;
+      rt.cursorPath = null;
+      ZQ.appendLog(`Клетка выбрана: ${key}. Повторный клик ведёт туда.`, 'reply', true);
+      return true;
+    }
+    if (mode === 'path') {
+      const key = `${Math.floor(tx)},${Math.floor(ty)}`;
+      if (rt.cursorPathGoal === key) {
+        rt.cursorPath = null;
+        rt.cursorPathGoal = null;
+        return setCursorDestination(tx, ty, Boolean(opts.hold), opts.duration);
+      }
+      const path = findPath(rt.state.player.x, rt.state.player.y, tx, ty);
+      if (!path || !path.length) {
+        ZQ.appendLog('Путь не найден: клетка недоступна.', 'reply', true);
+        return false;
+      }
+      rt.cursorPath = path;
+      rt.cursorPathGoal = key;
+      const length = pathLength(path);
+      ZQ.appendLog(
+        `Маршрут: ${Math.round(length * 10) / 10} кл. Второй клик — идти.`,
+        'reply',
+        true
+      );
+      rt.timedMove = null;
+      rt.cursorMove = null;
+      return true;
+    }
+    rt.cursorPath = null;
+    rt.cursorPathGoal = null;
+    return setCursorDestination(tx, ty, Boolean(opts.hold), opts.duration);
+  }
+
   function enterRoom(room) {
     if (!room) return;
     const firstVisit = !rt.state.visited[room.id];
@@ -488,6 +646,31 @@
         ZQ.startBattle(survivalKind);
         return;
       }
+    }
+
+    /* Бельзебуфо — повторяемая встреча. Шанс детерминирован для
+       комнаты: один и тот же зал либо предлагает жабу, либо нет.
+       После успеха в этой комнате она больше не появляется. */
+    if (room.faunaKind === 'belzebufo' && !rt.state.flags[`belzebufo_${room.id}`] &&
+        rt.survivalBlockedRoom !== room.id) {
+      const chance = C.fauna && C.fauna.belzebufo &&
+        Number.isFinite(C.fauna.belzebufo.chance)
+        ? C.fauna.belzebufo.chance
+        : 0.62;
+      const roll = window.World.hashString(`${rt.state.seed}:belzebufo:${room.id}`) /
+        4294967296;
+      if (roll < chance) {
+        ZQ.startBattle('belzebufo');
+        return;
+      }
+    }
+
+    /* Титанобоа ровно одна на мир. Погоня начинается при входе, пока
+       змея не успокоилась. */
+    if (room.faunaKind === 'titanoboa' && !rt.state.flags.titanoboaCalm && !rt.chase &&
+        typeof ZQ.startChase === 'function') {
+      ZQ.startChase(room);
+      return;
     }
 
     if (!firstVisit) return;
@@ -754,12 +937,14 @@
       dom.btnAction.classList.add('hidden');
       return;
     }
+    const modeMeta = typeof cursorModeMeta === 'function' ? cursorModeMeta(cursorMode()) : null;
+    const modeHint = modeMeta ? `курсор: ${modeMeta.title} · ПКМ` : '';
     const target = findInteractable();
     rt.activePrompt = target;
     const label = promptFor(target);
     if (!label) {
       rt.promptLabel = '';
-      dom.termContext.textContent = '';
+      dom.termContext.textContent = modeHint;
       dom.termContext.classList.remove('tablet');
       dom.btnAction.classList.add('hidden');
       return;
@@ -769,7 +954,9 @@
       dom.btnAction.setAttribute('aria-label', label);
       dom.btnAction.textContent = '✦';
     }
-    dom.termContext.textContent = `рядом: ${label} · E`;
+    dom.termContext.textContent = modeHint
+      ? `рядом: ${label} · E · ${modeHint}`
+      : `рядом: ${label} · E`;
     dom.termContext.classList.toggle('tablet', target.type === 'tablet');
     dom.btnAction.classList.remove('hidden');
   }
@@ -906,4 +1093,39 @@
   ZQ.startTimedMove = startTimedMove;
   ZQ.stopMovement = stopMovement;
   ZQ.setCursorDestination = setCursorDestination;
+  ZQ.cursorModes = cursorModes;
+  ZQ.cursorMode = cursorMode;
+  ZQ.cursorModeMeta = cursorModeMeta;
+  ZQ.setCursorMode = setCursorMode;
+  ZQ.cycleCursorMode = cycleCursorMode;
+  ZQ.cursorModeCommand = cursorModeCommand;
+  ZQ.tileDescription = tileDescription;
+  ZQ.applyCursorClick = applyCursorClick;
+
+  function takeUmbrellaNearby() {
+    if (!rt.state || !rt.world) return 'Мир ещё не создан.';
+    let best = null;
+    let bestDistance = Infinity;
+    for (const pickup of rt.world.itemPickups) {
+      if (pickup.itemId !== 'umbrella') continue;
+      if (rt.state.flags[`taken_${pickup.itemId}`]) continue;
+      const distance = Math.hypot(
+        rt.state.player.x - pickup.x,
+        rt.state.player.y - pickup.y
+      );
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = pickup;
+      }
+    }
+    if (!best || bestDistance > 2.4) {
+      return 'Рядом нет зонта. Он лежит там, где закончился зал с зонтиком.';
+    }
+    if (collectItemPickup(best)) {
+      return 'Зонт в инвентаре. В бою он раскрывается по F или командой «зонт».';
+    }
+    return 'Зонт пока не помещается в инвентарь.';
+  }
+
+  ZQ.takeUmbrellaNearby = takeUmbrellaNearby;
 })();

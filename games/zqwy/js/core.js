@@ -109,6 +109,9 @@
     musicMute: $('music-mute'),
     musicRate: $('music-rate'),
     musicRateValue: $('music-rate-value'),
+    musicRateNote: $('music-rate-note'),
+    musicAlgorithmPresets: $('music-algorithm-presets'),
+    musicAlgorithmCurrent: $('music-algorithm-current'),
     musicWave: $('music-wave'),
     musicState: $('music-state'),
     musicPlayerState: $('music-player-state'),
@@ -143,9 +146,7 @@
     trialAbort: $('trial-abort'),
     trialSealBtn: $('trial-seal'),
 
-    battleView: $('view-battle'),
     battleStage: $('battle-stage'),
-    battleCanvas: $('battle-canvas'),
     battlePlayerBar: $('battle-player-bar'),
     battleBeetleBar: $('battle-beetle-bar'),
     battlePlayerHp: $('battle-player-hp'),
@@ -160,12 +161,28 @@
     battleReflect: $('battle-reflect'),
     battleReflectTouch: $('battle-reflect-touch'),
     battleReflectState: $('battle-reflect-state'),
+    battleRhythm: $('battle-rhythm'),
+    battleRhythmBeat: $('battle-rhythm-beat'),
+    battleRhythmCombo: $('battle-rhythm-combo'),
+
+    chaseStage: $('chase-stage'),
+    chaseBreaths: $('chase-breaths'),
+    chaseTime: $('chase-time'),
+    chaseHint: $('chase-hint'),
+    chaseStaminaBar: $('chase-stamina-bar'),
+    chaseAbort: $('chase-abort'),
+    chaseDashTouch: $('chase-dash-touch'),
 
     inventoryView: $('view-inventory'),
     inventoryGraph: $('inventory-graph'),
     inventoryNodes: $('inventory-nodes'),
     inventoryLinks: $('inventory-links'),
+    inventorySlots: $('inventory-slots'),
     inventoryCapacity: $('inventory-capacity'),
+    inventoryZoomIn: $('inventory-zoom-in'),
+    inventoryZoomOut: $('inventory-zoom-out'),
+    inventoryZoomReset: $('inventory-zoom-reset'),
+    inventoryZoomLabel: $('inventory-zoom-label'),
     inventoryDetail: $('inventory-detail'),
     inventoryClose: $('inventory-close'),
     inventoryNote: $('inventory-note'),
@@ -228,8 +245,7 @@
     termSettings: dom.termSettingsView,
     fontSettings: dom.fontSettingsView,
     music: dom.musicView,
-    trial: dom.trialView,
-    battle: dom.battleView
+    trial: dom.trialView
   };
 
   const SAVE_VERSION = 1;
@@ -262,7 +278,9 @@
     logging: loggingDefaults(),
     music: C.music ? C.music.enabled !== false : true,
     musicVolume: C.music && Number.isFinite(C.music.volume) ? C.music.volume : 0.55,
-    musicRate: C.music && Number.isFinite(C.music.rate) ? C.music.rate : 1
+    musicRate: C.music && Number.isFinite(C.music.rate) ? C.music.rate : 1,
+    musicAlgorithm: C.music && Array.isArray(C.music.rateAlgorithms) &&
+      C.music.rateAlgorithms[0] ? C.music.rateAlgorithms[0].id : 'tempo'
   };
 
   const rt = {
@@ -304,6 +322,12 @@
     trialRaf: 0,
     battle: null,
     battleRaf: 0,
+    chase: null,
+    chaseRaf: 0,
+    cursorMode: 'vector',
+    cursorHover: null,
+    cursorPath: null,
+    musicFadeTimer: 0,
 
     termSettings: {
       speed: DEFAULT_TERM_SETTINGS.speed,
@@ -312,7 +336,8 @@
       logging: { ...DEFAULT_TERM_SETTINGS.logging },
       music: DEFAULT_TERM_SETTINGS.music,
       musicVolume: DEFAULT_TERM_SETTINGS.musicVolume,
-      musicRate: DEFAULT_TERM_SETTINGS.musicRate
+      musicRate: DEFAULT_TERM_SETTINGS.musicRate,
+      musicAlgorithm: DEFAULT_TERM_SETTINGS.musicAlgorithm
     },
     logBusy: false,
     logToken: 0,
@@ -340,6 +365,10 @@
     storyPanY: 0,
     inventoryPositions: Object.create(null),
     inventorySelected: null,
+    inventoryZoom: 1,
+    inventoryPanX: 0,
+    inventoryPanY: 0,
+    inventoryDrag: null,
     loadMs: 0,
     aspectRatio: 0,
     aspectWarned: false,
@@ -356,8 +385,12 @@
       currentRoomId: null,
       flags: {},
       visited: {},
-      items: [],
+      /* Проигрыватель — такой же предмет в инвентаре, как рюкзак.
+         Кассеты лежат внутри него и не занимают отдельные ячейки. */
+      items: ['music_player'],
       backpacks: [],
+      cassettes: ['forest'],
+      activeCassette: 'forest',
       mapMarks: [],
       canvasElements: [],
       canvasLayouts: {},
@@ -507,6 +540,8 @@
       visited: state.visited,
       items: state.items,
       backpacks: state.backpacks,
+      cassettes: Array.isArray(state.cassettes) ? state.cassettes : [],
+      activeCassette: state.activeCassette || 'forest',
       mapMarks: state.mapMarks,
       canvasElements: state.canvasElements,
       canvasLayouts: state.canvasLayouts || {},
@@ -549,6 +584,10 @@
     rt.battleRaf = 0;
     rt.battle = null;
     if (typeof ZQ.hideBattleStage === 'function') ZQ.hideBattleStage();
+    if (rt.chaseRaf) window.cancelAnimationFrame(rt.chaseRaf);
+    rt.chaseRaf = 0;
+    rt.chase = null;
+    if (typeof ZQ.hideChaseStage === 'function') ZQ.hideChaseStage();
     rt.canvasLinkMode = false;
     rt.linkFirstId = null;
     rt.keyBindingId = null;
@@ -584,7 +623,13 @@
     ZQ.updatePrompt();
     if (rt.state.currentRoomId) rt.state.visited[rt.state.currentRoomId] = true;
     ZQ.saveGame();
-    return { ok: true, seed, savedAt: saved.savedAt || 0, source: saved.source || 'save' };
+    return {
+      ok: true,
+      seed,
+      savedAt: saved.savedAt || 0,
+      source: saved.slotName || saved.source || 'save',
+      slotName: saved.slotName || ''
+    };
   }
 
   function loadGame() {
@@ -661,6 +706,7 @@
     const store = readSlotStore();
     const data = store[key];
     if (!data) return { ok: false, reason: 'empty' };
+    data.slotName = data.slotName || key;
     return applySaveData(data);
   }
 
@@ -756,31 +802,42 @@
     return `${version} · ${tr('сборка')} ${number}`;
   }
 
-  function bootMessage(seed) {
+  function bootMessage(seed, options) {
+    const opts = options || {};
     const rooms = rt.world && Array.isArray(rt.world.rooms) ? rt.world.rooms.length : 0;
     const chunks = rt.world && Number.isFinite(rt.world.chunkCount) ? rt.world.chunkCount : 0;
     const loadMs = Math.max(0, Math.round(rt.loadMs || 0));
     const value = seed || (rt.state ? rt.state.seed : '');
+    const slot = String(opts.slotName || '').trim();
+    let head;
+    if (opts.kind === 'load') {
+      head = slot
+        ? `${tr('Загружен мир:')} «${slot}» · seed: ${value}`
+        : `${tr('Загружен сохранённый мир:')} ${value}`;
+    } else {
+      head = `${tr('Создан новый мир:')} ${value}`;
+    }
     return [
+      head,
       `${tr('Версия ядра:')} ${coreVersion()}`,
-      `${tr('Мир загружен:')} ${tr('за')} ${loadMs} ${tr('мс')} · ${tr('комнат:')} ${rooms} · ${tr('чанков:')} ${chunks} · seed: ${value}`,
+      `${tr('Мир готов:')} ${tr('за')} ${loadMs} ${tr('мс')} · ${tr('комнат:')} ${rooms} · ${tr('чанков:')} ${chunks} · seed: ${value}`,
       tr('Управление: W/A/S/D или стрелки — идти; E — действие; Enter — отправить команду; ↑/↓ — история команд.'),
-      tr('ЛКМ по миру — идти к точке; удержание ЛКМ — следовать за курсором.'),
+      tr('ЛКМ по миру — идти к точке; удержание ЛКМ — следовать за курсором. ПКМ — сменить режим курсора.'),
       tr('Введи «помоги», чтобы увидеть команды. Команды открываются по мере истории. Настройки — «настройки», сюжет — «сюжет», запись действий — «логгирование».')
     ].join('\n');
   }
 
-  function worldLoadMessage(seed) {
-    return bootMessage(seed);
+  function worldLoadMessage(seed, options) {
+    return bootMessage(seed, options);
   }
 
   function aspectInfo() {
     const width = Math.max(1, window.innerWidth || 1);
     const height = Math.max(1, window.innerHeight || 1);
     const ratio = width / height;
-    const limits = C.display || { minAspect: 1.32, maxAspect: 2.4, ideal: 16 / 9 };
-    const min = Number.isFinite(limits.minAspect) ? limits.minAspect : 1.32;
-    const max = Number.isFinite(limits.maxAspect) ? limits.maxAspect : 2.4;
+    const limits = C.display || {};
+    const min = Number.isFinite(limits.minAspect) ? limits.minAspect : 0.4;
+    const max = Number.isFinite(limits.maxAspect) ? limits.maxAspect : 3.4;
     return {
       width,
       height,
@@ -788,24 +845,54 @@
       min,
       max,
       ok: ratio >= min && ratio <= max,
-      ideal: Number.isFinite(limits.ideal) ? limits.ideal : 16 / 9
+      ideal: Number.isFinite(limits.ideal) ? limits.ideal : 16 / 9,
+      portrait: ratio < 1,
+      landscape: ratio >= 1
     };
   }
 
-  function checkAspectRatio() {
+  /* Кадр больше не обрезается. Сцена всегда занимает весь экран, а
+     достаточная игровая дистанция обеспечивается размером тайла
+     (см. Renderer.tilePxFor): в портрете видно больше клеток по
+     вертикали, в ландшафте — по горизонтали. */
+  function applyAspectLayout() {
     const info = aspectInfo();
+    const stage = dom.stage || $('stage');
+    const app = dom.app || $('app');
+    if (stage) {
+      stage.style.position = '';
+      stage.style.left = '';
+      stage.style.top = '';
+      stage.style.width = '';
+      stage.style.height = '';
+      stage.classList.remove('cropped', 'aspect-cropped');
+      stage.classList.toggle('portrait', info.portrait);
+      stage.classList.toggle('landscape', !info.portrait);
+      stage.dataset.aspect = info.portrait ? 'portrait' : 'landscape';
+      stage.style.setProperty('--view-ratio', info.ratio.toFixed(4));
+      stage.style.setProperty('--view-w', `${info.width}px`);
+      stage.style.setProperty('--view-h', `${info.height}px`);
+    }
+    if (app) {
+      app.classList.toggle('portrait', info.portrait);
+      app.classList.toggle('landscape', !info.portrait);
+    }
+    return info;
+  }
+
+  function checkAspectRatio() {
+    const info = applyAspectLayout();
     const changed = Math.abs(info.ratio - rt.aspectRatio) >= 0.01;
     rt.aspectRatio = info.ratio;
     if (!changed) return info;
-    /* Предупреждение живёт только в терминале: отдельного визуального
-       баннера нет. Проверка срабатывает на каждое изменение пропорций,
-       но текст выводится один раз при выходе за диапазон. */
+    /* Пропорция больше не является ошибкой: сцена заполняет экран.
+       Сообщение остаётся только для совсем необычных окон. */
     if (info.ok) {
       rt.aspectWarned = false;
       return info;
     }
     if (!rt.aspectWarned) {
-      const text = `Пропорции экрана ${info.ratio.toFixed(2)}:1 вне рекомендуемого диапазона ${info.min.toFixed(2)}–${info.max.toFixed(2)}:1 (≈16:9). Возможны визуальные дефекты.`;
+      const text = `Пропорции экрана ${info.ratio.toFixed(2)}:1 вне рамок ${info.min.toFixed(2)}–${info.max.toFixed(2)}:1. Сцена не обрезана: видны все клетки, но раскладка может быть тесной.`;
       ZQ.appendLog(tr(text), 'sys', true);
       rt.aspectWarned = true;
     }
@@ -841,9 +928,26 @@
           createdAt: Number.isFinite(bp.createdAt) ? bp.createdAt : Date.now()
         }));
     }
+    /* Проигрыватель — стартовый предмет. Старые сохранения его не
+       знали, а после смерти он может лежать в рюкзаке: в этом случае
+       не выдаём второй, пока рюкзак не возвращён. */
+    if (!state.items.includes('music_player') &&
+        !state.backpacks.some((bp) => bp.items.includes('music_player'))) {
+      state.items.unshift('music_player');
+    }
     if (Array.isArray(saved.mapMarks)) {
       state.mapMarks = saved.mapMarks.filter((id) => typeof id === 'string');
     }
+    if (Array.isArray(saved.cassettes)) {
+      state.cassettes = saved.cassettes.filter((id) =>
+        id === 'forest' || id === 'umbrella' || id === 'gall'
+      );
+    }
+    if (!state.cassettes.includes('forest')) state.cassettes.unshift('forest');
+    state.activeCassette = typeof saved.activeCassette === 'string' &&
+      state.cassettes.includes(saved.activeCassette)
+      ? saved.activeCassette
+      : 'forest';
     if (Array.isArray(saved.canvasElements)) {
       state.canvasElements = saved.canvasElements
         .map(normalizeCanvasElement)
@@ -989,7 +1093,11 @@
 
   function initDivider() {
     const saved = readSplitPreference();
-    applySplit(Number.isFinite(saved) ? saved : rt.splitRatio, false);
+    /* В портрете Лабиринт получает большую долю высоты: так в кадр
+       помещается больше проходов, а терминал остаётся читаемым. */
+    const portrait = window.innerHeight > window.innerWidth;
+    const fallback = portrait ? 0.6 : 0.56;
+    applySplit(Number.isFinite(saved) ? saved : fallback, false);
 
     dom.divider.addEventListener('pointerdown', (event) => {
       if (event.button !== undefined && event.button !== 0) return;
@@ -1073,6 +1181,10 @@
     rt.battleRaf = 0;
     rt.battle = null;
     if (typeof ZQ.hideBattleStage === 'function') ZQ.hideBattleStage();
+    if (rt.chaseRaf) window.cancelAnimationFrame(rt.chaseRaf);
+    rt.chaseRaf = 0;
+    rt.chase = null;
+    if (typeof ZQ.hideChaseStage === 'function') ZQ.hideChaseStage();
 
     rt.state = defaultState(seed);
     rt.world = window.World.generate(seed);
@@ -1155,6 +1267,9 @@
     bootMessage,
     worldLoadMessage,
     aspectInfo,
+    applyAspectLayout,
+    /* Старое имя оставлено как совместимый псевдоним: обрезки больше нет. */
+    applyAspectCrop: applyAspectLayout,
     checkAspectRatio,
     resetTransientMotion,
     knownItemId,
@@ -1175,18 +1290,19 @@
     initDivider,
     startNewGame,
     isTrialBlocking() {
-      return rt.termView === 'trial' || rt.termView === 'battle';
+      return rt.termView === 'trial' || Boolean(rt.trial && rt.trial.active);
     },
     isBattleBlocking() {
-      return Boolean(rt.battle) || rt.termView === 'battle';
+      /* Схватка и погоня идут прямо в мире и не блокируют вкладки. */
+      return false;
     },
     isPaused() {
       if (document.hidden) return true;
       /* Вкладки терминала — читаемые представления, а не модальные окна:
          инвентарь, карта, сюжет, настройки, музыка и стол не должны отбирать
-         управление у Zemic. Особые случаи — испытание и арена: это отдельные
-         режимы, которые действительно останавливают мир. */
-      return rt.termView === 'trial' || rt.termView === 'battle';
+         управление у Zemic. Схватка и погоня тоже живут в мире, поэтому
+         останавливает игру только испытание или скрытая вкладка. */
+      return rt.termView === 'trial';
     },
     resetKeys() {
       rt.keys = Object.create(null);

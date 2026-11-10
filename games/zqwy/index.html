@@ -44,19 +44,51 @@
           </div>
         </div>
 
-        <div id="battle-stage" class="battle-stage hidden" aria-label="Внезапное выживание аксолотля">
-          <canvas id="battle-canvas"></canvas>
-          <div class="battle-touch" aria-label="Управление под водой">
-            <div class="dpad">
-              <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Вверх">▲</button>
-              <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Влево">◀</button>
-              <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Вправо">▶</button>
-              <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Вниз">▼</button>
+        <div id="battle-stage" class="fight-hud battle-hud hidden" aria-label="Внезапное выживание аксолотля">
+          <div class="fight-top">
+            <span id="battle-eyebrow" class="fight-eyebrow">ВЫЖИВАНИЕ · АКСОЛОТЛЬ</span>
+            <button id="battle-abort" class="fight-abort" type="button">выйти</button>
+          </div>
+          <div class="fight-stats">
+            <span class="fight-stat"><span class="fight-label">жизни</span> <b id="battle-player-hp">6</b></span>
+            <span class="fight-stat"><span id="battle-enemy-name" class="fight-label">продержаться</span> <b id="battle-beetle-hp">18</b></span>
+          </div>
+          <div class="battle-bars">
+            <div class="battle-bar"><span id="battle-player-bar"></span></div>
+            <div class="battle-bar beetle"><span id="battle-beetle-bar"></span></div>
+          </div>
+          <div id="battle-hint" class="fight-hint">Продержись под водой. Shift или ПРОБЕЛ — рывок, F — зонт.</div>
+          <div id="battle-rhythm" class="battle-rhythm hidden" aria-label="Ритм зонта">
+            <div class="battle-rhythm-track">
+              <span id="battle-rhythm-beat" class="battle-rhythm-beat"></span>
             </div>
-            <div class="battle-touch-actions">
-              <button id="battle-dash-touch" class="round-action dash-action" type="button" aria-label="Рывок">⚡</button>
-              <button id="battle-reflect-touch" class="round-action reflect-action" type="button" aria-label="Раскрыть зонтик">☂</button>
-            </div>
+            <span id="battle-rhythm-combo" class="battle-rhythm-combo">ритм ×0</span>
+          </div>
+          <div class="fight-actions">
+            <span id="battle-dash-state" class="battle-reflect-state battle-dash-state">рывок: готов</span>
+            <span id="battle-reflect-state" class="battle-reflect-state">зонт: —</span>
+            <button id="battle-dash" class="fight-btn battle-dash" type="button">⚡ рывок · Shift</button>
+            <button id="battle-reflect" class="fight-btn battle-reflect" type="button" disabled>☂ зонт · F</button>
+            <button id="battle-dash-touch" class="fight-btn fight-touch dash-action" type="button" aria-label="Рывок">⚡</button>
+            <button id="battle-reflect-touch" class="fight-btn fight-touch reflect-action" type="button" aria-label="Раскрыть зонтик">☂</button>
+          </div>
+        </div>
+
+        <div id="chase-stage" class="fight-hud chase-hud hidden" aria-label="Погоня титанобоа">
+          <div class="fight-top">
+            <span class="fight-eyebrow">ПОБЕГ · ТИТАНОБОА</span>
+            <button id="chase-abort" class="fight-abort" type="button">сдаться</button>
+          </div>
+          <div class="fight-stats">
+            <span class="fight-stat"><span class="fight-label">вдохи</span> <b id="chase-breaths">3</b></span>
+            <span class="fight-stat"><span class="fight-label">дистанция</span> <b id="chase-time">0 м</b></span>
+          </div>
+          <div class="battle-bars">
+            <div class="battle-bar"><span id="chase-stamina-bar"></span></div>
+          </div>
+          <div id="chase-hint" class="fight-hint">Уходи. Змея не устанет — устанешь ты. Shift — рывок.</div>
+          <div class="fight-actions">
+            <button id="chase-dash-touch" class="fight-btn fight-touch dash-action" type="button" aria-label="Ускориться">⚡</button>
           </div>
         </div>
       </section>
@@ -91,9 +123,18 @@
                 <button class="close-btn" id="inventory-close" type="button" aria-label="Закрыть инвентарь">×</button>
               </div>
             </header>
+            <div id="inventory-slots" class="inventory-slots" aria-label="Ячейки инвентаря"></div>
             <div id="inventory-graph" class="inventory-graph">
-              <svg id="inventory-links" class="inventory-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
-              <div id="inventory-nodes" class="inventory-nodes"></div>
+              <div id="inventory-stage" class="inventory-stage">
+                <svg id="inventory-links" class="inventory-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+                <div id="inventory-nodes" class="inventory-nodes"></div>
+              </div>
+              <div class="inventory-zoom" data-no-pan>
+                <button id="inventory-zoom-out" class="mini-btn" type="button" aria-label="Отдалить инвентарь">−</button>
+                <span id="inventory-zoom-label" class="inventory-zoom-label">100%</span>
+                <button id="inventory-zoom-in" class="mini-btn" type="button" aria-label="Приблизить инвентарь">+</button>
+                <button id="inventory-zoom-reset" class="mini-btn" type="button" aria-label="Сбросить масштаб">1:1</button>
+              </div>
             </div>
             <div id="inventory-detail" class="inventory-detail"></div>
             <p id="inventory-note" class="sheet-note">Тяни узлы, чтобы разложить связи. Выбери предмет, чтобы открыть его действия.</p>
@@ -462,6 +503,15 @@
                   <button type="button" data-rate="150">очень быстро</button>
                 </div>
                 <p id="music-rate-note" class="setting-note-inline">Замедление и ускорение меняют темп воспроизведения без перезапуска трека.</p>
+                <div class="setting-head algorithm-head">
+                  <span id="music-algorithm-title">Алгоритм скорости</span>
+                  <b id="music-algorithm-current">темп</b>
+                </div>
+                <div id="music-algorithm-presets" class="setting-presets music-algorithm-presets">
+                  <button type="button" data-algorithm="tempo">темп</button>
+                  <button type="button" data-algorithm="pitch">высота</button>
+                  <button type="button" data-algorithm="drift">дрейф</button>
+                </div>
               </section>
 
               <button id="music-back" class="ghost-btn" type="button">← общие настройки</button>
@@ -480,30 +530,6 @@
               </div>
               <div id="trial-hint" class="trial-hint">Двигайся. Печать закроется — нажми ПРОБЕЛ.</div>
               <button id="trial-abort" class="ghost-btn trial-abort" type="button">покинуть круг</button>
-            </div>
-          </div>
-
-          <div id="view-battle" class="term-view hidden" aria-label="Внезапное выживание">
-            <div id="battle-console" class="trial-console">
-              <div class="trial-head">
-                <span id="battle-eyebrow" class="eyebrow">ВЫЖИВАНИЕ · АКСОЛОТЛЬ</span>
-              </div>
-              <div class="trial-hud battle-hud">
-                <div class="trial-stat"><span class="trial-label">жизни</span><b id="battle-player-hp">6</b></div>
-                <div class="trial-stat"><span id="battle-enemy-name" class="trial-label">продержаться</span><b id="battle-beetle-hp">18</b></div>
-              </div>
-              <div class="battle-bars">
-                <div class="battle-bar"><span id="battle-player-bar"></span></div>
-                <div class="battle-bar beetle"><span id="battle-beetle-bar"></span></div>
-              </div>
-              <div id="battle-hint" class="trial-hint">Продержись под водой. Shift или ПРОБЕЛ — рывок, F — зонт.</div>
-              <div class="battle-actions">
-                <span id="battle-dash-state" class="battle-reflect-state battle-dash-state">рывок: готов</span>
-                <span id="battle-reflect-state" class="battle-reflect-state">зонт: —</span>
-                <button id="battle-dash" class="ghost-btn battle-dash" type="button">⚡ рывок · Shift</button>
-                <button id="battle-reflect" class="ghost-btn battle-reflect" type="button" disabled>☂ зонт · F</button>
-                <button id="battle-abort" class="ghost-btn trial-abort" type="button">выбраться</button>
-              </div>
             </div>
           </div>
         </div>
@@ -525,6 +551,7 @@
   <script src="js/render.js"></script>
   <script src="js/core.js"></script>
   <script src="js/terminal.js"></script>
+  <script src="js/viewport.js"></script>
   <script src="js/story.js"></script>
   <script src="js/worldplay.js"></script>
   <script src="js/commands.js"></script>
@@ -533,6 +560,7 @@
   <script src="js/table.js"></script>
   <script src="js/trial.js"></script>
   <script src="js/battle.js"></script>
+  <script src="js/titanoboa.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/music.js"></script>
   <script src="js/input.js"></script>

@@ -885,14 +885,28 @@
       ? t('включена', 'on', 'an')
       : t('выключена', 'off', 'aus');
     if (dom.musicPlayerState) {
-      dom.musicPlayerState.textContent = state.enabled
-        ? (state.playing ? t('играет', 'playing', 'spielt') : t('пауза', 'paused', 'pausiert'))
-        : t('выключена', 'off', 'aus');
+      dom.musicPlayerState.textContent = !state.enabled
+        ? t('выключена', 'off', 'aus')
+        : state.stopped
+          ? t('остановлен', 'stopped', 'gestoppt')
+          : state.playing
+            ? t('играет', 'playing', 'spielt')
+            : t('пауза', 'paused', 'pausiert');
     }
     if (dom.musicToggle) {
-      dom.musicToggle.textContent = state.playing
-        ? t('пауза', 'pause', 'Pause')
-        : t('играть', 'play', 'Abspielen');
+      dom.musicToggle.textContent = state.playing ? '❚❚' : '▶';
+      dom.musicToggle.setAttribute(
+        'aria-label',
+        state.playing ? t('Пауза', 'Pause', 'Pause') : t('Играть', 'Play', 'Abspielen')
+      );
+      dom.musicToggle.title = state.playing
+        ? t('Пауза', 'Pause', 'Pause')
+        : t('Играть', 'Play', 'Abspielen');
+    }
+    if (dom.musicStop) {
+      dom.musicStop.textContent = '■';
+      dom.musicStop.setAttribute('aria-label', t('Стоп и в начало', 'Stop and rewind', 'Stopp und zurück'));
+      dom.musicStop.title = t('Стоп и в начало', 'Stop and rewind', 'Stopp und zurück');
     }
     if (dom.musicTime) {
       const total = Number.isFinite(state.duration) ? state.duration : 0;

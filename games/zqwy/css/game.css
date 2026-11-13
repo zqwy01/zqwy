@@ -904,47 +904,7 @@ button {
   color: var(--rust-bright);
 }
 
-.inventory-graph {
-  position: relative;
-  flex: 1;
-  min-height: 210px;
-  overflow: hidden;
-  border: 1px solid rgba(196, 204, 193, 0.12);
-  background:
-    radial-gradient(circle at 50% 45%, rgba(208, 118, 60, 0.05), transparent 62%),
-    linear-gradient(rgba(178, 189, 177, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(178, 189, 177, 0.035) 1px, transparent 1px),
-    #0a0e0f;
-  background-size: auto, 22px 22px, 22px 22px, auto;
-  touch-action: none;
-}
-
-.inventory-nodes {
-  position: absolute;
-  inset: 0;
-}
-
-.inventory-links {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.inventory-link {
-  stroke: rgba(196, 204, 193, 0.3);
-  stroke-width: 1.4;
-}
-
-.inventory-link.container {
-  stroke: rgba(229, 161, 104, 0.48);
-  stroke-dasharray: 5 4;
-}
-
-.inventory-nodes .inv-empty {
+.canvas-elements .inv-empty {
   position: absolute;
   inset: 0;
   display: grid;
@@ -966,7 +926,9 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
-  width: 152px;
+  width: max-content;
+  min-width: 152px;
+  max-width: 250px;
   padding: 6px;
   border: 1px solid rgba(196, 204, 193, 0.18);
   border-radius: 2px;
@@ -975,6 +937,7 @@ button {
   color: inherit;
   font: inherit;
   text-align: left;
+  white-space: normal;
   cursor: grab;
   transform: translate(-50%, -50%);
   user-select: none;
@@ -1055,21 +1018,72 @@ button {
   content: '';
 }
 
+/* Кассета — маленькая коробка с двумя катушками. Значок рисуется
+   стилями, поэтому десятки кассет не тянут за собой картинки. */
+.inv-node-thumb.player-thumb::after {
+  width: 22px;
+  height: 15px;
+  border: 1px solid rgba(229, 161, 104, 0.7);
+  border-radius: 2px;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(229, 161, 104, 0.85) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 70% 50%, rgba(229, 161, 104, 0.85) 0 2px, transparent 2.5px),
+    rgba(31, 24, 16, 0.9);
+  content: '';
+}
+
+.inv-node-thumb.cassette-thumb::after {
+  width: 20px;
+  height: 13px;
+  border: 1px solid rgba(196, 204, 193, 0.5);
+  border-radius: 2px;
+  background:
+    radial-gradient(circle at 32% 50%, rgba(154, 207, 198, 0.8) 0 1.7px, transparent 2.2px),
+    radial-gradient(circle at 68% 50%, rgba(154, 207, 198, 0.8) 0 1.7px, transparent 2.2px),
+    rgba(16, 22, 21, 0.9);
+  content: '';
+}
+
+/* Кассеты компактнее обычных предметов: их может быть много, а имя
+   альбома важнее иллюстрации. */
+.inv-node.cassette {
+  width: max-content;
+  min-width: 100px;
+  max-width: 150px;
+  gap: 5px;
+  padding: 5px 7px;
+  border-left: 2px solid rgba(154, 207, 198, 0.45);
+}
+
+.inv-node.cassette .inv-node-thumb {
+  display: none;
+}
+
+.inv-node.cassette .inv-node-name {
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+
+.inv-node.cassette .inv-node-sub {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
 .inv-node-copy {
   display: flex;
   min-width: 0;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 2px;
 }
 
 .inv-node-name {
-  overflow: hidden;
   color: #e7dfcd;
   font-size: var(--fs-sm);
   font-weight: 700;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .inv-node-sub {
@@ -1284,48 +1298,6 @@ button {
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.canvas-workspace {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid rgba(196, 204, 193, 0.15);
-  background:
-    radial-gradient(circle at 50% 50%, rgba(34, 43, 41, 0.28), transparent 70%),
-    #0a0e0f;
-  cursor: grab;
-  touch-action: none;
-}
-
-.canvas-workspace.panning {
-  cursor: grabbing;
-}
-
-.canvas-grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(178, 189, 177, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(178, 189, 177, 0.04) 1px, transparent 1px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(circle at center, #000 30%, transparent 90%);
-}
-
-.canvas-grid::after {
-  position: absolute;
-  inset: 0;
-  content: '';
-  background:
-    linear-gradient(90deg, transparent 49.8%, rgba(208, 118, 60, 0.08) 50%, transparent 50.2%),
-    linear-gradient(transparent 49.8%, rgba(208, 118, 60, 0.08) 50%, transparent 50.2%);
-}
-
-.canvas-elements {
-  position: absolute;
-  inset: 0;
 }
 
 .canvas-empty {
@@ -2033,53 +2005,6 @@ body.split-dragging {
   row-gap: 4px;
 }
 
-.canvas-zoom {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-}
-
-.zoom-btn {
-  display: inline-grid;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 5px;
-  place-items: center;
-  border: 1px solid rgba(196, 204, 193, 0.2);
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.025);
-  color: rgba(222, 218, 203, 0.75);
-  font-size: var(--fs-md);
-  line-height: 1;
-}
-
-.zoom-btn:hover,
-.zoom-btn:focus-visible {
-  border-color: rgba(229, 161, 104, 0.55);
-  color: #f2e6d4;
-  outline: none;
-}
-
-.zoom-value {
-  min-width: 44px;
-  font-size: var(--fs-xs);
-  letter-spacing: 0.04em;
-}
-
-.canvas-stage {
-  position: absolute;
-  inset: 0;
-  transform-origin: 50% 50%;
-  will-change: transform;
-}
-
-.canvas-stage .canvas-grid,
-.canvas-stage .canvas-elements {
-  position: absolute;
-  inset: 0;
-}
-
 #view-canvas .canvas-workspace {
   flex: 1;
   min-height: 0;
@@ -2655,6 +2580,15 @@ body.split-dragging {
   overflow-y: auto;
 }
 
+/* Плеер длиннее терминала: библиотека кассет должна прокручиваться
+   колесом, а не обрезаться нижней границей представления. */
+#view-music {
+  gap: 8px;
+  padding-bottom: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 #view-settings .sheet-head {
   flex: 0 0 auto;
 }
@@ -3178,7 +3112,7 @@ body.split-dragging {
   }
 
   .inv-node {
-    width: 136px;
+    min-width: 136px;
   }
 
   .canvas-zoom {
@@ -3375,6 +3309,68 @@ body.split-dragging {
   font-size: var(--fs-xs);
 }
 
+.music-controls {
+  align-items: center;
+}
+
+.music-symbol {
+  display: inline-grid;
+  width: 42px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  color: #f0e5d2;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.music-symbol:hover,
+.music-symbol:focus-visible {
+  border-color: rgba(229, 161, 104, 0.6);
+  color: var(--rust-bright);
+}
+
+.music-picker {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: rgba(168, 174, 160, 0.66);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.05em;
+}
+
+.music-select {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid rgba(196, 204, 193, 0.2);
+  border-radius: 2px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: #efe9da;
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+}
+
+.music-select:focus-visible {
+  border-color: rgba(229, 161, 104, 0.6);
+}
+
+.music-library .setting-head b {
+  min-width: 28px;
+  padding: 2px 6px;
+  border: 1px solid rgba(196, 204, 193, 0.18);
+  border-radius: 2px;
+  color: var(--rust-bright);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.music-library {
+  gap: 7px;
+}
+
 .music-seek {
   width: 100%;
   height: 18px;
@@ -3456,57 +3452,6 @@ body.split-dragging {
 /* ------------------------------------------------------------------ */
 /* Стол: связи, бесконечная сетка и движение                           */
 /* ------------------------------------------------------------------ */
-
-.canvas-stage .canvas-grid {
-  inset: 0;
-  background-size: 22px 22px;
-  mask-image: none;
-  -webkit-mask-image: none;
-}
-
-.canvas-stage .canvas-grid::after {
-  display: none;
-}
-
-.canvas-links {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.canvas-links .link-arrow {
-  stroke: rgba(229, 161, 104, 0.55);
-  stroke-width: 1.4;
-  fill: none;
-}
-
-.canvas-links .link-arrow.selected {
-  stroke: var(--rust-bright);
-  stroke-width: 2;
-}
-
-.canvas-links .link-dot {
-  fill: rgba(229, 161, 104, 0.75);
-}
-
-.canvas-links .link-key {
-  fill: rgba(244, 215, 183, 0.92);
-  font-family: var(--font);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  paint-order: stroke;
-  stroke: rgba(8, 11, 12, 0.9);
-  stroke-width: 2.5px;
-}
-
-.canvas-elements {
-  z-index: 1;
-}
 
 /* ------------------------------------------------------------------ */
 /* Стол: интерактивная клавиатура                                      */

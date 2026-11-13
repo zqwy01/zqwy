@@ -113,6 +113,9 @@
     musicAlgorithmPresets: $('music-algorithm-presets'),
     musicAlgorithmCurrent: $('music-algorithm-current'),
     musicWave: $('music-wave'),
+    musicAlbum: $('music-album'),
+    musicTrack: $('music-track'),
+    musicLibraryCount: $('music-library-count'),
     musicState: $('music-state'),
     musicPlayerState: $('music-player-state'),
     dataSave: $('data-save'),
@@ -175,6 +178,8 @@
 
     inventoryView: $('view-inventory'),
     inventoryGraph: $('inventory-graph'),
+    inventoryGrid: $('inventory-grid'),
+    inventoryStage: $('inventory-stage'),
     inventoryNodes: $('inventory-nodes'),
     inventoryLinks: $('inventory-links'),
     inventorySlots: $('inventory-slots'),
@@ -389,9 +394,11 @@
          Кассеты лежат внутри него и не занимают отдельные ячейки. */
       items: ['music_player'],
       backpacks: [],
-      cassettes: ['forest'],
+      cassettes: Object.keys((C.music && C.music.tracks) || {}),
       activeCassette: 'forest',
       mapMarks: [],
+      inventoryPositions: {},
+      inventoryLayout: 0,
       canvasElements: [],
       canvasLayouts: {},
       storySeen: {},
@@ -479,8 +486,8 @@
       /* Старые сохранения хранили клавишу на самом элементе. Поле
          переносится в отдельный элемент-клавишу при загрузке. */
       legacyKey: typeof raw.key === 'string' ? raw.key : null,
-      nx: Number.isFinite(raw.nx) ? clamp(raw.nx, 0, 1) : 0.5,
-      ny: Number.isFinite(raw.ny) ? clamp(raw.ny, 0, 1) : 0.5,
+      nx: Number.isFinite(raw.nx) ? raw.nx : 0.5,
+      ny: Number.isFinite(raw.ny) ? raw.ny : 0.5,
       commands: Array.isArray(raw.commands)
         ? raw.commands.filter((c) => typeof c === 'string')
         : null,
@@ -543,6 +550,8 @@
       cassettes: Array.isArray(state.cassettes) ? state.cassettes : [],
       activeCassette: state.activeCassette || 'forest',
       mapMarks: state.mapMarks,
+      inventoryPositions: state.inventoryPositions || {},
+      inventoryLayout: Number.isFinite(state.inventoryLayout) ? state.inventoryLayout : 0,
       canvasElements: state.canvasElements,
       canvasLayouts: state.canvasLayouts || {},
       storySeen: state.storySeen,
@@ -939,15 +948,36 @@
       state.mapMarks = saved.mapMarks.filter((id) => typeof id === 'string');
     }
     if (Array.isArray(saved.cassettes)) {
+      const tracks = (C.music && C.music.tracks) || {};
       state.cassettes = saved.cassettes.filter((id) =>
-        id === 'forest' || id === 'umbrella' || id === 'gall'
+        typeof id === 'string' && Object.prototype.hasOwnProperty.call(tracks, id)
       );
+    }
+    /* Каталог треков подключается целиком: новые альбомы и дорожки,
+       найденные сканером, становятся доступны в плеере без правки
+       сохранения вручную. */
+    const knownTracks = Object.keys((C.music && C.music.tracks) || {});
+    for (const trackId of knownTracks) {
+      if (!state.cassettes.includes(trackId)) state.cassettes.push(trackId);
     }
     if (!state.cassettes.includes('forest')) state.cassettes.unshift('forest');
     state.activeCassette = typeof saved.activeCassette === 'string' &&
       state.cassettes.includes(saved.activeCassette)
       ? saved.activeCassette
       : 'forest';
+    if (saved.inventoryPositions && typeof saved.inventoryPositions === 'object') {
+      for (const id of Object.keys(saved.inventoryPositions)) {
+        const entry = saved.inventoryPositions[id];
+        if (!entry || !Number.isFinite(entry.nx) || !Number.isFinite(entry.ny)) continue;
+        state.inventoryPositions[id] = {
+          nx: entry.nx,
+          ny: entry.ny
+        };
+      }
+    }
+    state.inventoryLayout = Number.isFinite(saved.inventoryLayout)
+      ? saved.inventoryLayout
+      : 0;
     if (Array.isArray(saved.canvasElements)) {
       state.canvasElements = saved.canvasElements
         .map(normalizeCanvasElement)

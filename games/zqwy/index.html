@@ -8,6 +8,7 @@
   <title>Лабиринт сознаний · Zemic</title>
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/canvas.css">
 </head>
 <body>
   <div id="stage">
@@ -124,16 +125,16 @@
               </div>
             </header>
             <div id="inventory-slots" class="inventory-slots" aria-label="Ячейки инвентаря"></div>
-            <div id="inventory-graph" class="inventory-graph">
-              <div id="inventory-stage" class="inventory-stage">
-                <svg id="inventory-links" class="inventory-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
-                <div id="inventory-nodes" class="inventory-nodes"></div>
+            <div id="inventory-graph" class="canvas-workspace inventory-workspace">
+              <div id="inventory-grid" class="canvas-grid" aria-hidden="true"></div>
+              <div id="inventory-stage" class="canvas-stage">
+                <svg id="inventory-links" class="canvas-links" aria-hidden="true"></svg>
+                <div id="inventory-nodes" class="canvas-elements"></div>
               </div>
-              <div class="inventory-zoom" data-no-pan>
-                <button id="inventory-zoom-out" class="mini-btn" type="button" aria-label="Отдалить инвентарь">−</button>
-                <span id="inventory-zoom-label" class="inventory-zoom-label">100%</span>
-                <button id="inventory-zoom-in" class="mini-btn" type="button" aria-label="Приблизить инвентарь">+</button>
-                <button id="inventory-zoom-reset" class="mini-btn" type="button" aria-label="Сбросить масштаб">1:1</button>
+              <div class="canvas-zoom inventory-zoom" data-no-pan>
+                <button id="inventory-zoom-out" class="zoom-btn" type="button" aria-label="Отдалить инвентарь">−</button>
+                <button id="inventory-zoom-reset" class="zoom-btn zoom-value" type="button" aria-label="Сбросить масштаб"><span id="inventory-zoom-label">100%</span></button>
+                <button id="inventory-zoom-in" class="zoom-btn" type="button" aria-label="Приблизить инвентарь">+</button>
               </div>
             </div>
             <div id="inventory-detail" class="inventory-detail"></div>
@@ -472,9 +473,25 @@
                 <input id="music-seek" class="music-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
                 <p class="setting-note-inline music-seek-note">Волна показывает весь трек. Нажми на неё или веди ползунок, чтобы перейти в любую точку.</p>
                 <div class="music-controls">
-                  <button id="music-toggle" class="ghost-btn" type="button">играть</button>
-                  <button id="music-stop" class="ghost-btn" type="button">стоп</button>
+                  <button id="music-toggle" class="ghost-btn music-symbol" type="button" aria-label="Играть" title="Играть">▶</button>
+                  <button id="music-stop" class="ghost-btn music-symbol" type="button" aria-label="Стоп и в начало" title="Стоп и в начало">■</button>
                 </div>
+              </section>
+
+              <section class="setting-group music-library">
+                <div class="setting-head">
+                  <span id="music-library-title">Кассеты</span>
+                  <b id="music-library-count">0</b>
+                </div>
+                <label class="music-picker">
+                  <span>альбом</span>
+                  <select id="music-album" class="music-select" aria-label="Кассета или альбом"></select>
+                </label>
+                <label class="music-picker">
+                  <span>дорожка</span>
+                  <select id="music-track" class="music-select" aria-label="Дорожка кассеты"></select>
+                </label>
+                <p class="setting-note-inline" id="music-library-note">Все найденные альбомы подключаются автоматически. Выбери дорожку — она сразу зазвучит.</p>
               </section>
 
               <section class="setting-group music-volume-group">
@@ -544,6 +561,7 @@
   </noscript>
 
   <script src="js/build-info.js"></script>
+  <script src="js/tracks.generated.js"></script>
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/fonts.js"></script>
@@ -552,6 +570,7 @@
   <script src="js/core.js"></script>
   <script src="js/terminal.js"></script>
   <script src="js/viewport.js"></script>
+  <script src="js/canvas.js"></script>
   <script src="js/story.js"></script>
   <script src="js/worldplay.js"></script>
   <script src="js/commands.js"></script>

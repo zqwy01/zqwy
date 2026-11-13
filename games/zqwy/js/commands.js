@@ -38,9 +38,10 @@
     delete: 'удалить',
     language: 'язык',
     music: 'музыка',
+    player: 'плеер',
     clear: 'очисти',
     'new game': 'новая игра',
-    backpack: 'инвентарь',
+    backpack: 'рюкзак',
     inventory: 'инвентарь',
     layouts: 'макеты',
     map: 'карта',
@@ -69,7 +70,7 @@
     exportieren: 'экспорт',
     tabelle: 'стол',
     karte: 'карта',
-    rucksack: 'инвентарь',
+    rucksack: 'рюкзак',
     inventar: 'инвентарь',
     geschichte: 'сюжет',
     protokoll: 'логгирование',
@@ -153,9 +154,10 @@
   function commandGroup(name) {
     const needle = String(name || '').trim().toLowerCase();
     if (!needle) return null;
+    const alias = ['музыка', 'music', 'musik'].includes(needle) ? 'плеер' : needle;
     return C.terminal.helpGroups.find((group) =>
-      String(group.id).toLowerCase() === needle ||
-      String(group.title).toLowerCase() === needle
+      String(group.id).toLowerCase() === alias ||
+      String(group.title).toLowerCase() === alias
     ) || null;
   }
 
@@ -680,7 +682,7 @@
       reply = ZQ.stopMovement();
     } else if (cmd === 'осмотреться') {
       reply = ZQ.currentRoomDescription();
-    } else if (cmd === 'инвентарь' || cmd === 'рюкзак') {
+    } else if (cmd === 'инвентарь') {
       if (!ZQ.hasUnlock('backpack')) {
         reply = ZQ.denyLocked('backpack');
       } else if (rt.termView === 'inventory') {
@@ -692,6 +694,10 @@
           : ZQ.inventorySummary();
         if (source === 'terminal') ZQ.openInventory();
       }
+    } else if (cmd === 'рюкзак') {
+      reply = typeof ZQ.backpackReport === 'function'
+        ? ZQ.backpackReport()
+        : ZQ.inventorySummary();
     } else if (cmd === 'карта') {
       if (!ZQ.hasUnlock('map')) {
         reply = ZQ.denyLocked('map');
@@ -798,21 +804,13 @@
     } else if (cmd === 'язык' || cmd.startsWith('язык ')) {
       reply = languageCommand(cmd.replace(/^язык\s*/, ''));
       replyInstant = true;
-    } else if (cmd === 'музыка') {
-      if (source === 'terminal') {
-        if (rt.termView === 'music') {
-          ZQ.closeMusic();
-          reply = t('Плеер закрыт.', 'The player is closed.');
-        } else {
-          ZQ.openMusic();
-          reply = '';
-        }
+    } else if (cmd === 'плеер' || cmd === 'музыка') {
+      if (rt.termView === 'music' && source === 'terminal') {
+        ZQ.closeMusic();
+        reply = t('Плеер закрыт.', 'The player is closed.');
       } else {
-        reply = t(
-          'Музыкальный плеер открывается из основной вкладки терминала командой «музыка».',
-          'The music player opens from the main terminal tab with the “music” command.',
-          'Der Musikplayer öffnet sich in der Hauptregisterkarte des Terminals mit dem Befehl „musik“.'
-        );
+        ZQ.openMusic();
+        reply = '';
       }
     } else if (cmd === 'сохранить') {
       const ok = ZQ.saveWorld(false);

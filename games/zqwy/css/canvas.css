@@ -1,0 +1,197 @@
+/* Единая канва ZQwy. Стили не зависят от конкретного модуля:
+   рабочая поверхность, сетка, сцена, связи и масштаб одинаковы
+   для стола, инвентаря и будущих холстов.
+
+   Разметка модуля:
+     <div class="canvas-workspace">
+       <div class="canvas-grid"></div>
+       <div class="canvas-stage">
+         <svg class="canvas-links"></svg>
+         <div class="canvas-elements">…узлы…</div>
+       </div>
+     </div>                                                            */
+
+.canvas-workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(196, 204, 193, 0.15);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(34, 43, 41, 0.28), transparent 70%),
+    #0a0e0f;
+  cursor: grab;
+  touch-action: none;
+}
+
+.canvas-workspace.panning {
+  cursor: grabbing;
+}
+
+.canvas-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(178, 189, 177, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(178, 189, 177, 0.04) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(circle at center, #000 30%, transparent 90%);
+}
+
+.canvas-grid::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background:
+    linear-gradient(90deg, transparent 49.8%, rgba(208, 118, 60, 0.08) 50%, transparent 50.2%),
+    linear-gradient(transparent 49.8%, rgba(208, 118, 60, 0.08) 50%, transparent 50.2%);
+}
+
+.canvas-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.canvas-stage .canvas-grid,
+.canvas-stage .canvas-elements {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-elements {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.canvas-links {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-zoom {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.zoom-btn {
+  display: inline-grid;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  place-items: center;
+  border: 1px solid rgba(196, 204, 193, 0.2);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(222, 218, 203, 0.75);
+  font-size: var(--fs-md);
+  line-height: 1;
+}
+
+.zoom-btn:hover,
+.zoom-btn:focus-visible {
+  border-color: rgba(229, 161, 104, 0.55);
+  color: #f2e6d4;
+  outline: none;
+}
+
+.zoom-value {
+  min-width: 44px;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+}
+
+/* Сцена стола: сетка живёт прямо в сцене и движется вместе с ней. */
+.canvas-stage .canvas-grid {
+  inset: 0;
+  background-size: 22px 22px;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.canvas-stage .canvas-grid::after {
+  display: none;
+}
+
+/* Связи-клавиши стола. */
+.canvas-links .link-arrow {
+  stroke: rgba(229, 161, 104, 0.55);
+  stroke-width: 1.4;
+  fill: none;
+}
+
+.canvas-links .link-arrow.selected {
+  stroke: var(--rust-bright);
+  stroke-width: 2;
+}
+
+.canvas-links .link-head {
+  fill: rgba(229, 161, 104, 0.62);
+}
+
+.canvas-links .link-head.selected {
+  fill: var(--rust-bright);
+}
+
+.canvas-links .link-dot {
+  fill: rgba(229, 161, 104, 0.75);
+}
+
+.canvas-links .link-key {
+  fill: rgba(244, 215, 183, 0.92);
+  font-family: var(--font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  paint-order: stroke;
+  stroke: rgba(8, 11, 12, 0.9);
+  stroke-width: 2.5px;
+}
+
+/* Инвентарь использует ту же канву, но со своей палитрой связей. */
+.inventory-workspace {
+  min-height: 210px;
+  border-color: rgba(196, 204, 193, 0.12);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(208, 118, 60, 0.05), transparent 62%),
+    #0a0e0f;
+}
+
+.inventory-workspace .canvas-grid {
+  background-image:
+    linear-gradient(rgba(178, 189, 177, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(178, 189, 177, 0.035) 1px, transparent 1px);
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.inventory-workspace .canvas-grid::after {
+  display: none;
+}
+
+.inventory-links .inventory-link {
+  stroke: rgba(196, 204, 193, 0.3);
+  stroke-width: 1.4;
+}
+
+.inventory-links .inventory-link.container {
+  stroke: rgba(229, 161, 104, 0.48);
+  stroke-dasharray: 5 4;
+}
+
+.inventory-links .inventory-link.cassette {
+  stroke: rgba(229, 161, 104, 0.62);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}

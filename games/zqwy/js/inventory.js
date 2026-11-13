@@ -27,9 +27,14 @@
 
   function graphIds() {
     if (!rt.state) return [];
-    return rt.state.items
-      .filter((id) => C.items[id])
-      .concat(cassetteIds().filter((id) => !rt.state.items.includes(id)));
+    const ids = rt.state.items.filter((id) => C.items[id]);
+    /* Рюкзак — не ячейка и не команда «инвентарь», а отдельный узел:
+       он показывает, что именно переносится и сколько ячеек занято. */
+    if (ZQ.hasUnlock && ZQ.hasUnlock('backpack') && C.items.backpack &&
+        !ids.includes('backpack')) {
+      ids.push('backpack');
+    }
+    return ids.concat(cassetteIds().filter((id) => !ids.includes(id)));
   }
 
   function presentId(id) {
@@ -42,42 +47,90 @@
     return presentId(id) ? id : null;
   }
 
-  function ensurePositions(ids) {
-    const positions = rt.inventoryPositions;
-    if (!positions) {
-      rt.inventoryPositions = Object.create(null);
-      return ensurePositions(ids);
+  function positions() {
+    if (!rt.state) return Object.create(null);
+    if (!rt.state.inventoryPositions || typeof rt.state.inventoryPositions !== 'object') {
+      rt.state.inventoryPositions = Object.create(null);
     }
-    const missing = ids.filter((id) => !positions[id]);
-    if (!missing.length) return;
-    const items = rt.state.items.filter((id) => C.items[id]);
-    const total = Math.max(ids.length, 1);
-    for (const id of missing) {
-      /* Кассеты раскладываются вокруг проигрывателя, а не по общему
-         кругу: так видна иерархия «инвентарь → плеер → кассета». */
-      const owner = items.includes('music_player') &&
-        id !== 'music_player' && C.items[id].kind === 'cassette'
-        ? positions.music_player || { nx: 0.5, ny: 0.5 }
-        : null;
-      const index = ids.indexOf(id);
-      const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
-      const radius = total <= 1 ? 0 : 0.3;
-      const nx = owner
-        ? owner.nx + Math.cos(angle) * 0.2
-        : 0.5 + Math.cos(angle) * radius;
-      const ny = owner
-        ? owner.ny + Math.sin(angle) * 0.16
-        : 0.5 + Math.sin(angle) * radius * 0.92;
-      positions[id] = {
-        nx: ZQ.clamp(nx, 0.08, 0.92),
-        ny: ZQ.clamp(ny, 0.1, 0.9)
+    return rt.state.inventoryPositions;
+  }
+
+  const INVENTORY_LAYOUT = 2;
+
+  /* Раскладка разделяет зоны: слева обычные предметы и рюкзак,
+     в центре проигрыватель, справа сетка кассет. Так кассеты не
+     накрывают остальные предметы, а связи плеер → кассета видны. */
+  function layoutSnapshot(ids) {
+    const result = Object.create(null);
+    const cassette = (id) => C.items[id] && C.items[id].kind === 'cassette';
+    const cassettes = ids.filter(cassette);
+    const regular = ids.filter((id) => !cassette(id));
+    const player = regular.includes('music_player') ? 'music_player' : null;
+    const others = regular.filter((id) => id !== player);
+    /* Обычные предметы занимают две колонки слева. Строки
+       распределяются по высоте целиком, поэтому при стартовом
+       наборе все они видны без прокрутки, а не прячутся под
+       нижней границей. */
+    const columns = 2;
+    const rows = Math.max(1, Math.ceil(others.length / columns));
+    const leftX = 0.1;
+    const leftDX = 0.17;
+    const topY = rows === 1 ? 0.5 : 0.16;
+    const bottomY = rows === 1 ? 0.5 : 0.84;
+    others.forEach((id, index) => {
+      const col = Math.floor(index / rows);
+      const row = index % rows;
+      result[id] = {
+        nx: leftX + col * leftDX,
+        ny: topY + (bottomY - topY) * (row / Math.max(1, rows - 1))
       };
+    });
+    if (player) {
+      const usedColumns = Math.max(1, Math.ceil(others.length / rows));
+      result[player] = {
+        nx: Math.min(0.44, leftX + usedColumns * leftDX),
+        ny: 0.5
+      };
+    }
+    const cols = 4;
+    const startX = 0.56;
+    const startY = 0.1;
+    const dx = 0.116;
+    const dy = 0.25;
+    cassettes.forEach((id, index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      result[id] = {
+        nx: startX + col * dx,
+        ny: startY + row * dy
+      };
+    });
+    return result;
+  }
+
+  function ensurePositions(ids) {
+    const store = positions();
+    const desired = layoutSnapshot(ids);
+    if (rt.state.inventoryLayout !== INVENTORY_LAYOUT) {
+      /* Патч 11 раскладывал кассеты спиралью поверх предметов.
+         Один раз переносим всё на новую раскладку, дальше позиции
+         остаются за игроком. */
+      for (const key of Object.keys(store)) delete store[key];
+      for (const id of ids) {
+        if (desired[id]) store[id] = desired[id];
+      }
+      rt.state.inventoryLayout = INVENTORY_LAYOUT;
+      if (typeof ZQ.saveGame === 'function') ZQ.saveGame();
+      return;
+    }
+    for (const id of ids) {
+      if (!store[id] && desired[id]) store[id] = desired[id];
     }
   }
 
   function positionFor(id) {
-    const positions = rt.inventoryPositions || {};
-    return positions[id] || { nx: 0.5, ny: 0.5 };
+    const store = positions();
+    return store[id] || { nx: 0.5, ny: 0.5 };
   }
 
   function placeNode(node, id) {
@@ -126,7 +179,14 @@
       add(link.from, link.to, link.label, 'item');
     }
     if (present.has('backpack')) {
-      for (const id of ids) add('backpack', id, 'вмещает', 'container');
+      /* Кассеты висят на проигрывателе, а не напрямую на рюкзаке:
+         иначе десятки линий закрывают всю схему. */
+      const hasPlayer = present.has('music_player');
+      for (const id of ids) {
+        if (id === 'backpack') continue;
+        if (hasPlayer && C.items[id] && C.items[id].kind === 'cassette') continue;
+        add('backpack', id, 'вмещает', 'container');
+      }
     }
     if (present.has('music_player')) {
       for (const id of cassetteIds()) add('music_player', id, 'кассета', 'cassette');
@@ -136,8 +196,14 @@
 
   function drawLinks(ids) {
     if (!dom.inventoryLinks) return;
+    const edges = edgePairs(ids);
+    const canvas = getInventoryCanvas();
+    if (canvas) {
+      canvas.drawLinks(edges, positionFor, { className: 'inventory-link' });
+      return;
+    }
     dom.inventoryLinks.textContent = '';
-    for (const edge of edgePairs(ids)) {
+    for (const edge of edges) {
       const a = positionFor(edge.from);
       const b = positionFor(edge.to);
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -214,13 +280,20 @@
       } else {
         for (const cassetteId of cassettes) {
           const cassette = C.items[cassetteId];
+          const album = cassette.album && C.music.albums
+            ? C.music.albums[cassette.album]
+            : null;
+          const albumTracks = album && Array.isArray(album.tracks)
+            ? album.tracks
+            : [cassette.trackId];
           const chip = makeButton(cassette.name.replace(/^Кассета · /, ''), 'inventory-chip cassette-chip', () => {
             if (ZQ.audio && typeof ZQ.audio.playCassette === 'function') {
               ZQ.audio.playCassette(cassette.trackId);
               renderDetail(ids);
             }
           });
-          if (rt.state.activeCassette === cassette.trackId) chip.classList.add('active');
+          if (albumTracks.includes(rt.state.activeCassette)) chip.classList.add('active');
+          chip.title = `${cassette.name} · дорожек: ${albumTracks.length}`;
           row.appendChild(chip);
         }
       }
@@ -329,25 +402,60 @@
     }
   }
 
+  let inventoryCanvas = null;
+
+  function getInventoryCanvas() {
+    if (inventoryCanvas || !ZQ.Canvas) return inventoryCanvas;
+    inventoryCanvas = ZQ.Canvas.create({
+      surface: dom.inventoryGraph,
+      stage: dom.inventoryStage,
+      grid: dom.inventoryGrid,
+      links: dom.inventoryLinks,
+      elements: dom.inventoryNodes,
+      get: () => ({
+        zoom: rt.inventoryZoom,
+        panX: rt.inventoryPanX,
+        panY: rt.inventoryPanY
+      }),
+      set: (view) => {
+        rt.inventoryZoom = ZQ.Canvas.clampZoom(view.zoom);
+        rt.inventoryPanX = view.panX;
+        rt.inventoryPanY = view.panY;
+      },
+      onChange: () => {
+        if (dom.inventoryZoomLabel) {
+          dom.inventoryZoomLabel.textContent = `${Math.round(rt.inventoryZoom * 100)}%`;
+        }
+      },
+      canStart: (event) => {
+        if (event.target.closest('.inv-node')) return false;
+        if (event.target.closest('.canvas-zoom')) return false;
+        return true;
+      }
+    });
+    return inventoryCanvas;
+  }
+
   function applyInventoryTransform() {
-    if (!dom.inventoryStage) return;
-    if (ZQ.Viewport) {
+    const canvas = getInventoryCanvas();
+    if (canvas) canvas.apply();
+    else if (dom.inventoryStage && ZQ.Viewport) {
       ZQ.Viewport.applyTransform(dom.inventoryStage, {
         zoom: rt.inventoryZoom,
         panX: rt.inventoryPanX,
         panY: rt.inventoryPanY
       });
     }
-    if (dom.inventoryZoomLabel) {
-      dom.inventoryZoomLabel.textContent = `${Math.round(rt.inventoryZoom * 100)}%`;
-    }
   }
 
   function setInventoryZoom(value, announce) {
-    rt.inventoryZoom = ZQ.Viewport
-      ? ZQ.Viewport.clampZoom(value)
-      : ZQ.clamp(value, 0.18, 3.2);
-    applyInventoryTransform();
+    const canvas = getInventoryCanvas();
+    if (canvas) {
+      canvas.setZoom(value, announce);
+    } else {
+      rt.inventoryZoom = ZQ.clamp(value, 0.18, 3.2);
+      applyInventoryTransform();
+    }
     if (announce) {
       ZQ.appendLog(
         `Масштаб инвентаря: ${Math.round(rt.inventoryZoom * 100)}%.`,
@@ -358,10 +466,16 @@
   }
 
   function resetInventoryView() {
-    rt.inventoryZoom = 1;
-    rt.inventoryPanX = 0;
-    rt.inventoryPanY = 0;
-    applyInventoryTransform();
+    const canvas = getInventoryCanvas();
+    if (canvas) {
+      canvas.set({ zoom: 1, panX: 0, panY: 0 });
+      applyInventoryTransform();
+    } else {
+      rt.inventoryZoom = 1;
+      rt.inventoryPanX = 0;
+      rt.inventoryPanY = 0;
+      applyInventoryTransform();
+    }
   }
 
   function selectItem(id) {
@@ -375,61 +489,20 @@
   }
 
   function bindNodeDrag(node, id) {
-    node.addEventListener('pointerdown', (event) => {
-      if (event.button !== undefined && event.button !== 0) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const graph = dom.inventoryGraph;
-      if (!graph) return;
-      const rect = graph.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const start = positionFor(id);
-      const zoom = rt.inventoryZoom || 1;
-      const drag = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        nx: start.nx,
-        ny: start.ny,
-        moved: false
-      };
-      try {
-        node.setPointerCapture(event.pointerId);
-      } catch (error) {
-        /* capture не обязателен */
+    const canvas = getInventoryCanvas();
+    const store = positions();
+    if (!store[id]) store[id] = { nx: 0.5, ny: 0.5 };
+    if (!canvas) return;
+    canvas.bindNodeDrag(node, store[id], {
+      onMove: () => drawLinks(graphIds()),
+      onEnd: (moved) => {
+        if (moved) {
+          ZQ.saveGame();
+          drawLinks(graphIds());
+          return;
+        }
+        selectItem(id);
       }
-      const move = (moveEvent) => {
-        if (!drag || moveEvent.pointerId !== drag.pointerId) return;
-        const dx = moveEvent.clientX - drag.startX;
-        const dy = moveEvent.clientY - drag.startY;
-        if (!drag.moved && Math.hypot(dx, dy) > 3) {
-          drag.moved = true;
-          node.classList.add('dragging');
-        }
-        if (!drag.moved) return;
-        moveEvent.preventDefault();
-        const nx = ZQ.clamp(drag.nx + dx / (rect.width * zoom), 0.06, 0.94);
-        const ny = ZQ.clamp(drag.ny + dy / (rect.height * zoom), 0.08, 0.92);
-        rt.inventoryPositions[id] = { nx, ny };
-        placeNode(node, id);
-        drawLinks(graphIds());
-      };
-      const finish = (finishEvent) => {
-        if (finishEvent.pointerId !== drag.pointerId) return;
-        node.removeEventListener('pointermove', move);
-        node.removeEventListener('pointerup', finish);
-        node.removeEventListener('pointercancel', finish);
-        node.classList.remove('dragging');
-        if (!drag.moved) selectItem(id);
-        try {
-          node.releasePointerCapture(finishEvent.pointerId);
-        } catch (error) {
-          /* ignored */
-        }
-      };
-      node.addEventListener('pointermove', move);
-      node.addEventListener('pointerup', finish);
-      node.addEventListener('pointercancel', finish);
     });
   }
 
@@ -466,7 +539,9 @@
       copy.className = 'inv-node-copy';
       const name = document.createElement('span');
       name.className = 'inv-node-name';
-      name.textContent = item.name;
+      name.textContent = item.kind === 'cassette'
+        ? item.name.replace(/^Кассета · /, '')
+        : item.name;
       copy.appendChild(name);
       const sub = document.createElement('span');
       sub.className = 'inv-node-sub';
@@ -474,6 +549,9 @@
         sub.textContent = `+${item.slotBonus} ячеек`;
       } else if (item.kind === 'player') {
         sub.textContent = `кассет: ${cassetteIds().length}`;
+      } else if (item.kind === 'cassette') {
+        const album = item.album && C.music.albums ? C.music.albums[item.album] : null;
+        sub.textContent = `дорожек: ${album && Array.isArray(album.tracks) ? album.tracks.length : 1}`;
       } else if (item.command) {
         sub.textContent = `> ${item.command}`;
       } else {
@@ -541,6 +619,42 @@
     return lines.join('\n');
   }
 
+  /* «Рюкзак» — это отчёт о вещи и её состоянии, а не команда открытия
+     инвентаря. Инвентарь открывается отдельной командой «инвентарь». */
+  function backpackReport() {
+    if (!rt.state) return '';
+    if (!ZQ.hasUnlock('backpack')) return ZQ.denyLocked('backpack');
+    const item = C.items.backpack || { name: 'Рюкзак', description: '' };
+    const capacity = ZQ.inventoryCapacity();
+    const base = C.inventory && Number.isFinite(C.inventory.baseSlots)
+      ? C.inventory.baseSlots
+      : 4;
+    const used = ZQ.inventoryUsed();
+    const lost = rt.state.backpacks.length;
+    const carried = rt.state.items.filter((id) => C.items[id] && id !== 'backpack');
+    const hasBackpack = rt.state.items.includes('backpack');
+    const cassettes = cassetteIds();
+    const bonusValue = Math.max(0, capacity - base);
+    const bonus = bonusValue ? ` (+${bonusValue} от рюкзака)` : '';
+    const stateLine = hasBackpack
+      ? 'Сейчас рюкзак на плечах.'
+      : lost
+        ? `Сейчас рюкзак лежит в Лабиринте: ${lost}. Пока его не вернуть, переносимые вещи недоступны.`
+        : 'Рюкзака при тебе нет.';
+    const contents = hasBackpack
+      ? (carried.length
+        ? `Внутри: ${carried.map((id) => C.items[id].name).join(', ')}.`
+        : 'Внутри пока пусто.')
+      : '';
+    const parts = [`${item.name}: ${item.description} ${stateLine}`];
+    if (contents) parts.push(contents);
+    parts.push(
+      `Ячейки: ${used} из ${capacity}${bonus}. ` +
+      `Кассет в проигрывателе: ${cassettes.length}.`
+    );
+    return parts.join(' ');
+  }
+
   function openInventory() {
     if (ZQ.isTrialBlocking()) return false;
     if (!ZQ.hasUnlock('backpack')) {
@@ -577,24 +691,12 @@
   }
 
   function bindViewport() {
-    if (!dom.inventoryGraph || !ZQ.Viewport) return;
-    ZQ.Viewport.attach({
-      surface: dom.inventoryGraph,
-      content: dom.inventoryStage || dom.inventoryGraph,
-      get: () => ({
-        zoom: rt.inventoryZoom,
-        panX: rt.inventoryPanX,
-        panY: rt.inventoryPanY
-      }),
-      set: (state) => {
-        rt.inventoryZoom = state.zoom;
-        rt.inventoryPanX = state.panX;
-        rt.inventoryPanY = state.panY;
-      },
-      onChange: () => applyInventoryTransform(),
-      onReset: resetInventoryView
-    });
-    applyInventoryTransform();
+    if (!dom.inventoryGraph) return;
+    const canvas = getInventoryCanvas();
+    if (canvas) {
+      canvas.attachViewport();
+      applyInventoryTransform();
+    }
   }
 
   bindViewport();
@@ -602,6 +704,7 @@
   ZQ.renderInventory = renderInventory;
   ZQ.openInventory = openInventory;
   ZQ.closeInventory = closeInventory;
+  ZQ.backpackReport = backpackReport;
   ZQ.inventoryTable = inventoryTable;
   ZQ.setInventoryZoom = setInventoryZoom;
 })();

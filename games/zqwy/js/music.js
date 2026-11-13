@@ -14,11 +14,137 @@
       : text;
   }
 
+  function availableTracks() {
+    const tracks = (C.music && C.music.tracks) || {};
+    const available = new Set(
+      rt.state && Array.isArray(rt.state.cassettes)
+        ? rt.state.cassettes
+        : Object.keys(tracks)
+    );
+    const result = [];
+    for (const id of Object.keys(tracks)) {
+      if (!available.has(id)) continue;
+      result.push({ id, ...tracks[id] });
+    }
+    return result;
+  }
+
+  function trackAlbums() {
+    const groups = new Map();
+    for (const track of availableTracks()) {
+      const cassetteId = track.cassette || 'cassette_other';
+      if (!groups.has(cassetteId)) {
+        const item = C.items && C.items[cassetteId];
+        const title = item
+          ? item.name.replace(/^Кассета · /, '')
+          : (track.cassetteTitle || cassetteId).replace(/^кассета · /i, '');
+        groups.set(cassetteId, { id: cassetteId, title, tracks: [] });
+      }
+      groups.get(cassetteId).tracks.push(track);
+    }
+    return Array.from(groups.values()).sort((a, b) =>
+      a.title.localeCompare(b.title, 'ru')
+    );
+  }
+
+  function currentAlbumId(albums) {
+    const audio = ZQ.audio;
+    const trackId = audio && audio.trackId;
+    const track = trackId && C.music && C.music.tracks
+      ? C.music.tracks[trackId]
+      : null;
+    const cassette = track && track.cassette;
+    if (cassette && albums.some((album) => album.id === cassette)) return cassette;
+    return albums.length ? albums[0].id : '';
+  }
+
+  function fillSelect(select, entries, value) {
+    if (!select) return;
+    select.textContent = '';
+    for (const entry of entries) {
+      const option = document.createElement('option');
+      option.value = entry.value;
+      option.textContent = entry.label;
+      if (entry.value === value) option.selected = true;
+      select.appendChild(option);
+    }
+  }
+
+  function renderMusicLibrary(force) {
+    if (!dom.musicAlbum) return;
+    const albums = trackAlbums();
+    if (dom.musicLibraryCount) dom.musicLibraryCount.textContent = String(albums.length);
+    const albumId = force && dom.musicAlbum.value
+      ? dom.musicAlbum.value
+      : currentAlbumId(albums);
+    fillSelect(
+      dom.musicAlbum,
+      albums.map((album) => ({
+        value: album.id,
+        label: `${album.title} · ${album.tracks.length}`
+      })),
+      albumId
+    );
+    const album = albums.find((entry) => entry.id === albumId);
+    const audio = ZQ.audio;
+    const activeTrack = audio && audio.trackId;
+    const trackId = album && album.tracks.some((track) => track.id === activeTrack)
+      ? activeTrack
+      : (album && album.tracks[0] ? album.tracks[0].id : '');
+    fillSelect(
+      dom.musicTrack,
+      (album ? album.tracks : []).map((track) => ({
+        value: track.id,
+        label: track.title
+      })),
+      trackId
+    );
+  }
+
+  function syncMusicLibrary() {
+    if (!dom.musicTrack) return;
+    const audio = ZQ.audio;
+    const trackId = audio && audio.trackId;
+    const track = trackId && C.music && C.music.tracks
+      ? C.music.tracks[trackId]
+      : null;
+    if (track && track.cassette && document.activeElement !== dom.musicAlbum &&
+        dom.musicAlbum.value !== track.cassette) {
+      renderMusicLibrary(true);
+      return;
+    }
+    if (track && document.activeElement !== dom.musicTrack &&
+        dom.musicTrack.value !== track.id) {
+      dom.musicTrack.value = track.id;
+    }
+  }
+
+  function playSelectedTrack(trackId) {
+    if (!trackId || !ZQ.audio || typeof ZQ.audio.playCassette !== 'function') return;
+    ZQ.audio.playCassette(trackId);
+    if (typeof ZQ.updateMusicUI === 'function') ZQ.updateMusicUI();
+    tick();
+  }
+
+  if (dom.musicAlbum) {
+    dom.musicAlbum.addEventListener('change', () => {
+      renderMusicLibrary(true);
+      const trackId = dom.musicTrack ? dom.musicTrack.value : '';
+      playSelectedTrack(trackId);
+    });
+  }
+  if (dom.musicTrack) {
+    dom.musicTrack.addEventListener('change', () => {
+      playSelectedTrack(dom.musicTrack.value);
+    });
+  }
+
   function openMusic() {
     if (typeof ZQ.isTrialBlocking === 'function' && ZQ.isTrialBlocking()) return;
     if (typeof ZQ.ensureTerminalShare === 'function') ZQ.ensureTerminalShare(0.5);
     if (typeof ZQ.applyTermSettings === 'function') ZQ.applyTermSettings(false);
     ZQ.setTerminalView('music');
+    renderMusicLibrary(true);
     ZQ.updateMusicUI();
     if (ZQ.audio && typeof ZQ.audio.decodePeaks === 'function') ZQ.audio.decodePeaks();
     drawWave();
@@ -123,6 +249,7 @@
 
   function tick() {
     if (rt.termView !== 'music') return;
+    syncMusicLibrary();
     if (typeof ZQ.updateMusicUI === 'function') ZQ.updateMusicUI();
     drawWave();
   }
@@ -197,4 +324,5 @@
   ZQ.openMusic = openMusic;
   ZQ.closeMusic = closeMusic;
   ZQ.drawMusicWave = drawWave;
+  ZQ.renderMusicLibrary = renderMusicLibrary;
 })();

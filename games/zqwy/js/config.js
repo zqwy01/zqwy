@@ -231,10 +231,10 @@
         id: 'backpack',
         name: 'Рюкзак',
         kind: 'container',
-        command: 'инвентарь',
-        action: 'открыть',
+        command: 'рюкзак',
+        action: 'осмотреть',
         description: 'Плотный мешок с широкими лямками. Внутри ещё пахнет водой из зала.',
-        note: 'Увеличивает число ячеек инвентаря на 4.',
+        note: 'Увеличивает число ячеек инвентаря на 4. Инвентарь открывается командой «инвентарь».',
         slotBonus: 4
       },
       umbrella: {
@@ -251,8 +251,8 @@
         id: 'music_player',
         name: 'Проигрыватель',
         kind: 'player',
-        command: 'музыка',
-        action: 'включить',
+        command: 'плеер',
+        action: 'открыть',
         description: 'Плоская коробка с латунной ручкой и гнездом для кассет. Внутри уже стоит плёнка Лабиринта.',
         note: 'Хранит кассеты. Комнаты, в которых ты побывал, добавляют свои кассеты в коллекцию.',
         container: 'cassettes'
@@ -261,7 +261,7 @@
         id: 'cassette_forest',
         name: 'Кассета · Лес внутри',
         kind: 'cassette',
-        command: 'музыка',
+        command: 'плеер',
         action: 'поставить',
         trackId: 'forest',
         description: 'Тёмная кассета с едва различимым шорохом листвы на плёнке.',
@@ -271,7 +271,7 @@
         id: 'cassette_umbrella',
         name: 'Кассета · Зонт и вода',
         kind: 'cassette',
-        command: 'музыка',
+        command: 'плеер',
         action: 'поставить',
         trackId: 'umbrella',
         description: 'Плёнка пахнет мокрым камнем. На наклейке нарисован раскрытый зонт.',
@@ -281,7 +281,7 @@
         id: 'cassette_gall',
         name: 'Кассета · Жёлчный пузырь',
         kind: 'cassette',
-        command: 'музыка',
+        command: 'плеер',
         action: 'поставить',
         trackId: 'gall',
         description: 'Тяжёлая кассета с низким гулом, будто внутри перекатывается вода.',
@@ -303,8 +303,7 @@
       { from: 'bead', to: 'card_angel', label: 'отблеск' },
       { from: 'bead', to: 'chalk', label: 'стекло и уголь' },
       { from: 'card_angel', to: 'bead', label: 'очарование' },
-      { from: 'backpack', to: 'umbrella', label: 'снаряды' },
-      { from: 'music_player', to: 'cassette_forest', label: 'кассета' }
+      { from: 'backpack', to: 'umbrella', label: 'снаряды' }
     ],
 
     /* Кнопки на столе не получают клавишу заранее. Клавиша — отдельный
@@ -709,7 +708,8 @@
           description: 'переносимое и найденное',
           unlock: 'backpack',
           commands: [
-            { command: 'инвентарь', description: 'печатает таблицу содержимого и открывает граф предметов, связи и ячейки', bindable: true },
+            { command: 'инвентарь', description: 'открывает инвентарь: граф предметов, связи и ячейки', bindable: true },
+            { command: 'рюкзак', description: 'описывает рюкзак и его содержимое, не открывая инвентарь', bindable: true },
             { command: 'зонт', description: 'раскрывает зонт: отражает снаряды, если зонт уже подобран', bindable: true }
           ]
         },
@@ -782,11 +782,12 @@
           ]
         },
         {
-          id: 'музыка',
-          title: 'музыка',
-          description: 'проигрыватель, перемотка, громкость и скорость',
+          id: 'плеер',
+          title: 'плеер',
+          description: 'проигрыватель, кассеты, перемотка, громкость и скорость',
           commands: [
-            { command: 'музыка', description: 'открывает проигрыватель: стоп, перемотка, громкость, волна и скорость 0.5×–2×', bindable: true }
+            { command: 'плеер', description: 'открывает проигрыватель и кассеты: пауза, стоп, перемотка, громкость, волна и скорость 0.5×–2×', bindable: true },
+            { command: 'музыка', description: 'синоним команды «плеер»', bindable: true }
           ]
         },
         {
@@ -1020,6 +1021,61 @@
       introSpeaker: 'ТИТАНОБОА'
     }
   };
+
+  /* Каталог треков генерируется tools/sync-tracks.js. Каждая папка
+     альбома становится кассетой, а её дорожки — треками этой кассеты.
+     Каталог подключается целиком: новые альбомы и треки появляются в
+     плеере сразу после повторного запуска сканера. */
+  function mergeTrackCatalog() {
+    const catalog = window.ZQ_TRACKS;
+    if (!catalog || !Array.isArray(catalog.albums)) return;
+    const music = CONFIG.music;
+    if (!music.tracks) music.tracks = {};
+    if (!music.albums) music.albums = {};
+
+    for (const album of catalog.albums) {
+      if (!album || !album.id) continue;
+      const cassetteId = `cassette_${album.id}`;
+      const trackIds = [];
+      for (const track of album.tracks || []) {
+        if (!track || !track.id) continue;
+        const trackId = track.id.startsWith(`${album.id}__`)
+          ? track.id
+          : `${album.id}__${track.id}`;
+        music.tracks[trackId] = {
+          file: track.file,
+          title: track.title || trackId,
+          cassette: cassetteId,
+          cassetteTitle: `кассета · ${album.title || album.id}`,
+          album: album.id,
+          source: track.source || ''
+        };
+        trackIds.push(trackId);
+      }
+      if (!trackIds.length) continue;
+      music.albums[album.id] = {
+        id: album.id,
+        title: album.title || album.id,
+        cassette: cassetteId,
+        tracks: trackIds
+      };
+      if (!CONFIG.items[cassetteId]) {
+        CONFIG.items[cassetteId] = {
+          id: cassetteId,
+          name: `Кассета · ${album.title || album.id}`,
+          kind: 'cassette',
+          command: 'плеер',
+          action: 'поставить',
+          trackId: trackIds[0],
+          album: album.id,
+          description: `Кассета «${album.title || album.id}». Дорожек на плёнке: ${trackIds.length}.`,
+          note: 'Вставь в проигрыватель и выбери дорожку в плеере.'
+        };
+      }
+    }
+  }
+
+  mergeTrackCatalog();
 
   /* Плоский список для обратной совместимости и поиска по команде. */
   CONFIG.terminal.help = CONFIG.terminal.helpGroups.reduce(

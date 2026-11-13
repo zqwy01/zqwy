@@ -1,6 +1,6 @@
 /* Стол: элементы, клавиши-векторы и живая схема управления.
    Клавиша — самостоятельный элемент. Она хранит код и список целей:
-   A -> помоги, A -> рюкзак. Одна клавиша может запускать несколько целей. */
+   A -> помоги, A -> инвентарь. Одна клавиша может запускать несколько целей. */
 (function () {
   'use strict';
 
@@ -404,8 +404,8 @@
 
     if (element.action === 'inventory') {
       closeCanvas();
-      ZQ.handleCommand('рюкзак', 'terminal');
-      return 'Рюкзак открыт.';
+      ZQ.handleCommand('инвентарь', 'terminal');
+      return 'Инвентарь открыт.';
     }
     if (element.action === 'map') {
       closeCanvas();
@@ -844,79 +844,57 @@
     return node;
   }
 
+  let tableCanvas = null;
+
+  function getTableCanvas() {
+    if (tableCanvas || !ZQ.Canvas) return tableCanvas;
+    tableCanvas = ZQ.Canvas.create({
+      surface: dom.canvasWorkspace,
+      stage: dom.canvasStage,
+      grid: dom.canvasGrid,
+      links: dom.canvasLinks,
+      elements: dom.canvasElements,
+      get: () => ({
+        zoom: rt.canvasZoom,
+        panX: rt.canvasPanX,
+        panY: rt.canvasPanY
+      }),
+      set: (view) => {
+        rt.canvasZoom = ZQ.Canvas.clampZoom(view.zoom);
+        rt.canvasPanX = view.panX;
+        rt.canvasPanY = view.panY;
+      },
+      onChange: () => {
+        if (dom.canvasZoomLabel) {
+          dom.canvasZoomLabel.textContent = `${Math.round(rt.canvasZoom * 100)}%`;
+        }
+      },
+      canStart: (event) => {
+        if (event.target.closest('.cv-el')) return false;
+        if (dom.canvasDrawer && dom.canvasDrawer.contains(event.target)) return false;
+        if (dom.canvasKeys && dom.canvasKeys.contains(event.target)) return false;
+        return true;
+      }
+    });
+    return tableCanvas;
+  }
+
   function bindCanvasDrag(node, element) {
-    node.addEventListener('pointerdown', (event) => {
-      if (event.button !== undefined && event.button !== 0) return;
-      if (event.target.closest('.el-remove')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const rect = dom.canvasStage.getBoundingClientRect();
-      rt.canvasDrag = {
-        pointerId: event.pointerId,
-        element,
-        node,
-        startX: event.clientX,
-        startY: event.clientY,
-        startNx: element.nx,
-        startNy: element.ny,
-        rect,
-        moved: false
-      };
-      node.classList.add('dragging');
-      try {
-        node.setPointerCapture(event.pointerId);
-      } catch (error) {
-        /* Старые браузеры могут не поддерживать capture. */
+    const canvas = getTableCanvas();
+    if (!canvas) return;
+    canvas.bindNodeDrag(node, element, {
+      threshold: 4,
+      ignore: '.el-remove',
+      onMove: () => renderCanvasLinks(),
+      onEnd: (moved) => {
+        if (moved) {
+          ZQ.saveGame();
+          renderCanvasLinks();
+          return;
+        }
+        if (element.kind === 'key' && rt.canvasLinkMode) return;
+        runElement(element);
       }
-    });
-
-    node.addEventListener('pointermove', (event) => {
-      if (!rt.canvasDrag ||
-          rt.canvasDrag.pointerId !== event.pointerId ||
-          rt.canvasDrag.node !== node) return;
-      const dx = event.clientX - rt.canvasDrag.startX;
-      const dy = event.clientY - rt.canvasDrag.startY;
-      if (Math.hypot(dx, dy) > 4) rt.canvasDrag.moved = true;
-      if (!rt.canvasDrag.moved) return;
-      const nx = ZQ.clamp(rt.canvasDrag.startNx + dx / rt.canvasDrag.rect.width, 0, 1);
-      const ny = ZQ.clamp(rt.canvasDrag.startNy + dy / rt.canvasDrag.rect.height, 0, 1);
-      element.nx = nx;
-      element.ny = ny;
-      node.style.left = `${nx * 100}%`;
-      node.style.top = `${ny * 100}%`;
-      renderCanvasLinks();
-    });
-
-    const finish = (event) => {
-      if (!rt.canvasDrag ||
-          rt.canvasDrag.pointerId !== event.pointerId ||
-          rt.canvasDrag.node !== node) return;
-      const moved = rt.canvasDrag.moved;
-      rt.canvasDrag = null;
-      node.classList.remove('dragging');
-      try {
-        node.releasePointerCapture(event.pointerId);
-      } catch (error) {
-        /* ignored */
-      }
-      if (moved) {
-        ZQ.saveGame();
-        renderCanvasLinks();
-        return;
-      }
-      if (event.target.closest('.el-remove')) return;
-      if (event.target.closest('.el-key') && element.kind === 'key') return;
-      runElement(element);
-    };
-
-    node.addEventListener('pointerup', finish);
-    node.addEventListener('pointercancel', (event) => {
-      if (!rt.canvasDrag ||
-          rt.canvasDrag.pointerId !== event.pointerId ||
-          rt.canvasDrag.node !== node) return;
-      rt.canvasDrag = null;
-      node.classList.remove('dragging');
-      ZQ.saveGame();
     });
   }
 
@@ -1048,24 +1026,17 @@
 
   function applyCanvasTransform() {
     if (!dom.canvasStage) return;
+    if (ZQ.Canvas) {
+      ZQ.Canvas.applyTransform(
+        dom.canvasWorkspace,
+        dom.canvasStage,
+        dom.canvasGrid,
+        { zoom: rt.canvasZoom, panX: rt.canvasPanX, panY: rt.canvasPanY }
+      );
+      return;
+    }
     dom.canvasStage.style.transform =
       `translate(${rt.canvasPanX.toFixed(1)}px, ${rt.canvasPanY.toFixed(1)}px) scale(${rt.canvasZoom.toFixed(4)})`;
-
-    /* Сетка живёт вне сцены, поэтому её нужно двигать и масштабировать
-       вручную. Так она остаётся непрерывной при любом сдвиге стола. */
-    if (dom.canvasGrid) {
-      const workspace = dom.canvasWorkspace;
-      const width = Math.max(1, workspace.clientWidth || 1);
-      const height = Math.max(1, workspace.clientHeight || 1);
-      const zoom = rt.canvasZoom;
-      const size = 22 * zoom;
-      const originX = width / 2 + rt.canvasPanX - (width / 2) * zoom;
-      const originY = height / 2 + rt.canvasPanY - (height / 2) * zoom;
-      const offsetX = ((originX % size) + size) % size;
-      const offsetY = ((originY % size) + size) % size;
-      dom.canvasGrid.style.backgroundSize = `${size.toFixed(2)}px ${size.toFixed(2)}px`;
-      dom.canvasGrid.style.backgroundPosition = `${offsetX.toFixed(2)}px ${offsetY.toFixed(2)}px`;
-    }
   }
 
   function setCanvasPan(x, y) {
@@ -1152,8 +1123,8 @@
         if (!entry || !entry.id) continue;
         const element = rt.state.canvasElements.find((candidate) => candidate.id === entry.id);
         if (!element) continue;
-        if (Number.isFinite(entry.nx)) element.nx = ZQ.clamp(entry.nx, 0, 1);
-        if (Number.isFinite(entry.ny)) element.ny = ZQ.clamp(entry.ny, 0, 1);
+        if (Number.isFinite(entry.nx)) element.nx = entry.nx;
+        if (Number.isFinite(entry.ny)) element.ny = entry.ny;
       }
     }
     if (rt.termView !== 'canvas') openCanvas();
@@ -1690,37 +1661,10 @@
     renderCanvasLinks();
   });
 
-  /* Масштаб и панорамирование стола используют общий модуль Viewport:
+  /* Масштаб и панорамирование стола используют общий модуль Canvas:
      те же жесты, что в инвентаре и других холстах. */
-  if (ZQ.Viewport && dom.canvasWorkspace) {
-    ZQ.Viewport.attach({
-      surface: dom.canvasWorkspace,
-      content: dom.canvasStage,
-      get: () => ({
-        zoom: rt.canvasZoom,
-        panX: rt.canvasPanX,
-        panY: rt.canvasPanY
-      }),
-      set: (state) => {
-        rt.canvasZoom = ZQ.Viewport.clampZoom(state.zoom);
-        rt.canvasPanX = state.panX;
-        rt.canvasPanY = state.panY;
-      },
-      onChange: () => {
-        applyCanvasTransform();
-        if (dom.canvasZoomLabel) {
-          dom.canvasZoomLabel.textContent = `${Math.round(rt.canvasZoom * 100)}%`;
-        }
-      },
-      onReset: () => resetCanvasView(true),
-      canStart: (event) => {
-        if (event.target.closest('.cv-el')) return false;
-        if (dom.canvasDrawer && dom.canvasDrawer.contains(event.target)) return false;
-        if (dom.canvasKeys && dom.canvasKeys.contains(event.target)) return false;
-        return true;
-      }
-    });
-  }
+  const tableSurface = getTableCanvas();
+  if (tableSurface) tableSurface.attachViewport();
 
   ZQ.keyLabel = keyLabel;
   ZQ.elementLabel = elementLabel;

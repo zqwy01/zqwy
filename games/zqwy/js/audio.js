@@ -74,6 +74,17 @@
       return ids.includes(value) ? value : (ids[0] || 'tempo');
     },
 
+    /* Фактическая скорость звука в данный момент. Дрейф меняет её
+       плавно, поэтому длительность в плеере считается именно отсюда,
+       а не из скорости сцены. */
+    effectiveRate() {
+      const el = this.element();
+      if (el && Number.isFinite(el.playbackRate) && el.playbackRate > 0) {
+        return el.playbackRate;
+      }
+      return this.sceneRate();
+    },
+
     volume() {
       const value = Number(rt.termSettings && rt.termSettings.musicVolume);
       if (Number.isFinite(value)) return ZQ.clamp(value, 0, 1);
@@ -280,6 +291,7 @@
         : (ids[0] || 'tempo');
       this.applyRate();
       this.startDrift();
+      if (typeof ZQ.updateMusicUI === 'function') ZQ.updateMusicUI();
       return rt.termSettings.musicAlgorithm;
     },
 
@@ -397,13 +409,24 @@
     state() {
       const el = this.element();
       const track = tracks()[this.trackId] || null;
+      const rate = this.effectiveRate();
+      const rawCurrent = el && Number.isFinite(el.currentTime) ? el.currentTime : 0;
+      const rawDuration = el && Number.isFinite(el.duration) && el.duration > 0
+        ? el.duration
+        : 0;
       return {
         enabled: Boolean(rt.termSettings.music),
         playing: Boolean(el && !el.paused && !el.ended),
-        current: el && Number.isFinite(el.currentTime) ? el.currentTime : 0,
-        duration: el && Number.isFinite(el.duration) ? el.duration : 0,
+        /* Плеер показывает длительность так, как её слышно: при 2×
+           трек заканчивается вдвое быстрее. Перемотка при этом
+           остаётся в сырых долях файла. */
+        current: rate > 0 ? rawCurrent / rate : rawCurrent,
+        duration: rate > 0 ? rawDuration / rate : rawDuration,
+        rawCurrent,
+        rawDuration,
+        stopped: Boolean(el && el.paused && rawCurrent <= 0.05),
         volume: this.volume(),
-        rate: el && Number.isFinite(el.playbackRate) ? el.playbackRate : this.sceneRate(),
+        rate,
         cue: this.cue || 'labyrinth',
         track: this.trackId,
         trackTitle: track ? track.title : '',
@@ -474,6 +497,7 @@
       rt.termSettings.musicRate = ZQ.clamp(Number(value) || 1, 0.5, 2);
       this.applyRate();
       this.startDrift();
+      if (typeof ZQ.updateMusicUI === 'function') ZQ.updateMusicUI();
       return rt.termSettings.musicRate;
     },
 

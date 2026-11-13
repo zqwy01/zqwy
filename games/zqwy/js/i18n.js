@@ -111,9 +111,9 @@
       },
       backpack: {
         name: 'Backpack',
-        action: 'open',
+        action: 'examine',
         description: 'A tight sack with broad straps. It still smells of the water in the hall.',
-        note: 'Adds 4 slots to the inventory.',
+        note: 'Adds 4 slots to the inventory. The inventory itself opens with the “inventory” command.',
         slotBonus: 4
       },
       umbrella: {
@@ -443,7 +443,8 @@
           description: 'carried and found',
           unlock: 'backpack',
           commands: [
-            { command: 'inventory', description: 'opens the item graph, the links between items and the slot count', bindable: true }
+            { command: 'inventory', description: 'opens the inventory graph, the links between items and the slot count', bindable: true },
+            { command: 'backpack', description: 'describes the backpack and its contents without opening the inventory', bindable: true }
           ]
         },
         {
@@ -592,11 +593,12 @@
         ]
       },
       {
-        id: 'музыка',
-        title: 'music',
-        description: 'player, seek, volume and playback speed',
+        id: 'плеер',
+        title: 'player',
+        description: 'player, cassettes, seek, volume and playback speed',
         commands: [
-          { command: 'music', description: 'opens the player: stop, seek, volume, waveform and 0.5×–2× speed', bindable: true }
+          { command: 'player', description: 'opens the player and cassette library: play/pause, stop, seek, volume, waveform and 0.5×–2× speed', bindable: true },
+          { command: 'music', description: 'synonym for the “player” command', bindable: true }
         ]
       }
     );
@@ -685,9 +687,9 @@
       },
       backpack: {
         name: 'Rucksack',
-        action: 'öffnen',
+        action: 'untersuchen',
         description: 'Ein fester Sack mit breiten Riemen. Er riecht noch nach dem Wasser der Halle.',
-        note: 'Erhöht die Zahl der Inventarplätze um 4.',
+        note: 'Erhöht die Zahl der Inventarplätze um 4. Das Inventar selbst öffnet der Befehl „inventory“.',
         slotBonus: 4
       },
       umbrella: {
@@ -984,7 +986,8 @@
           description: 'Getragenes und Gefundenes',
           unlock: 'backpack',
           commands: [
-            { command: 'inventory', description: 'öffnet den Gegenstandsgraph, die Verbindungen und die Platzzahl', bindable: true }
+            { command: 'inventory', description: 'öffnet den Gegenstandsgraph, die Verbindungen und die Platzzahl', bindable: true },
+            { command: 'backpack', description: 'beschreibt den Rucksack und seinen Inhalt, ohne das Inventar zu öffnen', bindable: true }
           ]
         },
         {
@@ -1056,11 +1059,12 @@
           ]
         },
         {
-          id: 'музыка',
-          title: 'musik',
-          description: 'Player, Spulen, Lautstärke und Geschwindigkeit',
+          id: 'плеер',
+          title: 'player',
+          description: 'Player, Kassetten, Spulen, Lautstärke und Geschwindigkeit',
           commands: [
-            { command: 'music', description: 'öffnet den Player: Stopp, Spulen, Lautstärke, Welle und Tempo 0.5×–2×', bindable: true }
+            { command: 'player', description: 'öffnet den Player und die Kassetten: Play/Pause, Stopp, Spulen, Lautstärke, Welle und Tempo 0.5×–2×', bindable: true },
+            { command: 'music', description: 'Synonym für den Befehl „player“', bindable: true }
           ]
         },
         {
@@ -1649,8 +1653,10 @@
       setText('#view-music .settings-title', 'Music');
       setText('#view-music .settings-subtitle', 'player of the Labyrinth');
       setAttr('#music-close', 'aria-label', 'Close player');
-      setText('#music-toggle', 'play');
-      setText('#music-stop', 'stop');
+      setAttr('#music-toggle', 'aria-label', 'Play');
+      setAttr('#music-toggle', 'title', 'Play');
+      setAttr('#music-stop', 'aria-label', 'Stop and rewind');
+      setAttr('#music-stop', 'title', 'Stop and rewind');
       setText('#music-rate-title', 'Speed');
       setText('#music-rate-note', 'Slowing down and speeding up change the tempo without restarting the track.');
       setText('#music-back', '← general settings');
@@ -1665,8 +1671,10 @@
       setAttr('#battle-dash-touch', 'aria-label', 'Dash');
       setAttr('#battle-stage', 'aria-label', 'Sudden axolotl survival');
 
-      setText('#music-toggle', 'play');
-      setText('#music-stop', 'stop');
+      setAttr('#music-toggle', 'aria-label', 'Play');
+      setAttr('#music-toggle', 'title', 'Play');
+      setAttr('#music-stop', 'aria-label', 'Stop and rewind');
+      setAttr('#music-stop', 'title', 'Stop and rewind');
       setText('#btn-save', 'save');
       setText('#btn-load', 'load');
       setText('#btn-export', 'export');
@@ -1788,8 +1796,10 @@
       setAttr('#battle-dash-touch', 'aria-label', 'Рывок');
       setAttr('#battle-stage', 'aria-label', 'Внезапное выживание аксолотля');
 
-      setText('#music-toggle', 'играть');
-      setText('#music-stop', 'стоп');
+      setAttr('#music-toggle', 'aria-label', 'Играть');
+      setAttr('#music-toggle', 'title', 'Играть');
+      setAttr('#music-stop', 'aria-label', 'Стоп и в начало');
+      setAttr('#music-stop', 'title', 'Стоп и в начало');
       setText('#btn-save', 'сохранить');
       setText('#btn-load', 'загрузить');
       setText('#btn-export', 'экспорт');
@@ -1929,8 +1939,10 @@
       setText('#view-music .settings-title', 'Musik');
       setText('#view-music .settings-subtitle', 'Player des Labyrinths');
       setAttr('#music-close', 'aria-label', 'Player schließen');
-      setText('#music-toggle', 'abspielen');
-      setText('#music-stop', 'stopp');
+      setAttr('#music-toggle', 'aria-label', 'Abspielen');
+      setAttr('#music-toggle', 'title', 'Abspielen');
+      setAttr('#music-stop', 'aria-label', 'Stopp und zurück');
+      setAttr('#music-stop', 'title', 'Stopp und zurück');
       setText('#music-rate-title', 'Geschwindigkeit');
       setText('#music-rate-note', 'Verlangsamen und Beschleunigen ändern das Tempo ohne Neustart des Tracks.');
       setText('#music-back', '← allgemeine Einstellungen');

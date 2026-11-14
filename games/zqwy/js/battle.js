@@ -506,9 +506,9 @@
       dig: config.dig ? Object.assign({}, config.dig) : null,
       digging: false,
       digTimer: 0,
-      digCooldown: config.dig && Number.isFinite(config.dig.cooldown)
-        ? config.dig.cooldown
-        : 0
+      /* Жук готов рыть с первой секунды: иначе он успевает отстать
+         ещё до первого подкопа и плетётся следом. */
+      digCooldown: 0
     };
     return battle.enemy;
   }

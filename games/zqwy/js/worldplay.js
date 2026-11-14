@@ -657,7 +657,7 @@
     const sceneLocked = Boolean(
       (rt.battle && rt.battle.active) || (rt.chase && rt.chase.active)
     );
-    if (ZQ.audio && !sceneLocked) ZQ.audio.setCue(room.music);
+    if (ZQ.audio && !sceneLocked) ZQ.audio.setCue(room.music, { seed: room.id });
 
     if (firstVisit) {
       ZQ.saveGame();
@@ -752,8 +752,9 @@
 
   /* ------------------- Засады бельзебуфо в проходах ---------------- */
   /* Жаба встречается не только в своих залах: часть жаб поджидает в
-     коридорах. Такая жаба не мигрирует по миру — она сидит у своей
-     клетки и нападает, когда аксолотль подходит вплотную. */
+     коридорах. Такая жаба не мигрирует по миру — она патрулирует
+     крохотный участок вокруг своей клетки, еле перебирая лапами, и
+     нападает, когда аксолотль подходит вплотную. */
   function ensureRoam() {
     if (!rt.roam || typeof rt.roam !== 'object') {
       rt.roam = { belzebufos: [], seeded: {}, cooldown: 0 };
@@ -763,6 +764,93 @@
     if (!roam.seeded || typeof roam.seeded !== 'object') roam.seeded = {};
     if (!Number.isFinite(roam.cooldown)) roam.cooldown = 0;
     return roam;
+  }
+
+  /* Засадная жаба: свой окрас и размер (детерминированы клеткой),
+     своё место обитания и медленный патруль вокруг него. */
+  function makeRoamFrog(x, y, h) {
+    return {
+      x: x + 0.5,
+      y: y + 0.5,
+      homeX: x + 0.5,
+      homeY: y + 0.5,
+      tx: x + 0.5,
+      ty: y + 0.5,
+      seed: `${x},${y}`,
+      phase: h * 6.283,
+      facing: Math.PI / 2,
+      moving: false,
+      pause: 2 + h * 8
+    };
+  }
+
+  /* Патруль: жаба не стоит камнем, но и не рыщет — она медленно
+     переползает на соседнюю клетку своего участка, потом надолго
+     замирает, выжидая мошек. */
+  function updateRoamFrogs(dt) {
+    const roam = ensureRoam();
+    if (!roam.belzebufos.length || !rt.world) return;
+    const cfg = C.faunaDynamics || {};
+    const speed = Number.isFinite(cfg.roamPatrolSpeed) ? cfg.roamPatrolSpeed : 0.28;
+    const radius = Math.max(1, Math.round(
+      Number.isFinite(cfg.roamPatrolRadius) ? cfg.roamPatrolRadius : 2
+    ));
+    const pauseRange = Array.isArray(cfg.roamPatrolPause) ? cfg.roamPatrolPause : [4, 11];
+    for (const frog of roam.belzebufos) {
+      const dx = frog.tx - frog.x;
+      const dy = frog.ty - frog.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.05) {
+        const step = speed * dt;
+        if (dist <= step) {
+          frog.x = frog.tx;
+          frog.y = frog.ty;
+        } else {
+          frog.x += (dx / dist) * step;
+          frog.y += (dy / dist) * step;
+        }
+        frog.facing = Math.atan2(dy, dx);
+        frog.moving = true;
+        continue;
+      }
+      frog.moving = false;
+      frog.pause -= dt;
+      if (frog.pause > 0) continue;
+      const hx = Math.floor(frog.homeX);
+      const hy = Math.floor(frog.homeY);
+      let target = null;
+      for (let attempt = 0; attempt < 8 && !target; attempt += 1) {
+        const ox = hx + Math.floor((Math.random() * 2 - 1) * radius);
+        const oy = hy + Math.floor((Math.random() * 2 - 1) * radius);
+        if (ox === hx && oy === hy) continue;
+        if (!rt.world.isWalkable(ox, oy)) continue;
+        if (rt.world.roomAtTile(ox, oy)) continue;
+        target = { x: ox + 0.5, y: oy + 0.5 };
+      }
+      if (target) {
+        frog.tx = target.x;
+        frog.ty = target.y;
+      }
+      const lo = pauseRange[0];
+      const hi = Math.max(lo, pauseRange[1]);
+      frog.pause = lo + Math.random() * (hi - lo);
+    }
+  }
+
+  /* Возврат врага на ареал обитания: если аксолотль погиб (или ушёл),
+     жаба не побеждена — она снова сидит у своей клетки. */
+  function restoreRoamFrog(frog) {
+    if (!frog || typeof frog !== 'object') return false;
+    const roam = ensureRoam();
+    if (roam.belzebufos.includes(frog)) return false;
+    frog.x = frog.homeX;
+    frog.y = frog.homeY;
+    frog.tx = frog.homeX;
+    frog.ty = frog.homeY;
+    frog.pause = 2;
+    frog.moving = false;
+    roam.belzebufos.push(frog);
+    return true;
   }
 
   function updateRoam(dt) {
@@ -775,7 +863,7 @@
 
     const player = rt.state.player;
     const seedRadius = Number.isFinite(cfg.roamSeedRadius) ? cfg.roamSeedRadius : 13;
-    const chance = Number.isFinite(cfg.roamChance) ? cfg.roamChance : 0.06;
+    const chance = Number.isFinite(cfg.roamChance) ? cfg.roamChance : 0.018;
     const R = Math.max(1, Math.round(seedRadius));
     const cx = Math.floor(player.x);
     const cy = Math.floor(player.y);
@@ -790,7 +878,7 @@
         if (rt.world.roomAtTile(x, y)) continue;
         const h = window.World.hashString(`${rt.state.seed}:roam:${x}:${y}`) / 4294967296;
         if (h >= chance) continue;
-        roam.belzebufos.push({ x: x + 0.5, y: y + 0.5, phase: h * 6.283 });
+        roam.belzebufos.push(makeRoamFrog(x, y, h));
       }
     }
     /* Кэш посещённых клеток растёт по мере исследования: иногда чистим. */
@@ -801,6 +889,9 @@
       roam.belzebufos.splice(0, roam.belzebufos.length - 24);
     }
 
+    /* Патруль идёт всегда: жабы двигаются даже пока засада «остывает». */
+    updateRoamFrogs(dt);
+
     if (roam.cooldown > 0) return;
     const trigger = Number.isFinite(cfg.roamTrigger) ? cfg.roamTrigger : 2.2;
     const triggerSq = trigger * trigger;
@@ -810,9 +901,13 @@
       const dy = frog.y - player.y;
       if (dx * dx + dy * dy > triggerSq) continue;
       roam.belzebufos.splice(i, 1);
-      roam.cooldown = Number.isFinite(cfg.roamCooldown) ? cfg.roamCooldown : 26;
+      roam.cooldown = Number.isFinite(cfg.roamCooldown) ? cfg.roamCooldown : 34;
       if (typeof ZQ.startBattle === 'function') {
-        ZQ.startBattle('belzebufo', { roam: true, spawnAt: { x: frog.x, y: frog.y } });
+        ZQ.startBattle('belzebufo', {
+          roam: true,
+          spawnAt: { x: frog.x, y: frog.y },
+          frog
+        });
       }
       return;
     }
@@ -1175,6 +1270,7 @@
   ZQ.updateRoomDetection = updateRoomDetection;
   ZQ.updateRoam = updateRoam;
   ZQ.roamBelzebufos = () => ensureRoam().belzebufos;
+  ZQ.restoreRoamFrog = restoreRoamFrog;
   ZQ.die = die;
   ZQ.collectItemPickup = collectItemPickup;
   ZQ.takeCard = takeCard;

@@ -22,9 +22,24 @@
     return (C.musicCues && C.musicCues[cue]) || null;
   }
 
-  function trackForCue(cue) {
+  /* Выбор дорожки для сцены. Обычно это одно имя, но у некоторых
+     сцен (залы диметродонов) задан целый альбом: тогда дорожка
+     выбирается детерминированно по seed'у комнаты, чтобы каждая стая
+     слышала свою песню. */
+  function trackForCue(cue, seed) {
     const meta = cueMeta(cue);
-    const id = meta && meta.track ? meta.track : 'forest';
+    let id = meta && meta.track ? meta.track : 'forest';
+    if (Array.isArray(id)) {
+      const list = id.filter((entry) => tracks()[entry]);
+      if (!list.length) return 'forest';
+      const key = `${cue}:${seed === undefined || seed === null ? '' : seed}`;
+      let h = 2166136261;
+      for (let i = 0; i < key.length; i += 1) {
+        h ^= key.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      id = list[(h >>> 0) % list.length];
+    }
     return tracks()[id] ? id : 'forest';
   }
 
@@ -513,7 +528,7 @@
     setCue(cue, options) {
       const opts = options || {};
       this.cue = cue || 'labyrinth';
-      const trackId = trackForCue(this.cue);
+      const trackId = trackForCue(this.cue, opts.seed);
       const meta = cueMeta(this.cue);
       const track = tracks()[trackId];
       if (!track) return;
@@ -568,9 +583,9 @@
     },
 
     /* Возврат к музыке комнаты после схватки. */
-    endBattleTrack(cue) {
+    endBattleTrack(cue, seed) {
       this.setLoop(true);
-      this.setCue(cue || 'labyrinth', { hard: true });
+      this.setCue(cue || 'labyrinth', { hard: true, seed });
       return true;
     },
 

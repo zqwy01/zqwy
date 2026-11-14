@@ -37,6 +37,11 @@
       waterPools: [2, 3],
       waterBlob: [1, 2],
       plantPatches: [2, 3],
+      /* Болото бельзебуфо. */
+      swampPools: [3, 5],
+      swampBlob: [2, 3],
+      swampReeds: [6, 10],
+      swampLily: [3, 7],
       needMin: 8,
       needMax: 22,
       collisionRadius: 0.52,
@@ -145,7 +150,9 @@
   }
 
   /* Детерминированные источники воды и зелени в зале: считаются один
-     раз на комнату и хранятся в сохранении. */
+     раз на комнату и хранятся в сохранении. Залы диметродонов — с
+     прудами и травой; залы бельзебуфо — настоящее болото: широкие
+     цельные плёсы, камыш по берегам и кувшинки на воде. */
   function roomFeatures(room) {
     const fauna = ensureState();
     if (!fauna || !room) return null;
@@ -154,6 +161,7 @@
     const cells = walkableCellsInRoom(room);
     if (!cells.length) return null;
     const cfg = config();
+    const swamp = room.faunaKind === 'belzebufo';
     const hasWorld = window.World && typeof window.World.mulberry32 === 'function' &&
       typeof window.World.hashString === 'function';
     const rand = hasWorld
@@ -166,17 +174,26 @@
       return lo + Math.floor(rand() * (hi - lo + 1));
     };
     const water = [];
+    const pools = [];
     const plants = [];
+    const lily = [];
     const taken = new Set();
     const cellKey = (x, y) => `${x},${y}`;
-    /* Лужи — круглые лужи-блюдца радиусом в одну-две клетки: в такой
-       воде диметродон плавает, а не топчется на месте. */
-    const blobRange = Array.isArray(cfg.waterBlob) ? cfg.waterBlob : [1, 2];
-    const waterCount = range(cfg.waterPools);
+
+    /* Плёс — цельная круглая лужа, а не россыпь клеток: рисуется
+       одним блобом, поэтому вода выглядит сплошной, и в ней можно
+       плавать. Границы клеток запоминаются для логики плавания. */
+    const blobRange = swamp
+      ? (Array.isArray(cfg.swampBlob) ? cfg.swampBlob : [2, 3])
+      : (Array.isArray(cfg.waterBlob) ? cfg.waterBlob : [1, 2]);
+    const waterCount = range(swamp
+      ? (Array.isArray(cfg.swampPools) ? cfg.swampPools : [3, 5])
+      : (Array.isArray(cfg.waterPools) ? cfg.waterPools : [2, 3]));
     for (let i = 0; i < waterCount; i += 1) {
       const c = pick();
       const radius = range(blobRange);
       const radiusSq = radius * radius + 0.5;
+      let added = 0;
       for (let dx = -radius; dx <= radius; dx += 1) {
         for (let dy = -radius; dy <= radius; dy += 1) {
           if (dx * dx + dy * dy > radiusSq) continue;
@@ -186,28 +203,58 @@
           if (taken.has(cellKey(wx, wy))) continue;
           taken.add(cellKey(wx, wy));
           water.push({ x: wx, y: wy });
+          added += 1;
         }
       }
+      if (added) pools.push({ x: c.x + 0.5, y: c.y + 0.5, r: radius + 0.35 });
     }
-    /* Зелень не растёт в воде: вода и растения не пересекаются. */
-    const plantCount = range(cfg.plantPatches);
-    for (let i = 0; i < plantCount; i += 1) {
-      let c = pick();
-      let guard = 0;
-      while (taken.has(cellKey(c.x, c.y)) && guard < 12) {
-        c = pick();
-        guard += 1;
+
+    /* Кувшинки плавают по поверхности воды. */
+    if (swamp && water.length) {
+      const lilyCount = range(Array.isArray(cfg.swampLily) ? cfg.swampLily : [3, 7]);
+      for (let i = 0; i < lilyCount; i += 1) {
+        const c = water[Math.floor(rand() * water.length)];
+        if (!c) continue;
+        lily.push({ x: c.x, y: c.y, phase: rand() * Math.PI * 2 });
       }
-      if (taken.has(cellKey(c.x, c.y))) continue;
+    }
+
+    /* Зелень не растёт в воде. В болоте камыш жмётся к берегам. */
+    const plantCount = range(swamp
+      ? (Array.isArray(cfg.swampReeds) ? cfg.swampReeds : [6, 10])
+      : (Array.isArray(cfg.plantPatches) ? cfg.plantPatches : [2, 3]));
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+    for (let i = 0; i < plantCount; i += 1) {
+      let c = null;
+      if (swamp && water.length) {
+        for (let attempt = 0; attempt < 8 && !c; attempt += 1) {
+          const w = water[Math.floor(rand() * water.length)];
+          if (!w) break;
+          const d = dirs[Math.floor(rand() * dirs.length)];
+          const nx = w.x + d[0];
+          const ny = w.y + d[1];
+          if (walkable(nx, ny) && !taken.has(cellKey(nx, ny))) {
+            c = { x: nx, y: ny };
+          }
+        }
+      }
+      if (!c) {
+        c = pick();
+        let guard = 0;
+        while (taken.has(cellKey(c.x, c.y)) && guard < 12) {
+          c = pick();
+          guard += 1;
+        }
+      }
+      if (!c || taken.has(cellKey(c.x, c.y))) continue;
       taken.add(cellKey(c.x, c.y));
       plants.push({ x: c.x, y: c.y });
-      const nx = c.x + 1;
-      if (rand() < 0.5 && walkable(nx, c.y) && !taken.has(cellKey(nx, c.y))) {
-        taken.add(cellKey(nx, c.y));
-        plants.push({ x: nx, y: c.y });
+      if (!swamp && rand() < 0.5 && walkable(c.x + 1, c.y) && !taken.has(cellKey(c.x + 1, c.y))) {
+        taken.add(cellKey(c.x + 1, c.y));
+        plants.push({ x: c.x + 1, y: c.y });
       }
     }
-    const feature = { water, plants };
+    const feature = { water, pools, plants, lily, swamp };
     fauna.features[room.id] = feature;
     return feature;
   }
@@ -283,15 +330,21 @@
     }
   }
 
-  /* Посев залов диметродонов: в каждом таком зале живёт небольшая
-     группа. Делается один раз на зал и только когда зал попал в
-     радиус симуляции вокруг игрока. */
+  /* Посев залов: в каждом зале диметродонов живёт небольшая группа,
+     а зал бельзебуфо зарастает болотом. Делается один раз на зал и
+     только когда зал попал в радиус симуляции вокруг игрока. */
   function seedRooms() {
     const fauna = ensureState();
     if (!fauna || !rt.world || !rt.world.faunaRooms || !rt.state.player) return;
     const player = rt.state.player;
     const radius = config().simulateRadius;
     for (const room of rt.world.faunaRooms) {
+      if (room.faunaKind === 'belzebufo') {
+        /* Болото жабы: вода, камыш и кувшинки. */
+        const distance = Math.hypot(room.centerX - player.x, room.centerY - player.y);
+        if (distance <= radius) roomFeatures(room);
+        continue;
+      }
       if (room.faunaKind !== 'dimetrodon') continue;
       if (fauna.seeded[room.id]) continue;
       const distance = Math.hypot(room.centerX - player.x, room.centerY - player.y);
@@ -613,8 +666,9 @@
     }
   }
 
-  /* Вода и зелень зала диметродонов. Рисуются под зверями: это часть
-     комнаты, а не отдельные объекты. */
+  /* Вода и зелень зала. Рисуются под зверями: это часть комнаты, а
+     не отдельные объекты. Плёс рисуется цельным блобом, поэтому вода
+     выглядит сплошной, а не набором отдельных клеток. */
   function drawFeatures(ctx, params) {
     const fauna = ensureState();
     if (!fauna || !fauna.features) return;
@@ -626,50 +680,100 @@
     const sy = params.toScreenY;
     const now = params.now || 0;
     for (const room of world.faunaRooms) {
-      if (room.faunaKind !== 'dimetrodon') continue;
+      if (room.faunaKind !== 'dimetrodon' && room.faunaKind !== 'belzebufo') continue;
       const feature = fauna.features[room.id];
       if (!feature) continue;
-      for (const cell of feature.water) {
-        const x = sx(cell.x + 0.5);
-        const y = sy(cell.y + 0.5);
-        if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
-        const ripple = 0.5 + 0.5 * Math.sin(now * 0.002 + cell.x * 0.7 + cell.y * 0.4);
+      const swamp = Boolean(feature.swamp);
+      /* Плёсы: если блобов нет (старый сейв) — собираем из клеток. */
+      const pools = Array.isArray(feature.pools) && feature.pools.length
+        ? feature.pools
+        : (feature.water || []).map((c) => ({ x: c.x + 0.5, y: c.y + 0.5, r: 0.75 }));
+      for (const pool of pools) {
+        const x = sx(pool.x);
+        const y = sy(pool.y);
+        const pr = pool.r * ts;
+        if (x < -pr * 2 || x > view.w + pr * 2 || y < -pr * 2 || y > view.h + pr * 2) continue;
+        const ripple = 0.5 + 0.5 * Math.sin(now * 0.002 + pool.x * 0.7 + pool.y * 0.4);
         ctx.save();
-        ctx.fillStyle = `rgba(74, 128, 132, ${0.5 + ripple * 0.12})`;
+        if (swamp) {
+          const grad = ctx.createRadialGradient(x, y, pr * 0.15, x, y, pr);
+          grad.addColorStop(0, `rgba(52, 88, 56, ${0.78 + ripple * 0.06})`);
+          grad.addColorStop(0.68, `rgba(62, 98, 60, ${0.72 + ripple * 0.06})`);
+          grad.addColorStop(1, 'rgba(80, 112, 66, 0.5)');
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = `rgba(74, 128, 132, ${0.5 + ripple * 0.12})`;
+        }
         ctx.beginPath();
-        ctx.ellipse(x, y, ts * 0.52, ts * 0.46, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y, pr, pr * 0.86, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = `rgba(168, 224, 220, ${0.25 + ripple * 0.2})`;
-        ctx.lineWidth = Math.max(1, ts * 0.05);
+        ctx.strokeStyle = swamp
+          ? `rgba(126, 162, 96, ${0.26 + ripple * 0.16})`
+          : `rgba(168, 224, 220, ${0.25 + ripple * 0.2})`;
+        ctx.lineWidth = Math.max(1, ts * 0.06);
         ctx.beginPath();
-        ctx.ellipse(x, y, ts * (0.28 + ripple * 0.12), ts * (0.22 + ripple * 0.1), 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y, pr * 0.74, pr * 0.62, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
+      /* Кувшинки покачиваются на воде. */
+      for (const pad of feature.lily || []) {
+        const x = sx(pad.x + 0.5);
+        const y = sy(pad.y + 0.5);
+        if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
+        const bob = Math.sin(now * 0.0016 + (pad.phase || 0)) * ts * 0.03;
+        ctx.save();
+        ctx.fillStyle = 'rgba(78, 126, 66, 0.92)';
+        ctx.beginPath();
+        ctx.ellipse(x, y + bob, ts * 0.3, ts * 0.24, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(104, 158, 84, 0.9)';
+        ctx.beginPath();
+        ctx.moveTo(x, y + bob);
+        ctx.arc(x, y + bob, ts * 0.3, -0.6, 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(232, 160, 190, 0.9)';
+        ctx.beginPath();
+        ctx.arc(x + ts * 0.07, y + bob - ts * 0.02, Math.max(1, ts * 0.05), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      /* Зелень: в болоте — высокий камыш, в зале диметродонов — трава. */
       for (const cell of feature.plants) {
         const x = sx(cell.x + 0.5);
         const y = sy(cell.y + 0.5);
         if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
         const sway = Math.sin(now * 0.0016 + cell.x * 1.3 + cell.y * 0.6) * ts * 0.08;
         ctx.save();
-        ctx.strokeStyle = 'rgba(96, 148, 78, 0.9)';
-        ctx.lineWidth = Math.max(1.2, ts * 0.07);
+        ctx.strokeStyle = swamp ? 'rgba(116, 160, 80, 0.92)' : 'rgba(96, 148, 78, 0.9)';
+        ctx.lineWidth = Math.max(1.2, ts * 0.065);
         ctx.lineCap = 'round';
-        for (let i = -1; i <= 1; i += 1) {
+        const blades = swamp ? 4 : 3;
+        const height = swamp ? 0.62 : 0.32;
+        for (let i = 0; i < blades; i += 1) {
+          const off = (i - (blades - 1) / 2) * ts * 0.12;
           ctx.beginPath();
-          ctx.moveTo(x + i * ts * 0.14, y + ts * 0.3);
+          ctx.moveTo(x + off, y + ts * 0.3);
           ctx.quadraticCurveTo(
-            x + i * ts * 0.2 + sway,
-            y - ts * 0.05,
-            x + i * ts * 0.34 + sway,
-            y - ts * 0.32
+            x + off + sway,
+            y - ts * height * 0.4,
+            x + off * 1.6 + sway,
+            y - ts * height
           );
           ctx.stroke();
         }
-        ctx.fillStyle = 'rgba(196, 156, 84, 0.85)';
-        ctx.beginPath();
-        ctx.arc(x + sway, y - ts * 0.34, Math.max(1, ts * 0.06), 0, Math.PI * 2);
-        ctx.fill();
+        if (swamp) {
+          ctx.fillStyle = 'rgba(126, 108, 58, 0.92)';
+          ctx.beginPath();
+          ctx.ellipse(x + sway, y - ts * 0.64, ts * 0.06, ts * 0.14, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = 'rgba(196, 156, 84, 0.85)';
+          ctx.beginPath();
+          ctx.arc(x + sway, y - ts * 0.34, Math.max(1, ts * 0.06), 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
       }
     }
@@ -679,7 +783,6 @@
     const fauna = ensureState();
     if (!fauna || !fauna.dimetrodons.length) return;
     if (!window.Renderer || typeof window.Renderer.drawDimetrodon !== 'function') return;
-    drawFeatures(ctx, params);
     const view = params.view;
     const ts = params.ts;
     const sx = params.toScreenX;
@@ -812,6 +915,7 @@
 
   ZQ.updateFauna = updateFauna;
   ZQ.drawFaunaWorld = drawFaunaWorld;
+  ZQ.drawFaunaFeatures = drawFeatures;
   ZQ.faunaCount = faunaCount;
   ZQ.faunaParticleCount = () => particles.length;
   ZQ.faunaBlockedAt = faunaBlockedAt;

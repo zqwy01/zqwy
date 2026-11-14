@@ -512,30 +512,72 @@
     ctx.restore();
   }
 
+  /* Окрас и габарит конкретной жабы. Стаи не однородны между собой:
+     у каждой особи свой узор и размер, но выбор детерминирован по
+     месту обитания, поэтому жаба в зале всегда одна и та же. */
+  function belzebufoLook(seed) {
+    const meta = (C.fauna && C.fauna.belzebufo) || {};
+    const palettes = Array.isArray(meta.palettes) && meta.palettes.length ? meta.palettes : null;
+    const sizeRange = Array.isArray(meta.size) ? meta.size : [1, 1];
+    const key = String(seed === undefined || seed === null ? '' : seed);
+    let h = 2166136261;
+    for (let i = 0; i < key.length; i += 1) {
+      h ^= key.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    h >>>= 0;
+    const index = palettes ? h % palettes.length : 0;
+    const lo = Number.isFinite(sizeRange[0]) ? sizeRange[0] : 1;
+    const hi = Number.isFinite(sizeRange[1]) ? sizeRange[1] : lo;
+    const size = lo + (((h >>> 8) % 1000) / 1000) * (hi - lo);
+    return { index, size, palette: palettes ? palettes[index] : null };
+  }
+
+  /* Бельзебуфо — полноценная жаба: тельце, брюшко, широкий рот,
+     выпуклые глаза, согнутые задние лапы с перепонками и тонкие
+     передние. Окрас и размер у каждой особи свои. */
   function drawBelzebufo(ctx, sx, sy, ts, now, enemy) {
-    const r = ts * 0.52;
+    const look = (enemy && enemy.look) ? enemy.look : belzebufoLook(enemy && enemy.seed);
+    const pal = look.palette || {
+      body: '#7d9c2e', belly: '#e6e08a', spots: '#4a3a12',
+      legs: '#5f7d22', eye: '#f2d64a', mouth: '#8a2f2f'
+    };
+    const size = Number.isFinite(look.size) ? look.size : 1;
+    const r = ts * 0.54 * size;
     const pulse = 0.5 + 0.5 * Math.sin(now * 0.0022);
     const lift = enemy && Number.isFinite(enemy.hopHeight) ? enemy.hopHeight : 0;
+    const charge = enemy && Number.isFinite(enemy.charge)
+      ? Math.max(0, Math.min(1, enemy.charge))
+      : 0;
+
     /* Присед, полёт и приземление меняют силуэт: жаба сжимается и
        вытягивается, как живая. */
     let scaleX = 1;
     let scaleY = 1;
     if (enemy) {
       if (enemy.hopState === 'crouch') {
-        scaleX = 1.18;
-        scaleY = 0.78;
+        scaleX = 1.16;
+        scaleY = 0.8;
       } else if (enemy.hopState === 'air') {
         const p = Number.isFinite(enemy.hopProgress)
           ? Math.max(0, Math.min(1, enemy.hopProgress))
           : 0;
         const stretch = Math.sin(p * Math.PI);
-        scaleY = 1 + stretch * 0.18;
+        scaleY = 1 + stretch * 0.2;
         scaleX = 1 - stretch * 0.12;
       } else if (enemy.landFlash > 0) {
-        scaleX = 1 + enemy.landFlash * 0.28;
-        scaleY = 1 - enemy.landFlash * 0.24;
+        scaleX = 1 + enemy.landFlash * 0.26;
+        scaleY = 1 - enemy.landFlash * 0.22;
       }
     }
+
+    /* Жаба чуть поворачивается к цели, но остаётся узнаваемой анфас. */
+    const face = enemy && Number.isFinite(enemy.facing)
+      ? enemy.facing
+      : (enemy && (enemy.facingX || enemy.facingY)
+        ? Math.atan2(enemy.facingY || 0, enemy.facingX || 0)
+        : Math.PI / 2);
+    const flip = Math.cos(face) < 0 ? -1 : 1;
 
     /* Тень остаётся на земле и уменьшается, пока жаба в воздухе. */
     const shadowK = 1 / (1 + lift * 0.8);
@@ -543,52 +585,160 @@
     ctx.translate(sx, sy);
     ctx.fillStyle = `rgba(0, 0, 0, ${0.42 * shadowK})`;
     ctx.beginPath();
-    ctx.ellipse(0, r * 0.62, r * 1.05 * shadowK, r * 0.32 * shadowK, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, r * 0.72, r * 1.15 * shadowK, r * 0.34 * shadowK, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
     ctx.save();
     ctx.translate(sx, sy - lift * ts);
-    ctx.scale(scaleX, scaleY);
+    ctx.scale(scaleX * flip, scaleY);
 
-    /* Яркий апосематический окрас: предупреждение, а не маскировка. */
-    const body = ctx.createRadialGradient(-r * 0.25, -r * 0.35, r * 0.12, 0, 0, r * 1.2);
-    body.addColorStop(0, '#d8c63a');
-    body.addColorStop(0.55, '#9c8a1e');
-    body.addColorStop(1, '#3c3a12');
+    /* Задние лапы: согнутые, с широкими перепончатыми ступнями. */
+    const hindLeg = (side) => {
+      ctx.save();
+      ctx.scale(side, 1);
+      ctx.fillStyle = pal.legs;
+      ctx.beginPath();
+      ctx.ellipse(r * 0.62, r * 0.34, r * 0.42, r * 0.3, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = pal.legs;
+      ctx.lineWidth = Math.max(2, r * 0.26);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(r * 0.72, r * 0.3);
+      ctx.quadraticCurveTo(r * 1.05, r * 0.5, r * 0.82, r * 0.78);
+      ctx.stroke();
+      ctx.fillStyle = pal.legs;
+      ctx.beginPath();
+      ctx.ellipse(r * 0.82, r * 0.86, r * 0.34, r * 0.16, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(20, 26, 12, 0.5)';
+      ctx.lineWidth = Math.max(1, r * 0.04);
+      for (let i = -1; i <= 1; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(r * 0.82 + i * r * 0.12, r * 0.78);
+        ctx.lineTo(r * 0.82 + i * r * 0.2, r * 0.98);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+    hindLeg(-1);
+    hindLeg(1);
+
+    /* Тело. */
+    const body = ctx.createRadialGradient(-r * 0.25, -r * 0.4, r * 0.12, 0, 0, r * 1.25);
+    body.addColorStop(0, pal.belly);
+    body.addColorStop(0.5, pal.body);
+    body.addColorStop(1, pal.spots);
     ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.ellipse(0, 0, r, r * 0.82, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, r, r * 0.86, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = 'rgba(178, 48, 32, 0.85)';
+    /* Брюшко. */
+    ctx.fillStyle = pal.belly;
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.22, r * 0.7, r * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Бородавки и пятна на спине. */
+    ctx.fillStyle = pal.spots;
     for (const [px, py, pr] of [
-      [-0.34, -0.1, 0.18], [0.28, 0.08, 0.22], [0.05, -0.4, 0.14],
-      [-0.12, 0.36, 0.16]
+      [-0.42, -0.16, 0.16], [0.36, -0.2, 0.18], [-0.1, -0.44, 0.12],
+      [0.14, 0.06, 0.1], [-0.28, 0.16, 0.1]
     ]) {
       ctx.beginPath();
       ctx.arc(px * r, py * r, pr * r, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    /* Глаза навыкате. */
-    for (const side of [-1, 1]) {
-      ctx.fillStyle = '#e8dfa0';
+    /* Передние лапы: тонкие, опираются на землю. */
+    const foreLeg = (side) => {
+      ctx.save();
+      ctx.scale(side, 1);
+      ctx.strokeStyle = pal.body;
+      ctx.lineWidth = Math.max(1.6, r * 0.12);
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(side * r * 0.46, -r * 0.52, r * 0.2, 0, Math.PI * 2);
+      ctx.moveTo(r * 0.22, r * 0.2);
+      ctx.quadraticCurveTo(r * 0.34, r * 0.56, r * 0.2, r * 0.86);
+      ctx.stroke();
+      ctx.fillStyle = pal.legs;
+      ctx.beginPath();
+      ctx.ellipse(r * 0.2, r * 0.9, r * 0.14, r * 0.08, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#14140c';
+      ctx.restore();
+    };
+    foreLeg(-1);
+    foreLeg(1);
+
+    /* Горловой мешок: раздувается, когда жаба набирает яд. */
+    const throat = 1 + charge * 0.35 + pulse * 0.06;
+    ctx.fillStyle = pal.belly;
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.42, r * 0.42 * throat, r * 0.3 * throat, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Голова. */
+    ctx.fillStyle = pal.body;
+    ctx.beginPath();
+    ctx.ellipse(0, -r * 0.46, r * 0.72, r * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Широкий рот. */
+    ctx.strokeStyle = pal.mouth;
+    ctx.lineWidth = Math.max(1.5, r * 0.07);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.62, -r * 0.34);
+    ctx.quadraticCurveTo(0, -r * 0.1 - charge * r * 0.06, r * 0.62, -r * 0.34);
+    ctx.stroke();
+
+    /* Ноздри. */
+    ctx.fillStyle = pal.spots;
+    for (const side of [-1, 1]) {
       ctx.beginPath();
-      ctx.arc(side * r * 0.48, -r * 0.54, r * 0.09, 0, Math.PI * 2);
+      ctx.arc(side * r * 0.16, -r * 0.72, Math.max(1, r * 0.045), 0, Math.PI * 2);
       ctx.fill();
     }
 
-    /* Едва заметный ядовитый ореол. */
-    ctx.strokeStyle = `rgba(168, 196, 74, ${0.08 + pulse * 0.1})`;
+    /* Выпуклые глаза сверху. */
+    for (const side of [-1, 1]) {
+      const ex = side * r * 0.5;
+      const ey = -r * 0.78;
+      ctx.fillStyle = pal.body;
+      ctx.beginPath();
+      ctx.arc(ex, ey, r * 0.26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f2efd6';
+      ctx.beginPath();
+      ctx.arc(ex, ey - r * 0.02, r * 0.19, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#14140c';
+      ctx.beginPath();
+      ctx.arc(ex + side * r * 0.02, ey, r * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.beginPath();
+      ctx.arc(ex - side * r * 0.05, ey - r * 0.06, r * 0.04, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    /* Едва заметный ядовитый ореол и свечение пасти при заряде залпа. */
+    ctx.strokeStyle = `rgba(196, 214, 74, ${0.08 + pulse * 0.1 + charge * 0.25})`;
     ctx.lineWidth = Math.max(1, ts * 0.05);
     ctx.beginPath();
-    ctx.arc(0, 0, r * (1.25 + pulse * 0.18), 0, Math.PI * 2);
+    ctx.arc(0, 0, r * (1.25 + pulse * 0.18 + charge * 0.1), 0, Math.PI * 2);
     ctx.stroke();
+    if (charge > 0.02) {
+      const glow = ctx.createRadialGradient(0, -r * 0.2, r * 0.05, 0, -r * 0.2, r * 0.7);
+      glow.addColorStop(0, `rgba(236, 250, 150, ${0.55 * charge})`);
+      glow.addColorStop(1, 'rgba(180, 230, 90, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, -r * 0.2, r * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -889,9 +1039,11 @@
     const rise = display > 0 ? Math.sin(display * Math.PI) : 0;
     const bob = swimming ? Math.sin(now * 0.004 + ph) * r * 0.06 : 0;
     const sink = swimming ? r * 0.16 : 0;
+    /* Корпус покачивается в такт шагу — зверь не скользит, а идёт. */
+    const bodyBob = moving === false ? 0 : Math.sin(now * 0.012 * walk + ph) * r * 0.03;
 
     ctx.save();
-    ctx.translate(sx, sy + sink + bob);
+    ctx.translate(sx, sy + sink + bob + bodyBob);
     ctx.rotate(facing + sway);
 
     /* Тень. */
@@ -900,13 +1052,21 @@
     ctx.ellipse(0, r * 0.6, r * 1.1, r * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    /* Тело и хвост. */
+    /* Тело. */
     ctx.strokeStyle = bodyColor;
     ctx.lineWidth = Math.max(2, r * 0.34);
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-r * 1.1, r * 0.1);
     ctx.quadraticCurveTo(-r * 0.4, -r * 0.05, r * 0.7, r * 0.16);
+    ctx.stroke();
+    /* Хвост виляет из стороны в сторону в такт шагу: тонкий, живой. */
+    const tailSway = Math.sin(now * 0.006 * walk + ph) * r * 0.26 * walk;
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = Math.max(1.6, r * 0.24);
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.1, r * 0.1);
+    ctx.quadraticCurveTo(-r * 1.5, r * 0.05 + tailSway * 0.4, -r * 1.98, r * 0.16 + tailSway);
     ctx.stroke();
     /* Светлое брюхо вдоль тела. */
     ctx.save();
@@ -959,9 +1119,10 @@
     ctx.stroke();
 
     /* Голова. При трапезе она опускается к земле и открывает пасть,
-       при демонстрации — вскидывается вверх. */
+       при демонстрации — вскидывается вверх. В покое чуть покачивается. */
+    const headBob = moving === false ? Math.sin(now * 0.0022 + ph) * r * 0.02 : 0;
     const headX = r * 0.82 - dip * r * 0.18;
-    const headY = r * 0.08 + dip * r * 0.42 - rise * r * 0.12;
+    const headY = r * 0.08 + dip * r * 0.42 - rise * r * 0.12 + headBob;
     ctx.fillStyle = bodyColor;
     ctx.beginPath();
     ctx.ellipse(headX, headY, r * 0.3, r * 0.2, 0.1, 0, Math.PI * 2);
@@ -974,20 +1135,49 @@
       ctx.lineTo(headX + r * 0.3, headY + r * 0.1 * dip);
       ctx.stroke();
     }
-    ctx.fillStyle = `rgba(255, 236, 170, ${0.7 + 0.3 * Math.sin(now * 0.004 + ph)})`;
-    ctx.beginPath();
-    ctx.arc(headX + r * 0.08, headY - r * 0.03, r * 0.055, 0, Math.PI * 2);
-    ctx.fill();
+    /* Глаз мигает время от времени. */
+    const blinkCycle = (now * 0.0006 + ph * 0.37) % 1;
+    const blinking = blinkCycle > 0.955;
+    if (blinking) {
+      ctx.strokeStyle = ridgeColor;
+      ctx.lineWidth = Math.max(1, r * 0.03);
+      ctx.beginPath();
+      ctx.moveTo(headX + r * 0.02, headY - r * 0.03);
+      ctx.lineTo(headX + r * 0.14, headY - r * 0.03);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = `rgba(255, 236, 170, ${0.7 + 0.3 * Math.sin(now * 0.004 + ph)})`;
+      ctx.beginPath();
+      ctx.arc(headX + r * 0.08, headY - r * 0.03, r * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a140c';
+      ctx.beginPath();
+      ctx.arc(headX + r * 0.085, headY - r * 0.03, r * 0.026, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    /* Лапы. При ходьбе они переступают в такт фазе. */
+    /* Лапы: полноценный шаг — бедро, ступня, подъём в фазе переноса. */
     ctx.strokeStyle = ridgeColor;
     ctx.lineWidth = Math.max(1.4, r * 0.09);
+    ctx.lineCap = 'round';
+    const legPairs = [[-0.42, 0], [0.42, Math.PI]];
     for (const side of [-1, 1]) {
-      for (const dx of [-0.42, 0.42]) {
-        const swing = Math.sin(now * 0.008 * walk + ph + dx * 6 + side) * r * 0.12 * walk;
+      for (const leg of legPairs) {
+        const dx = leg[0];
+        const cyc = now * 0.006 * walk + ph + leg[1];
+        const step = Math.sin(cyc);
+        const lift = Math.max(0, Math.cos(cyc)) * r * 0.13 * walk;
+        const hipX = dx * r;
+        const hipY = r * 0.12;
+        const footX = dx * r + side * r * 0.18 + step * r * 0.2 * walk;
+        const footY = r * 0.44 - lift;
         ctx.beginPath();
-        ctx.moveTo(dx * r, r * 0.12);
-        ctx.lineTo(dx * r + side * r * 0.24 + swing, r * 0.44);
+        ctx.moveTo(hipX, hipY);
+        ctx.quadraticCurveTo(hipX + side * r * 0.22, (hipY + footY) * 0.5, footX, footY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(footX, footY);
+        ctx.lineTo(footX + side * r * 0.12, footY + r * 0.05);
         ctx.stroke();
       }
     }
@@ -1055,7 +1245,7 @@
   }
 
   function drawFauna(ctx, room, sx, sy, ts, now) {
-    if (room.faunaKind === 'belzebufo') drawBelzebufo(ctx, sx, sy, ts, now);
+    if (room.faunaKind === 'belzebufo') drawBelzebufo(ctx, sx, sy, ts, now, { seed: room.id });
     else if (room.faunaKind === 'titanoboa') drawTitanoboa(ctx, sx, sy, ts, now, room);
     /* Диметродоны больше не статичная сцена зала: это живые мобы,
        которых ведёт fauna.js и рисует ZQ.drawFaunaWorld. */
@@ -1135,6 +1325,20 @@
       now
     );
 
+    /* Вода, камыш и кувшинки залов: рисуются под всеми сценами, чтобы
+       жаба и звери стояли поверх собственного болота или пруда. */
+    if (typeof window.ZQ !== 'undefined' && typeof window.ZQ.drawFaunaFeatures === 'function') {
+      window.ZQ.drawFaunaFeatures(ctx, {
+        state,
+        world,
+        view,
+        ts,
+        toScreenX,
+        toScreenY,
+        now
+      });
+    }
+
     /* Фауна живёт в своих комнатах и не мешает проходу: это сцена,
        а не противник. Комната человека-жука остаётся ареной. */
     for (const room of world.faunaRooms) {
@@ -1177,7 +1381,7 @@
         const x = toScreenX(frog.x);
         const y = toScreenY(frog.y);
         if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
-        drawBelzebufo(ctx, x, y, ts, now);
+        drawBelzebufo(ctx, x, y, ts, now, frog);
       }
     }
 
@@ -1524,6 +1728,7 @@
     drawDust,
     drawCursorTarget,
     drawBelzebufo,
+    belzebufoLook,
     drawArenaBeetle,
     drawUmbrellaEnemy,
     drawDimetrodon

@@ -1,0 +1,614 @@
+{
+  "startedAt": "2026-11-14T02:09:12.649Z",
+  "finishedAt": "2026-11-14T02:09:32.240Z",
+  "baseUrl": "http://127.0.0.1:8011/",
+  "passed": 13,
+  "failed": 17,
+  "total": 30,
+  "results": [
+    {
+      "id": "patch1.camera-centered",
+      "patch": 1,
+      "title": "Камера строго центрирована на игроке",
+      "status": "pass",
+      "detail": "камера (112.750, 126.350) против игрока (112.750, 126.350)",
+      "metrics": {
+        "px": 112.75,
+        "py": 126.35,
+        "cx": 112.75,
+        "cy": 126.35,
+        "dx": 0,
+        "dy": 0
+      }
+    },
+    {
+      "id": "patch1.divider-drag",
+      "patch": 1,
+      "title": "Разделитель игры и терминала двигается",
+      "status": "pass",
+      "detail": "доля терминала 0.500 → 0.663; строки: 588.672px 10px 299.328px",
+      "metrics": {
+        "before": 0.5,
+        "after": 0.6629213483146067,
+        "delta": 0.1629213483146067
+      }
+    },
+    {
+      "id": "patch1.battle-hud-in-upper-area",
+      "patch": 1,
+      "title": "Во время боя в верхней области нет текста и кнопок",
+      "status": "fail",
+      "detail": "видимый HUD: «ВЫЖИВАНИЕ · АКСОЛОТЛЬ выбраться из воды жизни 6 продержаться 1:42 Схватка длится ровно столько, сколько звучит трек. Вра»; кнопки: выбраться из воды / ⚡ рывок · Shift / ☂ зонт · F / ⚡ / ☂",
+      "metrics": {
+        "started": true,
+        "visible": true,
+        "text": "ВЫЖИВАНИЕ · АКСОЛОТЛЬ выбраться из воды жизни 6 продержаться 1:42 Схватка длится ровно столько, сколько звучит трек. Враг идёт за тобой по всему Лабиринту. Рывок ещё закрыт: беги между залпами без ускорения. Двигайся между волнами и ныряй в разрывы. рывок: закрыт зонт: — ⚡ рывок · Shift ☂ зонт · F ⚡ ☂",
+        "buttons": [
+          "выбраться из воды",
+          "⚡ рывок · Shift",
+          "☂ зонт · F",
+          "⚡",
+          "☂"
+        ]
+      }
+    },
+    {
+      "id": "patch1.chase-hud-in-upper-area",
+      "patch": 1,
+      "title": "Во время погони в верхней области нет текста и кнопок",
+      "status": "fail",
+      "detail": "видимый HUD: «ПОБЕГ · ТИТАНОБОА сдаться трек 0% дистанция 0 м Уходи. Одно касание — и тебя нет. Shift — рывок. ⚡»; кнопки: сдаться / ⚡",
+      "metrics": {
+        "started": true,
+        "visible": true,
+        "text": "ПОБЕГ · ТИТАНОБОА сдаться трек 0% дистанция 0 м Уходи. Одно касание — и тебя нет. Shift — рывок. ⚡",
+        "buttons": [
+          "сдаться",
+          "⚡"
+        ]
+      }
+    },
+    {
+      "id": "patch4.dust-world-space",
+      "patch": 4,
+      "title": "Пылинки живут в мировых координатах, а не приклеены к камере",
+      "status": "pass",
+      "detail": "мировая точка (10.24, -13.78) сместилась по экрану на -60.00 px при сдвиге камеры на 2 тайла",
+      "metrics": {
+        "wx": 10.237998834651565,
+        "wy": -13.776381025546918,
+        "screenA": 707.139965039547,
+        "screenB": 647.139965039547,
+        "delta": -60
+      }
+    },
+    {
+      "id": "patch5.corridor-width-max",
+      "patch": 5,
+      "title": "Проходы генерируются шириной до 12 тайлов",
+      "status": "fail",
+      "detail": "фактически corridorMin=1, corridorMax=4, требуется 1…12",
+      "metrics": {
+        "min": 1,
+        "max": 4,
+        "comment": "Ширина прохода в тайлах"
+      }
+    },
+    {
+      "id": "patch5.table-key-click-adds",
+      "patch": 5,
+      "title": "Клик по клавише на столе добавляет её на стол",
+      "status": "pass",
+      "detail": "клавиша ` (Backquote): элементов стола 0 → 1",
+      "metrics": {
+        "code": "Backquote",
+        "label": "`",
+        "before": 0,
+        "after": 1
+      }
+    },
+    {
+      "id": "patch7.terminal-one-font-size",
+      "patch": 7,
+      "title": "В терминале один размер шрифта для системных и обычных строк",
+      "status": "fail",
+      "detail": "log-line sys: 11.9px; log-line reply: 14px",
+      "metrics": {
+        "lines": [
+          {
+            "cls": "log-line sys",
+            "text": "системаSYS-FONT-TEST",
+            "size": "11.9px"
+          },
+          {
+            "cls": "log-line reply",
+            "text": "системаREPLY-FONT-TEST",
+            "size": "14px"
+          }
+        ],
+        "sizes": [
+          "11.9px",
+          "14px"
+        ]
+      }
+    },
+    {
+      "id": "patch7.umbrella-cooldown-15",
+      "patch": 7,
+      "title": "Перезарядка зонта 15 секунд",
+      "status": "pass",
+      "detail": "C.battle.reflectCooldown=15, C.items.umbrella.reflectCooldown=15, требуется 15",
+      "metrics": {
+        "battle": 15,
+        "item": 15
+      }
+    },
+    {
+      "id": "patch8.battle-in-world",
+      "patch": 8,
+      "title": "Бой идёт в мире и реально обновляется",
+      "status": "pass",
+      "detail": "мир=true, тот же игрок=true, прошло 3.00 с, снарядов 5, HUD=true",
+      "metrics": {
+        "started": true,
+        "inWorld": true,
+        "samePlayer": true,
+        "active": true,
+        "elapsed": 2.9999999999999942,
+        "bullets": 5,
+        "hudVisible": true,
+        "scale": "world"
+      }
+    },
+    {
+      "id": "patch9.inventory-capacity-icons",
+      "patch": 9,
+      "title": "Ёмкость инвентаря показана иконками, а не текстом",
+      "status": "fail",
+      "detail": "текст ёмкости: «7 / 8»; иконок ёмкости: 0; слотов: 8",
+      "metrics": {
+        "text": "7 / 8",
+        "isTextFraction": true,
+        "capacityIcons": 0,
+        "slots": 8
+      }
+    },
+    {
+      "id": "patch11.titanoboa-chase-moves",
+      "patch": 11,
+      "title": "Титанобоа реально ползёт за игроком, а не стоит на месте",
+      "status": "pass",
+      "detail": "голова (213,6) → (201,15), прошла 15.00 тайла; разных клеток головы 22, максимум от старта 15.00; дистанция 16.64 → минимум 2.00; тело 72 клеток, уникальных 72",
+      "metrics": {
+        "room": {
+          "id": "r4_0",
+          "w": 33,
+          "h": 26
+        },
+        "started": true,
+        "startHead": {
+          "x": 213,
+          "y": 6
+        },
+        "endHead": {
+          "x": 201,
+          "y": 15
+        },
+        "moved": 15,
+        "startDistance": 16.64331697709324,
+        "minDistance": 2,
+        "endDistance": 2,
+        "startBodyLength": 70,
+        "endBodyLength": 72,
+        "uniqueBody": 72,
+        "headTiles": 22,
+        "maxFromStart": 15,
+        "elapsed": 6.9999999999999805,
+        "active": true,
+        "positions": [
+          {
+            "t": 0,
+            "x": 213,
+            "y": 6,
+            "d": 16.643
+          },
+          {
+            "t": 1,
+            "x": 213,
+            "y": 9,
+            "d": 15.232
+          },
+          {
+            "t": 2,
+            "x": 213,
+            "y": 12,
+            "d": 14.318
+          },
+          {
+            "t": 3,
+            "x": 213,
+            "y": 15,
+            "d": 14
+          },
+          {
+            "t": 4,
+            "x": 210,
+            "y": 15,
+            "d": 11
+          },
+          {
+            "t": 5,
+            "x": 207,
+            "y": 15,
+            "d": 8
+          },
+          {
+            "t": 6,
+            "x": 204,
+            "y": 15,
+            "d": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "patch11.titanoboa-once-per-world",
+      "patch": 11,
+      "title": "В мире ровно одна комната титанобоа",
+      "status": "pass",
+      "detail": "чанков 49, комнат титанобоа 1",
+      "metrics": {
+        "chunks": 49,
+        "count": 1,
+        "rooms": [
+          {
+            "id": "r4_0",
+            "w": 33,
+            "h": 25
+          }
+        ]
+      }
+    },
+    {
+      "id": "patch11.titanoboa-room-huge",
+      "patch": 11,
+      "title": "Комната титанобоа действительно огромная",
+      "status": "fail",
+      "detail": "титанобоа 33×25 (825); максимум процедурных 39×28; глобальный максимум 39×31",
+      "metrics": {
+        "room": {
+          "w": 33,
+          "h": 25,
+          "area": 825
+        },
+        "maxProcedural": {
+          "w": 39,
+          "h": 28,
+          "area": 1092
+        },
+        "globalMax": {
+          "w": 39,
+          "h": 31
+        }
+      }
+    },
+    {
+      "id": "patch11.keypress-highlight",
+      "patch": 11,
+      "title": "Нажатая клавиша подсвечивается на схеме стола",
+      "status": "fail",
+      "detail": "keydown W: подсвечено 0 из 61 клавиш; классы: нет",
+      "metrics": {
+        "totalKeys": 61,
+        "pressed": 0,
+        "codes": [],
+        "classes": []
+      }
+    },
+    {
+      "id": "patch11.cursor-label-removed",
+      "patch": 11,
+      "title": "Надпись «курсор: … · ПКМ» убрана",
+      "status": "fail",
+      "detail": "строка контекста: «курсор: вектор · ПКМ»",
+      "metrics": {
+        "text": "курсор: вектор · ПКМ",
+        "hasCursor": true
+      }
+    },
+    {
+      "id": "patch11.autocomplete-second-word",
+      "patch": 11,
+      "title": "Автодополнение подсказывает второе слово и для алиаса «помощь»",
+      "status": "fail",
+      "detail": "«помощь »: ghost=«», скрыт=true; «помоги »: ghost=«помоги основное», скрыт=false",
+      "metrics": {
+        "alias": {
+          "value": "помощь ",
+          "ghost": "",
+          "hidden": true,
+          "suggestions": []
+        },
+        "canonical": {
+          "value": "помоги ",
+          "ghost": "помоги основное",
+          "hidden": false,
+          "suggestions": [
+            "помоги основное",
+            "помоги читы",
+            "помоги сюжет",
+            "помоги движение"
+          ]
+        }
+      }
+    },
+    {
+      "id": "patch12.inventory-names-not-clipped",
+      "patch": 12,
+      "title": "Названия предметов в инвентаре не обрезаются",
+      "status": "pass",
+      "detail": "имён 51, обрезано 0",
+      "metrics": {
+        "names": 51,
+        "clipped": 0,
+        "examples": []
+      }
+    },
+    {
+      "id": "patch12.inventory-all-visible",
+      "patch": 12,
+      "title": "Все предметы и связи видны в начальном кадре инвентаря",
+      "status": "fail",
+      "detail": "узлов 27/51 (53%), рёбер внутри viewBox 25/53 (47%)",
+      "metrics": {
+        "nodes": 51,
+        "visibleNodes": 27,
+        "visibleRatio": 0.5294117647058824,
+        "edges": 53,
+        "edgesInside": 25,
+        "edgesRatio": 0.4716981132075472
+      }
+    },
+    {
+      "id": "patch12.inventory-small-viewport",
+      "patch": 12,
+      "title": "При 800×600 детали и заметка инвентаря доступны и не срезаны",
+      "status": "pass",
+      "detail": "прокрутка 169/169px, overflow-y=hidden; после прокрутки detail 495…533, note 553…592, view до 594",
+      "metrics": {
+        "before": {
+          "view": {
+            "top": 305,
+            "bottom": 594,
+            "height": 289
+          },
+          "graph": {
+            "top": 446,
+            "bottom": 656,
+            "height": 210
+          },
+          "detail": {
+            "top": 664,
+            "bottom": 702,
+            "height": 38
+          },
+          "note": {
+            "top": 722,
+            "bottom": 761,
+            "height": 39
+          }
+        },
+        "after": {
+          "view": {
+            "top": 305,
+            "bottom": 594,
+            "height": 289
+          },
+          "detail": {
+            "top": 495,
+            "bottom": 533,
+            "height": 38
+          },
+          "note": {
+            "top": 553,
+            "bottom": 592,
+            "height": 39
+          },
+          "scrollTop": 169,
+          "scrollHeight": 458,
+          "clientHeight": 289
+        },
+        "overflowY": "hidden"
+      }
+    },
+    {
+      "id": "patch12.player-wheel-scroll",
+      "patch": 12,
+      "title": "Колесо мыши прокручивает плеер",
+      "status": "pass",
+      "detail": "scrollHeight=887, clientHeight=289, scrollTop 0 → 240",
+      "metrics": {
+        "info": {
+          "visible": true,
+          "scrollTop": 0,
+          "scrollHeight": 887,
+          "clientHeight": 289,
+          "x": 400,
+          "y": 449.5
+        },
+        "after": {
+          "scrollTop": 240
+        }
+      }
+    },
+    {
+      "id": "patch8.battle-charm-freezes",
+      "patch": 8,
+      "title": "«Очарование» в бою замораживает снаряды и останавливает волны",
+      "status": "fail",
+      "detail": "Исключение: TypeError: ZQ.battleCharm is not a function\n    at <anonymous>:10:21\n    at <anonymous>:38:5",
+      "metrics": null
+    },
+    {
+      "id": "patch11.titanoboa-charm-freezes",
+      "patch": 11,
+      "title": "«Очарование» останавливает титанобоа, а не двигает её на месте",
+      "status": "fail",
+      "detail": "Исключение: TypeError: ZQ.chaseCharm is not a function\n    at <anonymous>:23:21\n    at <anonymous>:51:5",
+      "metrics": null
+    },
+    {
+      "id": "patch8.terminal-dash-surrender",
+      "patch": 8,
+      "title": "Команды «рывок» и «сдаться» работают в бою и погоне",
+      "status": "pass",
+      "detail": "справка: рывок=true, сдаться=true; гейт: закрыт=true, открыт=true; бой: рывок 0.20 с, закрыт=true; погоня: рывок 0.24 с, закрыта=true",
+      "metrics": {
+        "helpHasDash": true,
+        "helpHasSurrender": true,
+        "dashLockedBefore": true,
+        "dashOpen": true,
+        "battleStarted": true,
+        "battleDash": {
+          "timer": 0.2,
+          "cooldown": 2.4
+        },
+        "battleClosed": true,
+        "chaseStarted": true,
+        "chaseDash": {
+          "timer": 0.24,
+          "cooldown": 0.34,
+          "stamina": 0.74
+        },
+        "chaseClosed": true
+      }
+    },
+    {
+      "id": "patch12.cards-unlock-on-pickup",
+      "patch": 12,
+      "title": "Группа «карты» открывается вместе с картой «Очарование»",
+      "status": "fail",
+      "detail": "до=false, карта взята=true, в инвентаре=true, после=false",
+      "metrics": {
+        "before": false,
+        "taken": true,
+        "after": false,
+        "hasCard": true,
+        "cardFlag": true
+      }
+    },
+    {
+      "id": "patch12.inventory-no-overlaps",
+      "patch": 12,
+      "title": "Узлы инвентаря не накладываются друг на друга и целиком видны",
+      "status": "fail",
+      "detail": "1600×900: узлов 51, наложений 4, вне кадра 32, рёбер 25/53; 800×600: узлов 51, наложений 47, вне кадра 35, рёбер 25/53",
+      "metrics": {
+        "results": [
+          {
+            "width": 1600,
+            "height": 900,
+            "nodes": 51,
+            "overlaps": 4,
+            "outside": 32,
+            "edges": 53,
+            "edgesInside": 25
+          },
+          {
+            "width": 800,
+            "height": 600,
+            "nodes": 51,
+            "overlaps": 47,
+            "outside": 35,
+            "edges": 53,
+            "edgesInside": 25
+          }
+        ]
+      }
+    },
+    {
+      "id": "patch11.tile-pixel-snap",
+      "patch": 11,
+      "title": "Тайлы и камера выравниваются по физическим пикселям без мерцания швов",
+      "status": "fail",
+      "detail": "Исключение: TypeError: window.Renderer.snapPx is not a function\n    at <anonymous>:13:40\n    at <anonymous>:34:7",
+      "metrics": null
+    },
+    {
+      "id": "patch11.diagonal-speed",
+      "patch": 11,
+      "title": "Диагональная ходьба не быстрее прямой и не даёт двойного шага",
+      "status": "pass",
+      "detail": "прямо 1.775 тайла (1.775, 0.000), по диагонали 1.775 тайла (1.255, 1.255), отношение 1.000",
+      "metrics": {
+        "spot": {
+          "x": 108.5,
+          "y": 122.5
+        },
+        "straight": {
+          "dx": 1.775000000000091,
+          "dy": 0
+        },
+        "diagonal": {
+          "dx": 1.2551145366062144,
+          "dy": 1.2551145366062144
+        },
+        "straightDistance": 1.775000000000091,
+        "diagonalDistance": 1.775000000000131,
+        "ratio": 1.0000000000000224,
+        "speed": 3.55
+      }
+    },
+    {
+      "id": "patch12.settings-heading-hierarchy",
+      "patch": 12,
+      "title": "Заголовки настроек крупнее заголовков разделов",
+      "status": "fail",
+      "detail": "settings: h1=14.0px (H2), h2=14.0px, текст=14.0px; term-settings: h1=14.0px (H2), h2=14.0px, текст=14.0px; font-settings: h1=14.0px (H2), h2=14.0px, текст=14.0px; music: h1=14.0px (H2), h2=14.0px, текст=14.0px",
+      "metrics": {
+        "results": [
+          {
+            "view": "settings",
+            "title": 14,
+            "head": 14,
+            "body": 14,
+            "titleTag": "H2",
+            "headTag": "SPAN"
+          },
+          {
+            "view": "term-settings",
+            "title": 14,
+            "head": 14,
+            "body": 14,
+            "titleTag": "H2",
+            "headTag": "SPAN"
+          },
+          {
+            "view": "font-settings",
+            "title": 14,
+            "head": 14,
+            "body": 14,
+            "titleTag": "H2",
+            "headTag": "SPAN"
+          },
+          {
+            "view": "music",
+            "title": 14,
+            "head": 14,
+            "body": 14,
+            "titleTag": "H2",
+            "headTag": "SPAN"
+          }
+        ]
+      }
+    },
+    {
+      "id": "patch9.inventory-two-locations",
+      "patch": 9,
+      "title": "Инвентарь и рюкзак — два места хранения, рюкзак остаётся предметом",
+      "status": "fail",
+      "detail": "Исключение: TypeError: ZQ.itemLocation is not a function\n    at <anonymous>:12:10\n    at Array.filter (<anonymous>)\n    at countAt (<anonymous>:11:47)\n    at <anonymous>:13:27\n    at <anonymous>:60:5",
+      "metrics": null
+    }
+  ]
+}

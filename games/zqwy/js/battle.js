@@ -26,6 +26,43 @@
     return configFor(rt.battle ? rt.battle.kind : 'beetle');
   }
 
+  function genreFor(config) {
+    const genres = baseConfig().genres || {};
+    const id = config.genre || 'calm';
+    return Object.assign({
+      title: id,
+      intensity: 1,
+      waveScale: 1,
+      speedScale: 1,
+      enemySpeed: 0
+    }, genres[id] || {});
+  }
+
+  function hasDash() {
+    return typeof ZQ.hasDashAbility === 'function' ? ZQ.hasDashAbility() : true;
+  }
+
+  function audioState() {
+    return ZQ.audio && typeof ZQ.audio.state === 'function' ? ZQ.audio.state() : null;
+  }
+
+  /* Длительность трека боя: сначала справочное значение кассеты, затем
+     живые метаданные плеера. Нужна, чтобы схватка длилась ровно столько,
+     сколько звучит музыка. */
+  function trackSeconds(cue) {
+    const meta = C.musicCues && C.musicCues[cue];
+    const trackId = meta && meta.track ? meta.track : null;
+    const track = trackId && C.music && C.music.tracks ? C.music.tracks[trackId] : null;
+    if (track && Number.isFinite(track.duration) && track.duration > 0) {
+      return track.duration;
+    }
+    const state = audioState();
+    if (state && Number.isFinite(state.rawDuration) && state.rawDuration > 0) {
+      return state.rawDuration;
+    }
+    return null;
+  }
+
   function hasUmbrella() {
     return Boolean(rt.state && Array.isArray(rt.state.items) &&
       rt.state.items.includes('umbrella'));
@@ -46,6 +83,60 @@
     return ZQ.clamp(battle.elapsed / Math.max(0.001, duration), 0, 1);
   }
 
+  /* Прогресс боя: в режиме track он идёт по самой записи, поэтому
+     полоса и плотность залпов совпадают с музыкой. */
+  function battleProgress(battle) {
+    if (battle.durationMode === 'track') {
+      const state = audioState();
+      if (state && state.playing && state.rawDuration > 0) {
+        return ZQ.clamp(state.rawCurrent / state.rawDuration, 0, 1);
+      }
+    }
+    return survivalProgress(battle);
+  }
+
+  function battleRemaining(battle) {
+    if (battle.durationMode === 'track') {
+      const state = audioState();
+      if (state && state.playing && state.rawDuration > 0) {
+        const rate = state.rate > 0 ? state.rate : 1;
+        return Math.max(0, (state.rawDuration - state.rawCurrent) / rate);
+      }
+    }
+    return Math.max(0, battle.survivalTime - battle.elapsed);
+  }
+
+  function formatClock(seconds) {
+    const total = Math.max(0, Math.ceil(seconds));
+    const minutes = Math.floor(total / 60);
+    const rest = total % 60;
+    return `${minutes}:${String(rest).padStart(2, '0')}`;
+  }
+
+  /* Громкость и атака текущего места волны трека: peaks — 720 отсчётов
+     на всю запись. Залпы идут за музыкой, а не за ровным таймером. */
+  function musicEnergy(battle) {
+    const peaks = ZQ.audio && ZQ.audio.peaks;
+    if (!peaks || !peaks.length) return null;
+    const progress = battleProgress(battle);
+    const index = ZQ.clamp(
+      Math.floor(progress * peaks.length),
+      0,
+      peaks.length - 1
+    );
+    const level = peaks[index];
+    const prev = peaks[Math.max(0, index - 2)] || level;
+    const onset = Math.max(0, level - prev);
+    let sum = 0;
+    let count = 0;
+    for (let i = Math.max(0, index - 6); i <= Math.min(peaks.length - 1, index + 6); i += 1) {
+      sum += peaks[i];
+      count += 1;
+    }
+    const avg = count ? sum / count : level;
+    return { level, onset, avg, index, progress };
+  }
+
   function refreshRoom(battle) {
     if (!rt.world || !rt.state) return;
     const under = rt.world.roomAtTile(
@@ -61,11 +152,11 @@
     const config = battleConfig();
     const playerMax = Number.isFinite(battle.playerMaxHp) ? battle.playerMaxHp : 6;
     const playerHp = Math.max(0, battle.playerHp);
-    const left = Math.max(0, battle.survivalTime - battle.elapsed);
-    const progress = survivalProgress(battle);
+    const left = battleRemaining(battle);
+    const progress = battleProgress(battle);
 
     if (dom.battlePlayerHp) dom.battlePlayerHp.textContent = String(playerHp);
-    if (dom.battleBeetleHp) dom.battleBeetleHp.textContent = String(Math.ceil(left));
+    if (dom.battleBeetleHp) dom.battleBeetleHp.textContent = formatClock(left);
     if (dom.battleEnemyName) {
       dom.battleEnemyName.textContent = config.hudLabel ||
         t('продержаться', 'hold out', 'durchhalten');
@@ -103,14 +194,19 @@
       );
     }
     if (dom.battleDashState) {
-      dom.battleDashState.textContent = battle.dashCooldown > 0
-        ? t(
-          `рывок: ${Math.ceil(battle.dashCooldown)} с`,
-          `dash: ${Math.ceil(battle.dashCooldown)} s`,
-          `Ausweichen: ${Math.ceil(battle.dashCooldown)} s`
-        )
-        : t('рывок: готов', 'dash: ready', 'Ausweichen: bereit');
-      dom.battleDashState.classList.toggle('ready', battle.dashCooldown <= 0);
+      if (!hasDash()) {
+        dom.battleDashState.textContent = t('рывок: закрыт', 'dash: locked', 'Ausweichen: gesperrt');
+        dom.battleDashState.classList.remove('ready');
+      } else {
+        dom.battleDashState.textContent = battle.dashCooldown > 0
+          ? t(
+            `рывок: ${Math.ceil(battle.dashCooldown)} с`,
+            `dash: ${Math.ceil(battle.dashCooldown)} s`,
+            `Ausweichen: ${Math.ceil(battle.dashCooldown)} s`
+          )
+          : t('рывок: готов', 'dash: ready', 'Ausweichen: bereit');
+        dom.battleDashState.classList.toggle('ready', battle.dashCooldown <= 0);
+      }
     }
     if (dom.battleReflect) {
       dom.battleReflect.disabled = !battle.hasUmbrella ||
@@ -120,8 +216,9 @@
       dom.battleReflectTouch.disabled = !battle.hasUmbrella ||
         (battle.reflectCooldown > 0 && !battle.rhythmMode);
     }
-    if (dom.battleDash) dom.battleDash.disabled = battle.dashCooldown > 0;
-    if (dom.battleDashTouch) dom.battleDashTouch.disabled = battle.dashCooldown > 0;
+    const dashLocked = !hasDash();
+    if (dom.battleDash) dom.battleDash.disabled = dashLocked || battle.dashCooldown > 0;
+    if (dom.battleDashTouch) dom.battleDashTouch.disabled = dashLocked || battle.dashCooldown > 0;
 
     if (dom.battleRhythm) {
       dom.battleRhythm.classList.toggle('hidden', !battle.rhythmMode);
@@ -156,19 +253,34 @@
     if (!dom.battleHint) return;
     const battle = rt.battle;
     const config = battleConfig();
-    const seconds = Math.round(battle ? battle.survivalTime : config.survivalTime || 18);
-    const parts = [
-      t(
-        `Продержись ${seconds} секунд. Снаряды идут по настоящему Лабиринту.`,
-        `Hold out for ${seconds} seconds. Projectiles move through the real labyrinth.`,
-        `Halte ${seconds} Sekunden durch. Die Geschosse fliegen durch das echte Labyrinth.`
-      ),
-      t(
+    const parts = [];
+    if (battle && battle.durationMode === 'track') {
+      parts.push(t(
+        'Схватка длится ровно столько, сколько звучит трек. Враг идёт за тобой по всему Лабиринту.',
+        'The fight lasts exactly as long as the track. The enemy follows you through the whole labyrinth.',
+        'Der Kampf dauert genau so lang wie der Track. Der Gegner folgt dir durch das ganze Labyrinth.'
+      ));
+    } else {
+      const seconds = Math.round(battle ? battle.survivalTime : config.survivalTime || 18);
+      parts.push(t(
+        `Продержись ${seconds} секунд. Враг идёт за тобой по всему Лабиринту.`,
+        `Hold out for ${seconds} seconds. The enemy follows you through the whole labyrinth.`,
+        `Halte ${seconds} Sekunden durch. Der Gegner folgt dir durch das ganze Labyrinth.`
+      ));
+    }
+    if (hasDash()) {
+      parts.push(t(
         'Shift, ПРОБЕЛ или E — рывок.',
         'Shift, SPACE or E — dash.',
         'Shift, LEERTASTE oder E — Ausweichen.'
-      )
-    ];
+      ));
+    } else {
+      parts.push(t(
+        'Рывок ещё закрыт: беги между залпами без ускорения.',
+        'Dash is still locked: run between the volleys without it.',
+        'Ausweichen ist noch gesperrt: lauf ohne Sprint zwischen den Salven.'
+      ));
+    }
     if (battle && battle.rhythmMode) {
       parts.push(t(
         'Жми F или «зонт» в долю: попадание в ритм продлевает зонт и копит комбо.',
@@ -177,9 +289,9 @@
       ));
     } else if (battle && battle.hasUmbrella) {
       parts.push(t(
-        'F или кнопка «зонт» отводит снаряды (перезарядка 12 с).',
-        'F or the umbrella button turns projectiles aside (12 s cooldown).',
-        'F oder die Schirmtaste lenkt Geschosse ab (12 s Abklingzeit).'
+        'F или кнопка «зонт» отводит снаряды (перезарядка 15 с).',
+        'F or the umbrella button turns projectiles aside (15 s cooldown).',
+        'F oder die Schirmtaste lenkt Geschosse ab (15 s Abklingzeit).'
       ));
     } else {
       parts.push(t(
@@ -209,6 +321,14 @@
   function attemptDash() {
     const battle = rt.battle;
     if (!battle || !battle.active) return false;
+    if (!hasDash()) {
+      pushHint(t(
+        'Рывок ещё не открыт.',
+        'Dash is not unlocked yet.',
+        'Ausweichen ist noch nicht freigeschaltet.'
+      ), 1.6);
+      return false;
+    }
     if (battle.dashCooldown > 0) return false;
     const config = battleConfig();
     const input = inputVector();
@@ -299,6 +419,13 @@
   }
 
   function spawnBullet(battle, x, y, angle, speed, radius, homing) {
+    /* Вязкие выстрелы жука не гаснут: когда их накопится слишком
+       много, самый старый прилипший снаряд уступает место новому. */
+    const cap = Number.isFinite(battle.stickyBulletCap) ? battle.stickyBulletCap : 260;
+    if (battle.stickyBullets && battle.bullets.length >= cap) {
+      const idx = battle.bullets.findIndex((b) => b.stuck);
+      battle.bullets.splice(idx >= 0 ? idx : 0, 1);
+    }
     battle.bullets.push({
       x,
       y,
@@ -307,56 +434,363 @@
       r: radius,
       reflected: false,
       homing: Number.isFinite(homing) ? homing : 0,
-      life: battle.bulletLife
+      life: battle.bulletLife,
+      age: 0,
+      stuck: false
     });
-  }
-
-  /* Точка появления выбирается на полу текущего зала: снаряд не
-     возникает внутри стены и не гаснет в первом же кадре. */
-  function pickSpawn(battle, minDist) {
-    const player = rt.state.player;
-    const room = battle.room;
-    const min = Number.isFinite(minDist) ? minDist : 4;
-    for (let i = 0; i < 48; i += 1) {
-      let x;
-      let y;
-      if (room) {
-        x = room.ox + 0.5 + Math.random() * Math.max(0.5, room.w - 1);
-        y = room.oy + 0.5 + Math.random() * Math.max(0.5, room.h - 1);
-      } else {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = min + Math.random() * 3;
-        x = player.x + Math.cos(angle) * distance;
-        y = player.y + Math.sin(angle) * distance;
-      }
-      if (Math.hypot(x - player.x, y - player.y) < min) continue;
-      if (!rt.world || !rt.world.isWalkable(Math.floor(x), Math.floor(y))) continue;
-      return { x, y };
-    }
-    const angle = Math.random() * Math.PI * 2;
-    return {
-      x: player.x + Math.cos(angle) * min,
-      y: player.y + Math.sin(angle) * min
-    };
   }
 
   function angleTo(battle, x, y) {
     return Math.atan2(battle.player.y - y, battle.player.x - x);
   }
 
+  /* Центр залпа — всегда сам враг. Раньше точка появления выбиралась
+     случайно, и снаряды будто возникали из пустоты. Теперь источник
+     один: преследователь, которого игрок видит и за которым следит. */
   function roomCenter(battle) {
+    const source = emitter(battle);
+    if (source) return source;
     const room = battle.room;
     if (room) return { x: room.centerX + 0.5, y: room.centerY + 0.5 };
     return { x: rt.state.player.x, y: rt.state.player.y };
   }
 
+  /* ---------------------- Преследующий враг ------------------------ */
+  /* Враг не стоит в центре зала: он ползёт по настоящим клеткам вслед
+     за аксолотлем и стреляет на ходу. Шаги пути те же, что у
+     титанобоа, поэтому никто не застревает в тупиках и не отстаёт.
+     Вид врага (жаба, жук, зонт) задаётся в encounter.enemy. */
+  function spawnEnemy(battle, config) {
+    const player = rt.state.player;
+    const origin = {
+      x: Math.floor(player.x),
+      y: Math.floor(player.y)
+    };
+    const minDist = Number.isFinite(config.enemySpawnDistance)
+      ? config.enemySpawnDistance
+      : 8;
+    let spot = origin;
+    let found = false;
+    for (let radius = minDist; radius <= minDist + 8 && !found; radius += 1) {
+      const candidates = [];
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        for (let dy = -radius; dy <= radius; dy += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+          const x = origin.x + dx;
+          const y = origin.y + dy;
+          if (!rt.world || !rt.world.isWalkable(x, y)) continue;
+          candidates.push({ x, y });
+        }
+      }
+      if (candidates.length) {
+        spot = candidates[Math.floor(Math.random() * candidates.length)];
+        found = true;
+      }
+    }
+    const genre = battle.genre || {};
+    const speed = Number.isFinite(config.enemySpeed)
+      ? config.enemySpeed
+      : (Number.isFinite(genre.enemySpeed) ? genre.enemySpeed : 0);
+    battle.enemy = {
+      kind: config.enemy || 'belzebufo',
+      x: spot.x + 0.5,
+      y: spot.y + 0.5,
+      radius: Number.isFinite(config.enemyRadius) ? config.enemyRadius : 0.55,
+      speed,
+      target: null,
+      flash: 0,
+      facingX: 0,
+      facingY: 1,
+      /* «Подкоп»: жук уходит в камень и выныривает рядом с игроком,
+         если отстал. Настройка приходит из encounter.dig. */
+      dig: config.dig ? Object.assign({}, config.dig) : null,
+      digging: false,
+      digTimer: 0,
+      digCooldown: config.dig && Number.isFinite(config.dig.cooldown)
+        ? config.dig.cooldown
+        : 0
+    };
+    return battle.enemy;
+  }
+
+  /* Проходимая клетка на кольце вокруг игрока: нужна подкопу, чтобы
+     жук выныривал рядом, но не прямо под ногами. */
+  function digSpot(minRadius, maxRadius) {
+    if (!rt.world) return null;
+    const player = rt.state.player;
+    const cx = Math.floor(player.x);
+    const cy = Math.floor(player.y);
+    const from = Math.max(3, Math.round(Number.isFinite(minRadius) ? minRadius : 4));
+    const to = Math.max(from, Math.round(Number.isFinite(maxRadius) ? maxRadius : from + 8));
+    for (let radius = from; radius <= to; radius += 1) {
+      const candidates = [];
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        for (let dy = -radius; dy <= radius; dy += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+          if (!rt.world.isWalkable(cx + dx, cy + dy)) continue;
+          candidates.push({ x: cx + dx, y: cy + dy });
+        }
+      }
+      if (candidates.length) {
+        return candidates[Math.floor(Math.random() * candidates.length)];
+      }
+    }
+    return null;
+  }
+
+  /* Жук роет к аксолотлю: выныривает не где попало, а впереди него —
+     на пути движения. Так он перекрывает дорогу, а не плетётся сзади. */
+  function digSpotAhead(enemy) {
+    if (!rt.world) return null;
+    const player = rt.state.player;
+    let dx = Number.isFinite(player.facingX) ? player.facingX : 0;
+    let dy = Number.isFinite(player.facingY) ? player.facingY : 0;
+    if (!dx && !dy) {
+      dx = player.x - enemy.x;
+      dy = player.y - enemy.y;
+    }
+    const length = Math.hypot(dx, dy) || 1;
+    dx /= length;
+    dy /= length;
+    const arrive = enemy.dig && Number.isFinite(enemy.dig.arrive) ? enemy.dig.arrive : 3;
+    const targetX = Math.floor(player.x + dx * arrive);
+    const targetY = Math.floor(player.y + dy * arrive);
+    const minGap = Math.max(2.2, arrive - 1.4);
+    for (let radius = 0; radius <= 10; radius += 1) {
+      const candidates = [];
+      for (let ox = -radius; ox <= radius; ox += 1) {
+        for (let oy = -radius; oy <= radius; oy += 1) {
+          if (Math.max(Math.abs(ox), Math.abs(oy)) !== radius) continue;
+          const x = targetX + ox;
+          const y = targetY + oy;
+          if (!rt.world.isWalkable(x, y)) continue;
+          if (Math.hypot(x + 0.5 - player.x, y + 0.5 - player.y) < minGap) continue;
+          candidates.push({ x, y });
+        }
+      }
+      if (candidates.length) {
+        return candidates[Math.floor(Math.random() * candidates.length)];
+      }
+    }
+    return digSpot(Math.max(2, arrive), arrive + 6);
+  }
+
+  function stepEnemy(battle) {
+    const enemy = battle.enemy;
+    if (!enemy || !rt.world) return;
+    const player = rt.state.player;
+    const goal = { x: Math.floor(player.x), y: Math.floor(player.y) };
+    const start = { x: Math.floor(enemy.x), y: Math.floor(enemy.y) };
+    if (start.x === goal.x && start.y === goal.y) {
+      enemy.target = null;
+      return;
+    }
+    let next = typeof ZQ.chasePathStep === 'function'
+      ? ZQ.chasePathStep(start, goal, null)
+      : null;
+    if (!next && typeof ZQ.chaseGreedyStep === 'function') {
+      next = ZQ.chaseGreedyStep(start, goal, null);
+    }
+    enemy.target = next
+      ? { x: next.x + 0.5, y: next.y + 0.5 }
+      : { x: player.x, y: player.y };
+  }
+
+  function updateEnemy(battle, dt) {
+    const enemy = battle.enemy;
+    if (!enemy) return;
+    if (enemy.flash > 0) enemy.flash = Math.max(0, enemy.flash - dt * 3);
+    if (enemy.digCooldown > 0) enemy.digCooldown = Math.max(0, enemy.digCooldown - dt);
+
+    /* Подкоп: пока жук в норе, он не движется; на выходе оказывается
+       рядом с игроком. Так преследователь не теряется за поворотами. */
+    if (enemy.digging) {
+      enemy.digTimer -= dt;
+      if (enemy.digTimer <= 0) {
+        enemy.digging = false;
+        enemy.digTimer = 0;
+        enemy.digCooldown = enemy.dig && Number.isFinite(enemy.dig.cooldown)
+          ? enemy.dig.cooldown
+          : 6;
+        const arrive = enemy.dig && Number.isFinite(enemy.dig.arrive)
+          ? enemy.dig.arrive
+          : 5;
+        const spot = digSpotAhead(enemy) || digSpot(arrive, arrive + 6);
+        if (spot) {
+          enemy.x = spot.x + 0.5;
+          enemy.y = spot.y + 0.5;
+        }
+        enemy.target = null;
+        enemy.flash = 1;
+        pushHint(t(
+          `${enemyName(enemy.kind)} выныривает рядом.`,
+          `The ${enemyName(enemy.kind).toLowerCase()} bursts out nearby.`,
+          `${enemyName(enemy.kind)} bricht neben dir hervor.`
+        ), 1.2);
+      }
+      return;
+    }
+
+    const speed = Number.isFinite(enemy.speed) ? enemy.speed : 0;
+    if (speed <= 0) return;
+
+    /* Жук теряется, если аксолотль убегает по длинным коридорам:
+       тогда он уходит в камень и роет к игроку. */
+    if (enemy.dig && enemy.digCooldown <= 0) {
+      const player = rt.state.player;
+      const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+      const trigger = Number.isFinite(enemy.dig.distance) ? enemy.dig.distance : 15;
+      if (distance > trigger) {
+        enemy.digging = true;
+        enemy.digTimer = Number.isFinite(enemy.dig.duration) ? enemy.dig.duration : 0.8;
+        enemy.target = null;
+        pushHint(t(
+          `${enemyName(enemy.kind)} уходит в камень — он уже роет к тебе.`,
+          `The ${enemyName(enemy.kind).toLowerCase()} sinks into the stone — it is digging toward you.`,
+          `${enemyName(enemy.kind)} geht in den Stein — er gräbt zu dir.`
+        ), 1.2);
+        return;
+      }
+    }
+
+    if (!enemy.target) stepEnemy(battle);
+    if (!enemy.target) return;
+    const dx = enemy.target.x - enemy.x;
+    const dy = enemy.target.y - enemy.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 0.001) {
+      enemy.facingX = dx / distance;
+      enemy.facingY = dy / distance;
+    }
+    const step = speed * dt;
+    if (distance <= step || distance < 0.02) {
+      enemy.x = enemy.target.x;
+      enemy.y = enemy.target.y;
+      enemy.target = null;
+      stepEnemy(battle);
+      return;
+    }
+    enemy.x += (dx / distance) * step;
+    enemy.y += (dy / distance) * step;
+  }
+
+  function checkEnemyContact(battle) {
+    const enemy = battle.enemy;
+    if (!enemy || battle.playerInvuln > 0) return;
+    const config = battleConfig();
+    const player = rt.state.player;
+    const reach = (Number.isFinite(enemy.radius) ? enemy.radius : 0.55) +
+      (Number.isFinite(battle.playerRadius) ? battle.playerRadius : 0.34);
+    if (Math.hypot(player.x - enemy.x, player.y - enemy.y) > reach) return;
+    enemy.flash = 1;
+    battle.flash = 1;
+    battle.playerHp -= Number.isFinite(config.bulletDamage) ? config.bulletDamage : 1;
+    battle.playerInvuln = Number.isFinite(config.playerInvuln) ? config.playerInvuln : 0.9;
+    const name = enemyName(enemy.kind);
+    pushHint(t(
+      `${name} достаёт тебя. Уходи из-под удара и не давай прижать себя.`,
+      `The ${name.toLowerCase()} reaches you. Break away and do not let it pin you.`,
+      `${name} erreicht dich. Löse dich und lass dich nicht bedrängen.`
+    ), 1.3);
+    updateHud();
+    if (battle.playerHp <= 0) finishBattle('death');
+  }
+
+  /* Зелёная жижа жука. Капает под врагом, остаётся до конца боя,
+     наносит урон и замедляет аксолотля, пока он по ней идёт. */
+  function updateSlime(battle, dt) {
+    const cfg = battle.slimeConfig;
+    if (!cfg) {
+      battle.playerSpeedScale = 1;
+      return;
+    }
+    if (battle.slimeCooldown > 0) battle.slimeCooldown = Math.max(0, battle.slimeCooldown - dt);
+
+    const enemy = battle.enemy;
+    battle.slimeTimer -= dt;
+    if (enemy && !enemy.digging && battle.slimeTimer <= 0) {
+      const interval = Number.isFinite(cfg.interval) ? cfg.interval : 0.45;
+      battle.slimeTimer = Math.max(0.12, interval);
+      battle.slime.push({
+        x: enemy.x,
+        y: enemy.y,
+        r: Number.isFinite(cfg.radius) ? cfg.radius : 0.72,
+        phase: Math.random() * Math.PI * 2
+      });
+      const cap = Number.isFinite(cfg.cap) ? cfg.cap : 260;
+      while (battle.slime.length > cap) battle.slime.shift();
+    }
+
+    const player = rt.state.player;
+    let inSlime = false;
+    for (const pool of battle.slime) {
+      const dx = player.x - pool.x;
+      const dy = player.y - pool.y;
+      if (dx * dx + dy * dy <= pool.r * pool.r) { inSlime = true; break; }
+    }
+    battle.playerSpeedScale = inSlime
+      ? (Number.isFinite(cfg.slow) && cfg.slow > 0 ? cfg.slow : 0.55)
+      : 1;
+    if (inSlime && battle.slimeCooldown <= 0 && battle.playerInvuln <= 0) {
+      battle.slimeCooldown = 0.9;
+      battle.playerHp -= Number.isFinite(cfg.damage) ? cfg.damage : 1;
+      battle.flash = 1;
+      pushHint(t(
+        'Зелёная жижа разъедает и держит на месте. Обойди её.',
+        'The green slime burns and holds you. Go around it.',
+        'Der grüne Schleim ätzt und hält dich. Geh außen herum.'
+      ), 1.3);
+      updateHud();
+      if (battle.playerHp <= 0) finishBattle('death');
+    }
+  }
+
+  /* Имя преследующего врага для подсказок и лога. */
+  function enemyName(kind) {
+    if (kind === 'beetle') return t('Жук', 'beetle', 'Käfer');
+    if (kind === 'umbrella') return t('Тёмный зонт', 'dark umbrella', 'dunkler Schirm');
+    return t('Бельзебуфо', 'belzebufo', 'Belzebufo');
+  }
+
+  /* Отрисовка врага: спрайт берётся у Renderer, вид — из encounter.enemy. */
+  function drawEnemySprite(ctx, kind, sx, sy, ts, now) {
+    const R = window.Renderer;
+    if (!R) return;
+    if (kind === 'beetle' && typeof R.drawArenaBeetle === 'function') {
+      R.drawArenaBeetle(ctx, sx, sy, ts, now);
+      return;
+    }
+    if (kind === 'umbrella' && typeof R.drawUmbrellaEnemy === 'function') {
+      R.drawUmbrellaEnemy(ctx, sx, sy, ts, now);
+      return;
+    }
+    if (typeof R.drawBelzebufo === 'function') {
+      R.drawBelzebufo(ctx, sx, sy, ts, now);
+    }
+  }
+
+  /* Источник залпов — сам преследователь. Снаряды выходят из его
+     позиции, а не из случайной точки зала, поэтому игрок всегда видит,
+     откуда идёт волна. */
+  function emitter(battle) {
+    const enemy = battle.enemy;
+    if (!enemy) return null;
+    return { x: enemy.x, y: enemy.y };
+  }
+
+  function waveScale(battle) {
+    return Number.isFinite(battle.waveScale) && battle.waveScale > 0 ? battle.waveScale : 1;
+  }
+
   function aimedFan(battle, speed, radius, progress) {
     const config = battleConfig();
     const count = Math.max(2, Math.round(
-      (Number.isFinite(config.waveCount) ? config.waveCount : 5) + progress * 2
+      ((Number.isFinite(config.waveCount) ? config.waveCount : 5) + progress * 2) *
+      waveScale(battle)
     ));
     const spread = Number.isFinite(config.spread) ? config.spread : 0.5;
-    const origin = pickSpawn(battle, Number.isFinite(config.spawnDistance) ? config.spawnDistance : 6);
+    const origin = emitter(battle);
+    if (!origin) return;
     const base = angleTo(battle, origin.x, origin.y);
     for (let i = 0; i < count; i += 1) {
       const part = count > 1 ? i / (count - 1) - 0.5 : 0;
@@ -364,12 +798,33 @@
     }
   }
 
+  /* «Дождь» стал широким веером из врага: тот же плотный поток, но
+     теперь видно, кто его выпустил. */
+  function rainWave(battle, speed, radius, progress) {
+    const config = battleConfig();
+    const count = Math.max(4, Math.round(
+      ((Number.isFinite(config.waveCount) ? config.waveCount : 5) + 3 + progress * 4) *
+      waveScale(battle)
+    ));
+    const origin = emitter(battle);
+    if (!origin) return;
+    const base = angleTo(battle, origin.x, origin.y);
+    const spread = Math.PI * 0.9;
+    for (let i = 0; i < count; i += 1) {
+      const part = count > 1 ? i / (count - 1) - 0.5 : 0;
+      const jitter = (Math.random() - 0.5) * 0.08;
+      spawnBullet(battle, origin.x, origin.y, base + part * spread + jitter, speed * 0.86, radius);
+    }
+  }
+
   function ringWave(battle, speed, radius, progress) {
     const config = battleConfig();
     const count = Math.round(
-      (Number.isFinite(config.ringCount) ? config.ringCount : 16) + progress * 6
+      ((Number.isFinite(config.ringCount) ? config.ringCount : 16) + progress * 6) *
+      waveScale(battle)
     );
     const center = roomCenter(battle);
+    if (!center) return;
     const gapAngle = Math.atan2(
       battle.player.y - center.y,
       battle.player.x - center.x
@@ -395,6 +850,7 @@
     const arms = 3;
     const base = battle.volley * 0.55;
     const center = roomCenter(battle);
+    if (!center) return;
     for (let arm = 0; arm < arms; arm += 1) {
       const angle = base + (arm / arms) * Math.PI * 2;
       spawnBullet(
@@ -408,50 +864,24 @@
     }
   }
 
-  function rainWave(battle, speed, radius, progress) {
-    const config = battleConfig();
-    const count = Math.max(4, Math.round(
-      (Number.isFinite(config.waveCount) ? config.waveCount : 5) + 3 + progress * 4
-    ));
-    const room = battle.room;
-    const player = rt.state.player;
-    const span = room ? Math.max(4, room.w - 2) : 9;
-    const startX = room ? room.ox + 1 : player.x - span / 2;
-    const topY = room ? room.oy + 1 : player.y - 6;
-    const gapX = player.x + (Math.random() - 0.5) * 1.6;
-    const gapWidth = 1.6;
-    for (let i = 0; i < count; i += 1) {
-      const x = startX + (i / Math.max(1, count - 1)) * span;
-      if (Math.abs(x - gapX) < gapWidth * 0.5) continue;
-      if (!rt.world.isWalkable(Math.floor(x), Math.floor(topY))) continue;
-      const drift = (x - gapX) / Math.max(1, span) * 0.35;
-      spawnBullet(battle, x, topY, Math.PI / 2 + drift, speed * 0.86, radius);
-    }
-  }
-
+  /* Перекрёстный огонь: вращающийся крест из четырёх лучей, выходящих
+     из врага. Раньше снаряды возникали вокруг игрока. */
   function crossfireWave(battle, speed, radius) {
-    const player = rt.state.player;
-    const distance = 5.5;
-    const points = [
-      { x: player.x, y: player.y - distance },
-      { x: player.x, y: player.y + distance },
-      { x: player.x - distance, y: player.y },
-      { x: player.x + distance, y: player.y }
-    ];
-    for (const point of points) {
-      if (!rt.world.isWalkable(Math.floor(point.x), Math.floor(point.y))) continue;
-      const base = angleTo(battle, point.x, point.y);
-      for (let i = -1; i <= 1; i += 1) {
-        spawnBullet(battle, point.x, point.y, base + i * 0.14, speed * 0.9, radius);
-      }
+    const origin = emitter(battle);
+    if (!origin) return;
+    const base = angleTo(battle, origin.x, origin.y) + battle.volley * 0.4;
+    for (let i = 0; i < 4; i += 1) {
+      const angle = base + (i / 4) * Math.PI * 2;
+      spawnBullet(battle, origin.x, origin.y, angle, speed * 0.9, radius);
     }
   }
 
   function homingWave(battle, speed, radius, progress) {
-    const count = 2 + Math.round(progress * 2);
+    const count = Math.max(1, Math.round((2 + progress * 2) * waveScale(battle)));
+    const origin = emitter(battle);
+    if (!origin) return;
+    const base = angleTo(battle, origin.x, origin.y);
     for (let i = 0; i < count; i += 1) {
-      const origin = pickSpawn(battle, 6.5);
-      const base = angleTo(battle, origin.x, origin.y);
       spawnBullet(
         battle,
         origin.x,
@@ -464,20 +894,31 @@
     }
   }
 
-  function emitWave(dt) {
-    const battle = rt.battle;
-    if (!battle || !battle.active) return;
-    const config = battleConfig();
-    battle.waveCooldown -= dt;
-    if (battle.waveCooldown > 0) return;
+  /* Сама волна: считается один раз, когда телеграф досчитал до нуля. */
+  function fireVolley(battle, config, genre) {
+    /* Интенсивность залпов идёт за музыкой: громкие доли и атаки
+       сгущают снаряды, тихие проходы дают передышку. Жанр задаёт
+       общий уровень поверх этого. */
+    const progress = battleProgress(battle);
+    const energy = musicEnergy(battle);
+    const loud = energy ? ZQ.clamp((energy.level - 0.32) / 0.68, 0, 1) : 0;
+    const onset = energy ? ZQ.clamp(energy.onset * 4.5, 0, 1) : 0;
+    const punch = Math.max(loud, onset);
+    const intensity = (Number.isFinite(genre.intensity) ? genre.intensity : 1) *
+      (1 + punch * 0.45);
+    battle.waveScale = (Number.isFinite(genre.waveScale) ? genre.waveScale : 1) *
+      (1 + loud * 0.35 + onset * 0.2);
+    battle.energy = energy ? energy.level : 0;
 
-    const progress = survivalProgress(battle);
     const baseInterval = Number.isFinite(config.waveInterval) ? config.waveInterval : 1.6;
-    battle.waveCooldown = Math.max(0.5, baseInterval * (1 - progress * 0.42));
+    let interval = baseInterval * (1 - progress * 0.42) / Math.max(0.4, intensity);
+    interval *= 1 - 0.38 * punch;
+    battle.waveCooldown = Math.max(0.34, interval);
     battle.volley += 1;
 
     const speed = (Number.isFinite(config.waveSpeed) ? config.waveSpeed : 3.4) *
-      (1 + progress * 0.32);
+      (1 + progress * 0.32) *
+      (Number.isFinite(genre.speedScale) ? genre.speedScale : 1);
     const radius = Number.isFinite(config.bulletRadius) ? config.bulletRadius : 0.13;
 
     switch ((battle.volley - 1) % 6) {
@@ -490,6 +931,45 @@
     }
   }
 
+  function emitWave(dt) {
+    const battle = rt.battle;
+    if (!battle || !battle.active) return;
+    const config = battleConfig();
+    const genre = battle.genre || genreFor(config);
+
+    /* Телеграф: враг на мгновение «заряжается» на виду, и только потом
+       выходит волна из его позиции. Никаких снарядов из пустоты. */
+    if (battle.telegraph > 0) {
+      battle.telegraph = Math.max(0, battle.telegraph - dt);
+      if (battle.telegraph > 0) return;
+      fireVolley(battle, config, genre);
+      return;
+    }
+
+    battle.waveCooldown -= dt;
+    if (battle.waveCooldown > 0) return;
+
+    const telegraph = Number.isFinite(config.telegraph) ? config.telegraph : 0.32;
+    if (telegraph > 0) {
+      battle.telegraph = telegraph;
+      battle.telegraphTotal = telegraph;
+      return;
+    }
+    fireVolley(battle, config, genre);
+  }
+
+  /* Прилипший выстрел больше не летит: он остаётся висеть на стене или
+     на другом снаряде до конца боя, образуя опасную стенку. */
+  function stickBullet(bullet, x, y) {
+    bullet.stuck = true;
+    bullet.x = x;
+    bullet.y = y;
+    bullet.vx = 0;
+    bullet.vy = 0;
+    bullet.homing = 0;
+    bullet.life = Infinity;
+  }
+
   function updateBullets(dt) {
     const battle = rt.battle;
     if (!battle || !battle.active || !rt.world) return;
@@ -498,42 +978,74 @@
       ? battle.playerRadius
       : (Number.isFinite(C.battle && C.battle.playerRadius) ? C.battle.playerRadius : 0.34);
     const reflectRadius = Number.isFinite(config.reflectRadius) ? config.reflectRadius : 1.55;
+    const stickyEnabled = Boolean(battle.stickyBullets);
+    const stickDelay = Number.isFinite(battle.bulletStickDelay) ? battle.bulletStickDelay : 0.22;
     const bullets = battle.bullets;
 
     for (let i = bullets.length - 1; i >= 0; i -= 1) {
       const bullet = bullets[i];
+      const sticky = stickyEnabled && !bullet.reflected;
 
-      if (!bullet.reflected && bullet.homing > 0) {
-        const speed = Math.hypot(bullet.vx, bullet.vy);
-        const current = Math.atan2(bullet.vy, bullet.vx);
-        const desired = Math.atan2(
-          battle.player.y - bullet.y,
-          battle.player.x - bullet.x
-        );
-        const diff = Math.atan2(Math.sin(desired - current), Math.cos(desired - current));
-        const turn = Math.max(-bullet.homing * dt, Math.min(bullet.homing * dt, diff));
-        const next = current + turn;
-        bullet.vx = Math.cos(next) * speed;
-        bullet.vy = Math.sin(next) * speed;
-      }
+      if (!bullet.stuck) {
+        if (!bullet.reflected && bullet.homing > 0) {
+          const speed = Math.hypot(bullet.vx, bullet.vy);
+          const current = Math.atan2(bullet.vy, bullet.vx);
+          const desired = Math.atan2(
+            battle.player.y - bullet.y,
+            battle.player.x - bullet.x
+          );
+          const diff = Math.atan2(Math.sin(desired - current), Math.cos(desired - current));
+          const turn = Math.max(-bullet.homing * dt, Math.min(bullet.homing * dt, diff));
+          const next = current + turn;
+          bullet.vx = Math.cos(next) * speed;
+          bullet.vy = Math.sin(next) * speed;
+        }
 
-      bullet.x += bullet.vx * dt;
-      bullet.y += bullet.vy * dt;
-      bullet.life -= dt;
+        const prevX = bullet.x;
+        const prevY = bullet.y;
+        bullet.age = (bullet.age || 0) + dt;
+        bullet.x += bullet.vx * dt;
+        bullet.y += bullet.vy * dt;
+        bullet.life -= dt;
 
-      /* Снаряд гаснет о стены настоящего Лабиринта. */
-      const tileX = Math.floor(bullet.x);
-      const tileY = Math.floor(bullet.y);
-      if (bullet.life <= 0 || !rt.world.isWalkable(tileX, tileY)) {
-        bullets.splice(i, 1);
-        continue;
+        /* Снаряд упирается в стену настоящего Лабиринта. Вязкий выстрел
+           жука не гаснет, а приклеивается к ней; обычный — исчезает. */
+        const tileX = Math.floor(bullet.x);
+        const tileY = Math.floor(bullet.y);
+        if (!rt.world.isWalkable(tileX, tileY)) {
+          if (sticky && bullet.age >= stickDelay) {
+            stickBullet(bullet, prevX, prevY);
+          } else {
+            bullets.splice(i, 1);
+            continue;
+          }
+        } else if (bullet.life <= 0) {
+          bullets.splice(i, 1);
+          continue;
+        } else if (sticky && bullet.age >= stickDelay) {
+          /* Слипание: выстрел, коснувшийся уже прилипшего, тоже
+             застывает — так снаряды собираются в единую массу. */
+          let contact = false;
+          for (let j = 0; j < bullets.length; j += 1) {
+            if (j === i) continue;
+            const other = bullets[j];
+            if (!other.stuck) continue;
+            const dx = bullet.x - other.x;
+            const dy = bullet.y - other.y;
+            if (dx * dx + dy * dy <= (bullet.r + other.r + 0.04) ** 2) {
+              contact = true;
+              break;
+            }
+          }
+          if (contact) stickBullet(bullet, prevX, prevY);
+        }
       }
 
       const pdx = bullet.x - battle.player.x;
       const pdy = bullet.y - battle.player.y;
       const playerDistance = Math.hypot(pdx, pdy);
 
-      if (!bullet.reflected && battle.reflectTimer > 0 &&
+      if (!bullet.reflected && !bullet.stuck && battle.reflectTimer > 0 &&
           playerDistance <= reflectRadius + bullet.r) {
         const speed = Math.max(1.6, Math.hypot(bullet.vx, bullet.vy) * 1.25);
         const angle = playerDistance > 0.001
@@ -550,7 +1062,9 @@
 
       if (!bullet.reflected && battle.playerInvuln <= 0 &&
           playerDistance <= playerRadius + bullet.r) {
-        bullets.splice(i, 1);
+        /* Прилипший снаряд — часть опасной стенки: он ранит, но не
+           исчезает, поэтому такие стены приходится обходить. */
+        if (!bullet.stuck) bullets.splice(i, 1);
         battle.playerHp -= Number.isFinite(config.bulletDamage) ? config.bulletDamage : 1;
         battle.playerInvuln = Number.isFinite(config.playerInvuln) ? config.playerInvuln : 0.9;
         battle.flash = 1;
@@ -567,6 +1081,23 @@
         continue;
       }
     }
+  }
+
+  /* Конец боя: в режиме track он заканчивается вместе с записью, а не
+     на половине. durationCap остаётся предохранителем, elapsed — запас
+     на случай, если музыка выключена и трек не играет. */
+  function battleComplete(battle) {
+    if (battle.durationMode === 'track') {
+      const state = audioState();
+      if (state && state.playing && state.rawDuration > 0 &&
+          state.rawCurrent >= state.rawDuration - 0.12) {
+        return true;
+      }
+    }
+    if (Number.isFinite(battle.durationCap) && battle.elapsed >= battle.durationCap) {
+      return true;
+    }
+    return battle.elapsed >= battle.survivalTime;
   }
 
   function updateBattle(dt) {
@@ -610,11 +1141,16 @@
     }
 
     refreshRoom(battle);
+    updateEnemy(battle, dt);
+    checkEnemyContact(battle);
+    if (!rt.battle || !rt.battle.active) return;
+    updateSlime(battle, dt);
+    if (!rt.battle || !rt.battle.active) return;
     emitWave(dt);
     updateBullets(dt);
     if (!rt.battle || !rt.battle.active) return;
 
-    if (battle.elapsed >= battle.survivalTime) {
+    if (battleComplete(battle)) {
       finishBattle('success');
       return;
     }
@@ -665,10 +1201,18 @@
     const config = battleConfig();
     const kind = battle.kind || 'beetle';
     const roomId = battle.roomId || rt.state.currentRoomId || null;
+    const roomCue = battle.roomCue ||
+      (battle.room && battle.room.music) || 'labyrinth';
     battle.active = false;
     ZQ.resetKeys();
     hideBattleHud();
     rt.battle = null;
+
+    /* Схватка шла на своём треке: возвращаем кассету комнаты и снова
+       зацикливаем её. */
+    if (ZQ.audio && typeof ZQ.audio.endBattleTrack === 'function') {
+      ZQ.audio.endBattleTrack(roomCue);
+    }
 
     if (outcome === 'success') {
       const flag = config.flag || `${kind}Done`;
@@ -769,6 +1313,22 @@
     if (rt.trial) return false;
     if (rt.chase) return false;
 
+    const genre = genreFor(config);
+    const durationMode = config.durationMode || 'time';
+    let survivalTime = Number.isFinite(config.survivalTime) ? config.survivalTime : 18;
+    if (durationMode === 'track' && config.trackCue) {
+      const trackLength = trackSeconds(config.trackCue);
+      if (trackLength) {
+        const rate = ZQ.audio && typeof ZQ.audio.rateForCue === 'function'
+          ? ZQ.audio.rateForCue(config.trackCue)
+          : 1;
+        survivalTime = trackLength / (rate > 0 ? rate : 1);
+      }
+    }
+    if (Number.isFinite(config.durationCap)) {
+      survivalTime = Math.min(survivalTime, config.durationCap);
+    }
+
     const rhythmMode = config.mode === 'rhythm';
     const bpm = Number.isFinite(config.bpm) ? config.bpm : 92;
     const beatInterval = 60 / Math.max(30, bpm);
@@ -788,7 +1348,13 @@
       room,
       world: rt.world,
       elapsed: 0,
-      survivalTime: Number.isFinite(config.survivalTime) ? config.survivalTime : 18,
+      survivalTime,
+      durationMode,
+      durationCap: Number.isFinite(config.durationCap) ? config.durationCap : null,
+      genre,
+      waveScale: Number.isFinite(genre.waveScale) ? genre.waveScale : 1,
+      energy: 0,
+      enemy: null,
       player,
       playerRadius: Number.isFinite(config.playerRadius)
         ? config.playerRadius
@@ -805,9 +1371,21 @@
       dashFlash: 0,
       trail: [],
       bullets: [],
+      /* Вязкие выстрелы жука: параметры берём из encounter. */
+      stickyBullets: Boolean(config.stickyBullets),
+      bulletStickDelay: Number.isFinite(config.bulletStickDelay) ? config.bulletStickDelay : 0.22,
+      stickyBulletCap: Number.isFinite(config.stickyBulletCap) ? config.stickyBulletCap : 260,
+      /* Зелёная жижа под жуком: держится до конца боя. */
+      slime: [],
+      slimeConfig: config.slime ? Object.assign({}, config.slime) : null,
+      slimeTimer: 0,
+      slimeCooldown: 0,
+      playerSpeedScale: 1,
       bulletLife: Number.isFinite(config.bulletLife) ? config.bulletLife : 8,
       waveCooldown: 1.1,
       volley: 0,
+      telegraph: 0,
+      telegraphTotal: 0,
       hasUmbrella: hasUmbrella() || Boolean(config.borrowUmbrella),
       reflectTimer: 0,
       reflectCooldown: 0,
@@ -826,7 +1404,17 @@
       combo: 0
     };
 
-    if (config.trackCue && ZQ.audio) ZQ.audio.setCue(config.trackCue);
+    if (config.trackCue && ZQ.audio) {
+      if (typeof ZQ.audio.startBattleTrack === 'function') {
+        ZQ.audio.startBattleTrack(config.trackCue);
+      } else {
+        ZQ.audio.setCue(config.trackCue);
+      }
+    }
+
+    const roomCue = (room && room.music) || 'labyrinth';
+    rt.battle.roomCue = roomCue;
+    if (config.enemy) spawnEnemy(rt.battle, config);
 
     ZQ.ensureTerminalShare(0.4);
     showBattleHud();
@@ -852,6 +1440,36 @@
     if (!battle || !battle.active) return;
     const ts = params.ts;
     const player = rt.state.player;
+
+    /* Зелёная жижа: стелется под ногами, держится до конца боя. */
+    if (battle.slime && battle.slime.length) {
+      const now = params.now || 0;
+      ctx.save();
+      for (const pool of battle.slime) {
+        const px0 = params.toScreenX(pool.x);
+        const py0 = params.toScreenY(pool.y);
+        if (px0 < -ts * 3 || px0 > params.view.w + ts * 3 ||
+            py0 < -ts * 3 || py0 > params.view.h + ts * 3) continue;
+        const bubble = 0.5 + 0.5 * Math.sin(now * 0.003 + (pool.phase || 0));
+        ctx.fillStyle = `rgba(96, 168, 62, ${0.42 + bubble * 0.12})`;
+        ctx.beginPath();
+        ctx.ellipse(px0, py0, ts * pool.r, ts * pool.r * 0.86, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(160, 220, 96, ${0.35 + bubble * 0.25})`;
+        ctx.beginPath();
+        ctx.ellipse(
+          px0 - ts * 0.12,
+          py0 - ts * 0.1,
+          ts * pool.r * 0.32,
+          ts * pool.r * 0.26,
+          0.4,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+      ctx.restore();
+    }
 
     if (battle.trail.length) {
       for (const point of battle.trail) {
@@ -893,6 +1511,24 @@
       const by = params.toScreenY(bullet.y);
       const radius = Math.max(2, bullet.r * ts);
       ctx.save();
+      if (bullet.stuck) {
+        /* Прилипший снаряд — часть опасной стенки: он плотный, без
+           пульсирующего ореола, но всё ещё светится по краю. */
+        const tint = battle.kind === 'beetle' ? '118, 176, 74' : '138, 216, 220';
+        ctx.fillStyle = `rgba(${tint}, 0.95)`;
+        ctx.beginPath();
+        ctx.ellipse(bx, by, radius * 1.05, radius * 0.9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(226, 250, 214, 0.55)';
+        ctx.lineWidth = Math.max(1, radius * 0.3);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(24, 34, 18, 0.55)';
+        ctx.beginPath();
+        ctx.arc(bx, by, radius * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
       const glow = ctx.createRadialGradient(bx, by, radius * 0.2, bx, by, radius * 2.6);
       const tint = bullet.reflected
         ? '236, 198, 118'
@@ -909,6 +1545,61 @@
       ctx.arc(bx, by, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+
+    /* Преследующий враг: рисуется поверх пола, под снарядами. */
+    if (battle.enemy && window.Renderer) {
+      const ex = params.toScreenX(battle.enemy.x);
+      const ey = params.toScreenY(battle.enemy.y);
+
+      /* Телеграф залпа: кольцо сжимается к врагу перед волной, чтобы
+         игрок успел увидеть атаку и уйти. */
+      if (battle.telegraph > 0) {
+        const total = battle.telegraphTotal > 0 ? battle.telegraphTotal : 0.32;
+        const k = 1 - ZQ.clamp(battle.telegraph / total, 0, 1);
+        ctx.save();
+        ctx.strokeStyle = `rgba(236, 92, 60, ${0.2 + k * 0.55})`;
+        ctx.lineWidth = Math.max(1.5, ts * 0.08);
+        ctx.beginPath();
+        ctx.arc(ex, ey, ts * (1.7 - k * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(236, 92, 60, ${0.1 + k * 0.18})`;
+        ctx.beginPath();
+        ctx.arc(ex, ey, ts * 0.62, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      /* Подкоп: пока жук в норе, видно только разлетающийся камень. */
+      if (battle.enemy.digging) {
+        const total = battle.enemy.dig && Number.isFinite(battle.enemy.dig.duration)
+          ? battle.enemy.dig.duration
+          : 0.8;
+        const k = 1 - ZQ.clamp(battle.enemy.digTimer / total, 0, 1);
+        ctx.save();
+        ctx.fillStyle = 'rgba(24, 20, 14, 0.85)';
+        ctx.beginPath();
+        ctx.arc(ex, ey, ts * (0.2 + k * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(120, 104, 74, ${0.5 - k * 0.3})`;
+        ctx.lineWidth = Math.max(1, ts * 0.05);
+        ctx.beginPath();
+        ctx.arc(ex, ey, ts * (0.5 + k * 1.1), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        drawEnemySprite(ctx, battle.enemy.kind, ex, ey, ts, params.now || 0);
+      }
+
+      if (battle.enemy.flash > 0) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(236, 92, 60, ${battle.enemy.flash * 0.7})`;
+        ctx.lineWidth = Math.max(1.5, ts * 0.1);
+        ctx.beginPath();
+        ctx.arc(ex, ey, ts * 0.62, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     if (battle.flash > 0 && battle.playerInvuln > 0) {

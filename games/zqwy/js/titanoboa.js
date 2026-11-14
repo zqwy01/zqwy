@@ -30,7 +30,10 @@
       baseSpeed: 3.0,
       maxSpeed: 5.6,
       squeezeSpeed: 4.4,
-      squeezeChance: 0.16
+      squeezeChance: 0.16,
+      bodyGrowth: 30,
+      maxBodyCells: 70,
+      spreadHalfWidth: 3
     }, C.chase || {});
   }
 
@@ -42,6 +45,27 @@
     const code = lang();
     if (code === 'de') return de || en || ru;
     return code === 'en' ? (en || ru) : ru;
+  }
+
+  /* Длительность трека погони: справочное значение из конфига, затем
+     живые метаданные плеера. Нужна, чтобы победа наступала ровно в
+     конце записи. */
+  function trackSeconds(cue) {
+    const meta = C.musicCues && C.musicCues[cue];
+    const trackId = meta && meta.track ? meta.track : null;
+    const track = trackId && C.music && C.music.tracks ? C.music.tracks[trackId] : null;
+    if (track && Number.isFinite(track.duration) && track.duration > 0) {
+      return track.duration;
+    }
+    const state = ZQ.audio && typeof ZQ.audio.state === 'function' ? ZQ.audio.state() : null;
+    if (state && Number.isFinite(state.rawDuration) && state.rawDuration > 0) {
+      return state.rawDuration;
+    }
+    return null;
+  }
+
+  function audioState() {
+    return ZQ.audio && typeof ZQ.audio.state === 'function' ? ZQ.audio.state() : null;
   }
 
   function keyOf(x, y) {
@@ -65,10 +89,12 @@
 
   /* -------------------------- Поиск пути --------------------------- */
   /* BFS ограничен по глубине и числу узлов: змея не должна
-     просчитывать весь бесконечный мир на каждом шаге. */
-  function bfsPath(start, goal, blocked, maxDepth, maxNodes) {
-    const depthLimit = Number.isFinite(maxDepth) ? maxDepth : 46;
-    const nodeLimit = Number.isFinite(maxNodes) ? maxNodes : 6500;
+     просчитывать весь бесконечный мир на каждом шаге. Лимиты берутся
+     из конфига погони, поэтому змея видит весь зал и выбирает
+     действительно короткий маршрут, а не идёт вдоль стены. */
+  function bfsPath(start, goal, blocked, limits) {
+    const depthLimit = limits && Number.isFinite(limits.depth) ? limits.depth : 46;
+    const nodeLimit = limits && Number.isFinite(limits.nodes) ? limits.nodes : 6500;
     const parents = new Map();
     const depths = new Map();
     const queue = [start];
@@ -113,10 +139,18 @@
     return path;
   }
 
-  function nextStep(start, goal, blocked) {
-    const path = bfsPath(start, goal, blocked);
+  function nextStep(start, goal, blocked, limits) {
+    const path = bfsPath(start, goal, blocked, limits);
     if (!path || !path.length) return null;
     return path[1] || path[0];
+  }
+
+  /* Лимиты поиска пути из конфига погони. */
+  function limitsFor(cfg) {
+    return {
+      depth: cfg && Number.isFinite(cfg.pathDepth) ? cfg.pathDepth : 120,
+      nodes: cfg && Number.isFinite(cfg.pathNodes) ? cfg.pathNodes : 20000
+    };
   }
 
   function greedyStep(start, goal, blocked) {
@@ -157,8 +191,8 @@
   /* Самый дальний проходимый узел: для безопасного места и для
      начального длинного тела. */
   function farthestNode(start, maxDepth, maxNodes) {
-    const depthLimit = Number.isFinite(maxDepth) ? maxDepth : 40;
-    const nodeLimit = Number.isFinite(maxNodes) ? maxNodes : 7500;
+    const depthLimit = Number.isFinite(maxDepth) ? maxDepth : 120;
+    const nodeLimit = Number.isFinite(maxNodes) ? maxNodes : 20000;
     const queue = [start];
     const seen = new Map();
     seen.set(keyOf(start.x, start.y), 0);
@@ -202,11 +236,12 @@
   }
 
   function apex(chase, head, length) {
-    const far = farthestNode(head, 48, 9000);
+    const cfg = (chase && chase.config) || config();
+    const far = farthestNode(head, cfg.pathDepth, cfg.pathNodes);
     /* Путь до дальней точки может быть длиннее обычного лимита BFS:
        для начального тела поднимаем глубину ровно под найденный узел. */
     const path = far.depth > 0
-      ? bfsPath(head, far.node, null, far.depth + 2, 12000)
+      ? bfsPath(head, far.node, null, { depth: far.depth + 2, nodes: cfg.pathNodes })
       : null;
     if (!path || path.length < 2) return [{ x: head.x, y: head.y }];
     const body = path.slice(0, Math.max(2, length));
@@ -215,9 +250,15 @@
     while (body.length < length && body.length > 1) {
       const last = body[body.length - 1];
       body.push({ x: last.x, y: last.y });
-      if (body.length > 80) break;
+      if (body.length > 300) break;
     }
     return body;
+  }
+
+  /* Копия тела перед шагом: нужна для плавной отрисовки, чтобы змея
+     ползла векторно, а не прыгала по клеткам. */
+  function syncPrevBody(chase) {
+    chase.prevBody = chase.body.map((cell) => ({ x: cell.x, y: cell.y }));
   }
 
   function placeSnakeNear(chase, cx, cy, distance) {
@@ -235,6 +276,8 @@
     chase.squeezing = false;
     chase.squeezeTimer = 0;
     chase.stepTimer = 0;
+    computeMass(chase);
+    syncPrevBody(chase);
   }
 
   function safeSpot(chase) {
@@ -252,6 +295,80 @@
     return player;
   }
 
+  /* Насколько голова змеи далека от аксолотля. */
+  function headDistance(chase) {
+    const head = chase.body[0];
+    if (!head) return Infinity;
+    const player = rt.state.player;
+    return Math.hypot(player.x - (head.x + 0.5), player.y - (head.y + 0.5));
+  }
+
+  /* Проходимая клетка рядом с точкой. */
+  function walkableNear(cx, cy, maxRadius) {
+    if (walkable(cx, cy)) return { x: cx, y: cy };
+    const limit = Number.isFinite(maxRadius) ? maxRadius : 12;
+    for (let radius = 1; radius <= limit; radius += 1) {
+      const candidates = ringCandidates(cx, cy, radius, radius)
+        .filter((cell) => walkable(cell.x, cell.y));
+      if (candidates.length) {
+        return candidates[Math.floor(Math.random() * candidates.length)];
+      }
+    }
+    return null;
+  }
+
+  /* Аксолотль сильно оторвался: змея уходит в следующий прогруженный
+     чанк и встречает героя на его пути. Точка выхода держится на
+     расстоянии: одно касание убивает, поэтому змея не должна возникать
+     прямо под ногами. */
+  function teleportSnakeAhead(chase, cfg) {
+    const player = rt.state.player;
+    let dx = Number.isFinite(player.facingX) ? player.facingX : 0;
+    let dy = Number.isFinite(player.facingY) ? player.facingY : 0;
+    if (!dx && !dy) {
+      const head = chase.body[0];
+      if (head) {
+        dx = player.x - (head.x + 0.5);
+        dy = player.y - (head.y + 0.5);
+      }
+    }
+    const length = Math.hypot(dx, dy) || 1;
+    dx /= length;
+    dy /= length;
+    const arrive = Number.isFinite(cfg.teleportArrive) ? cfg.teleportArrive : 9;
+    const targetX = Math.floor(player.x + dx * arrive);
+    const targetY = Math.floor(player.y + dy * arrive);
+    const minGap = Math.max(5, arrive - 2);
+    let spot = null;
+    for (let radius = 0; radius <= 12 && !spot; radius += 1) {
+      const candidates = ringCandidates(targetX, targetY, radius, radius)
+        .filter((cell) => walkable(cell.x, cell.y))
+        .filter((cell) => Math.hypot(
+          cell.x + 0.5 - player.x,
+          cell.y + 0.5 - player.y
+        ) >= minGap);
+      if (candidates.length) {
+        spot = candidates[Math.floor(Math.random() * candidates.length)];
+      }
+    }
+    if (!spot) {
+      spot = walkableNear(targetX, targetY, 12) ||
+        { x: Math.floor(player.x), y: Math.floor(player.y) };
+    }
+    chase.body = apex(chase, spot, chase.bodyCells);
+    chase.squeezing = false;
+    chase.squeezeTimer = 0;
+    chase.stepTimer = 0;
+    chase.teleportCooldown = Number.isFinite(cfg.teleportCooldown) ? cfg.teleportCooldown : 5;
+    computeMass(chase);
+    syncPrevBody(chase);
+    ZQ.appendLog(t(
+      'Пол вздрагивает впереди: титанобоа уже ждёт на твоём пути.',
+      'The floor shudders ahead: the titanoboa is already waiting on your path.',
+      'Der Boden bebt voraus: Die Titanoboa wartet schon auf deinem Weg.'
+    ), 'sys', true);
+  }
+
   /* ------------------------- Шаги змеи ----------------------------- */
   function stepSnake(chase) {
     if (!chase.active || !chase.body.length) return;
@@ -264,7 +381,7 @@
       blocked.add(keyOf(chase.body[i].x, chase.body[i].y));
     }
 
-    let next = nextStep(head, target, blocked);
+    let next = nextStep(head, target, blocked, chase.config);
     let squeezed = false;
     if (!next) {
       next = greedyStep(head, target, blocked);
@@ -285,51 +402,72 @@
       chase.squeezeTimer = Math.max(chase.squeezeTimer || 0, 0.7);
     }
 
+    syncPrevBody(chase);
     chase.body.unshift({ x: next.x, y: next.y });
     while (chase.body.length > chase.bodyCells) chase.body.pop();
+    computeMass(chase);
+  }
+
+  /* Тело расползается поперёк спины: к клеткам позвоночника
+     добавляются перпендикулярные соседи, пока путь не упрётся в стену
+     или не кончится halfWidth. Так титанобоа заполняет комнату или
+     проход собственной массой. */
+  function computeMass(chase) {
+    const body = chase.body;
+    const half = Number.isFinite(chase.halfWidth) ? chase.halfWidth : 0;
+    const cells = [];
+    const seen = new Set();
+    const add = (x, y) => {
+      const key = keyOf(x, y);
+      if (seen.has(key)) return;
+      seen.add(key);
+      cells.push({ x, y });
+    };
+    for (let i = 0; i < body.length; i += 1) {
+      const cell = body[i];
+      const a = body[i - 1] || cell;
+      const b = body[i + 1] || cell;
+      let dx = a.x - b.x;
+      let dy = a.y - b.y;
+      if (!dx && !dy) { dx = 1; dy = 0; }
+      const len = Math.hypot(dx, dy) || 1;
+      const px = -dy / len;
+      const py = dx / len;
+      add(cell.x, cell.y);
+      for (const sign of [1, -1]) {
+        for (let d = 1; d <= half; d += 1) {
+          const tx = Math.round(cell.x + px * d * sign);
+          const ty = Math.round(cell.y + py * d * sign);
+          if (!walkable(tx, ty)) break;
+          add(tx, ty);
+        }
+      }
+    }
+    chase.mass = cells;
   }
 
   function checkContact(chase) {
     if (chase.invuln > 0 || !chase.active) return;
     const player = rt.state.player;
-    for (let i = 0; i < chase.body.length; i += 1) {
-      const cell = chase.body[i];
-      const radius = i === 0 ? 0.62 : 0.54;
+    const head = chase.body[0];
+    const cells = (chase.mass && chase.mass.length) ? chase.mass : chase.body;
+    for (let i = 0; i < cells.length; i += 1) {
+      const cell = cells[i];
+      const isHead = Boolean(head && cell.x === head.x && cell.y === head.y);
+      const radius = isHead ? 0.62 : 0.52;
       if (Math.hypot(player.x - (cell.x + 0.5), player.y - (cell.y + 0.5)) < radius) {
-        catchPlayer(chase, i === 0 ? 'кольца титанобоа' : 'тело титанобоа');
+        catchPlayer(chase, isHead ? 'кольца титанобоа' : 'тело титанобоа');
         return;
       }
     }
   }
 
+  /* Одно касание — смерть. Титанобоа не бьёт по частям: если кольца
+     сомкнулись, погоня окончена. */
   function catchPlayer(chase, cause) {
-    if (chase.invuln > 0 || !chase.active) return;
-    chase.breaths = Math.max(0, chase.breaths - 1);
+    if (!chase.active) return;
     chase.hits += 1;
-    chase.invuln = 1.9;
-    chase.dashTimer = 0;
-    chase.stamina = 0.55;
-    if (chase.breaths <= 0) {
-      finishChase('death', cause);
-      return;
-    }
-    const spot = safeSpot(chase);
-    rt.state.player.x = spot.x + 0.5;
-    rt.state.player.y = spot.y + 0.5;
-    rt.state.player.facingX = 0;
-    rt.state.player.facingY = -1;
-    rt.cursorMove = null;
-    rt.timedMove = null;
-    chase.trail.length = 0;
-    chase.lastX = rt.state.player.x;
-    chase.lastY = rt.state.player.y;
-    placeSnakeNear(chase, spot.x, spot.y, 8);
-    chase.invuln = 1.9;
-    ZQ.appendLog(t(
-      `Кольца достают. Ты вырываешься, но дыхание становится короче. Осталось вдохов: ${chase.breaths}.`,
-      `The coils catch you. You tear free, but your breath is shorter now. Breaths left: ${chase.breaths}.`,
-      `Die Ringe erwischen dich. Du reißt dich los, doch dein Atem wird kürzer. Atemzüge: ${chase.breaths}.`
-    ), 'sys', true);
+    finishChase('death', cause);
   }
 
   function finishChase(outcome, cause) {
@@ -340,13 +478,18 @@
     hideChaseHud();
     rt.chase = null;
 
+    /* Возвращаем кассету комнаты: трек погони доиграл (или оборвался),
+       и фоновая музыка зала снова зацикливается. */
+    if (ZQ.audio && typeof ZQ.audio.endBattleTrack === 'function') {
+      ZQ.audio.endBattleTrack(chase.roomCue || 'labyrinth');
+    }
+
     if (outcome === 'calm') {
       rt.state.flags.titanoboaCalm = true;
       rt.state.flags.titanoboaAttempted = true;
       if (chase.roomId) rt.state.flags[`titanoboa_${chase.roomId}`] = true;
       ZQ.ensureTerminalShare(0.5);
       ZQ.setTerminalView('main');
-      if (ZQ.audio) ZQ.audio.setCue('labyrinth');
       ZQ.appendLog(t(
         'Пол перестаёт вздрагивать. Титанобоа медленно опускает голову, и кольца расходятся, освобождая проход.',
         'The floor stops trembling. The titanoboa slowly lowers its head, and the coils part to free the way.',
@@ -366,9 +509,9 @@
       ZQ.ensureTerminalShare(0.46);
       ZQ.setTerminalView('main');
       ZQ.appendLog(t(
-        'Кольца смыкаются. Последний вдох остаётся в зале титанобоа.',
-        'The coils close. Your last breath stays in the titanoboa hall.',
-        'Die Ringe schließen sich. Der letzte Atemzug bleibt in der Halle der Titanoboa.'
+        'Кольца смыкаются мгновенно. Титанобоа не оставляет второго шанса.',
+        'The coils close in an instant. The titanoboa leaves no second chance.',
+        'Die Ringe schließen sich im Nu. Die Titanoboa lässt keine zweite Chance.'
       ), 'sys', true);
       ZQ.die(cause || t('титанобоа', 'the titanoboa', 'die Titanoboa'));
       return;
@@ -387,6 +530,16 @@
   function chaseDash() {
     const chase = rt.chase;
     if (!chase || !chase.active) return false;
+    if (typeof ZQ.hasDashAbility === 'function' && !ZQ.hasDashAbility()) {
+      chase.hint = t(
+        'Рывок ещё не открыт.',
+        'Dash is not unlocked yet.',
+        'Ausweichen ist noch nicht freigeschaltet.'
+      );
+      chase.hintUntil = chase.elapsed + 1.6;
+      updateHud();
+      return false;
+    }
     if (chase.dashCooldown > 0 || chase.stamina < 0.18) {
       chase.hint = t('Дыхание сбито. Переведи дух.', 'Out of breath. Catch it.', 'Außer Atem. Hol Luft.');
       chase.hintUntil = chase.elapsed + 1.2;
@@ -423,7 +576,12 @@
   function updateHud() {
     const chase = rt.chase;
     if (!chase) return;
-    if (dom.chaseBreaths) dom.chaseBreaths.textContent = String(chase.breaths);
+    const pressure = ZQ.clamp(chase.elapsed / Math.max(1, chase.duration), 0, 1);
+    /* Вдохов больше нет: одно касание — смерть. Вместо них показываем,
+       насколько доигран трек: победа приходит в его конце. */
+    if (dom.chaseBreaths) {
+      dom.chaseBreaths.textContent = `${Math.round(pressure * 100)}%`;
+    }
     if (dom.chaseTime) {
       const meters = Math.max(0, Math.round(chase.distance * 2));
       dom.chaseTime.textContent = `${meters} м`;
@@ -441,29 +599,29 @@
           'It is squeezing through the stone. Do not let it pin you to a wall.',
           'Sie zwängt sich durch den Stein. Lass dich nicht an die Wand drängen.'
         );
-      } else if (chase.elapsed < 8) {
+      } else if (pressure < 0.18) {
         hint = t(
-          'Уходи. Змея не устанет — устанешь ты. Shift — рывок.',
-          'Run. The snake will not tire — you will. Shift to dash.',
-          'Lauf. Die Schlange ermüdet nicht — du. Shift für den Sprint.'
+          'Уходи. Одно касание — и тебя нет. Shift — рывок.',
+          'Run. One touch and you are gone. Shift to dash.',
+          'Lauf. Eine Berührung — und du bist fort. Shift für den Sprint.'
         );
-      } else if (chase.elapsed < 20) {
+      } else if (pressure < 0.5) {
         hint = t(
           'Кольца ускоряются. Не давай прижать себя к стене.',
           'The coils are speeding up. Do not let them pin you to a wall.',
           'Die Ringe werden schneller. Lass dich nicht an die Wand drängen.'
         );
-      } else if (chase.elapsed < 34) {
+      } else if (pressure < 0.82) {
         hint = t(
-          'Она пропихивается сквозь проходы. Дыши ровнее.',
-          'It squeezes through the passages. Keep your breathing even.',
-          'Sie zwängt sich durch die Gänge. Atme gleichmäßig.'
+          'Она пропихивается сквозь проходы. Держись до конца трека.',
+          'It squeezes through the passages. Hold on until the track ends.',
+          'Sie zwängt sich durch die Gänge. Halte bis zum Ende des Tracks durch.'
         );
       } else {
         hint = t(
-          'Ещё немного. Она уже начинает уставать.',
-          'A little longer. It is beginning to tire.',
-          'Nur noch ein wenig. Sie beginnt bereits zu ermüden.'
+          'Трек почти доигран. Ещё немного.',
+          'The track is almost over. A little longer.',
+          'Der Track ist fast vorbei. Nur noch ein wenig.'
         );
       }
       dom.chaseHint.textContent = hint;
@@ -487,25 +645,47 @@
     const start = playerTile();
     const bodyCells = Math.max(10, Math.round(cfg.bodyLength));
 
+    /* Победа — дослушать трек до конца. duration — запас на случай,
+       если музыка выключена и запись не играет. */
+    let duration = Number.isFinite(cfg.duration) ? cfg.duration : 44;
+    if (cfg.durationMode === 'track' && cfg.trackCue) {
+      const length = trackSeconds(cfg.trackCue);
+      if (length) {
+        const rate = ZQ.audio && typeof ZQ.audio.rateForCue === 'function'
+          ? ZQ.audio.rateForCue(cfg.trackCue)
+          : 1;
+        duration = length / (rate > 0 ? rate : 1);
+      }
+    }
+    if (Number.isFinite(cfg.durationCap)) duration = Math.min(duration, cfg.durationCap);
+
     const chase = {
       active: true,
       roomId: room ? room.id : null,
+      roomCue: (room && room.music) || 'labyrinth',
       elapsed: 0,
-      duration: Number.isFinite(cfg.duration) ? cfg.duration : 44,
+      duration,
+      durationMode: cfg.durationMode || 'time',
+      durationCap: Number.isFinite(cfg.durationCap) ? cfg.durationCap : null,
       distance: 0,
       lastX: player.x,
       lastY: player.y,
-      breaths: 3,
+      breaths: 1,
       hits: 0,
       invuln: 1.1,
       hint: '',
       hintUntil: 0,
       bodyCells,
+      baseBodyCells: bodyCells,
+      halfWidth: 0,
+      mass: [],
       body: [],
       trail: [],
       squeezeTimer: 0,
       squeezing: false,
       stepTimer: 0,
+      interval: 0.3,
+      prevBody: [],
       dashTimer: 0,
       dashCooldown: 0,
       dashVX: 0,
@@ -513,6 +693,7 @@
       dashSpeed: cfg.dashSpeed || 12.5,
       dashFlash: 0,
       stamina: 1,
+      teleportCooldown: 0,
       config: cfg,
       player,
       playerSpeed: Number.isFinite(cfg.playerSpeed) ? cfg.playerSpeed : 4.8
@@ -526,22 +707,48 @@
     ZQ.ensureTerminalShare(0.4);
     ZQ.setTerminalView('main');
     ZQ.resetKeys();
-    if (cfg.trackCue && ZQ.audio) ZQ.audio.setCue(cfg.trackCue);
+    /* Погоня идёт под свой трек, и он должен доиграть до конца: без
+       зацикливания, с начала. */
+    if (cfg.trackCue && ZQ.audio) {
+      if (typeof ZQ.audio.startBattleTrack === 'function') {
+        ZQ.audio.startBattleTrack(cfg.trackCue);
+      } else {
+        ZQ.audio.setCue(cfg.trackCue);
+      }
+    }
     ZQ.appendLog(cfg.intro || t(
       'Пол вздрагивает. Титанобоа приходит в движение.',
       'The floor shudders. The titanoboa begins to move.',
       'Der Boden bebt. Die Titanoboa setzt sich in Bewegung.'
     ), 'story', true, cfg.introSpeaker || 'ТИТАНОБОА');
     ZQ.appendLog(t(
-      'Это не бой. Продержись, пока змея не успокоится. Shift или ПРОБЕЛ — рывок.',
-      'This is not a fight. Hold out until the snake calms. Shift or SPACE to dash.',
-      'Das ist kein Kampf. Halte durch, bis die Schlange sich beruhigt. Shift oder LEERTASTE für den Sprint.'
+      'Это не бой. Одно касание — и тебя нет. Беги и слушай трек до конца. Shift или ПРОБЕЛ — рывок.',
+      'This is not a fight. One touch and you are gone. Run and listen to the track to the end. Shift or SPACE to dash.',
+      'Das ist kein Kampf. Eine Berührung — und du bist fort. Lauf und höre den Track bis zum Ende. Shift oder LEERTASTE für den Sprint.'
     ), 'sys', true);
     ZQ.logEvent('actions', 'погоня: титанобоа', 'погоня');
     ZQ.saveGame();
     rt.chase = chase;
     updateHud();
     return true;
+  }
+
+  /* Победа: трек доигран до конца. Если музыка выключена, работает
+     запасное значение elapsed/duration. */
+  function chaseComplete(chase) {
+    if (chase.durationMode === 'track') {
+      const state = audioState();
+      /* Когда запись доходит до конца, el.ended гасит playing, поэтому
+         проверяем сам факт «доиграно», а не только playing. */
+      if (state && state.rawDuration > 0 &&
+          state.rawCurrent >= state.rawDuration - 0.15) {
+        return true;
+      }
+    }
+    if (Number.isFinite(chase.durationCap) && chase.elapsed >= chase.durationCap) {
+      return true;
+    }
+    return chase.elapsed >= chase.duration;
   }
 
   function updateChase(dt) {
@@ -555,10 +762,25 @@
     chase.dashFlash = Math.max(0, chase.dashFlash - dt * 3);
     chase.squeezeTimer = Math.max(0, chase.squeezeTimer - dt);
     if (chase.squeezeTimer <= 0) chase.squeezing = false;
+    chase.teleportCooldown = Math.max(0, (chase.teleportCooldown || 0) - dt);
 
     const pressure = ZQ.clamp(chase.elapsed / Math.max(1, chase.duration), 0, 1);
     const regen = (cfg.staminaRegen || 0.24) - pressure * 0.1;
     chase.stamina = ZQ.clamp(chase.stamina + regen * dt, 0, 1);
+
+    /* Чем дольше погоня, тем длиннее змея и тем шире она расползается
+       поперёк прохода. Обе величины растут вместе с давлением. */
+    const baseCells = Number.isFinite(chase.baseBodyCells)
+      ? chase.baseBodyCells
+      : chase.bodyCells;
+    const growth = Number.isFinite(cfg.bodyGrowth) ? cfg.bodyGrowth : 0;
+    const maxCells = Number.isFinite(cfg.maxBodyCells)
+      ? Math.max(baseCells, cfg.maxBodyCells)
+      : baseCells + growth;
+    chase.bodyCells = Math.min(maxCells, Math.round(baseCells + growth * pressure));
+    const maxHalf = Number.isFinite(cfg.spreadHalfWidth) ? cfg.spreadHalfWidth : 0;
+    chase.halfWidth = Math.max(0, Math.round(maxHalf * pressure));
+    computeMass(chase);
 
     /* Дистанция считается по реальному смещению Zemic: бег по
        коридорам, а не по отдельной арене. */
@@ -584,11 +806,27 @@
     }
     chase.trail = chase.trail.filter((point) => point.life > 0);
 
-    /* Скорость змеи растёт к концу погони. */
-    const snakeSpeed = cfg.baseSpeed + (cfg.maxSpeed - cfg.baseSpeed) * pressure;
+    /* Отрыв: чем дальше аксолотль, тем сильнее змея ускоряется к его
+       полю зрения. При огромном отрыве она переносится в следующий
+       прогруженный чанк навстречу герою. */
+    const gap = headDistance(chase);
+    const farDistance = Number.isFinite(cfg.farDistance) ? cfg.farDistance : 18;
+    const teleportDistance = Number.isFinite(cfg.teleportDistance) ? cfg.teleportDistance : 34;
+    let speedBoost = 1;
+    if (gap > teleportDistance && chase.teleportCooldown <= 0) {
+      teleportSnakeAhead(chase, cfg);
+      if (!rt.chase || !rt.chase.active) return;
+    } else if (gap > farDistance) {
+      const k = ZQ.clamp((gap - farDistance) / Math.max(1, teleportDistance - farDistance), 0, 1);
+      speedBoost = 1 + k * (Number.isFinite(cfg.farSpeedBoost) ? cfg.farSpeedBoost : 1.7);
+    }
+
+    /* Скорость змеи растёт к концу погони и при большом отрыве. */
+    const snakeSpeed = (cfg.baseSpeed + (cfg.maxSpeed - cfg.baseSpeed) * pressure) * speedBoost;
     const interval = 1 / Math.max(0.45, chase.squeezing
       ? Math.min(cfg.squeezeSpeed || 4.4, snakeSpeed + 0.6)
       : snakeSpeed);
+    chase.interval = interval;
     chase.stepTimer += dt;
     let guard = 0;
     while (chase.stepTimer >= interval && guard < 3) {
@@ -602,7 +840,7 @@
     checkContact(chase);
     if (!rt.chase || !rt.chase.active) return;
 
-    if (chase.elapsed >= chase.duration) {
+    if (chaseComplete(chase)) {
       finishChase('calm');
       return;
     }
@@ -610,6 +848,61 @@
   }
 
   /* ------------------------ Отрисовка ------------------------------ */
+  /* Плавная отрисовка: тело ползёт векторно между клетками, а не
+     прыгает по тайлам. stepTimer/interval даёт долю пути между двумя
+     шагами, prevBody — прошлые клетки позвоночника. */
+  function spineAt(chase, t) {
+    const body = chase.body;
+    const prev = (chase.prevBody && chase.prevBody.length) ? chase.prevBody : body;
+    const out = new Array(body.length);
+    for (let i = 0; i < body.length; i += 1) {
+      const b = body[i];
+      /* При росте тело длиннее прошлого: у новых хвостовых клеток нет
+         пары, поэтому они просто остаются на месте — без рывка. */
+      const a = prev[i] || b;
+      out[i] = {
+        x: a.x + (b.x - a.x) * t + 0.5,
+        y: a.y + (b.y - a.y) * t + 0.5
+      };
+    }
+    return out;
+  }
+
+  /* Масса для отрисовки считается по интерполированному позвоночнику,
+     поэтому расползающееся тело тоже движется без рывков. */
+  function renderMass(spine, half) {
+    const cells = [];
+    if (!(half > 0)) return cells;
+    const seen = new Set();
+    const add = (x, y) => {
+      const key = keyOf(Math.round(x), Math.round(y));
+      if (seen.has(key)) return;
+      seen.add(key);
+      cells.push({ x, y });
+    };
+    for (let i = 0; i < spine.length; i += 1) {
+      const cell = spine[i];
+      const a = spine[i - 1] || cell;
+      const b = spine[i + 1] || cell;
+      let dx = a.x - b.x;
+      let dy = a.y - b.y;
+      if (!dx && !dy) { dx = 1; dy = 0; }
+      const len = Math.hypot(dx, dy) || 1;
+      const px = -dy / len;
+      const py = dx / len;
+      add(cell.x, cell.y);
+      for (const sign of [1, -1]) {
+        for (let d = 1; d <= half; d += 1) {
+          const tx = Math.round(cell.x + px * d * sign);
+          const ty = Math.round(cell.y + py * d * sign);
+          if (!walkable(tx, ty)) break;
+          add(cell.x + px * d * sign, cell.y + py * d * sign);
+        }
+      }
+    }
+    return cells;
+  }
+
   function drawChaseWorld(ctx, params) {
     const chase = rt.chase;
     if (!chase || !chase.active || !chase.body.length) return;
@@ -617,6 +910,10 @@
     const view = params.view;
     const sx = params.toScreenX;
     const sy = params.toScreenY;
+    const t = chase.interval > 0
+      ? ZQ.clamp(chase.stepTimer / chase.interval, 0, 1)
+      : 1;
+    const spine = spineAt(chase, t);
 
     /* След рывка. */
     for (const point of chase.trail) {
@@ -630,22 +927,41 @@
     if (chase.squeezing) {
       ctx.save();
       ctx.fillStyle = 'rgba(196, 168, 116, 0.16)';
-      for (const cell of chase.body.slice(0, 6)) {
+      for (const cell of spine.slice(0, 6)) {
         ctx.beginPath();
-        ctx.arc(sx(cell.x + 0.5), sy(cell.y + 0.5), ts * 0.7, 0, Math.PI * 2);
+        ctx.arc(sx(cell.x), sy(cell.y), ts * 0.7, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
     }
 
+    /* Масса: расползшееся поперёк спины тело. Рисуется под спиной,
+       поэтому змея выглядит толще и заполняет проход целиком. */
+    if (chase.halfWidth > 0) {
+      const mass = renderMass(spine, chase.halfWidth);
+      if (mass.length) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(88, 84, 56, 0.92)';
+        for (const cell of mass) {
+          const cx = sx(cell.x);
+          const cy = sy(cell.y);
+          if (cx < -ts * 2 || cx > view.w + ts * 2 || cy < -ts * 2 || cy > view.h + ts * 2) continue;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, ts * 0.5, ts * 0.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
     /* Тень и тело. Хвост рисуется первым, голова — последней. */
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.34)';
-    for (let i = chase.body.length - 1; i >= 0; i -= 1) {
-      const cell = chase.body[i];
-      const cx = sx(cell.x + 0.5) + ts * 0.12;
-      const cy = sy(cell.y + 0.5) + ts * 0.18;
-      const ratio = i / Math.max(1, chase.body.length);
+    for (let i = spine.length - 1; i >= 0; i -= 1) {
+      const cell = spine[i];
+      const cx = sx(cell.x) + ts * 0.12;
+      const cy = sy(cell.y) + ts * 0.18;
+      const ratio = i / Math.max(1, spine.length);
       const radius = (i === 0 ? ts * 0.52 : ts * 0.44) * (1 - ratio * 0.32);
       ctx.beginPath();
       ctx.ellipse(cx, cy, radius * 1.2, radius * 0.8, 0, 0, Math.PI * 2);
@@ -653,12 +969,12 @@
     }
     ctx.restore();
 
-    for (let i = chase.body.length - 1; i >= 0; i -= 1) {
-      const cell = chase.body[i];
-      const cx = sx(cell.x + 0.5);
-      const cy = sy(cell.y + 0.5);
+    for (let i = spine.length - 1; i >= 0; i -= 1) {
+      const cell = spine[i];
+      const cx = sx(cell.x);
+      const cy = sy(cell.y);
       if (cx < -ts * 2 || cx > view.w + ts * 2 || cy < -ts * 2 || cy > view.h + ts * 2) continue;
-      const ratio = i / Math.max(1, chase.body.length);
+      const ratio = i / Math.max(1, spine.length);
       const radius = (i === 0 ? ts * 0.56 : ts * 0.47) * (1 - ratio * 0.3);
       const body = ctx.createRadialGradient(
         cx - radius * 0.35, cy - radius * 0.4, radius * 0.2,
@@ -680,11 +996,11 @@
       }
     }
 
-    const headCell = chase.body[0];
+    const headCell = spine[0];
     if (headCell) {
-      const cx = sx(headCell.x + 0.5);
-      const cy = sy(headCell.y + 0.5);
-      const next = chase.body[1] || headCell;
+      const cx = sx(headCell.x);
+      const cy = sy(headCell.y);
+      const next = spine[1] || headCell;
       const angle = Math.atan2(headCell.y - next.y, headCell.x - next.x);
       ctx.save();
       ctx.translate(cx, cy);
@@ -737,6 +1053,10 @@
   ZQ.startChase = startChase;
   ZQ.finishChase = finishChase;
   ZQ.chaseDash = chaseDash;
+  /* Шаги пути змеи переиспользует бельзебуфо: жаба тоже ползёт по
+     настоящим клеткам Лабиринта. */
+  ZQ.chasePathStep = nextStep;
+  ZQ.chaseGreedyStep = greedyStep;
   ZQ.resizeChase = resizeChase;
   ZQ.showChaseStage = showChaseHud;
   ZQ.hideChaseStage = hideChaseHud;

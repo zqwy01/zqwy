@@ -403,7 +403,10 @@
       canvasLayouts: {},
       storySeen: {},
       unlocks: { backpack: false, map: false, table: false, cards: false },
-      deaths: 0
+      deaths: 0,
+      /* Живые диметродоны: пассивные мобы, которые ползают по миру и
+         размножаются. Состояние переживает сохранение. */
+      fauna: { dimetrodons: [], seeded: {}, features: {}, growthTimer: 0, births: 0 }
     };
   }
 
@@ -557,6 +560,13 @@
       storySeen: state.storySeen,
       unlocks: state.unlocks,
       deaths: state.deaths,
+      fauna: state.fauna ? {
+        dimetrodons: Array.isArray(state.fauna.dimetrodons) ? state.fauna.dimetrodons : [],
+        seeded: state.fauna.seeded || {},
+        features: state.fauna.features || {},
+        growthTimer: Number.isFinite(state.fauna.growthTimer) ? state.fauna.growthTimer : 0,
+        births: Number.isFinite(state.fauna.births) ? state.fauna.births : 0
+      } : undefined,
       savedAt: Date.now()
     };
   }
@@ -1018,6 +1028,32 @@
     if (state.items.includes('map_fragment')) state.unlocks.map = true;
     if (state.canvasElements.length) state.unlocks.table = true;
     if (Number.isFinite(saved.deaths)) state.deaths = saved.deaths;
+    if (saved.fauna && typeof saved.fauna === 'object') {
+      const fauna = state.fauna || (state.fauna = {});
+      fauna.dimetrodons = Array.isArray(saved.fauna.dimetrodons)
+        ? saved.fauna.dimetrodons
+          .filter((mon) => mon && Number.isFinite(mon.x) && Number.isFinite(mon.y))
+          .map((mon) => ({
+            x: mon.x,
+            y: mon.y,
+            tx: Number.isFinite(mon.tx) ? mon.tx : mon.x,
+            ty: Number.isFinite(mon.ty) ? mon.ty : mon.y,
+            speed: Number.isFinite(mon.speed) ? mon.speed : 1,
+            angle: Number.isFinite(mon.angle) ? mon.angle : 0,
+            phase: Number.isFinite(mon.phase) ? mon.phase : 0,
+            roomId: typeof mon.roomId === 'string' ? mon.roomId : null,
+            rest: Number.isFinite(mon.rest) ? mon.rest : 0
+          }))
+        : [];
+      fauna.seeded = (saved.fauna.seeded && typeof saved.fauna.seeded === 'object')
+        ? saved.fauna.seeded
+        : {};
+      fauna.features = (saved.fauna.features && typeof saved.fauna.features === 'object')
+        ? saved.fauna.features
+        : {};
+      fauna.growthTimer = Number.isFinite(saved.fauna.growthTimer) ? saved.fauna.growthTimer : 0;
+      fauna.births = Number.isFinite(saved.fauna.births) ? saved.fauna.births : 0;
+    }
   }
 
   function hasUnlock(id) {
@@ -1049,6 +1085,34 @@
 
   function denyLocked(id) {
     return `${tr('Пока недоступно. ')}${unlockHint(id)}`;
+  }
+
+  /* Рывок закрыт способностью, пока Zemic её не открыл. Порог задан в
+     C.battle.dash: enabled=false снимает гейт целиком, flag/item
+     задают условие открытия. Триггер легко поменять позже — достаточно
+     выставить флаг (или выдать предмет) в нужный момент. */
+  function hasDashAbility() {
+    const gate = (C.battle && C.battle.dash) || {};
+    if (gate.enabled === false) return true;
+    const state = rt.state;
+    if (!state) return false;
+    if (gate.flag && state.flags && state.flags[gate.flag]) return true;
+    if (gate.item && Array.isArray(state.items) && state.items.includes(gate.item)) return true;
+    return false;
+  }
+
+  function setDashAbility(open, quiet) {
+    const gate = (C.battle && C.battle.dash) || {};
+    if (!gate.flag || !rt.state) return false;
+    if (!rt.state.flags) rt.state.flags = {};
+    rt.state.flags[gate.flag] = Boolean(open);
+    if (!quiet) {
+      ZQ.appendLog(open
+        ? tr('Рывок открыт: теперь Shift, ПРОБЕЛ или E дают ускорение.')
+        : tr('Рывок снова закрыт.'), 'sys', true);
+    }
+    saveGame();
+    return true;
   }
 
   function setTerminalView(name) {
@@ -1314,6 +1378,8 @@
     unlock,
     unlockHint,
     denyLocked,
+    hasDashAbility,
+    setDashAbility,
     setTerminalView,
     ensureTerminalShare,
     applySplit,

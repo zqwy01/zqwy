@@ -44,6 +44,9 @@
     driftTimer: 0,
     driftPhase: 0,
     switching: false,
+    /* Кассета комнаты зацикливается, а боевой трек должен доиграть до
+       конца: схватка длится ровно столько, сколько звучит запись. */
+    loop: true,
 
     element() {
       return dom.soundtrack || null;
@@ -54,15 +57,17 @@
       return Number.isFinite(value) ? ZQ.clamp(value, 0.5, 2) : 1;
     },
 
-    /* Скорость с учётом сцены: слепой зал замедляет, погоня и
-       жаба подгоняют темп. Пользовательская скорость остаётся
-       множителем, а не заменой. */
+    /* Темп задаёт только игрок. Сцена больше не подкручивает скорость:
+       замедление на схватке с титанобоа звучало неприятно, поэтому
+       автоматического изменения темпа нет нигде. Поля slow/hard в
+       каталоге кассет остаются, но влияют только на смену источника
+       (hard), а не на playbackRate. */
+    rateForCue(cue) {
+      return ZQ.clamp(this.baseRate(), 0.5, 2);
+    },
+
     sceneRate() {
-      const meta = cueMeta(this.cue);
-      let factor = 1;
-      if (meta && meta.slow) factor *= 0.82;
-      if (meta && meta.hard) factor *= 1.08;
-      return ZQ.clamp(this.baseRate() * factor, 0.5, 2);
+      return this.rateForCue(this.cue);
     },
 
     algorithm() {
@@ -314,6 +319,7 @@
         this.peakPromise = null;
         this.peakFile = '';
         el.setAttribute('src', targetSrc);
+        el.loop = this.loop;
         try {
           el.load();
         } catch (error) {
@@ -385,7 +391,7 @@
       const track = tracks()[this.trackId] || tracks().forest;
       if (!track || !track.file) return;
       if (!el.getAttribute('src')) el.setAttribute('src', track.file);
-      el.loop = true;
+      el.loop = this.loop;
       el.volume = this.volume();
       this.applyRate();
       this.startDrift();
@@ -502,8 +508,10 @@
     },
 
     /* Открыть кассету для комнаты: запись добавляется в плеер, а
-       активной становится именно она. */
-    setCue(cue) {
+       активной становится именно она. options.hard меняет источник
+       сразу, options.restart перематывает запись в начало. */
+    setCue(cue, options) {
+      const opts = options || {};
       this.cue = cue || 'labyrinth';
       const trackId = trackForCue(this.cue);
       const meta = cueMeta(this.cue);
@@ -523,7 +531,47 @@
         }
         rt.state.activeCassette = trackId;
       }
-      this.switchTrack(trackId, Boolean(meta && meta.hard));
+      const hard = opts.hard === undefined
+        ? Boolean(meta && meta.hard)
+        : Boolean(opts.hard);
+      this.switchTrack(trackId, hard);
+      if (opts.restart) this.rewind();
+    },
+
+    /* Зацикливание трека. Комнаты зацикливаются, схватка — нет:
+       она должна закончиться вместе с записью. */
+    setLoop(value) {
+      this.loop = Boolean(value);
+      const el = this.element();
+      if (el) el.loop = this.loop;
+      return this.loop;
+    },
+
+    rewind() {
+      const el = this.element();
+      if (!el) return false;
+      try {
+        el.currentTime = 0;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+
+    /* Боевой трек: жёсткое переключение, без зацикливания, с начала. */
+    startBattleTrack(cue) {
+      this.setLoop(false);
+      this.setCue(cue, { hard: true, restart: true });
+      const el = this.element();
+      if (el) el.loop = false;
+      return true;
+    },
+
+    /* Возврат к музыке комнаты после схватки. */
+    endBattleTrack(cue) {
+      this.setLoop(true);
+      this.setCue(cue || 'labyrinth', { hard: true });
+      return true;
     },
 
     playCassette(trackId) {

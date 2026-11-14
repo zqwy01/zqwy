@@ -1552,9 +1552,9 @@
       setAttr('#inventory-zoom-reset', 'aria-label', 'Reset inventory zoom');
 
       setText('#chase-stage .fight-eyebrow', 'ESCAPE · TITANOBOA');
-      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'breaths');
+      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'track');
       setText('#chase-stage .fight-stat:nth-child(2) .fight-label', 'distance');
-      setText('#chase-hint', 'Run. The snake will not tire — you will. Shift to dash.');
+      setText('#chase-hint', 'Run. One touch and you are gone. Shift to dash.');
       setText('#chase-abort', 'give up');
       setAttr('#chase-abort', 'aria-label', 'Give up the escape');
       setAttr('#chase-stage', 'aria-label', 'Titanoboa chase');
@@ -1712,9 +1712,9 @@
       setAttr('#inventory-zoom-reset', 'aria-label', 'Сбросить масштаб инвентаря');
 
       setText('#chase-stage .fight-eyebrow', 'ПОБЕГ · ТИТАНОБОА');
-      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'вдохи');
+      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'трек');
       setText('#chase-stage .fight-stat:nth-child(2) .fight-label', 'дистанция');
-      setText('#chase-hint', 'Уходи. Змея не устанет — устанешь ты. Shift — рывок.');
+      setText('#chase-hint', 'Уходи. Одно касание — и тебя нет. Shift — рывок.');
       setText('#chase-abort', 'сдаться');
       setAttr('#chase-abort', 'aria-label', 'Сдаться и прекратить побег');
       setAttr('#chase-stage', 'aria-label', 'Погоня титанобоа');
@@ -1838,9 +1838,9 @@
       setAttr('#inventory-zoom-reset', 'aria-label', 'Inventarzoom zurücksetzen');
 
       setText('#chase-stage .fight-eyebrow', 'FLUCH · TITANOBOA');
-      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'Atemzüge');
+      setText('#chase-stage .fight-stat:nth-child(1) .fight-label', 'Track');
       setText('#chase-stage .fight-stat:nth-child(2) .fight-label', 'Distanz');
-      setText('#chase-hint', 'Lauf. Die Schlange ermüdet nicht — du. Shift für den Sprint.');
+      setText('#chase-hint', 'Lauf. Eine Berührung — und du bist fort. Shift für den Sprint.');
       setText('#chase-abort', 'aufgeben');
       setAttr('#chase-abort', 'aria-label', 'Flucht aufgeben');
       setAttr('#chase-stage', 'aria-label', 'Verfolgung durch die Titanoboa');

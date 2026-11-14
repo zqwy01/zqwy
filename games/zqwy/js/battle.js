@@ -508,7 +508,25 @@
       digTimer: 0,
       /* Жук готов рыть с первой секунды: иначе он успевает отстать
          ещё до первого подкопа и плетётся следом. */
-      digCooldown: 0
+      digCooldown: 0,
+      /* Жаба не ползёт — она прыгает: разбег, дуга, приземление. */
+      hop: config.hop ? Object.assign({}, config.hop) : null,
+      hopState: 'idle',
+      hopTimer: 0,
+      hopCooldown: 0,
+      hopDuration: 0,
+      hopFrom: { x: spot.x + 0.5, y: spot.y + 0.5 },
+      hopTo: { x: spot.x + 0.5, y: spot.y + 0.5 },
+      hopProgress: 0,
+      hopHeight: 0,
+      landFlash: 0,
+      /* Длинный язык: достаёт аксолотля и подтягивает его к жабе. */
+      tongue: config.tongue ? Object.assign({}, config.tongue) : null,
+      tongueState: 'idle',
+      tongueTimer: 0,
+      tongueCooldown: Number.isFinite(config.tongueCooldown) ? config.tongueCooldown : 1.2,
+      tongueReach: 0,
+      tongueHit: false
     };
     return battle.enemy;
   }
@@ -596,10 +614,220 @@
       : { x: player.x, y: player.y };
   }
 
+  /* Прямая линия между клетками свободна: жаба не должна перелетать
+     сквозь стену на повороте. */
+  function straightClear(from, to) {
+    if (!rt.world) return false;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy));
+    if (steps <= 1) return true;
+    for (let i = 1; i < steps; i += 1) {
+      const x = Math.round(from.x + (dx * i) / steps);
+      const y = Math.round(from.y + (dy * i) / steps);
+      if (!rt.world.isWalkable(x, y)) return false;
+    }
+    return true;
+  }
+
+  /* Точка приземления прыжка: идём по найденному пути на hop.distance
+     клеток, но не дальше места, куда ведёт прямая без стены. */
+  function hopTarget(enemy) {
+    if (!rt.world) return null;
+    const player = rt.state.player;
+    const goal = { x: Math.floor(player.x), y: Math.floor(player.y) };
+    const start = { x: Math.floor(enemy.x), y: Math.floor(enemy.y) };
+    if (start.x === goal.x && start.y === goal.y) return null;
+    const cfg = enemy.hop || {};
+    const steps = Math.max(1, Math.round(Number.isFinite(cfg.distance) ? cfg.distance : 3));
+    const path = typeof ZQ.chasePathFind === 'function'
+      ? ZQ.chasePathFind(start, goal, null)
+      : null;
+    if (path && path.length >= 2) {
+      const maxIndex = Math.min(steps, path.length - 1);
+      for (let k = maxIndex; k >= 1; k -= 1) {
+        if (straightClear(start, path[k])) return path[k];
+      }
+    }
+    let next = typeof ZQ.chasePathStep === 'function'
+      ? ZQ.chasePathStep(start, goal, null)
+      : null;
+    if (!next && typeof ZQ.chaseGreedyStep === 'function') {
+      next = ZQ.chaseGreedyStep(start, goal, null);
+    }
+    return next;
+  }
+
+  /* Прыжки жабы: разбег, полёт по дуге, приземление с брызгами слизи. */
+  function updateHopEnemy(battle, enemy, dt) {
+    const cfg = enemy.hop || {};
+    if (enemy.hopCooldown > 0) enemy.hopCooldown = Math.max(0, enemy.hopCooldown - dt);
+    const state = enemy.hopState || 'idle';
+
+    if (state === 'idle') {
+      enemy.hopHeight = 0;
+      if (enemy.hopCooldown > 0) return;
+      const target = hopTarget(enemy);
+      if (!target) {
+        enemy.hopCooldown = 0.25;
+        return;
+      }
+      enemy.hopFrom = { x: enemy.x, y: enemy.y };
+      enemy.hopTo = { x: target.x + 0.5, y: target.y + 0.5 };
+      const dx = enemy.hopTo.x - enemy.x;
+      const dy = enemy.hopTo.y - enemy.y;
+      const length = Math.hypot(dx, dy) || 1;
+      enemy.facingX = dx / length;
+      enemy.facingY = dy / length;
+      enemy.hopState = 'crouch';
+      enemy.hopTimer = Number.isFinite(cfg.windup) ? cfg.windup : 0.16;
+      return;
+    }
+
+    if (state === 'crouch') {
+      enemy.hopTimer -= dt;
+      if (enemy.hopTimer <= 0) {
+        const duration = Number.isFinite(cfg.duration) ? cfg.duration : 0.3;
+        enemy.hopState = 'air';
+        enemy.hopTimer = duration;
+        enemy.hopDuration = duration;
+        enemy.hopProgress = 0;
+      }
+      return;
+    }
+
+    if (state === 'air') {
+      enemy.hopTimer -= dt;
+      const duration = enemy.hopDuration || (Number.isFinite(cfg.duration) ? cfg.duration : 0.3);
+      const progress = ZQ.clamp(1 - enemy.hopTimer / Math.max(0.001, duration), 0, 1);
+      enemy.hopProgress = progress;
+      enemy.x = enemy.hopFrom.x + (enemy.hopTo.x - enemy.hopFrom.x) * progress;
+      enemy.y = enemy.hopFrom.y + (enemy.hopTo.y - enemy.hopFrom.y) * progress;
+      const height = Number.isFinite(cfg.height) ? cfg.height : 1.05;
+      enemy.hopHeight = Math.sin(progress * Math.PI) * height;
+      if (enemy.hopTimer <= 0) {
+        enemy.x = enemy.hopTo.x;
+        enemy.y = enemy.hopTo.y;
+        enemy.hopHeight = 0;
+        enemy.hopState = 'idle';
+        enemy.hopCooldown = Number.isFinite(cfg.cooldown) ? cfg.cooldown : 0.12;
+        enemy.landFlash = 1;
+        dropSlime(
+          battle,
+          enemy.x,
+          enemy.y,
+          Number.isFinite(cfg.slimeBurst) ? cfg.slimeBurst : 4,
+          0.9
+        );
+      }
+    }
+  }
+
+  /* Язык: выбрасывается к аксолотлю и, если достал, подтягивает его к
+     жабе. Поэтому далеко от неё не убежать. */
+  function updateTongue(battle, enemy, dt) {
+    const cfg = enemy.tongue;
+    if (!cfg) return;
+    if (enemy.tongueCooldown > 0) enemy.tongueCooldown = Math.max(0, enemy.tongueCooldown - dt);
+    const player = rt.state.player;
+    const state = enemy.tongueState || 'idle';
+    const range = Number.isFinite(cfg.range) ? cfg.range : 7;
+    const outTime = Number.isFinite(cfg.outTime) ? cfg.outTime : 0.16;
+    const pullTime = Number.isFinite(cfg.pullTime) ? cfg.pullTime : 0.5;
+    const retractTime = Number.isFinite(cfg.retractTime) ? cfg.retractTime : 0.14;
+
+    if (state === 'idle') {
+      enemy.tongueReach = 0;
+      if (enemy.hopState === 'air') return;
+      const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+      const clear = straightClear(
+        { x: Math.floor(enemy.x), y: Math.floor(enemy.y) },
+        { x: Math.floor(player.x), y: Math.floor(player.y) }
+      );
+      if (enemy.tongueCooldown <= 0 && distance > 0.9 && distance <= range && clear) {
+        enemy.tongueState = 'out';
+        enemy.tongueTimer = outTime;
+        enemy.tongueHit = false;
+        pushHint(t(
+          'Бельзебуфо выбрасывает язык — он подтянет тебя ближе.',
+          'The belzebufo flicks out its tongue — it will reel you in.',
+          'Der Belzebufo schleudert die Zunge aus — sie zieht dich heran.'
+        ), 1.0);
+      }
+      return;
+    }
+
+    if (state === 'out') {
+      enemy.tongueTimer -= dt;
+      enemy.tongueReach = ZQ.clamp(1 - enemy.tongueTimer / Math.max(0.001, outTime), 0, 1);
+      if (enemy.tongueTimer <= 0) {
+        const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+        enemy.tongueHit = distance <= range + 0.8;
+        enemy.tongueState = 'pull';
+        enemy.tongueTimer = pullTime;
+        enemy.tongueReach = 1;
+        enemy.tongueCooldown = Number.isFinite(cfg.cooldown) ? cfg.cooldown : 4.2;
+        if (enemy.tongueHit && battle.playerInvuln <= 0) {
+          battle.playerHp -= Number.isFinite(cfg.damage) ? cfg.damage : 1;
+          battle.playerInvuln = 0.6;
+          battle.flash = 1;
+          pushHint(t(
+            'Язык обхватил аксолотля и тянет к жабе.',
+            'The tongue wraps the axolotl and drags it toward the frog.',
+            'Die Zunge umschlingt den Axolotl und zieht ihn zur Kröte.'
+          ), 1.1);
+          updateHud();
+          if (battle.playerHp <= 0) {
+            finishBattle('death');
+            return;
+          }
+        }
+      }
+      return;
+    }
+
+    if (state === 'pull') {
+      enemy.tongueTimer -= dt;
+      enemy.tongueReach = 1;
+      if (enemy.tongueHit) {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        const pull = (Number.isFinite(cfg.pullSpeed) ? cfg.pullSpeed : 5.5) * dt;
+        const move = Math.min(pull, Math.max(0, distance - 0.6));
+        const nx = player.x - (dx / distance) * move;
+        const ny = player.y - (dy / distance) * move;
+        if (ZQ.canStandAt(nx, ny)) {
+          player.x = nx;
+          player.y = ny;
+        } else {
+          if (ZQ.canStandAt(nx, player.y)) player.x = nx;
+          if (ZQ.canStandAt(player.x, ny)) player.y = ny;
+        }
+      }
+      if (enemy.tongueTimer <= 0) {
+        enemy.tongueState = 'retract';
+        enemy.tongueTimer = retractTime;
+      }
+      return;
+    }
+
+    if (state === 'retract') {
+      enemy.tongueTimer -= dt;
+      enemy.tongueReach = ZQ.clamp(enemy.tongueTimer / Math.max(0.001, retractTime), 0, 1);
+      if (enemy.tongueTimer <= 0) {
+        enemy.tongueState = 'idle';
+        enemy.tongueReach = 0;
+        enemy.tongueHit = false;
+      }
+    }
+  }
+
   function updateEnemy(battle, dt) {
     const enemy = battle.enemy;
     if (!enemy) return;
     if (enemy.flash > 0) enemy.flash = Math.max(0, enemy.flash - dt * 3);
+    if (enemy.landFlash > 0) enemy.landFlash = Math.max(0, enemy.landFlash - dt * 3);
     if (enemy.digCooldown > 0) enemy.digCooldown = Math.max(0, enemy.digCooldown - dt);
 
     /* Подкоп: пока жук в норе, он не движется; на выходе оказывается
@@ -628,6 +856,14 @@
           `${enemyName(enemy.kind)} bricht neben dir hervor.`
         ), 1.2);
       }
+      return;
+    }
+
+    /* Жаба не ползёт: она прыгает, а длинным языком подтягивает
+       аксолотля к себе. Это отдельная логика движения. */
+    if (enemy.hop) {
+      updateHopEnemy(battle, enemy, dt);
+      updateTongue(battle, enemy, dt);
       return;
     }
 
@@ -696,8 +932,30 @@
     if (battle.playerHp <= 0) finishBattle('death');
   }
 
-  /* Зелёная жижа жука. Капает под врагом, остаётся до конца боя,
-     наносит урон и замедляет аксолотля, пока он по ней идёт. */
+  /* Капля слизи в точке. Жук оставляет её под собой, а жаба — ещё и
+     брызгами после прыжка. */
+  function dropSlime(battle, x, y, count, spread) {
+    const cfg = battle.slimeConfig;
+    if (!cfg) return;
+    const cap = Number.isFinite(cfg.cap) ? cfg.cap : 260;
+    const radius = Number.isFinite(cfg.radius) ? cfg.radius : 0.72;
+    const n = Math.max(1, Math.round(count || 1));
+    const reach = Number.isFinite(spread) ? spread : 0;
+    for (let i = 0; i < n; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * reach;
+      battle.slime.push({
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        r: radius * (0.82 + Math.random() * 0.36),
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+    while (battle.slime.length > cap) battle.slime.shift();
+  }
+
+  /* Зелёная жижа. Капает под врагом, остаётся до конца боя, наносит
+     урон и замедляет аксолотля, пока он по ней идёт. */
   function updateSlime(battle, dt) {
     const cfg = battle.slimeConfig;
     if (!cfg) {
@@ -711,14 +969,7 @@
     if (enemy && !enemy.digging && battle.slimeTimer <= 0) {
       const interval = Number.isFinite(cfg.interval) ? cfg.interval : 0.45;
       battle.slimeTimer = Math.max(0.12, interval);
-      battle.slime.push({
-        x: enemy.x,
-        y: enemy.y,
-        r: Number.isFinite(cfg.radius) ? cfg.radius : 0.72,
-        phase: Math.random() * Math.PI * 2
-      });
-      const cap = Number.isFinite(cfg.cap) ? cfg.cap : 260;
-      while (battle.slime.length > cap) battle.slime.shift();
+      dropSlime(battle, enemy.x, enemy.y, 1, 0.3);
     }
 
     const player = rt.state.player;
@@ -753,7 +1004,7 @@
   }
 
   /* Отрисовка врага: спрайт берётся у Renderer, вид — из encounter.enemy. */
-  function drawEnemySprite(ctx, kind, sx, sy, ts, now) {
+  function drawEnemySprite(ctx, kind, sx, sy, ts, now, enemy) {
     const R = window.Renderer;
     if (!R) return;
     if (kind === 'beetle' && typeof R.drawArenaBeetle === 'function') {
@@ -765,8 +1016,32 @@
       return;
     }
     if (typeof R.drawBelzebufo === 'function') {
-      R.drawBelzebufo(ctx, sx, sy, ts, now);
+      R.drawBelzebufo(ctx, sx, sy, ts, now, enemy);
     }
+  }
+
+  /* Язык жабы: тянется из пасти к аксолотлю. Пока жаба подтягивает
+     игрока, кончик языка приклеен к нему. */
+  function drawTongue(ctx, enemy, ex, ey, ts, params) {
+    const player = rt.state.player;
+    const reach = ZQ.clamp(enemy.tongueReach || 0, 0, 1);
+    if (reach <= 0.01) return;
+    const tipX = params.toScreenX(enemy.x + (player.x - enemy.x) * reach);
+    const tipY = params.toScreenY(enemy.y + (player.y - enemy.y) * reach);
+    const lift = Number.isFinite(enemy.hopHeight) ? enemy.hopHeight * ts : 0;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(226, 108, 140, 0.9)';
+    ctx.lineWidth = Math.max(2, ts * 0.15);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ex, ey - lift);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(240, 156, 176, 0.95)';
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, Math.max(2, ts * 0.15), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   /* Источник залпов — сам преследователь. Снаряды выходят из его
@@ -1588,7 +1863,10 @@
         ctx.stroke();
         ctx.restore();
       } else {
-        drawEnemySprite(ctx, battle.enemy.kind, ex, ey, ts, params.now || 0);
+        if (battle.enemy.tongue && battle.enemy.tongueState !== 'idle') {
+          drawTongue(ctx, battle.enemy, ex, ey, ts, params);
+        }
+        drawEnemySprite(ctx, battle.enemy.kind, ex, ey, ts, params.now || 0, battle.enemy);
       }
 
       if (battle.enemy.flash > 0) {

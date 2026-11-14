@@ -157,6 +157,102 @@
       return { w, h };
     }
 
+    /* ---------------- Формы залов ---------------- */
+    /* Сюжетные залы остаются прямоугольными: в них стоят Скрижаль,
+       круг испытания и полки, и случайная ниша может сломать сцену.
+       Процедурные и фаунные залы получают детерминированный силуэт,
+       поэтому один и тот же seed всегда даёт ту же комнату, а двери
+       соседних чанков прорезают именно её. */
+    const STORY_ROLES = {
+      tablet: true, hazard: true, low: true, trial: true,
+      storage: true, crossroad: true, beetle: true, umbrella: true
+    };
+    const SHAPE_KINDS = ['rect', 'chamfer', 'ellipse', 'hourglass', 'cross', 'lshape', 'cave'];
+
+    function roomShape(cx, cy, role) {
+      const kind = role || roleAt(cx, cy);
+      if (STORY_ROLES[kind]) return 'rect';
+      /* Зал титанобоа — намеренно огромная неровная пещера. */
+      if (kind === 'titanoboa') return 'cave';
+      const roll = hashString(`${seed}:roomshape:${cx}:${cy}`) / 4294967296;
+      /* Больше половины залов всё же прямоугольные: разнообразие не
+         должно превращать Лабиринт в набор одинаковых овалов. */
+      const weights = Array.isArray(W.shapeWeights) && W.shapeWeights.length
+        ? W.shapeWeights
+        : [
+          { kind: 'rect', weight: 46 },
+          { kind: 'chamfer', weight: 12 },
+          { kind: 'ellipse', weight: 12 },
+          { kind: 'hourglass', weight: 7 },
+          { kind: 'cross', weight: 7 },
+          { kind: 'lshape', weight: 8 },
+          { kind: 'cave', weight: 8 }
+        ];
+      let total = 0;
+      for (const entry of weights) total += Math.max(0, Number(entry.weight) || 0);
+      if (!(total > 0)) {
+        return SHAPE_KINDS[Math.floor(roll * SHAPE_KINDS.length) % SHAPE_KINDS.length];
+      }
+      let cursor = roll * total;
+      for (const entry of weights) {
+        cursor -= Math.max(0, Number(entry.weight) || 0);
+        if (cursor <= 0) {
+          const candidate = String(entry.kind || 'rect');
+          return SHAPE_KINDS.includes(candidate) ? candidate : 'rect';
+        }
+      }
+      return 'rect';
+    }
+
+    /* Маска задаётся в координатах внутреннего прямоугольника зала
+       (0…w-3, 0…h-3): внешняя стена толщиной в тайл остаётся целой,
+       а всё, что снаружи маски, автоматически становится стеной. */
+    function shapeContains(shape, lx, ly, iw, ih, cx, cy) {
+      if (shape === 'rect' || !shape) return true;
+      const u = (lx + 0.5) / Math.max(1, iw) - 0.5;
+      const v = (ly + 0.5) / Math.max(1, ih) - 0.5;
+      const au = Math.abs(u);
+      const av = Math.abs(v);
+      const seedRoll = hashString(`${seed}:shape:${shape}:${cx}:${cy}`) / 4294967296;
+      if (shape === 'chamfer') {
+        const cut = Math.max(1, Math.round(Math.min(iw, ih) * (0.14 + seedRoll * 0.12)));
+        const edge = Math.min(
+          lx + ly,
+          (iw - 1 - lx) + ly,
+          lx + (ih - 1 - ly),
+          (iw - 1 - lx) + (ih - 1 - ly)
+        );
+        return edge >= cut;
+      }
+      if (shape === 'ellipse') {
+        const wobble = 0.055 * Math.sin(
+          Math.atan2(v, u) * 5 + seedRoll * Math.PI * 2
+        );
+        return (u * u) / 0.25 + (v * v) / 0.25 <= 1 + wobble;
+      }
+      if (shape === 'hourglass') {
+        /* Узкая середина и широкие концы: зал будто перетянут. */
+        return au <= 0.14 + 0.7 * av;
+      }
+      if (shape === 'cross') {
+        const band = 0.16 + seedRoll * 0.06;
+        return av <= band || au <= band;
+      }
+      if (shape === 'lshape') {
+        /* Вырезаем один верхний угол, но не задеваем центр. */
+        const side = seedRoll < 0.5 ? 1 : -1;
+        return !(u * side > 0.05 && v < -0.05);
+      }
+      if (shape === 'cave') {
+        const angle = Math.atan2(v, u);
+        const radius = Math.hypot(u / 0.5, v / 0.5);
+        const wobble = 0.12 * Math.sin(angle * 3 + seedRoll * 6.283) +
+          0.07 * Math.sin(angle * 5 - seedRoll * 9.1);
+        return radius <= 0.86 + wobble;
+      }
+      return true;
+    }
+
     function roomBox(cx, cy, role) {
       const dims = roomDims(cx, cy, role || roleAt(cx, cy));
       const cellX = cx * stepX;
@@ -256,6 +352,7 @@
         w: box.w,
         h: box.h,
         role,
+        shape: roomShape(cx, cy, role),
         faunaKind: faunaMeta ? role : null,
         storyIndex,
         name,
@@ -353,6 +450,28 @@
       return from + offset;
     }
 
+    /* Дверь всегда доходит до пола, даже если форма зала скошена и
+       у стены нет ни одной проходимой клетки. Прорезаем «горловину»
+       вглубь зала до первого пола; для прямоугольных залов она пустая. */
+    function carveThroat(chunk, startX, startY, dirX, dirY, width, depthLimit) {
+      const rows = Math.max(1, Math.round(width));
+      /* Каждая линия двери прорезается до первого пола отдельно:
+         иначе у скошенной стены половина проёма оставалась бы в стене. */
+      for (let w = 0; w < rows; w += 1) {
+        for (let d = 1; d <= depthLimit; d += 1) {
+          const x = startX + dirX * d + (dirX ? 0 : w);
+          const y = startY + dirY * d + (dirY ? 0 : w);
+          const index = localTile(chunk, x, y);
+          /* Комната целиком в другом чанке: её сторону прорежет
+             соседний проход, здесь трогать нечего. */
+          if (index < 0) break;
+          const tile = chunk.tiles[index];
+          if (tile === 1 || tile === 6) break;
+          chunk.tiles[index] = 1;
+        }
+      }
+    }
+
     function carveEdge(chunk, edge) {
       const width = corridorWidth(edge);
       if (edge.ay === edge.by) {
@@ -380,6 +499,14 @@
           setTileInChunk(chunk, xStart, y, 5);
           setTileInChunk(chunk, xEnd, y, 5);
         }
+        /* Если у стены нет пола из-за формы зала, дверь прорезает
+           горловину вглубь, пока не встретит пол. */
+        const depthLeft = Math.max(4, Math.min(18,
+          Math.floor(Math.min(leftBox.w, leftBox.h) * 0.6)));
+        const depthRight = Math.max(4, Math.min(18,
+          Math.floor(Math.min(rightBox.w, rightBox.h) * 0.6)));
+        carveThroat(chunk, xStart, y1, -1, 0, doorWidth, depthLeft);
+        carveThroat(chunk, xEnd, y1, 1, 0, doorWidth, depthRight);
       } else {
         /* Вертикальный коридор: комнаты стоят сверху и снизу. */
         const topCell = edge.ay < edge.by ? [edge.ax, edge.ay] : [edge.bx, edge.by];
@@ -403,6 +530,12 @@
           setTileInChunk(chunk, x, yStart, 5);
           setTileInChunk(chunk, x, yEnd, 5);
         }
+        const depthTop = Math.max(4, Math.min(18,
+          Math.floor(Math.min(topBox.w, topBox.h) * 0.6)));
+        const depthBottom = Math.max(4, Math.min(18,
+          Math.floor(Math.min(bottomBox.w, bottomBox.h) * 0.6)));
+        carveThroat(chunk, x1, yStart, 0, -1, doorWidth, depthTop);
+        carveThroat(chunk, x1, yEnd, 0, 1, doorWidth, depthBottom);
       }
     }
 
@@ -507,6 +640,172 @@
           if (index < 0 || chunk.tiles[index] !== 1) continue;
           setTileInChunk(chunk, px, py, 3);
           placed++;
+        }
+      }
+    }
+
+    /* Колонны и узкие места маски иногда оставляют клетку пола,
+       отрезанную от центра зала. Такая клетка недостижима и читается
+       как дыра в стене, поэтому сначала пробуем убрать замкнувшую её
+       колонну, а если виновата сама маска — закладываем клетку стеной.
+       Зал целиком помещается в один чанк, так что правка локальна. */
+    function repairRoomFloor(room, chunk) {
+      const width = room.x2 - room.x1 + 1;
+      const height = room.y2 - room.y1 + 1;
+      if (width <= 0 || height <= 0) return;
+      const total = width * height;
+      const isFloor = (x, y) => {
+        const index = localTile(chunk, x, y);
+        if (index < 0) return false;
+        const tile = chunk.tiles[index];
+        return tile === 1 || tile === 6;
+      };
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (let pass = 0; pass < 24; pass++) {
+        const seen = new Uint8Array(total);
+        const queue = [];
+        if (isFloor(room.centerX, room.centerY)) {
+          const start = (room.centerY - room.y1) * width + (room.centerX - room.x1);
+          seen[start] = 1;
+          queue.push(start);
+        }
+        while (queue.length) {
+          const at = queue.pop();
+          const x = room.x1 + (at % width);
+          const y = room.y1 + Math.floor(at / width);
+          for (const [dx, dy] of dirs) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < room.x1 || nx > room.x2 || ny < room.y1 || ny > room.y2) continue;
+            const key = (ny - room.y1) * width + (nx - room.x1);
+            if (seen[key] || !isFloor(nx, ny)) continue;
+            seen[key] = 1;
+            queue.push(key);
+          }
+        }
+        const lost = [];
+        for (let y = room.y1; y <= room.y2; y++) {
+          for (let x = room.x1; x <= room.x2; x++) {
+            if (!isFloor(x, y)) continue;
+            if (!seen[(y - room.y1) * width + (x - room.x1)]) lost.push({ x, y });
+          }
+        }
+        if (!lost.length) return;
+        let opened = false;
+        for (const cell of lost) {
+          for (const [dx, dy] of dirs) {
+            const px = cell.x + dx;
+            const py = cell.y + dy;
+            const index = localTile(chunk, px, py);
+            if (index < 0 || chunk.tiles[index] !== 3) continue;
+            /* Вскрываем только колонну, которая примыкает к главному
+               полу: иначе отрезанная клетка останется отрезанной. */
+            let touchesMain = false;
+            for (const [mx, my] of dirs) {
+              const nx = px + mx;
+              const ny = py + my;
+              if (nx < room.x1 || nx > room.x2 || ny < room.y1 || ny > room.y2) continue;
+              if (seen[(ny - room.y1) * width + (nx - room.x1)] && isFloor(nx, ny)) {
+                touchesMain = true;
+                break;
+              }
+            }
+            if (!touchesMain) continue;
+            chunk.tiles[index] = 1;
+            opened = true;
+            break;
+          }
+          if (opened) break;
+        }
+        if (!opened) {
+          for (const cell of lost) setTileInChunk(chunk, cell.x, cell.y, 2);
+          return;
+        }
+      }
+    }
+
+    /* После прорезания дверей в зале может остаться карман пола,
+       связанный только с коридором. Ищем его и соединяем с центром
+       зала сквозь стену или колонну. Если путь не находится, карман
+       закладывается стеной, чтобы не оставлять недостижимый пол. */
+    function connectRoomFloor(room, chunk) {
+      const width = room.x2 - room.x1 + 1;
+      const height = room.y2 - room.y1 + 1;
+      if (width <= 0 || height <= 0) return;
+      const total = width * height;
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      const indexAt = (x, y) => (y - room.y1) * width + (x - room.x1);
+      const inside = (x, y) => x >= room.x1 && x <= room.x2 && y >= room.y1 && y <= room.y2;
+      const floorAt = (x, y) => {
+        const index = localTile(chunk, x, y);
+        return index >= 0 && chunk.tiles[index] === 1;
+      };
+      const collectMainFloor = () => {
+        const seen = new Uint8Array(total);
+        if (!floorAt(room.centerX, room.centerY)) return seen;
+        const stack = [indexAt(room.centerX, room.centerY)];
+        seen[stack[0]] = 1;
+        while (stack.length) {
+          const at = stack.pop();
+          const x = room.x1 + (at % width);
+          const y = room.y1 + Math.floor(at / width);
+          for (const [dx, dy] of dirs) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (!inside(nx, ny) || !floorAt(nx, ny)) continue;
+            const key = indexAt(nx, ny);
+            if (seen[key]) continue;
+            seen[key] = 1;
+            stack.push(key);
+          }
+        }
+        return seen;
+      };
+
+      for (let pass = 0; pass < 24; pass++) {
+        const main = collectMainFloor();
+        const lost = [];
+        for (let y = room.y1; y <= room.y2; y++) {
+          for (let x = room.x1; x <= room.x2; x++) {
+            if (floorAt(x, y) && !main[indexAt(x, y)]) lost.push({ x, y });
+          }
+        }
+        if (!lost.length) return;
+
+        const start = lost[0];
+        const from = indexAt(start.x, start.y);
+        const parent = new Int32Array(total).fill(-2);
+        const queue = [from];
+        parent[from] = -1;
+        let target = -1;
+        for (let head = 0; head < queue.length && target < 0; head++) {
+          const at = queue[head];
+          const x = room.x1 + (at % width);
+          const y = room.y1 + Math.floor(at / width);
+          for (const [dx, dy] of dirs) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (!inside(nx, ny)) continue;
+            const key = indexAt(nx, ny);
+            if (parent[key] !== -2) continue;
+            if (main[key] && floorAt(nx, ny)) { target = key; parent[key] = at; break; }
+            parent[key] = at;
+            queue.push(key);
+          }
+        }
+
+        if (target < 0) {
+          /* До главного пола не добраться: убираем карман целиком. */
+          for (const cell of lost) setTileInChunk(chunk, cell.x, cell.y, 2);
+          return;
+        }
+
+        let at = parent[target];
+        while (at >= 0) {
+          const x = room.x1 + (at % width);
+          const y = room.y1 + Math.floor(at / width);
+          setTileInChunk(chunk, x, y, 1);
+          at = parent[at];
         }
       }
     }
@@ -618,6 +917,17 @@
             centerY + Math.sin(angle) * away,
             radius * (0.6 + rand() * 0.25)
           );
+          /* Зал бельзебуфо — сплошное болото: жаба сливается с водой
+             и мхом, а не сидит на сухом полу посреди лужи. */
+          for (let y = room.y1; y <= room.y2; y += 1) {
+            for (let x = room.x1; x <= room.x2; x += 1) {
+              const index = localTile(chunk, x, y);
+              if (index < 0) continue;
+              if (chunk.tiles[index] === 1 || chunk.tiles[index] === 5) {
+                chunk.tiles[index] = 6;
+              }
+            }
+          }
         }
       }
     }
@@ -755,7 +1065,10 @@
         }
       }
 
-      /* Сначала комнаты, затем коридоры: двери должны прорезать стены. */
+      /* Сначала комнаты, затем коридоры: двери должны прорезать стены.
+         Коробка зала целиком становится стеной, а пол вырезается по
+         маске формы. Центр всегда остаётся полом, поэтому в зале есть
+         точка, куда можно поставить сцену или врага. */
       for (let iy = 0; iy < CHUNK; iy++) {
         for (let ix = 0; ix < CHUNK; ix++) {
           const room = roomsByCell.get(cellKey(cellX0 + ix, cellY0 + iy));
@@ -765,10 +1078,24 @@
               setTileInChunk(chunk, x, y, 2);
             }
           }
-          for (let y = room.y1; y <= room.y2; y++) {
-            for (let x = room.x1; x <= room.x2; x++) {
-              setTileInChunk(chunk, x, y, 1);
+          if (room.shape === 'rect') {
+            for (let y = room.y1; y <= room.y2; y++) {
+              for (let x = room.x1; x <= room.x2; x++) {
+                setTileInChunk(chunk, x, y, 1);
+              }
             }
+          } else {
+            const iw = room.w - 2;
+            const ih = room.h - 2;
+            for (let ly = 0; ly < ih; ly++) {
+              for (let lx = 0; lx < iw; lx++) {
+                if (!shapeContains(room.shape, lx, ly, iw, ih, room.cx, room.cy)) continue;
+                setTileInChunk(chunk, room.x1 + lx, room.y1 + ly, 1);
+              }
+            }
+            /* Центр не может оказаться стеной: в нём стоят сцены,
+               жаба и точка появления змеи. */
+            setTileInChunk(chunk, room.centerX, room.centerY, 1);
           }
         }
       }
@@ -779,7 +1106,11 @@
       for (let iy = 0; iy < CHUNK; iy++) {
         for (let ix = 0; ix < CHUNK; ix++) {
           const room = roomsByCell.get(cellKey(cellX0 + ix, cellY0 + iy));
-          if (room) decorateRoom(room, chunk);
+          if (!room) continue;
+          decorateRoom(room, chunk);
+          /* Колонны не должны запирать кусок пола: проверяем связность
+             зала сразу после декора, до прорезания дверей. */
+          repairRoomFloor(room, chunk);
         }
       }
 
@@ -788,6 +1119,17 @@
           cellInChunk(edge.ax, edge.ay, ccx, ccy) ||
           cellInChunk(edge.bx, edge.by, ccx, ccy);
         if (touchesChunk) carveEdge(chunk, edge);
+      }
+
+      /* Проход, прорезанный в косой стене, иногда упирается в маску
+         и заканчивается тупиком: карман соединён с коридором, но не с
+         залом. Прорезаем короткий путь сквозь стену до основного пола,
+         чтобы дверь действительно вела внутрь. */
+      for (let iy = 0; iy < CHUNK; iy++) {
+        for (let ix = 0; ix < CHUNK; ix++) {
+          const room = roomsByCell.get(cellKey(cellX0 + ix, cellY0 + iy));
+          if (room) connectRoomFloor(room, chunk);
+        }
       }
 
       /* Болото кладём после коридоров: оно заливает готовый пол, не
@@ -924,3 +1266,4 @@
     mulberry32
   };
 })();
+

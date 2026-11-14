@@ -511,6 +511,115 @@
       }
     }
 
+    /* ------------------------------ Болото ------------------------- */
+    /* Болото — часть ландшафта. Пятна не хранятся в объекте жабы и не
+       зависят от того, видна ли она: это те же тайлы, что пол и стены.
+       Считаются от seed и мировых координат, поэтому бесшовно
+       продолжаются через границы ленивых чанков. */
+    function swampSettings() {
+      const cfg = W.swamp || {};
+      const cell = Math.max(8, Math.round(Number.isFinite(cfg.cell) ? cfg.cell : 13));
+      const chance = Number.isFinite(cfg.chance) ? Math.max(0, Math.min(1, cfg.chance)) : 0.22;
+      const pair = Array.isArray(cfg.radius) ? cfg.radius : [4, 7];
+      const lo = Math.max(1.5, Number.isFinite(pair[0]) ? pair[0] : 4);
+      const hi = Math.max(lo, Number.isFinite(pair[1]) ? pair[1] : 7);
+      const roomFloor = Number.isFinite(cfg.roomRadius)
+        ? Math.max(0.2, Math.min(0.9, cfg.roomRadius))
+        : 0.52;
+      return { cell, chance, lo, hi, roomFloor };
+    }
+
+    /* Болото заливает только пол. Сюжетные и чужие фаунные залы
+       остаются сухими; зал бельзебуфо — наоборот, целиком болото. */
+    function swampRoomAllows(x, y) {
+      const cx = Math.floor(x / stepX);
+      const cy = Math.floor(y / stepY);
+      const room = roomsByCell.get(cellKey(cx, cy));
+      if (!room) return true;
+      if (room.faunaKind === 'belzebufo') return true;
+      if (room.faunaKind) return false;
+      return room.role === 'procedural' && room.storyIndex === null;
+    }
+
+    function paintSwampBlob(chunk, centerX, centerY, radius) {
+      const r = Math.max(1.5, radius);
+      const rSq = r * r;
+      const x0 = Math.ceil(centerX - r);
+      const x1 = Math.floor(centerX + r);
+      const y0 = Math.ceil(centerY - r);
+      const y1 = Math.floor(centerY + r);
+      for (let y = y0; y <= y1; y += 1) {
+        for (let x = x0; x <= x1; x += 1) {
+          const dx = x + 0.5 - centerX;
+          const dy = y + 0.5 - centerY;
+          if (dx * dx + dy * dy > rSq) continue;
+          const index = localTile(chunk, x, y);
+          if (index < 0) continue;
+          const tile = chunk.tiles[index];
+          if (tile !== 1 && tile !== 5) continue;
+          if (!swampRoomAllows(x, y)) continue;
+          chunk.tiles[index] = 6;
+        }
+      }
+    }
+
+    function applySwamp(chunk) {
+      const spec = swampSettings();
+      if (spec.chance <= 0) return;
+      /* Крупные пятна по всему лабиринту: проходы и обычные комнаты
+         получают настоящие плёсы, через которые можно пройти. */
+      const gx0 = Math.floor((chunk.ox - spec.hi) / spec.cell);
+      const gx1 = Math.floor((chunk.ox + chunkW + spec.hi) / spec.cell);
+      const gy0 = Math.floor((chunk.oy - spec.hi) / spec.cell);
+      const gy1 = Math.floor((chunk.oy + chunkH + spec.hi) / spec.cell);
+      for (let gy = gy0; gy <= gy1; gy += 1) {
+        for (let gx = gx0; gx <= gx1; gx += 1) {
+          const roll = hashString(`${seed}:swamp:${gx}:${gy}`) / 4294967296;
+          if (roll >= spec.chance) continue;
+          const rand = mulberry32(hashString(`${seed}:swampblob:${gx}:${gy}`));
+          const centerX = gx * spec.cell + spec.cell * (0.22 + rand() * 0.56);
+          const centerY = gy * spec.cell + spec.cell * (0.22 + rand() * 0.56);
+          const radius = spec.lo + rand() * (spec.hi - spec.lo);
+          paintSwampBlob(chunk, centerX, centerY, radius);
+          /* Второй лепесток делает берег неровным, а не идеальным
+             кругом. Он смещён от центра и меньше основного плёса. */
+          const angle = rand() * Math.PI * 2;
+          const away = radius * (0.35 + rand() * 0.3);
+          paintSwampBlob(
+            chunk,
+            centerX + Math.cos(angle) * away,
+            centerY + Math.sin(angle) * away,
+            radius * (0.55 + rand() * 0.3)
+          );
+        }
+      }
+
+      /* Зал бельзебуфо — её ареал: болото занимает почти всю комнату,
+         а не маленькую лужицу в углу. */
+      for (let iy = 0; iy < CHUNK; iy += 1) {
+        for (let ix = 0; ix < CHUNK; ix += 1) {
+          const room = roomsByCell.get(cellKey(cellX0 + ix, cellY0 + iy));
+          if (!room || room.faunaKind !== 'belzebufo') continue;
+          const rand = mulberry32(hashString(`${seed}:swamproom:${room.cx}:${room.cy}`));
+          const radius = Math.max(
+            spec.lo,
+            Math.min(spec.hi, Math.min(room.w, room.h) * spec.roomFloor)
+          );
+          const centerX = room.centerX + 0.5 + (rand() - 0.5) * room.w * 0.16;
+          const centerY = room.centerY + 0.5 + (rand() - 0.5) * room.h * 0.16;
+          paintSwampBlob(chunk, centerX, centerY, radius);
+          const angle = rand() * Math.PI * 2;
+          const away = radius * (0.3 + rand() * 0.25);
+          paintSwampBlob(
+            chunk,
+            centerX + Math.cos(angle) * away,
+            centerY + Math.sin(angle) * away,
+            radius * (0.6 + rand() * 0.25)
+          );
+        }
+      }
+    }
+
     function ensureChunk(ccx, ccy) {
       const key = chunkKey(ccx, ccy);
       const existing = chunks.get(key);
@@ -679,6 +788,10 @@
         if (touchesChunk) carveEdge(chunk, edge);
       }
 
+      /* Болото кладём после коридоров: оно заливает готовый пол, не
+         перекрывая проходы. */
+      applySwamp(chunk);
+
       recomputeDepths();
       return chunk;
     }
@@ -692,6 +805,11 @@
     function isWalkable(tx, ty) {
       const tile = getTile(tx, ty);
       return tile === 1 || tile === 5 || tile === 6;
+    }
+
+    /* Болотный тайл: по нему можно идти, но это не сухой пол. */
+    function isSwamp(tx, ty) {
+      return getTile(tx, ty) === 6;
     }
 
     function roomAtTile(tx, ty) {
@@ -760,6 +878,7 @@
       rooms,
       getTile,
       isWalkable,
+      isSwamp,
       roomAtTile,
       roomById,
       getEdges: materializedEdges,

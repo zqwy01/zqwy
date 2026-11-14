@@ -320,6 +320,7 @@
       try {
         ZQ.updateMovement(dt);
         ZQ.updateRoomDetection();
+        if (typeof ZQ.updateRoam === 'function') ZQ.updateRoam(dt);
         if (typeof ZQ.updateBattle === 'function') ZQ.updateBattle(dt);
         if (typeof ZQ.updateChase === 'function') ZQ.updateChase(dt);
         if (typeof ZQ.updateFauna === 'function') ZQ.updateFauna(dt);

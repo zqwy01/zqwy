@@ -735,11 +735,150 @@
     ctx.restore();
   }
 
+  /* Рисунок на парусе. Координаты локальные: парус уже нарисован и
+     обрезан по контуру, поэтому рисунок не вылезает за него. */
+  function drawSailPattern(ctx, pattern, r, sailH) {
+    if (pattern === 'bands') {
+      for (let i = 0; i < 4; i += 1) {
+        const y = -sailH * (0.15 + i * 0.22);
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.5, y);
+        ctx.quadraticCurveTo(0, y + r * 0.08, r * 0.5, y);
+        ctx.stroke();
+      }
+      return;
+    }
+    if (pattern === 'spots') {
+      for (const [px, py, pr] of [
+        [-0.28, -0.5, 0.11], [0.05, -0.78, 0.09], [0.26, -0.4, 0.1],
+        [-0.05, -0.28, 0.08], [0.12, -0.15, 0.07]
+      ]) {
+        ctx.beginPath();
+        ctx.arc(px * r, py * sailH, Math.max(1, pr * r), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
+    if (pattern === 'eyes') {
+      for (const [px, py, pr] of [[-0.18, -0.55, 0.16], [0.18, -0.4, 0.13]]) {
+        const cx = px * r;
+        const cy = py * sailH;
+        const rad = Math.max(1.5, pr * r);
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, rad * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
+    if (pattern === 'stripes') {
+      for (let i = -2; i <= 2; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.5 + i * r * 0.2, r * 0.05);
+        ctx.lineTo(-r * 0.1 + i * r * 0.2, -sailH * 0.95);
+        ctx.stroke();
+      }
+      return;
+    }
+    if (pattern === 'diamond') {
+      for (let i = 0; i < 3; i += 1) {
+        const cx = (-0.25 + i * 0.28) * r;
+        const cy = -sailH * (0.35 + (i % 2) * 0.2);
+        const s = r * 0.14;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - s);
+        ctx.lineTo(cx + s, cy);
+        ctx.lineTo(cx, cy + s);
+        ctx.lineTo(cx - s, cy);
+        ctx.closePath();
+        ctx.stroke();
+      }
+      return;
+    }
+    /* 'rays' и всё остальное: лучи расходятся от основания паруса. */
+    for (let i = 0; i < 5; i += 1) {
+      const t = i / 4;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.5 + t * r * 0.9, r * 0.05);
+      ctx.lineTo(-r * 0.35 + t * r * 0.8, -sailH * (0.55 + 0.35 * Math.sin(t * Math.PI)));
+      ctx.stroke();
+    }
+  }
+
+  /* Зов: расходящиеся дуги у головы, когда зверь подаёт голос. */
+  function drawDimetrodonCall(ctx, sx, sy, r, facing, call) {
+    const headX = sx + Math.cos(facing) * r * 0.9;
+    const headY = sy + Math.sin(facing) * r * 0.9;
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i += 1) {
+      const phase = (call * 1.6 + i * 0.3) % 1;
+      const radius = r * (0.35 + phase * 0.7);
+      const alpha = (1 - phase) * (0.3 + call * 0.45);
+      ctx.strokeStyle = `rgba(255, 244, 200, ${alpha})`;
+      ctx.lineWidth = Math.max(1, r * 0.06 * (1 - phase * 0.5));
+      ctx.beginPath();
+      ctx.arc(headX, headY, radius, -0.9, 0.9);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* Брачная демонстрация: парус горит, вокруг зверя идут кольца. */
+  function drawDimetrodonDisplay(ctx, sx, sy, r, display) {
+    const pulse = Math.sin(display * Math.PI);
+    ctx.save();
+    ctx.strokeStyle = `rgba(255, 240, 180, ${0.15 + pulse * 0.4})`;
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    for (let i = 0; i < 2; i += 1) {
+      const phase = (display * 1.2 + i * 0.5) % 1;
+      ctx.beginPath();
+      ctx.arc(sx, sy - r * 0.2, r * (0.6 + phase * 1.1), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* Круги на воде: зверь гребёт, по поверхности идут волны. */
+  function drawDimetrodonRipples(ctx, sx, sy, r, now, ph) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(180, 230, 232, 0.4)';
+    ctx.lineWidth = Math.max(1, r * 0.05);
+    for (let i = 0; i < 2; i += 1) {
+      const phase = (now * 0.0012 + i * 0.5 + ph) % 1;
+      ctx.globalAlpha = (1 - phase) * 0.5;
+      ctx.beginPath();
+      ctx.ellipse(
+        sx, sy + r * 0.2,
+        r * (0.7 + phase * 0.9), r * (0.3 + phase * 0.4),
+        0, 0, Math.PI * 2
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   /* Диметродон теперь живой: fauna.js передаёт направление (angle),
-     фазу шага и признак движения. Без них рисунок остаётся статичным,
-     как раньше в зале. action ('eat'/'drink') опускает голову к земле. */
-  function drawDimetrodon(ctx, sx, sy, ts, now, phase, angle, moving, action, actionPhase) {
-    const r = Math.max(ts * 0.5, ts * 0.48);
+     фазу шага и признак движения. Облик стаи (look) задаёт палитру,
+     размер, парус и состояния общения: зов и демонстрацию. */
+  function drawDimetrodon(ctx, sx, sy, ts, now, phase, angle, moving, action, actionPhase, look) {
+    const L = look || {};
+    const pack = L.pack || null;
+    const size = Number.isFinite(L.size) ? L.size : 1;
+    const sailScale = Number.isFinite(L.sailScale) ? L.sailScale : 1;
+    const bodyColor = pack && pack.body ? pack.body : '#5a5a3c';
+    const bellyColor = pack && pack.belly ? pack.belly : '#6c6844';
+    const sailColor = pack && pack.sail ? pack.sail : '#b45c36';
+    const sailHi = pack && pack.sailHi ? pack.sailHi : '#ffd27a';
+    const ridgeColor = pack && pack.ridge ? pack.ridge : '#432711';
+    const pattern = pack && pack.pattern ? pack.pattern : 'rays';
+    const call = Number.isFinite(L.call) ? L.call : 0;
+    const display = Number.isFinite(L.display) ? L.display : 0;
+    const swimming = Boolean(L.swimming);
+
+    const r = Math.max(ts * 0.5, ts * 0.48) * size;
     const ph = Number.isFinite(phase) ? phase : 0;
     const walk = moving === false ? 0.25 : 1;
     const sway = Math.sin(now * 0.0016 * (1 + walk) + ph * 1.7) * 0.05 * walk;
@@ -747,52 +886,87 @@
     const feeding = action === 'eat' || action === 'drink';
     const feedPhase = Number.isFinite(actionPhase) ? Math.max(0, Math.min(1, actionPhase)) : 1;
     const dip = feeding ? Math.sin(feedPhase * Math.PI) : 0;
+    const rise = display > 0 ? Math.sin(display * Math.PI) : 0;
+    const bob = swimming ? Math.sin(now * 0.004 + ph) * r * 0.06 : 0;
+    const sink = swimming ? r * 0.16 : 0;
+
     ctx.save();
-    ctx.translate(sx, sy);
+    ctx.translate(sx, sy + sink + bob);
     ctx.rotate(facing + sway);
+
+    /* Тень. */
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.beginPath();
     ctx.ellipse(0, r * 0.6, r * 1.1, r * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
 
     /* Тело и хвост. */
-    ctx.strokeStyle = '#5a5a3c';
+    ctx.strokeStyle = bodyColor;
     ctx.lineWidth = Math.max(2, r * 0.34);
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-r * 1.1, r * 0.1);
     ctx.quadraticCurveTo(-r * 0.4, -r * 0.05, r * 0.7, r * 0.16);
     ctx.stroke();
-
-    /* Парус на спине. */
-    const sail = ctx.createLinearGradient(0, -r * 0.9, 0, r * 0.1);
-    sail.addColorStop(0, 'rgba(180, 92, 54, 0.9)');
-    sail.addColorStop(1, 'rgba(96, 54, 38, 0.85)');
-    ctx.fillStyle = sail;
+    /* Светлое брюхо вдоль тела. */
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = bellyColor;
+    ctx.lineWidth = Math.max(1, r * 0.1);
     ctx.beginPath();
-    ctx.moveTo(-r * 0.58, r * 0.02);
-    ctx.quadraticCurveTo(-r * 0.2, -r * 1.05, r * 0.3, -r * 0.72);
-    ctx.quadraticCurveTo(r * 0.52, -r * 0.3, r * 0.52, r * 0.06);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(232, 182, 132, 0.35)';
-    ctx.lineWidth = Math.max(1, r * 0.035);
-    for (let i = 0; i < 4; i++) {
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.4 + i * r * 0.26, r * 0.02);
-      ctx.lineTo(-r * 0.24 + i * r * 0.22, -r * 0.6 + i * r * 0.08);
-      ctx.stroke();
-    }
+    ctx.moveTo(-r * 0.9, r * 0.22);
+    ctx.quadraticCurveTo(-r * 0.2, r * 0.14, r * 0.6, r * 0.26);
+    ctx.stroke();
+    ctx.restore();
 
-    /* Голова. При трапезе она опускается к земле и открывает пасть. */
+    /* Парус на спине: яркий, с рисунком стаи. У демонстрации он
+       разгорается особенно сильно. */
+    const sailH = r * sailScale;
+    const glow = display > 0 ? Math.sin(display * Math.PI) : 0;
+    const sailGrad = ctx.createLinearGradient(0, -sailH * 1.1, 0, r * 0.1);
+    sailGrad.addColorStop(0, sailHi);
+    sailGrad.addColorStop(0.55, sailColor);
+    sailGrad.addColorStop(1, ridgeColor);
+    const sailPath = () => {
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.58, r * 0.02);
+      ctx.quadraticCurveTo(-r * 0.2, -sailH * 1.05, r * 0.3, -sailH * 0.72);
+      ctx.quadraticCurveTo(r * 0.52, -sailH * 0.3, r * 0.52, r * 0.06);
+      ctx.closePath();
+    };
+    if (glow > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.45 * glow;
+      ctx.fillStyle = sailHi;
+      sailPath();
+      ctx.fill();
+      ctx.restore();
+    }
+    sailPath();
+    ctx.fillStyle = sailGrad;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = sailHi;
+    ctx.fillStyle = sailHi;
+    ctx.lineWidth = Math.max(1, r * 0.045);
+    drawSailPattern(ctx, pattern, r, sailH);
+    ctx.restore();
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 + glow * 0.5})`;
+    ctx.lineWidth = Math.max(1, r * 0.03);
+    sailPath();
+    ctx.stroke();
+
+    /* Голова. При трапезе она опускается к земле и открывает пасть,
+       при демонстрации — вскидывается вверх. */
     const headX = r * 0.82 - dip * r * 0.18;
-    const headY = r * 0.08 + dip * r * 0.42;
-    ctx.fillStyle = '#6c6844';
+    const headY = r * 0.08 + dip * r * 0.42 - rise * r * 0.12;
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
     ctx.ellipse(headX, headY, r * 0.3, r * 0.2, 0.1, 0, Math.PI * 2);
     ctx.fill();
     if (dip > 0.02) {
-      /* Пасть: тонкая тёмная щель между челюстями. */
       ctx.strokeStyle = 'rgba(30, 24, 16, 0.75)';
       ctx.lineWidth = Math.max(1, r * 0.05);
       ctx.beginPath();
@@ -800,13 +974,13 @@
       ctx.lineTo(headX + r * 0.3, headY + r * 0.1 * dip);
       ctx.stroke();
     }
-    ctx.fillStyle = `rgba(230, 176, 90, ${0.6 + 0.3 * Math.sin(now * 0.004 + ph)})`;
+    ctx.fillStyle = `rgba(255, 236, 170, ${0.7 + 0.3 * Math.sin(now * 0.004 + ph)})`;
     ctx.beginPath();
     ctx.arc(headX + r * 0.08, headY - r * 0.03, r * 0.055, 0, Math.PI * 2);
     ctx.fill();
 
     /* Лапы. При ходьбе они переступают в такт фазе. */
-    ctx.strokeStyle = '#4e4c34';
+    ctx.strokeStyle = ridgeColor;
     ctx.lineWidth = Math.max(1.4, r * 0.09);
     for (const side of [-1, 1]) {
       for (const dx of [-0.42, 0.42]) {
@@ -818,6 +992,11 @@
       }
     }
     ctx.restore();
+
+    /* Общение и вода рисуются в экранных координатах поверх тела. */
+    if (call > 0) drawDimetrodonCall(ctx, sx, sy, r, facing, call);
+    if (display > 0) drawDimetrodonDisplay(ctx, sx, sy, r, display);
+    if (swimming) drawDimetrodonRipples(ctx, sx, sy, r, now, ph);
   }
 
   function drawUmbrellaEnemy(ctx, sx, sy, ts, now) {
@@ -987,6 +1166,19 @@
         toScreenY,
         now
       });
+    }
+
+    /* Бельзебуфо, поджидающие в проходах: они не в комнатах, поэтому
+       рисуются отдельно от статичных сцен залов. */
+    const zq = window.ZQ;
+    const roam = zq && zq.rt && zq.rt.roam;
+    if (roam && Array.isArray(roam.belzebufos) && roam.belzebufos.length) {
+      for (const frog of roam.belzebufos) {
+        const x = toScreenX(frog.x);
+        const y = toScreenY(frog.y);
+        if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
+        drawBelzebufo(ctx, x, y, ts, now);
+      }
     }
 
     const arena = world.beetleRoom;

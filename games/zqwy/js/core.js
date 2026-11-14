@@ -607,6 +607,9 @@
     rt.chaseRaf = 0;
     rt.chase = null;
     if (typeof ZQ.hideChaseStage === 'function') ZQ.hideChaseStage();
+    /* Засады бельзебуфо в проходах привязаны к миру: новый мир —
+       новые засады, старые не должны оставаться. */
+    rt.roam = null;
     rt.canvasLinkMode = false;
     rt.linkFirstId = null;
     rt.keyBindingId = null;

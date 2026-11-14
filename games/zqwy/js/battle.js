@@ -466,11 +466,19 @@
       x: Math.floor(player.x),
       y: Math.floor(player.y)
     };
+    let spot = origin;
+    let found = false;
+    /* Засада в проходе: жаба появляется там, где она сидела, а не на
+       кольце вокруг игрока. */
+    const spawnAt = battle.spawnAt;
+    if (spawnAt && Number.isFinite(spawnAt.x) && Number.isFinite(spawnAt.y) &&
+        rt.world && rt.world.isWalkable(Math.floor(spawnAt.x), Math.floor(spawnAt.y))) {
+      spot = { x: Math.floor(spawnAt.x), y: Math.floor(spawnAt.y) };
+      found = true;
+    }
     const minDist = Number.isFinite(config.enemySpawnDistance)
       ? config.enemySpawnDistance
       : 8;
-    let spot = origin;
-    let found = false;
     for (let radius = minDist; radius <= minDist + 8 && !found; radius += 1) {
       const candidates = [];
       for (let dx = -radius; dx <= radius; dx += 1) {
@@ -1575,13 +1583,14 @@
     if (dom.battleStage) dom.battleStage.classList.add('hidden');
   }
 
-  function startBattle(kind) {
+  function startBattle(kind, opts) {
+    const options = opts || {};
     const encounters = (C.battle && C.battle.encounters) || {};
     if (!Object.prototype.hasOwnProperty.call(encounters, kind)) kind = 'beetle';
     if (!rt.state || rt.battle) return false;
     const config = configFor(kind);
     const flag = config.flag || `${kind}Done`;
-    const roomId = rt.state.currentRoomId || null;
+    const roomId = options.roomId || rt.state.currentRoomId || null;
     const perRoomFlag = config.perRoom && roomId ? `${kind}_${roomId}` : '';
     if (!config.repeatable && rt.state.flags[flag]) return false;
     if (perRoomFlag && rt.state.flags[perRoomFlag]) return false;
@@ -1621,6 +1630,10 @@
       kind,
       roomId,
       room,
+      /* Засада в проходе: враг стартует в заданной клетке, а не на
+         кольце вокруг игрока. */
+      spawnAt: options.spawnAt || null,
+      roam: Boolean(options.roam),
       world: rt.world,
       elapsed: 0,
       survivalTime,

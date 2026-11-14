@@ -139,10 +139,74 @@
     return path;
   }
 
+  /* Поле расстояний от цели по проходимым клеткам. Нужно, чтобы шаг
+     змеи лежал на кратчайшем маршруте: сосед с меньшим расстоянием до
+     аксолотля всегда ближе к нему. */
+  function distanceField(goal, blocked, limits) {
+    const depthLimit = limits && Number.isFinite(limits.depth) ? limits.depth : 46;
+    const nodeLimit = limits && Number.isFinite(limits.nodes) ? limits.nodes : 6500;
+    const distances = new Map();
+    const queue = [goal];
+    distances.set(keyOf(goal.x, goal.y), 0);
+    let head = 0;
+    while (head < queue.length && distances.size < nodeLimit) {
+      const cur = queue[head];
+      head += 1;
+      const curKey = keyOf(cur.x, cur.y);
+      const depth = distances.get(curKey) || 0;
+      if (depth >= depthLimit) continue;
+      for (const dir of DIRS) {
+        const nx = cur.x + dir.x;
+        const ny = cur.y + dir.y;
+        const key = keyOf(nx, ny);
+        if (distances.has(key)) continue;
+        if (!walkable(nx, ny)) continue;
+        if (blocked && blocked.has(key)) continue;
+        distances.set(key, depth + 1);
+        queue.push({ x: nx, y: ny });
+      }
+    }
+    return distances;
+  }
+
   function nextStep(start, goal, blocked, limits) {
+    /* Поле расстояний от цели: каждый узел знает, сколько шагов до
+       аксолотля. Шаг выбирается среди соседей, лежащих на кратчайшем
+       маршруте, а из равных по длине — тот, что закрывает большую ось
+       разрыва. Так змея идёт на игрока по прямой, а не параллельно ему. */
+    const field = distanceField(goal, blocked, limits);
+    const startKey = keyOf(start.x, start.y);
+    const startDist = field.get(startKey);
+    if (!Number.isFinite(startDist)) {
+      const path = bfsPath(start, goal, blocked, limits);
+      if (!path || !path.length) return null;
+      return path[1] || path[0];
+    }
+    const gapX = Math.abs(goal.x - start.x);
+    const gapY = Math.abs(goal.y - start.y);
+    const preferX = gapX > gapY;
+    let best = null;
+    let bestDist = Infinity;
+    let bestPenalty = Infinity;
+    for (const dir of DIRS) {
+      const nx = start.x + dir.x;
+      const ny = start.y + dir.y;
+      const key = keyOf(nx, ny);
+      const distance = field.get(key);
+      if (!Number.isFinite(distance)) continue;
+      const isGoal = nx === goal.x && ny === goal.y;
+      if (blocked && blocked.has(key) && !isGoal) continue;
+      const align = preferX ? Math.abs(dir.x) : Math.abs(dir.y);
+      const penalty = align > 0 ? 0 : 1;
+      if (distance < bestDist || (distance === bestDist && penalty < bestPenalty)) {
+        bestDist = distance;
+        bestPenalty = penalty;
+        best = { x: nx, y: ny };
+      }
+    }
+    if (best) return best;
     const path = bfsPath(start, goal, blocked, limits);
-    if (!path || !path.length) return null;
-    return path[1] || path[0];
+    return path ? (path[1] || path[0]) : null;
   }
 
   /* Лимиты поиска пути из конфига погони. */
@@ -154,8 +218,12 @@
   }
 
   function greedyStep(start, goal, blocked) {
+    const gapX = Math.abs(goal.x - start.x);
+    const gapY = Math.abs(goal.y - start.y);
+    const preferX = gapX > gapY;
     let best = null;
     let bestDistance = Infinity;
+    let bestPenalty = Infinity;
     for (const dir of DIRS) {
       const nx = start.x + dir.x;
       const ny = start.y + dir.y;
@@ -163,8 +231,11 @@
       if (!walkable(nx, ny)) continue;
       if (blocked && blocked.has(key)) continue;
       const distance = Math.abs(nx - goal.x) + Math.abs(ny - goal.y);
-      if (distance < bestDistance) {
+      const align = preferX ? Math.abs(dir.x) : Math.abs(dir.y);
+      const penalty = align > 0 ? 0 : 1;
+      if (distance < bestDistance || (distance === bestDistance && penalty < bestPenalty)) {
         bestDistance = distance;
+        bestPenalty = penalty;
         best = { x: nx, y: ny };
       }
     }
@@ -430,6 +501,12 @@
       let dx = a.x - b.x;
       let dy = a.y - b.y;
       if (!dx && !dy) { dx = 1; dy = 0; }
+      /* На повороте касательная диагональна: берём доминирующую ось,
+         иначе перпендикуляр режет угол и масса лезет в стену. */
+      if (dx && dy) {
+        if (Math.abs(dx) >= Math.abs(dy)) dy = 0;
+        else dx = 0;
+      }
       const len = Math.hypot(dx, dy) || 1;
       const px = -dy / len;
       const py = dx / len;
@@ -678,6 +755,8 @@
       bodyCells,
       baseBodyCells: bodyCells,
       halfWidth: 0,
+      spread: 0,
+      widthPulse: 1,
       mass: [],
       body: [],
       trail: [],
@@ -779,7 +858,14 @@
       : baseCells + growth;
     chase.bodyCells = Math.min(maxCells, Math.round(baseCells + growth * pressure));
     const maxHalf = Number.isFinite(cfg.spreadHalfWidth) ? cfg.spreadHalfWidth : 0;
-    chase.halfWidth = Math.max(0, Math.round(maxHalf * pressure));
+    /* Тело не просто расползается: оно дышит — расширяется и сужается.
+       widthPulse плавно меняет и число клеток массы, и радиус отрисовки. */
+    chase.spread = maxHalf * pressure;
+    const breathe = 0.5 + 0.5 * Math.sin(
+      chase.elapsed * (Number.isFinite(cfg.breatheSpeed) ? cfg.breatheSpeed : 1.4)
+    );
+    chase.widthPulse = 0.82 + 0.36 * breathe;
+    chase.halfWidth = chase.spread * chase.widthPulse;
     computeMass(chase);
 
     /* Дистанция считается по реальному смещению Zemic: бег по
@@ -869,16 +955,18 @@
   }
 
   /* Масса для отрисовки считается по интерполированному позвоночнику,
-     поэтому расползающееся тело тоже движется без рывков. */
+     поэтому расползающееся тело тоже движется без рывков. Каждая клетка
+     получает коэффициент ширины: у самой кромки он меньше, чтобы тело не
+     вылезало за стену, а в узком месте масса сжимается в позвоночник. */
   function renderMass(spine, half) {
     const cells = [];
     if (!(half > 0)) return cells;
     const seen = new Set();
-    const add = (x, y) => {
+    const add = (x, y, w) => {
       const key = keyOf(Math.round(x), Math.round(y));
       if (seen.has(key)) return;
       seen.add(key);
-      cells.push({ x, y });
+      cells.push({ x, y, w });
     };
     for (let i = 0; i < spine.length; i += 1) {
       const cell = spine[i];
@@ -887,16 +975,21 @@
       let dx = a.x - b.x;
       let dy = a.y - b.y;
       if (!dx && !dy) { dx = 1; dy = 0; }
+      if (dx && dy) {
+        if (Math.abs(dx) >= Math.abs(dy)) dy = 0;
+        else dx = 0;
+      }
       const len = Math.hypot(dx, dy) || 1;
       const px = -dy / len;
       const py = dx / len;
-      add(cell.x, cell.y);
+      add(cell.x, cell.y, 1);
       for (const sign of [1, -1]) {
         for (let d = 1; d <= half; d += 1) {
           const tx = Math.round(cell.x + px * d * sign);
           const ty = Math.round(cell.y + py * d * sign);
           if (!walkable(tx, ty)) break;
-          add(cell.x + px * d * sign, cell.y + py * d * sign);
+          const w = 1 - 0.2 * (d / Math.max(1, half));
+          add(cell.x + px * d * sign, cell.y + py * d * sign, w);
         }
       }
     }
@@ -936,18 +1029,22 @@
     }
 
     /* Масса: расползшееся поперёк спины тело. Рисуется под спиной,
-       поэтому змея выглядит толще и заполняет проход целиком. */
+       поэтому змея выглядит толще и заполняет проход целиком. Радиус
+       ограничен половиной клетки, поэтому тело не выходит за стену, а в
+       узком проходе сжимается в позвоночник. */
     if (chase.halfWidth > 0) {
       const mass = renderMass(spine, chase.halfWidth);
       if (mass.length) {
+        const pulse = Number.isFinite(chase.widthPulse) ? chase.widthPulse : 1;
         ctx.save();
         ctx.fillStyle = 'rgba(88, 84, 56, 0.92)';
         for (const cell of mass) {
           const cx = sx(cell.x);
           const cy = sy(cell.y);
           if (cx < -ts * 2 || cx > view.w + ts * 2 || cy < -ts * 2 || cy > view.h + ts * 2) continue;
+          const scale = Math.min(0.5, 0.5 * (cell.w || 1) * pulse);
           ctx.beginPath();
-          ctx.ellipse(cx, cy, ts * 0.5, ts * 0.5, 0, 0, Math.PI * 2);
+          ctx.ellipse(cx, cy, ts * scale, ts * scale, 0, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();
@@ -1057,6 +1154,8 @@
      настоящим клеткам Лабиринта. */
   ZQ.chasePathStep = nextStep;
   ZQ.chaseGreedyStep = greedyStep;
+  /* Полный путь до цели: жаба берёт по нему точку приземления прыжка. */
+  ZQ.chasePathFind = bfsPath;
   ZQ.resizeChase = resizeChase;
   ZQ.showChaseStage = showChaseHud;
   ZQ.hideChaseStage = hideChaseHud;

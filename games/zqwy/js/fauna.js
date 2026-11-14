@@ -16,6 +16,11 @@
     { x: 0, y: -1 }
   ];
 
+  /* Частицы трапезы: зелёные травинки и капли воды разлетаются, когда
+     диметродон ест или пьёт. Живут доли секунды и не сохраняются. */
+  const particles = [];
+  const PARTICLE_GRAVITY = 3.4;
+
   function config() {
     return Object.assign({
       speed: 1.05,
@@ -71,7 +76,12 @@
       /* Голод и жажда: зверь время от времени идёт к воде или к
          растениям в своём зале. */
       need: cfg.needMin + Math.random() * (cfg.needMax - cfg.needMin),
-      seek: null
+      seek: null,
+      /* Трапеза: 'eat' у травы, 'drink' у воды. Пока таймер тикает,
+         голова опускается к земле и летят частицы. */
+      action: null,
+      actionTimer: 0,
+      actionDuration: 0
     };
   }
 
@@ -98,20 +108,37 @@
     };
     const water = [];
     const plants = [];
+    const taken = new Set();
+    const cellKey = (x, y) => `${x},${y}`;
     const waterCount = range(cfg.waterPools);
     for (let i = 0; i < waterCount; i += 1) {
       const c = pick();
       for (let dx = 0; dx <= 1; dx += 1) {
         for (let dy = 0; dy <= 1; dy += 1) {
-          if (walkable(c.x + dx, c.y + dy)) water.push({ x: c.x + dx, y: c.y + dy });
+          if (!walkable(c.x + dx, c.y + dy)) continue;
+          if (taken.has(cellKey(c.x + dx, c.y + dy))) continue;
+          taken.add(cellKey(c.x + dx, c.y + dy));
+          water.push({ x: c.x + dx, y: c.y + dy });
         }
       }
     }
+    /* Зелень не растёт в воде: вода и растения не пересекаются. */
     const plantCount = range(cfg.plantPatches);
     for (let i = 0; i < plantCount; i += 1) {
-      const c = pick();
+      let c = pick();
+      let guard = 0;
+      while (taken.has(cellKey(c.x, c.y)) && guard < 12) {
+        c = pick();
+        guard += 1;
+      }
+      if (taken.has(cellKey(c.x, c.y))) continue;
+      taken.add(cellKey(c.x, c.y));
       plants.push({ x: c.x, y: c.y });
-      if (rand() < 0.5 && walkable(c.x + 1, c.y)) plants.push({ x: c.x + 1, y: c.y });
+      const nx = c.x + 1;
+      if (rand() < 0.5 && walkable(nx, c.y) && !taken.has(cellKey(nx, c.y))) {
+        taken.add(cellKey(nx, c.y));
+        plants.push({ x: nx, y: c.y });
+      }
     }
     const feature = { water, plants };
     fauna.features[room.id] = feature;
@@ -238,8 +265,45 @@
     return fallback || { x: cx, y: cy };
   }
 
+  function spawnMealParticles(x, y, kind) {
+    const count = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < count; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.6 + Math.random() * 1.5;
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.5,
+        life: 0.5 + Math.random() * 0.5,
+        maxLife: 1,
+        kind
+      });
+    }
+    if (particles.length > 240) particles.splice(0, particles.length - 240);
+  }
+
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i -= 1) {
+      const p = particles[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += PARTICLE_GRAVITY * dt;
+      p.vx *= 0.94;
+    }
+  }
+
   function updateOne(mon, dt) {
     const cfg = config();
+    if (mon.actionTimer > 0) {
+      mon.actionTimer = Math.max(0, mon.actionTimer - dt);
+      if (mon.actionTimer <= 0) mon.action = null;
+    }
     if (mon.rest > 0) {
       mon.rest -= dt;
       return;
@@ -267,7 +331,13 @@
       mon.y = mon.ty;
       if (mon.seek &&
           Math.hypot(mon.x - (mon.seek.x + 0.5), mon.y - (mon.seek.y + 0.5)) < 0.95) {
-        /* Напился или наелся: короткая передышка у воды. */
+        /* Напился или наелся: короткая передышка у воды, а голова
+           опускается к земле и разлетаются частицы. */
+        const drinking = mon.seek.type === 'water';
+        mon.action = drinking ? 'drink' : 'eat';
+        mon.actionDuration = drinking ? 1.6 : 1.9;
+        mon.actionTimer = mon.actionDuration;
+        spawnMealParticles(mon.seek.x + 0.5, mon.seek.y + 0.5, mon.seek.type);
         mon.seek = null;
         mon.rest = 1.2 + Math.random() * 1.8;
       } else if (!mon.seek && Math.random() < 0.22) {
@@ -326,6 +396,7 @@
     if (!fauna || !rt.world || !rt.state || !rt.state.player) return;
     if (!Number.isFinite(dt) || dt <= 0) return;
     seedRooms();
+    updateParticles(dt);
 
     const player = rt.state.player;
     const cfg = config();
@@ -425,8 +496,46 @@
       const y = sy(mon.y);
       if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
       const moving = !(mon.rest > 0);
-      window.Renderer.drawDimetrodon(ctx, x, y, ts, now, mon.phase, mon.angle, moving);
+      const actionPhase = mon.actionDuration > 0
+        ? 1 - mon.actionTimer / mon.actionDuration
+        : 1;
+      window.Renderer.drawDimetrodon(
+        ctx, x, y, ts, now, mon.phase, mon.angle, moving, mon.action, actionPhase
+      );
     }
+    drawParticles(ctx, params);
+  }
+
+  /* Частицы трапезы рисуются поверх зверей: травинки и капли летят из
+     пасти, когда диметродон ест или пьёт. */
+  function drawParticles(ctx, params) {
+    if (!particles.length) return;
+    const ts = params.ts;
+    const sx = params.toScreenX;
+    const sy = params.toScreenY;
+    const view = params.view;
+    ctx.save();
+    for (const p of particles) {
+      const x = sx(p.x);
+      const y = sy(p.y);
+      if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
+      const alpha = ZQ.clamp(p.life / p.maxLife, 0, 1);
+      if (p.kind === 'water') {
+        ctx.fillStyle = `rgba(150, 214, 222, ${0.5 + alpha * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1, ts * 0.06 * (0.6 + alpha)), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = `rgba(120, 178, 96, ${0.5 + alpha * 0.4})`;
+        ctx.lineWidth = Math.max(1, ts * 0.05);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + p.vx * ts * 0.05, y + p.vy * ts * 0.05);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function faunaCount() {
@@ -489,6 +598,7 @@
   ZQ.updateFauna = updateFauna;
   ZQ.drawFaunaWorld = drawFaunaWorld;
   ZQ.faunaCount = faunaCount;
+  ZQ.faunaParticleCount = () => particles.length;
   ZQ.faunaBlockedAt = faunaBlockedAt;
   ZQ.faunaPush = faunaPush;
 })();

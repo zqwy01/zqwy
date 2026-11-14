@@ -512,15 +512,44 @@
     ctx.restore();
   }
 
-  function drawBelzebufo(ctx, sx, sy, ts, now) {
+  function drawBelzebufo(ctx, sx, sy, ts, now, enemy) {
     const r = ts * 0.52;
     const pulse = 0.5 + 0.5 * Math.sin(now * 0.0022);
+    const lift = enemy && Number.isFinite(enemy.hopHeight) ? enemy.hopHeight : 0;
+    /* Присед, полёт и приземление меняют силуэт: жаба сжимается и
+       вытягивается, как живая. */
+    let scaleX = 1;
+    let scaleY = 1;
+    if (enemy) {
+      if (enemy.hopState === 'crouch') {
+        scaleX = 1.18;
+        scaleY = 0.78;
+      } else if (enemy.hopState === 'air') {
+        const p = Number.isFinite(enemy.hopProgress)
+          ? Math.max(0, Math.min(1, enemy.hopProgress))
+          : 0;
+        const stretch = Math.sin(p * Math.PI);
+        scaleY = 1 + stretch * 0.18;
+        scaleX = 1 - stretch * 0.12;
+      } else if (enemy.landFlash > 0) {
+        scaleX = 1 + enemy.landFlash * 0.28;
+        scaleY = 1 - enemy.landFlash * 0.24;
+      }
+    }
+
+    /* Тень остаётся на земле и уменьшается, пока жаба в воздухе. */
+    const shadowK = 1 / (1 + lift * 0.8);
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.42 * shadowK})`;
     ctx.beginPath();
-    ctx.ellipse(0, r * 0.62, r * 1.05, r * 0.32, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, r * 0.62, r * 1.05 * shadowK, r * 0.32 * shadowK, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(sx, sy - lift * ts);
+    ctx.scale(scaleX, scaleY);
 
     /* Яркий апосематический окрас: предупреждение, а не маскировка. */
     const body = ctx.createRadialGradient(-r * 0.25, -r * 0.35, r * 0.12, 0, 0, r * 1.2);
@@ -708,13 +737,16 @@
 
   /* Диметродон теперь живой: fauna.js передаёт направление (angle),
      фазу шага и признак движения. Без них рисунок остаётся статичным,
-     как раньше в зале. */
-  function drawDimetrodon(ctx, sx, sy, ts, now, phase, angle, moving) {
+     как раньше в зале. action ('eat'/'drink') опускает голову к земле. */
+  function drawDimetrodon(ctx, sx, sy, ts, now, phase, angle, moving, action, actionPhase) {
     const r = Math.max(ts * 0.5, ts * 0.48);
     const ph = Number.isFinite(phase) ? phase : 0;
     const walk = moving === false ? 0.25 : 1;
     const sway = Math.sin(now * 0.0016 * (1 + walk) + ph * 1.7) * 0.05 * walk;
     const facing = Number.isFinite(angle) ? angle : ph * 1.9;
+    const feeding = action === 'eat' || action === 'drink';
+    const feedPhase = Number.isFinite(actionPhase) ? Math.max(0, Math.min(1, actionPhase)) : 1;
+    const dip = feeding ? Math.sin(feedPhase * Math.PI) : 0;
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(facing + sway);
@@ -752,14 +784,25 @@
       ctx.stroke();
     }
 
-    /* Голова. */
+    /* Голова. При трапезе она опускается к земле и открывает пасть. */
+    const headX = r * 0.82 - dip * r * 0.18;
+    const headY = r * 0.08 + dip * r * 0.42;
     ctx.fillStyle = '#6c6844';
     ctx.beginPath();
-    ctx.ellipse(r * 0.82, r * 0.08, r * 0.3, r * 0.2, 0.1, 0, Math.PI * 2);
+    ctx.ellipse(headX, headY, r * 0.3, r * 0.2, 0.1, 0, Math.PI * 2);
     ctx.fill();
+    if (dip > 0.02) {
+      /* Пасть: тонкая тёмная щель между челюстями. */
+      ctx.strokeStyle = 'rgba(30, 24, 16, 0.75)';
+      ctx.lineWidth = Math.max(1, r * 0.05);
+      ctx.beginPath();
+      ctx.moveTo(headX + r * 0.05, headY + r * 0.04);
+      ctx.lineTo(headX + r * 0.3, headY + r * 0.1 * dip);
+      ctx.stroke();
+    }
     ctx.fillStyle = `rgba(230, 176, 90, ${0.6 + 0.3 * Math.sin(now * 0.004 + ph)})`;
     ctx.beginPath();
-    ctx.arc(r * 0.9, -r * 0.02, r * 0.055, 0, Math.PI * 2);
+    ctx.arc(headX + r * 0.08, headY - r * 0.03, r * 0.055, 0, Math.PI * 2);
     ctx.fill();
 
     /* Лапы. При ходьбе они переступают в такт фазе. */

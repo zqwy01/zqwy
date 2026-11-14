@@ -566,6 +566,8 @@
     function applySwamp(chunk) {
       const spec = swampSettings();
       if (spec.chance <= 0) return;
+      const cellX0 = chunk.ccx * CHUNK;
+      const cellY0 = chunk.ccy * CHUNK;
       /* Крупные пятна по всему лабиринту: проходы и обычные комнаты
          получают настоящие плёсы, через которые можно пройти. */
       const gx0 = Math.floor((chunk.ox - spec.hi) / spec.cell);

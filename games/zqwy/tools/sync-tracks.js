@@ -5,15 +5,13 @@
    Запуск из корня игры:
      node tools/sync-tracks.js
      node tools/sync-tracks.js --source /path/to/src/tracks
-     node tools/sync-tracks.js --no-copy
      node tools/sync-tracks.js --no-catalog
 
    По умолчанию исходники ищутся в ../../src/tracks относительно игры
-   (в рабочей копии путь можно передать явно). Файлы копируются в
-   assets/music/<album>/<track>.opus, а рядом с игрой появляется
-   js/tracks.generated.js. Повторный запуск не копирует уже совпадающие
-   по размеру файлы, поэтому его можно вызывать после добавления новых
-   треков. */
+   (в рабочей копии путь можно передать явно). Сканер ничего не копирует:
+   каталог js/tracks.generated.js хранит относительные ссылки вида
+   ../../src/tracks/<album>/<track>.opus, поэтому музыка живёт только
+   в общем архиве src/tracks и не дублируется рядом с игрой. */
 'use strict';
 
 const fs = require('fs');
@@ -21,7 +19,9 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_SOURCE = path.resolve(ROOT, '..', '..', 'src', 'tracks');
-const DEFAULT_DEST = path.join(ROOT, 'assets', 'music');
+/* URL-база относительно index.html: игра лежит в files/games/zqwy,
+   а общий музыкальный архив — в files/src/tracks. */
+const MUSIC_BASE = '../../src/tracks/';
 const CATALOG_PATH = path.join(ROOT, 'js', 'tracks.generated.js');
 
 const EXCLUDED_DIRS = new Set([
@@ -45,22 +45,16 @@ const EXCLUDED_FILE = [
 function parseArgs(argv) {
   const args = {
     source: DEFAULT_SOURCE,
-    dest: DEFAULT_DEST,
-    copy: true,
     catalog: true
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--source' && argv[i + 1]) {
       args.source = path.resolve(argv[++i]);
-    } else if (arg === '--dest' && argv[i + 1]) {
-      args.dest = path.resolve(argv[++i]);
-    } else if (arg === '--no-copy') {
-      args.copy = false;
     } else if (arg === '--no-catalog') {
       args.catalog = false;
     } else if (arg === '--help' || arg === '-h') {
-      console.log('Использование: node tools/sync-tracks.js [--source DIR] [--dest DIR] [--no-copy] [--no-catalog]');
+      console.log('Использование: node tools/sync-tracks.js [--source DIR] [--no-catalog]');
       process.exit(0);
     }
   }
@@ -89,7 +83,6 @@ function walk(dir, out) {
 }
 
 let argsSource = DEFAULT_SOURCE;
-let argsDest = DEFAULT_DEST;
 
 function albumIdFor(relative) {
   const first = relative.split('/')[0] || 'tracks';
@@ -141,7 +134,6 @@ function buildCatalog(files) {
       });
     }
     const album = albums.get(albumId);
-    const base = path.basename(relative).replace(/\.opus$/i, '');
     let key = trackKeyFor(relative);
     if (album.tracks.some((track) => track.key === key)) {
       let index = 2;
@@ -151,7 +143,7 @@ function buildCatalog(files) {
     album.tracks.push({
       key,
       source: relative,
-      file: `assets/music/${albumId}/${base}.opus`,
+      file: `${MUSIC_BASE}${relative}`,
       title: trackTitleFor(relative),
       order: numericPrefix(relative)
     });
@@ -173,39 +165,6 @@ function buildCatalog(files) {
   return result;
 }
 
-function ensureDir(dir) {
-  fs.mkdirSync(dir, { recursive: true });
-}
-
-function copyTracks(catalog) {
-  let copied = 0;
-  let skipped = 0;
-  let failed = 0;
-  for (const album of catalog) {
-    for (const track of album.tracks) {
-      const from = path.join(argsSource, track.source);
-      const to = path.join(argsDest, album.id, path.basename(track.file));
-      try {
-        const sourceStat = fs.statSync(from);
-        if (fs.existsSync(to)) {
-          const targetStat = fs.statSync(to);
-          if (targetStat.size === sourceStat.size) {
-            skipped += 1;
-            continue;
-          }
-        }
-        ensureDir(path.dirname(to));
-        fs.copyFileSync(from, to);
-        copied += 1;
-      } catch (error) {
-        failed += 1;
-        console.error(`  ! ${track.source}: ${error.message}`);
-      }
-    }
-  }
-  return { copied, skipped, failed };
-}
-
 function writeCatalog(catalog) {
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -215,13 +174,21 @@ function writeCatalog(catalog) {
    запусти сканер, чтобы подхватить новые альбомы и треки. */
 window.ZQ_TRACKS = ${JSON.stringify(payload, null, 2)};
 `;
-  fs.writeFileSync(CATALOG_PATH, source, 'utf8');
+  /* Пишем через временный файл и заменяем каталог: так сетевая
+     файловая система не мешает перезаписи одним открытием. */
+  const tmp = `${CATALOG_PATH}.tmp`;
+  fs.writeFileSync(tmp, source, 'utf8');
+  try {
+    fs.renameSync(tmp, CATALOG_PATH);
+  } catch (error) {
+    try { fs.rmSync(CATALOG_PATH, { force: true }); } catch (removeError) { /* нет файла */ }
+    fs.renameSync(tmp, CATALOG_PATH);
+  }
 }
 
 function main() {
   const parsed = parseArgs(process.argv.slice(2));
   argsSource = parsed.source;
-  argsDest = parsed.dest;
   if (!fs.existsSync(argsSource)) {
     console.error(`Не найден архив треков: ${argsSource}`);
     process.exit(1);
@@ -239,11 +206,6 @@ function main() {
   if (parsed.catalog) {
     writeCatalog(catalog);
     console.log(`Каталог записан: ${path.relative(ROOT, CATALOG_PATH)}`);
-  }
-  if (parsed.copy) {
-    const result = copyTracks(catalog);
-    console.log(`Скопировано: ${result.copied}, без изменений: ${result.skipped}, ошибок: ${result.failed}.`);
-    if (result.failed) process.exitCode = 1;
   }
 }
 

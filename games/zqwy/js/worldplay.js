@@ -683,21 +683,13 @@
       }
     }
 
-    /* Бельзебуфо — повторяемая встреча. Шанс детерминирован для
-       комнаты: один и тот же зал либо предлагает жабу, либо нет.
+    /* Бельзебуфо — повторяемая встреча. Жаба нападает сама: как только
+       Zemic входит в её зал, схватка начинается без броска шанса.
        После успеха в этой комнате она больше не появляется. */
     if (room.faunaKind === 'belzebufo' && !rt.state.flags[`belzebufo_${room.id}`] &&
         rt.survivalBlockedRoom !== room.id) {
-      const chance = C.fauna && C.fauna.belzebufo &&
-        Number.isFinite(C.fauna.belzebufo.chance)
-        ? C.fauna.belzebufo.chance
-        : 0.62;
-      const roll = window.World.hashString(`${rt.state.seed}:belzebufo:${room.id}`) /
-        4294967296;
-      if (roll < chance) {
-        ZQ.startBattle('belzebufo');
-        return;
-      }
+      ZQ.startBattle('belzebufo');
+      return;
     }
 
     /* Титанобоа ровно одна на мир. Погоня начинается при входе, пока
@@ -756,6 +748,74 @@
     if (!rt.world || !rt.state) return;
     const room = roomUnderPlayer();
     if (room && rt.state.currentRoomId !== room.id) enterRoom(room);
+  }
+
+  /* ------------------- Засады бельзебуфо в проходах ---------------- */
+  /* Жаба встречается не только в своих залах: часть жаб поджидает в
+     коридорах. Такая жаба не мигрирует по миру — она сидит у своей
+     клетки и нападает, когда аксолотль подходит вплотную. */
+  function ensureRoam() {
+    if (!rt.roam || typeof rt.roam !== 'object') {
+      rt.roam = { belzebufos: [], seeded: {}, cooldown: 0 };
+    }
+    const roam = rt.roam;
+    if (!Array.isArray(roam.belzebufos)) roam.belzebufos = [];
+    if (!roam.seeded || typeof roam.seeded !== 'object') roam.seeded = {};
+    if (!Number.isFinite(roam.cooldown)) roam.cooldown = 0;
+    return roam;
+  }
+
+  function updateRoam(dt) {
+    if (!rt.world || !rt.state || !rt.state.player) return;
+    if (!Number.isFinite(dt) || dt <= 0) return;
+    if ((rt.battle && rt.battle.active) || (rt.chase && rt.chase.active) || rt.trial) return;
+    const cfg = C.faunaDynamics || {};
+    const roam = ensureRoam();
+    if (roam.cooldown > 0) roam.cooldown = Math.max(0, roam.cooldown - dt);
+
+    const player = rt.state.player;
+    const seedRadius = Number.isFinite(cfg.roamSeedRadius) ? cfg.roamSeedRadius : 13;
+    const chance = Number.isFinite(cfg.roamChance) ? cfg.roamChance : 0.06;
+    const R = Math.max(1, Math.round(seedRadius));
+    const cx = Math.floor(player.x);
+    const cy = Math.floor(player.y);
+    for (let y = cy - R; y <= cy + R; y += 1) {
+      for (let x = cx - R; x <= cx + R; x += 1) {
+        const key = `${x},${y}`;
+        if (roam.seeded[key]) continue;
+        roam.seeded[key] = 1;
+        /* Жабы живут только в проходах, а не в залах: залы заняты
+           своими стаями и сценами. */
+        if (!rt.world.isWalkable(x, y)) continue;
+        if (rt.world.roomAtTile(x, y)) continue;
+        const h = window.World.hashString(`${rt.state.seed}:roam:${x}:${y}`) / 4294967296;
+        if (h >= chance) continue;
+        roam.belzebufos.push({ x: x + 0.5, y: y + 0.5, phase: h * 6.283 });
+      }
+    }
+    /* Кэш посещённых клеток растёт по мере исследования: иногда чистим. */
+    let seededCount = 0;
+    for (const _key in roam.seeded) seededCount += 1;
+    if (seededCount > 12000) roam.seeded = {};
+    if (roam.belzebufos.length > 24) {
+      roam.belzebufos.splice(0, roam.belzebufos.length - 24);
+    }
+
+    if (roam.cooldown > 0) return;
+    const trigger = Number.isFinite(cfg.roamTrigger) ? cfg.roamTrigger : 2.2;
+    const triggerSq = trigger * trigger;
+    for (let i = roam.belzebufos.length - 1; i >= 0; i -= 1) {
+      const frog = roam.belzebufos[i];
+      const dx = frog.x - player.x;
+      const dy = frog.y - player.y;
+      if (dx * dx + dy * dy > triggerSq) continue;
+      roam.belzebufos.splice(i, 1);
+      roam.cooldown = Number.isFinite(cfg.roamCooldown) ? cfg.roamCooldown : 26;
+      if (typeof ZQ.startBattle === 'function') {
+        ZQ.startBattle('belzebufo', { roam: true, spawnAt: { x: frog.x, y: frog.y } });
+      }
+      return;
+    }
   }
 
   function die(cause) {
@@ -1113,6 +1173,8 @@
   ZQ.updateCamera = updateCamera;
   ZQ.enterRoom = enterRoom;
   ZQ.updateRoomDetection = updateRoomDetection;
+  ZQ.updateRoam = updateRoam;
+  ZQ.roamBelzebufos = () => ensureRoam().belzebufos;
   ZQ.die = die;
   ZQ.collectItemPickup = collectItemPickup;
   ZQ.takeCard = takeCard;

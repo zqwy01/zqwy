@@ -542,7 +542,10 @@
     rt.timedMove = null;
     rt.cursorPath = null;
     rt.cursorPathGoal = null;
-    rt.state.currentRoomId = room.id;
+    /* Сбрасываем текущую комнату: updateRoomDetection должен увидеть
+       вход заново и запустить встречу (схватку), как при обычном шаге
+       в зал. Иначе телепорт к врагу не начинал бой. */
+    rt.state.currentRoomId = null;
     ZQ.resetKeys();
     if (typeof ZQ.snapCamera === 'function') ZQ.snapCamera();
     if (typeof ZQ.updateRoomDetection === 'function') ZQ.updateRoomDetection();
@@ -1040,5 +1043,6 @@
   ZQ.helpOverview = helpOverview;
   ZQ.helpGroup = helpGroup;
   ZQ.handleCommand = handleCommand;
+  ZQ.teleportToRoom = teleportToRoom;
   ZQ.loggingStatus = loggingStatus;
 })();

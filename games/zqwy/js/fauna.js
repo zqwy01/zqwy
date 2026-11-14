@@ -32,12 +32,27 @@
          уступают дорогу, а не превращаются в стену. */
       pushStrength: 1.6,
       /* В зале диметродонов есть вода и растения: без них звери
-         просто не могли бы тут обитать. */
-      waterPools: [1, 2],
+         просто не могли бы тут обитать. Лужи большие — зверь в них
+         плавает, а не просто стоит. */
+      waterPools: [2, 3],
+      waterBlob: [1, 2],
       plantPatches: [2, 3],
       needMin: 8,
-      needMax: 22
+      needMax: 22,
+      collisionRadius: 0.52,
+      callRadius: 9,
+      callInterval: [9, 20],
+      courtshipDistance: 2.4,
+      courtshipChance: 0.5,
+      courtshipDuration: 2.6,
+      swimSpeedScale: 0.55,
+      packs: []
     }, C.faunaDynamics || {});
+  }
+
+  /* Стая без палитры (если конфиг почему-то пуст). */
+  function defaultPack() {
+    return { index: -1, size: 1, sailScale: 1, speedScale: 1 };
   }
 
   function walkable(x, y) {
@@ -56,22 +71,59 @@
     if (!Array.isArray(fauna.dimetrodons)) fauna.dimetrodons = [];
     if (!fauna.seeded || typeof fauna.seeded !== 'object') fauna.seeded = {};
     if (!fauna.features || typeof fauna.features !== 'object') fauna.features = {};
+    if (!fauna.packs || typeof fauna.packs !== 'object') fauna.packs = {};
+    if (!fauna.packComms || typeof fauna.packComms !== 'object') fauna.packComms = {};
     if (!Number.isFinite(fauna.growthTimer)) fauna.growthTimer = 0;
     if (!Number.isFinite(fauna.births)) fauna.births = 0;
     return fauna;
   }
 
+  /* Стая привязана к залу и детерминирована seed'ом: в каждом зале
+     свой окрас, рисунок паруса и пропорции тела. Одна комната — одна
+     стая, разные комнаты — разные стаи. */
+  function packFor(roomId) {
+    const fauna = ensureState();
+    if (!fauna || !rt.state) return defaultPack();
+    const key = roomId || 'wild';
+    const existing = fauna.packs[key];
+    if (existing && typeof existing === 'object') return existing;
+    const cfg = config();
+    const palettes = Array.isArray(cfg.packs) && cfg.packs.length ? cfg.packs : null;
+    const hasWorld = window.World && typeof window.World.mulberry32 === 'function' &&
+      typeof window.World.hashString === 'function';
+    const rand = hasWorld
+      ? window.World.mulberry32(window.World.hashString(`${rt.state.seed}:pack:${key}`))
+      : Math.random;
+    const count = palettes ? palettes.length : 0;
+    const index = count ? Math.floor(rand() * count) % count : -1;
+    const pack = {
+      index,
+      size: 0.9 + rand() * 0.45,
+      sailScale: 0.9 + rand() * 0.5,
+      speedScale: 0.85 + rand() * 0.3
+    };
+    fauna.packs[key] = pack;
+    return pack;
+  }
+
   function makeDimetrodon(x, y, roomId) {
     const cfg = config();
+    const pack = packFor(roomId);
     return {
       x,
       y,
       tx: x,
       ty: y,
-      speed: cfg.speed * (0.85 + Math.random() * 0.35),
+      speed: cfg.speed * pack.speedScale * (0.85 + Math.random() * 0.35),
       angle: Math.random() * Math.PI * 2,
       phase: Math.random() * Math.PI * 2,
       roomId: roomId || null,
+      /* Стайная принадлежность: сохраняется, даже если зверь уползёт
+         из зала в проход. */
+      packId: roomId || null,
+      packIndex: pack.index,
+      size: pack.size * (0.94 + Math.random() * 0.12),
+      sailScale: pack.sailScale,
       rest: 0,
       /* Голод и жажда: зверь время от времени идёт к воде или к
          растениям в своём зале. */
@@ -81,7 +133,14 @@
          голова опускается к земле и летят частицы. */
       action: null,
       actionTimer: 0,
-      actionDuration: 0
+      actionDuration: 0,
+      /* Общение внутри стаи: зов и брачная демонстрация парусов. */
+      call: 0,
+      callDur: 0,
+      display: 0,
+      displayDur: 0,
+      loveCooldown: 2 + Math.random() * 6,
+      swimming: false
     };
   }
 
@@ -110,15 +169,23 @@
     const plants = [];
     const taken = new Set();
     const cellKey = (x, y) => `${x},${y}`;
+    /* Лужи — круглые лужи-блюдца радиусом в одну-две клетки: в такой
+       воде диметродон плавает, а не топчется на месте. */
+    const blobRange = Array.isArray(cfg.waterBlob) ? cfg.waterBlob : [1, 2];
     const waterCount = range(cfg.waterPools);
     for (let i = 0; i < waterCount; i += 1) {
       const c = pick();
-      for (let dx = 0; dx <= 1; dx += 1) {
-        for (let dy = 0; dy <= 1; dy += 1) {
-          if (!walkable(c.x + dx, c.y + dy)) continue;
-          if (taken.has(cellKey(c.x + dx, c.y + dy))) continue;
-          taken.add(cellKey(c.x + dx, c.y + dy));
-          water.push({ x: c.x + dx, y: c.y + dy });
+      const radius = range(blobRange);
+      const radiusSq = radius * radius + 0.5;
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        for (let dy = -radius; dy <= radius; dy += 1) {
+          if (dx * dx + dy * dy > radiusSq) continue;
+          const wx = c.x + dx;
+          const wy = c.y + dy;
+          if (!walkable(wx, wy)) continue;
+          if (taken.has(cellKey(wx, wy))) continue;
+          taken.add(cellKey(wx, wy));
+          water.push({ x: wx, y: wy });
         }
       }
     }
@@ -167,6 +234,27 @@
       if (d < bestDistance) { bestDistance = d; best = { x: c.x, y: c.y, type: 'plant' }; }
     }
     return best;
+  }
+
+  /* Находится ли зверь в воде своего зала. Набор водных клеток
+     кэшируется: feature пересоздаётся редко, поэтому сравнение по
+     ссылке достаточно. */
+  const waterCache = new Map();
+  function isSwimming(mon) {
+    if (!mon.packId || !rt.world || !rt.world.roomById) return false;
+    const room = rt.world.roomById(mon.packId);
+    if (!room || room.faunaKind !== 'dimetrodon') return false;
+    const fauna = rt.state && rt.state.fauna;
+    const feature = fauna && fauna.features ? fauna.features[room.id] : null;
+    if (!feature || !Array.isArray(feature.water) || !feature.water.length) return false;
+    let entry = waterCache.get(room.id);
+    if (!entry || entry.ref !== feature) {
+      const set = new Set();
+      for (const c of feature.water) set.add(`${c.x},${c.y}`);
+      entry = { ref: feature, set };
+      waterCache.set(room.id, entry);
+    }
+    return entry.set.has(`${Math.floor(mon.x)},${Math.floor(mon.y)}`);
   }
 
   function walkableCellsInRoom(room) {
@@ -304,6 +392,16 @@
       mon.actionTimer = Math.max(0, mon.actionTimer - dt);
       if (mon.actionTimer <= 0) mon.action = null;
     }
+    /* Зов и брачная демонстрация тикают всегда, даже во время
+       передышки. Демонстрация приковывает зверя к месту. */
+    if (mon.call > 0) mon.call = Math.max(0, mon.call - dt);
+    if (mon.loveCooldown > 0) mon.loveCooldown = Math.max(0, mon.loveCooldown - dt);
+    if (mon.display > 0) {
+      mon.display = Math.max(0, mon.display - dt);
+      mon.angle += dt * 1.5;
+      mon.swimming = isSwimming(mon);
+      return;
+    }
     if (mon.rest > 0) {
       mon.rest -= dt;
       return;
@@ -349,7 +447,13 @@
       mon.angle = Math.atan2(mon.ty - mon.y, mon.tx - mon.x);
       return;
     }
-    const step = Math.max(0.05, mon.speed) * dt;
+    /* В воде зверь гребёт медленнее и заметно погружается. */
+    const swimming = isSwimming(mon);
+    mon.swimming = swimming;
+    const swimScale = swimming && Number.isFinite(cfg.swimSpeedScale)
+      ? cfg.swimSpeedScale
+      : 1;
+    const step = Math.max(0.05, mon.speed * swimScale) * dt;
     if (distance <= step) {
       mon.x = mon.tx;
       mon.y = mon.ty;
@@ -358,6 +462,87 @@
     mon.x += (dx / distance) * step;
     mon.y += (dy / distance) * step;
     mon.angle = Math.atan2(dy, dx);
+  }
+
+  /* ----------------------- Общение в стае ------------------------- */
+  /* Зов: зверь подаёт голос, а сородичи в радиусе отвечают и
+     поворачиваются к нему. Демонстрация: оказавшиеся рядом двое
+     поднимают паруса и кружат друг перед другом. */
+  function startCall(mon, dur) {
+    mon.callDur = dur;
+    mon.call = dur;
+  }
+
+  function startDisplay(mon, dur) {
+    mon.displayDur = dur;
+    mon.display = dur;
+    mon.callDur = Math.max(mon.callDur, dur);
+    mon.call = Math.max(mon.call, dur);
+    mon.rest = 0;
+  }
+
+  function tryCourtship(list, cfg) {
+    const distance = Number.isFinite(cfg.courtshipDistance) ? cfg.courtshipDistance : 2.4;
+    const distanceSq = distance * distance;
+    const chance = Number.isFinite(cfg.courtshipChance) ? cfg.courtshipChance : 0.5;
+    const duration = Number.isFinite(cfg.courtshipDuration) ? cfg.courtshipDuration : 2.6;
+    for (let i = 0; i < list.length; i += 1) {
+      const a = list[i];
+      if (a.display > 0 || a.loveCooldown > 0) continue;
+      for (let j = i + 1; j < list.length; j += 1) {
+        const b = list[j];
+        if (b.display > 0 || b.loveCooldown > 0) continue;
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        if (dx * dx + dy * dy > distanceSq) continue;
+        if (Math.random() > chance) continue;
+        startDisplay(a, duration);
+        startDisplay(b, duration);
+        a.loveCooldown = 8 + Math.random() * 10;
+        b.loveCooldown = 8 + Math.random() * 10;
+        return;
+      }
+    }
+  }
+
+  function updateCommunication(dt, active) {
+    const fauna = ensureState();
+    if (!fauna || active.length < 2) return;
+    const cfg = config();
+    const callRadius = Number.isFinite(cfg.callRadius) ? cfg.callRadius : 9;
+    const callRadiusSq = callRadius * callRadius;
+    const groups = new Map();
+    for (const mon of active) {
+      const key = mon.packId || 'wild';
+      let list = groups.get(key);
+      if (!list) { list = []; groups.set(key, list); }
+      list.push(mon);
+    }
+    for (const [key, list] of groups) {
+      if (list.length < 2) continue;
+      let timer = Number.isFinite(fauna.packComms[key]) ? fauna.packComms[key] : 4 + Math.random() * 6;
+      timer -= dt;
+      if (timer > 0) {
+        fauna.packComms[key] = timer;
+        continue;
+      }
+      const interval = Array.isArray(cfg.callInterval) ? cfg.callInterval : [9, 20];
+      const lo = interval[0];
+      const hi = Math.max(lo, interval[1]);
+      fauna.packComms[key] = lo + Math.random() * (hi - lo);
+      const caller = list[Math.floor(Math.random() * list.length)];
+      startCall(caller, 1.0);
+      for (const other of list) {
+        if (other === caller) continue;
+        const dx = caller.x - other.x;
+        const dy = caller.y - other.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 > callRadiusSq) continue;
+        startCall(other, 0.6 + Math.random() * 0.3);
+        if (d2 > 0.0001) other.angle = Math.atan2(dy, dx);
+      }
+      tryCourtship(list, cfg);
+    }
   }
 
   /* Новый детёныш появляется в ближайшем зале диметродонов, а если
@@ -384,7 +569,11 @@
     const cy = Math.floor(parent.y);
     for (const dir of shuffledDirs()) {
       if (walkable(cx + dir.x, cy + dir.y)) {
-        fauna.dimetrodons.push(makeDimetrodon(cx + dir.x + 0.5, cy + dir.y + 0.5, parent.roomId));
+        fauna.dimetrodons.push(makeDimetrodon(
+          cx + dir.x + 0.5,
+          cy + dir.y + 0.5,
+          parent.packId || parent.roomId
+        ));
         fauna.births += 1;
         return;
       }
@@ -401,12 +590,17 @@
     const player = rt.state.player;
     const cfg = config();
     const radiusSq = cfg.simulateRadius * cfg.simulateRadius;
+    const active = [];
     for (const mon of fauna.dimetrodons) {
       const ddx = mon.x - player.x;
       const ddy = mon.y - player.y;
       if (ddx * ddx + ddy * ddy > radiusSq) continue;
       updateOne(mon, dt);
+      active.push(mon);
     }
+    /* Общение считается только между теми, кто рядом с игроком:
+       далёкие залы не тратят кадры. */
+    updateCommunication(dt, active);
 
     if (fauna.dimetrodons.length < cfg.cap) {
       fauna.growthTimer += dt;
@@ -491,16 +685,32 @@
     const sx = params.toScreenX;
     const sy = params.toScreenY;
     const now = params.now || 0;
+    const cfg = config();
+    const palettes = Array.isArray(cfg.packs) ? cfg.packs : [];
     for (const mon of fauna.dimetrodons) {
       const x = sx(mon.x);
       const y = sy(mon.y);
       if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
-      const moving = !(mon.rest > 0);
+      const moving = !(mon.rest > 0) && !(mon.display > 0);
       const actionPhase = mon.actionDuration > 0
         ? 1 - mon.actionTimer / mon.actionDuration
         : 1;
+      const callPhase = mon.callDur > 0
+        ? ZQ.clamp(1 - mon.call / mon.callDur, 0, 1)
+        : 1;
+      const displayPhase = mon.displayDur > 0
+        ? ZQ.clamp(1 - mon.display / mon.displayDur, 0, 1)
+        : 1;
       window.Renderer.drawDimetrodon(
-        ctx, x, y, ts, now, mon.phase, mon.angle, moving, mon.action, actionPhase
+        ctx, x, y, ts, now, mon.phase, mon.angle, moving, mon.action, actionPhase,
+        {
+          pack: palettes[mon.packIndex] || palettes[0] || null,
+          size: Number.isFinite(mon.size) ? mon.size : 1,
+          sailScale: Number.isFinite(mon.sailScale) ? mon.sailScale : 1,
+          call: mon.call > 0 ? callPhase : 0,
+          display: mon.display > 0 ? displayPhase : 0,
+          swimming: Boolean(mon.swimming)
+        }
       );
     }
     drawParticles(ctx, params);
@@ -544,16 +754,21 @@
   }
 
   /* Коллизия с живыми диметродонами: аксолотль не проходит сквозь них.
-     Радиус — радиус игрока плюс половина клетки моба. */
+     Радиус — радиус игрока плюс половина клетки моба, причём у
+     крупных стай хитбокс крупнее. */
   function faunaBlockedAt(x, y, radius) {
     const fauna = rt.state && rt.state.fauna;
     if (!fauna || !Array.isArray(fauna.dimetrodons)) return false;
-    const reach = (Number.isFinite(radius) ? radius : 0.34) + 0.42;
-    const reachSq = reach * reach;
+    const cfg = config();
+    const base = Number.isFinite(cfg.collisionRadius) ? cfg.collisionRadius : 0.52;
+    const playerRadius = Number.isFinite(radius)
+      ? radius
+      : (Number.isFinite(C.player && C.player.radius) ? C.player.radius : 0.34);
     for (const mon of fauna.dimetrodons) {
+      const reach = playerRadius + base * (Number.isFinite(mon.size) ? mon.size : 1);
       const dx = mon.x - x;
       const dy = mon.y - y;
-      if (dx * dx + dy * dy < reachSq) return true;
+      if (dx * dx + dy * dy < reach * reach) return true;
     }
     return false;
   }
@@ -571,13 +786,13 @@
     const cfg = config();
     const push = Math.max(0.06, (Number.isFinite(dist) ? dist : 0.08) * cfg.pushStrength);
     const radius = Number.isFinite(C.player && C.player.radius) ? C.player.radius : 0.34;
-    const reach = 0.42 + radius + 0.08;
-    const reachSq = reach * reach;
+    const base = Number.isFinite(cfg.collisionRadius) ? cfg.collisionRadius : 0.52;
     let pushed = false;
     for (const mon of fauna.dimetrodons) {
+      const reach = base * (Number.isFinite(mon.size) ? mon.size : 1) + radius + 0.08;
       const ox = mon.x - x;
       const oy = mon.y - y;
-      if (ox * ox + oy * oy > reachSq) continue;
+      if (ox * ox + oy * oy > reach * reach) continue;
       const tx = mon.x + nx * push;
       const ty = mon.y + ny * push;
       const tileX = Math.floor(tx);
@@ -601,4 +816,5 @@
   ZQ.faunaParticleCount = () => particles.length;
   ZQ.faunaBlockedAt = faunaBlockedAt;
   ZQ.faunaPush = faunaPush;
+  ZQ.faunaPackFor = packFor;
 })();

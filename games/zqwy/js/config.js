@@ -4,6 +4,10 @@
 (function () {
   'use strict';
 
+  /* Общий музыкальный архив сайта: files/src/tracks. Игра не хранит
+     копию рядом с собой, а ссылается на архив относительным путём. */
+  const MUSIC_BASE = '../../src/tracks/';
+
   const CONFIG = {
     title: 'Лабиринт сознаний',
     subtitle: 'Zemic · браузерный прототип',
@@ -876,7 +880,7 @@
        кассета — отдельная запись с названием и обложкой; плеер
        автоматически переключает её при входе в комнату. */
     music: {
-      file: 'assets/music/1_zqwy_in_forest.opus',
+      file: MUSIC_BASE + 'in_forest/tracks/1_zqwy_in_forest/1_zqwy_in_forest.opus',
       volume: 0.55,
       enabled: true,
       rate: 1,
@@ -890,7 +894,7 @@
       ],
       tracks: {
         forest: {
-          file: 'assets/music/1_zqwy_in_forest.opus',
+          file: MUSIC_BASE + 'in_forest/tracks/1_zqwy_in_forest/1_zqwy_in_forest.opus',
           title: 'Лес внутри',
           cassette: 'cassette_forest',
           cassetteTitle: 'кассета · Лес внутри',
@@ -899,14 +903,14 @@
           duration: 3780.93
         },
         umbrella: {
-          file: 'assets/music/1_zqwy_umbrella.opus',
+          file: MUSIC_BASE + 'backers/1_zqwy_umbrella/1_zqwy_umbrella.opus',
           title: 'Зонт и вода',
           cassette: 'cassette_umbrella',
           cassetteTitle: 'кассета · Зонт и вода',
           duration: 73.64
         },
         gall: {
-          file: 'assets/music/8_zqwy_gall_bladder.opus',
+          file: MUSIC_BASE + 'mice_inside/tracks/8_zqwy_gall_bladder/8_zqwy_gall_bladder.opus',
           title: 'Жёлчный пузырь',
           cassette: 'cassette_gall',
           cassetteTitle: 'кассета · Жёлчный пузырь',
@@ -916,7 +920,7 @@
            заранее, чтобы таймер боя совпадал с записью ещё до загрузки
            метаданных аудио. */
         lungs: {
-          file: 'assets/music/mice_inside/3_zqwy_lungs.opus',
+          file: MUSIC_BASE + 'mice_inside/tracks/3_zqwy_lungs/3_zqwy_lungs.opus',
           title: 'Лёгкие',
           cassette: 'cassette_lungs',
           cassetteTitle: 'кассета · Лёгкие',
@@ -925,7 +929,7 @@
         /* Трахея: трек выживания бельзебуфо. Схватка длится ровно
            столько, сколько звучит запись. */
         trachea: {
-          file: 'assets/music/mice_inside/1_zqwy_trachea.opus',
+          file: MUSIC_BASE + 'mice_inside/tracks/1_zqwy_trachea/1_zqwy_trachea.opus',
           title: 'Трахея',
           cassette: 'cassette_mice_inside',
           cassetteTitle: 'кассета · Mice Inside',
@@ -934,7 +938,7 @@
         /* Поляна: тёплый трек для залов диметродонов. Играет, пока
            аксолотль находится в их ареале обитания. */
         poljana: {
-          file: 'assets/music/kuzya/11_zqwy_poljana.opus',
+          file: MUSIC_BASE + 'kuzya/tracks/11_zqwy_poljana/11_zqwy_poljana.opus',
           title: 'Поляна',
           cassette: 'cassette_kuzya',
           cassetteTitle: 'кассета · Кузя'
@@ -1161,8 +1165,7 @@
             pullTime: 0.5,
             retractTime: 0.14,
             pullSpeed: 5.5,
-            cooldown: 4.2,
-            damage: 1
+            cooldown: 4.2
           },
           /* Слизь вокруг жабы и после прыжков: держится и замедляет. */
           slime: {

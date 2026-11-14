@@ -828,27 +828,19 @@
       enemy.tongueReach = ZQ.clamp(1 - enemy.tongueTimer / Math.max(0.001, outTime), 0, 1);
       if (enemy.tongueTimer <= 0) {
         const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-        /* Язык бьёт сам по себе: контактные i-frames от слизи и тела
-           не должны его гасить. Увернуться можно только рывком. */
+        /* Язык только хватает и тянет: урона нет. Контактные i-frames
+           здесь ни при чём, а увернуться можно рывком. */
         enemy.tongueHit = distance <= range + 0.8 && battle.dashTimer <= 0;
         enemy.tongueState = 'pull';
         enemy.tongueTimer = pullTime;
         enemy.tongueReach = 1;
         enemy.tongueCooldown = Number.isFinite(cfg.cooldown) ? cfg.cooldown : 4.2;
         if (enemy.tongueHit) {
-          battle.playerHp -= Number.isFinite(cfg.damage) ? cfg.damage : 1;
-          battle.playerInvuln = Math.max(battle.playerInvuln, 0.6);
-          battle.flash = 1;
           pushHint(t(
             'Язык обхватил аксолотля и тянет к жабе.',
             'The tongue wraps the axolotl and drags it toward the frog.',
             'Die Zunge umschlingt den Axolotl und zieht ihn zur Kröte.'
           ), 1.1);
-          updateHud();
-          if (battle.playerHp <= 0) {
-            finishBattle('death');
-            return;
-          }
         }
       }
       return;

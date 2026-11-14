@@ -58,7 +58,7 @@
             <div class="battle-bar"><span id="battle-player-bar"></span></div>
             <div class="battle-bar beetle"><span id="battle-beetle-bar"></span></div>
           </div>
-          <div id="battle-hint" class="fight-hint">Продержись под водой. Shift или ПРОБЕЛ — рывок, F — зонт.</div>
+          <div id="battle-hint" class="fight-hint">Схватка идёт вместе с треком. Снаряды летят по Лабиринту; зонт — F.</div>
           <div id="battle-rhythm" class="battle-rhythm hidden" aria-label="Ритм зонта">
             <div class="battle-rhythm-track">
               <span id="battle-rhythm-beat" class="battle-rhythm-beat"></span>
@@ -81,13 +81,13 @@
             <button id="chase-abort" class="fight-abort" type="button">сдаться</button>
           </div>
           <div class="fight-stats">
-            <span class="fight-stat"><span class="fight-label">вдохи</span> <b id="chase-breaths">3</b></span>
+            <span class="fight-stat"><span class="fight-label">трек</span> <b id="chase-breaths">0%</b></span>
             <span class="fight-stat"><span class="fight-label">дистанция</span> <b id="chase-time">0 м</b></span>
           </div>
           <div class="battle-bars">
             <div class="battle-bar"><span id="chase-stamina-bar"></span></div>
           </div>
-          <div id="chase-hint" class="fight-hint">Уходи. Змея не устанет — устанешь ты. Shift — рывок.</div>
+          <div id="chase-hint" class="fight-hint">Уходи. Одно касание — и тебя нет. Shift — рывок.</div>
           <div class="fight-actions">
             <button id="chase-dash-touch" class="fight-btn fight-touch dash-action" type="button" aria-label="Ускориться">⚡</button>
           </div>
@@ -580,6 +580,7 @@
   <script src="js/trial.js"></script>
   <script src="js/battle.js"></script>
   <script src="js/titanoboa.js"></script>
+  <script src="js/fauna.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/music.js"></script>
   <script src="js/input.js"></script>

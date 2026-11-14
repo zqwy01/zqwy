@@ -706,12 +706,18 @@
     ctx.restore();
   }
 
-  function drawDimetrodon(ctx, sx, sy, ts, now, index) {
+  /* Диметродон теперь живой: fauna.js передаёт направление (angle),
+     фазу шага и признак движения. Без них рисунок остаётся статичным,
+     как раньше в зале. */
+  function drawDimetrodon(ctx, sx, sy, ts, now, phase, angle, moving) {
     const r = Math.max(ts * 0.5, ts * 0.48);
-    const sway = Math.sin(now * 0.0016 + index * 1.7) * 0.08;
+    const ph = Number.isFinite(phase) ? phase : 0;
+    const walk = moving === false ? 0.25 : 1;
+    const sway = Math.sin(now * 0.0016 * (1 + walk) + ph * 1.7) * 0.05 * walk;
+    const facing = Number.isFinite(angle) ? angle : ph * 1.9;
     ctx.save();
     ctx.translate(sx, sy);
-    ctx.rotate(sway + index * 1.9);
+    ctx.rotate(facing + sway);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.beginPath();
     ctx.ellipse(0, r * 0.6, r * 1.1, r * 0.3, 0, 0, Math.PI * 2);
@@ -751,19 +757,20 @@
     ctx.beginPath();
     ctx.ellipse(r * 0.82, r * 0.08, r * 0.3, r * 0.2, 0.1, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = `rgba(230, 176, 90, ${0.6 + 0.3 * Math.sin(now * 0.004 + index)})`;
+    ctx.fillStyle = `rgba(230, 176, 90, ${0.6 + 0.3 * Math.sin(now * 0.004 + ph)})`;
     ctx.beginPath();
     ctx.arc(r * 0.9, -r * 0.02, r * 0.055, 0, Math.PI * 2);
     ctx.fill();
 
-    /* Лапы. */
+    /* Лапы. При ходьбе они переступают в такт фазе. */
     ctx.strokeStyle = '#4e4c34';
     ctx.lineWidth = Math.max(1.4, r * 0.09);
     for (const side of [-1, 1]) {
       for (const dx of [-0.42, 0.42]) {
+        const swing = Math.sin(now * 0.008 * walk + ph + dx * 6 + side) * r * 0.12 * walk;
         ctx.beginPath();
         ctx.moveTo(dx * r, r * 0.12);
-        ctx.lineTo(dx * r + side * r * 0.24, r * 0.44);
+        ctx.lineTo(dx * r + side * r * 0.24 + swing, r * 0.44);
         ctx.stroke();
       }
     }
@@ -828,21 +835,16 @@
   function drawFauna(ctx, room, sx, sy, ts, now) {
     if (room.faunaKind === 'belzebufo') drawBelzebufo(ctx, sx, sy, ts, now);
     else if (room.faunaKind === 'titanoboa') drawTitanoboa(ctx, sx, sy, ts, now, room);
-    else if (room.faunaKind === 'dimetrodon') {
-      const count = Math.max(2, Math.min(4, Math.floor(room.w / 8)));
-      for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2 + 0.4;
-        const orbit = Math.min(room.w, room.h) * 0.18 * ts;
-        drawDimetrodon(
-          ctx,
-          sx + Math.cos(angle) * orbit,
-          sy + Math.sin(angle) * orbit * 0.7,
-          ts,
-          now,
-          i
-        );
-      }
-    }
+    /* Диметродоны больше не статичная сцена зала: это живые мобы,
+       которых ведёт fauna.js и рисует ZQ.drawFaunaWorld. */
+  }
+
+  /* Вид активной схватки: нужен, чтобы статичная сцена уступала место
+     преследующей сущности. */
+  function activeBattleKind() {
+    const zq = window.ZQ;
+    const battle = zq && zq.rt && zq.rt.battle;
+    return battle && battle.active ? battle.kind : null;
   }
 
   function drawWorld(ctx, params) {
@@ -917,6 +919,9 @@
       if (toScreenX(room.ox) > view.w + ts * 8 || toScreenX(room.ox + room.w) < -ts * 8) continue;
       if (toScreenY(room.oy) > view.h + ts * 8 || toScreenY(room.oy + room.h) < -ts * 8) continue;
       if (room.faunaKind === 'titanoboa' && state.flags.titanoboaCalm) continue;
+      /* Пока бельзебуфо гонится за аксолотлем, статичная жаба в центре
+         зала не рисуется: её ведёт боевая система. */
+      if (room.faunaKind === 'belzebufo' && activeBattleKind() === 'belzebufo') continue;
       drawFauna(
         ctx,
         room,
@@ -927,8 +932,22 @@
       );
     }
 
+    /* Живые диметродоны ползают по настоящим клеткам мира. Рисуются
+       поверх пола, но под змеёй и аксолотлем. */
+    if (typeof window.ZQ !== 'undefined' && typeof window.ZQ.drawFaunaWorld === 'function') {
+      window.ZQ.drawFaunaWorld(ctx, {
+        state,
+        world,
+        view,
+        ts,
+        toScreenX,
+        toScreenY,
+        now
+      });
+    }
+
     const arena = world.beetleRoom;
-    if (arena && !state.flags.beetleDone) {
+    if (arena && !state.flags.beetleDone && activeBattleKind() !== 'beetle') {
       if (toScreenX(arena.ox) < view.w + ts * 8 && toScreenX(arena.ox + arena.w) > -ts * 8 &&
           toScreenY(arena.oy) < view.h + ts * 8 && toScreenY(arena.oy + arena.h) > -ts * 8) {
         drawArenaBeetle(
@@ -942,7 +961,7 @@
     }
 
     const umbrellaRoom = world.umbrellaRoom;
-    if (umbrellaRoom && !state.flags.umbrellaDone) {
+    if (umbrellaRoom && !state.flags.umbrellaDone && activeBattleKind() !== 'umbrella') {
       if (toScreenX(umbrellaRoom.ox) < view.w + ts * 8 && toScreenX(umbrellaRoom.ox + umbrellaRoom.w) > -ts * 8 &&
           toScreenY(umbrellaRoom.oy) < view.h + ts * 8 && toScreenY(umbrellaRoom.oy + umbrellaRoom.h) > -ts * 8) {
         drawUmbrellaEnemy(
@@ -1268,6 +1287,10 @@
     frameForPlayer,
     dustMotes,
     drawDust,
-    drawCursorTarget
+    drawCursorTarget,
+    drawBelzebufo,
+    drawArenaBeetle,
+    drawUmbrellaEnemy,
+    drawDimetrodon
   };
 })();

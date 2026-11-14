@@ -57,6 +57,13 @@
     tp: 'телепорт',
     тп: 'телепорт',
     stop: 'стоп',
+    dash: 'рывок',
+    surrender: 'сдаться',
+    'give up': 'сдаться',
+    'dash unlock': 'рывок открыть',
+    'dash lock': 'рывок закрыть',
+    ausweichen: 'рывок',
+    aufgeben: 'сдаться',
     up: 'вверх',
     down: 'вниз',
     left: 'влево',
@@ -104,6 +111,13 @@
     [/^tp\b/, 'телепорт'],
     [/^тп\b/, 'телепорт'],
     [/^cursor\b/, 'курсор'],
+    [/^dash unlock\b/, 'рывок открыть'],
+    [/^dash lock\b/, 'рывок закрыть'],
+    [/^dash\b/, 'рывок'],
+    [/^ausweichen\b/, 'рывок'],
+    [/^give up\b/, 'сдаться'],
+    [/^surrender\b/, 'сдаться'],
+    [/^aufgeben\b/, 'сдаться'],
     [/^umbrella\b/, 'зонт'],
     [/^help\b/, 'помоги'],
     [/^hilfe\b/, 'помоги'],
@@ -640,6 +654,64 @@
     return { from, to };
   }
 
+  /* Команды боя: рывок и выход из схватки или погони. Рывок закрыт
+     способностью, пока Zemic её не открыл; «рывок открыть» и
+     «рывок закрыть» переключают гейт вручную. */
+  function dashCommand(arg) {
+    const sub = String(arg || '').trim().toLowerCase();
+    if (sub === 'открыть' || sub === 'открой' || sub === 'разблокировать' ||
+        sub === 'unlock') {
+      if (typeof ZQ.setDashAbility !== 'function') {
+        return t('Рывок пока недоступен.', 'Dash is not available yet.');
+      }
+      const before = typeof ZQ.hasDashAbility === 'function' && ZQ.hasDashAbility();
+      ZQ.setDashAbility(true, true);
+      return before
+        ? t('Рывок уже открыт.', 'Dash is already unlocked.')
+        : t('Рывок открыт: Shift, ПРОБЕЛ или E дают ускорение.',
+          'Dash unlocked: Shift, SPACE or E now accelerate you.');
+    }
+    if (sub === 'закрыть' || sub === 'закрой' || sub === 'заблокировать' ||
+        sub === 'lock') {
+      if (typeof ZQ.setDashAbility !== 'function') {
+        return t('Рывок пока недоступен.', 'Dash is not available yet.');
+      }
+      const before = typeof ZQ.hasDashAbility === 'function' && ZQ.hasDashAbility();
+      ZQ.setDashAbility(false, true);
+      return before
+        ? t('Рывок снова закрыт.', 'Dash is locked again.')
+        : t('Рывок уже закрыт.', 'Dash is already locked.');
+    }
+    if (rt.chase && rt.chase.active) {
+      const dashed = typeof ZQ.chaseDash === 'function' ? ZQ.chaseDash() : false;
+      return dashed
+        ? t('Рывок: ты отрываешься от колец.', 'Dash: you pull away from the coils.')
+        : t('Рывок не сработал.', 'The dash did not fire.');
+    }
+    if (rt.battle && rt.battle.active) {
+      const dashed = typeof ZQ.attemptDash === 'function' ? ZQ.attemptDash() : false;
+      return dashed
+        ? t('Рывок: на мгновение ты неуязвим.', 'Dash: for a moment you are untouchable.')
+        : t('Рывок не сработал.', 'The dash did not fire.');
+    }
+    return t('Рывок нужен только в схватке или погоне.',
+      'The dash is only needed in a fight or a chase.');
+  }
+
+  function surrenderCommand() {
+    if (rt.chase && rt.chase.active) {
+      if (typeof ZQ.finishChase === 'function') ZQ.finishChase('abort');
+      return t('Ты отпускаешь погоню. Титанобоа провожает тебя назад к Скрижали.',
+        'You let the chase go. The titanoboa sees you back to the Tablet.');
+    }
+    if (rt.battle && rt.battle.active) {
+      if (typeof ZQ.finishBattle === 'function') ZQ.finishBattle('abort');
+      return t('Ты выбираешься из воды, не дожидаясь конца.',
+        'You climb out of the water before the end.');
+    }
+    return t('Сейчас не от чего сдаваться.', 'There is nothing to give up right now.');
+  }
+
   function handleCommand(raw, source) {
     source = source || 'terminal';
     const text = String(raw === null || raw === undefined ? '' : raw).trim();
@@ -757,6 +829,12 @@
         reply = t('Зонта пока нет. Он ждёт в зале с зонтиком.',
           'No umbrella yet. It waits in the umbrella hall.');
       }
+    } else if (cmd === 'рывок' || cmd.startsWith('рывок ')) {
+      reply = dashCommand(cmd.replace(/^рывок\s*/, ''));
+      replyInstant = true;
+    } else if (cmd === 'сдаться' || cmd === 'сдаюсь') {
+      reply = surrenderCommand();
+      replyInstant = true;
     } else if (cmd === 'шансы') {
       reply = chancesCommand();
       replyInstant = true;

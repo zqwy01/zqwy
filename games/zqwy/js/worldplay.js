@@ -348,6 +348,10 @@
     let step = (boost && Number.isFinite(boost.playerSpeed)
       ? boost.playerSpeed
       : C.player.speed) * dt;
+    /* Жижа жука замедляет аксолотля, пока он по ней идёт. */
+    if (boost && Number.isFinite(boost.playerSpeedScale) && boost.playerSpeedScale > 0) {
+      step *= boost.playerSpeedScale;
+    }
     if (mode === 'dash') {
       step = (Number.isFinite(boost.dashSpeed) ? boost.dashSpeed : 12.5) * dt;
     }
@@ -364,10 +368,31 @@
         step = Math.min(step, rt.cursorMove.speed * dt);
       }
     }
+    /* Живые существа (диметродоны) не пропускают сквозь себя, но их
+       можно подталкивать: если моб мешает, он мягко уходит в сторону
+       движения, и дорога открывается. Если за ним стена — герой
+       упирается. Если моб уже накрыл аксолотля, даём выйти. */
+    const mobStuck = typeof ZQ.faunaBlockedAt === 'function' &&
+      ZQ.faunaBlockedAt(rt.state.player.x, rt.state.player.y, C.player.radius);
+    const freeOfMobs = (x, y) => mobStuck ||
+      typeof ZQ.faunaBlockedAt !== 'function' ||
+      !ZQ.faunaBlockedAt(x, y, C.player.radius);
+    const tryAxis = (targetX, targetY, pushX, pushY) => {
+      if (!canStandAt(targetX, targetY)) return false;
+      if (freeOfMobs(targetX, targetY)) return true;
+      if (typeof ZQ.faunaPush === 'function') {
+        ZQ.faunaPush(targetX, targetY, pushX, pushY, step * 1.4 + 0.05);
+      }
+      return freeOfMobs(targetX, targetY);
+    };
     const nx = rt.state.player.x + mx * step;
-    if (canStandAt(nx, rt.state.player.y)) rt.state.player.x = nx;
+    if (tryAxis(nx, rt.state.player.y, mx, my)) {
+      rt.state.player.x = nx;
+    }
     const ny = rt.state.player.y + my * step;
-    if (canStandAt(rt.state.player.x, ny)) rt.state.player.y = ny;
+    if (tryAxis(rt.state.player.x, ny, mx, my)) {
+      rt.state.player.y = ny;
+    }
 
     if (mode === 'cursor' && rt.cursorMove) {
       const waypoint = cursorWaypoint(rt.cursorMove);
@@ -627,13 +652,23 @@
     if (rt.survivalBlockedRoom && rt.survivalBlockedRoom !== room.id) {
       rt.survivalBlockedRoom = null;
     }
-    if (ZQ.audio) ZQ.audio.setCue(room.music);
+    /* Музыка схватки и погони закреплена за сценой: переходя между
+       залами, не переключаем кассету, иначе трек боя оборвётся. */
+    const sceneLocked = Boolean(
+      (rt.battle && rt.battle.active) || (rt.chase && rt.chase.active)
+    );
+    if (ZQ.audio && !sceneLocked) ZQ.audio.setCue(room.music);
 
     if (firstVisit) {
       ZQ.saveGame();
       ZQ.appendLog(`— ${room.name} —`, 'sys', true);
       ZQ.logEvent('actions', `вошёл в комнату «${room.name}»`, 'комната');
     }
+
+    /* Пока схватка или погоня не закончилась, новых врагов не ищем:
+       ни вода, ни жаба, ни змея не начинаются поверх текущего боя.
+       Иначе длинная схватка превращается в цепочку врагов. */
+    if ((rt.battle && rt.battle.active) || (rt.chase && rt.chase.active)) return;
 
     /* Вода приходит без разрешения: комната сама запускает выживание,
        как только Zemic оказывается внутри. */

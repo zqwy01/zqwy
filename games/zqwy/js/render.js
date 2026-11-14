@@ -59,7 +59,85 @@
     return Math.max(lo, Math.min(hi, raw));
   }
 
-  function drawFloor(ctx, sx, sy, ts, x, y, kind) {
+  /* Болотный тайл: вода с рябью, мшистый берег по краям и редкие
+     камышинки. Болото — часть пола, поэтому рисуется как обычный
+     тайл и не зависит ни от жабы, ни от боя. */
+  function drawSwampFloor(ctx, sx, sy, ts, x, y, world, now) {
+    const n = tileNoise(x, y, 23);
+    const wave = 0.5 + 0.5 * Math.sin(now * 0.0016 + x * 0.9 + y * 1.7);
+    ctx.fillStyle = `rgb(${20 + n * 7}, ${42 + n * 10}, ${36 + n * 8})`;
+    ctx.fillRect(sx, sy, ts + 0.6, ts + 0.6);
+
+    /* Глубина: вода темнее к середине плёса и светлее у берега. */
+    ctx.fillStyle = `rgba(80, 132, 96, ${0.03 + wave * 0.045})`;
+    ctx.fillRect(sx, sy, ts, ts * 0.5);
+    ctx.fillStyle = `rgba(6, 22, 20, ${0.16 + wave * 0.06})`;
+    ctx.fillRect(sx, sy + ts * 0.55, ts, ts * 0.45);
+
+    const swampAt = (dx, dy) => Boolean(
+      world && typeof world.isSwamp === 'function' && world.isSwamp(x + dx, y + dy)
+    );
+    const up = swampAt(0, -1);
+    const down = swampAt(0, 1);
+    const left = swampAt(-1, 0);
+    const right = swampAt(1, 0);
+    ctx.strokeStyle = 'rgba(128, 156, 92, 0.5)';
+    ctx.lineWidth = Math.max(1, ts * 0.08);
+    ctx.beginPath();
+    if (!up) { ctx.moveTo(sx, sy + 1); ctx.lineTo(sx + ts, sy + 1); }
+    if (!down) { ctx.moveTo(sx, sy + ts - 1); ctx.lineTo(sx + ts, sy + ts - 1); }
+    if (!left) { ctx.moveTo(sx + 1, sy); ctx.lineTo(sx + 1, sy + ts); }
+    if (!right) { ctx.moveTo(sx + ts - 1, sy); ctx.lineTo(sx + ts - 1, sy + ts); }
+    ctx.stroke();
+
+    /* Рябь: пара коротких дуг, фаза своя у каждого тайла. */
+    ctx.strokeStyle = `rgba(176, 214, 168, ${0.1 + wave * 0.16})`;
+    ctx.lineWidth = Math.max(1, ts * 0.045);
+    const r1 = tileNoise(x, y, 31);
+    const r2 = tileNoise(x, y, 37);
+    for (let i = 0; i < 2; i += 1) {
+      const rx = sx + ts * (0.2 + (i ? r2 : r1) * 0.55);
+      const ry = sy + ts * (0.25 + (i ? r1 : r2) * 0.5);
+      const rr = ts * (0.12 + (i ? r2 : r1) * 0.16);
+      ctx.beginPath();
+      ctx.ellipse(rx, ry, rr, rr * 0.55, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    /* Камыш и кувшинка — редко, чтобы не рябило в глазах. */
+    if (n > 0.82) {
+      ctx.strokeStyle = 'rgba(122, 150, 74, 0.85)';
+      ctx.lineWidth = Math.max(1, ts * 0.05);
+      const baseX = sx + ts * (0.2 + r1 * 0.6);
+      for (let i = -1; i <= 1; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(baseX + i * ts * 0.08, sy + ts * 0.92);
+        ctx.quadraticCurveTo(
+          baseX + i * ts * 0.16,
+          sy + ts * 0.5,
+          baseX + i * ts * 0.22,
+          sy + ts * 0.18
+        );
+        ctx.stroke();
+      }
+    } else if (r2 > 0.84) {
+      const lx = sx + ts * 0.55;
+      const ly = sy + ts * 0.5;
+      ctx.fillStyle = 'rgba(78, 128, 72, 0.92)';
+      ctx.beginPath();
+      ctx.ellipse(lx, ly, ts * 0.2, ts * 0.14, r1 * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(30, 52, 36, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function drawFloor(ctx, sx, sy, ts, x, y, kind, world, now) {
+    if (kind === 6) {
+      drawSwampFloor(ctx, sx, sy, ts, x, y, world, now || 0);
+      return;
+    }
     const n = tileNoise(x, y, 3);
     let base;
     if (kind === 5) {
@@ -533,6 +611,74 @@
     return { index, size, palette: palettes ? palettes[index] : null };
   }
 
+  /* Болотце засадной жабы: маленький плёс, камыш и кувшинка. Даже в
+     коридоре жаба сидит не на сухом камне, а в собственной луже. */
+  function drawRoamSwamp(ctx, sx, sy, ts, now, frog) {
+    const spec = frog && frog.swamp;
+    if (!spec) return;
+    const r = (Number.isFinite(spec.radius) ? spec.radius : 1.2) * ts;
+    const phase = Number.isFinite(spec.phase) ? spec.phase : 0;
+    const ripple = 0.5 + 0.5 * Math.sin(now * 0.0018 + phase);
+    ctx.save();
+    const grad = ctx.createRadialGradient(sx, sy, r * 0.12, sx, sy, r);
+    grad.addColorStop(0, `rgba(46, 78, 52, ${0.82 + ripple * 0.08})`);
+    grad.addColorStop(0.68, `rgba(58, 94, 58, ${0.74 + ripple * 0.08})`);
+    grad.addColorStop(1, 'rgba(74, 106, 62, 0.38)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, r * 1.08, r * 0.82, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(126, 162, 96, ${0.22 + ripple * 0.12})`;
+    ctx.lineWidth = Math.max(1, ts * 0.055);
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, r * 0.82, r * 0.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    /* Камыш по краю плёса: несколько стеблей, которые качаются. */
+    const reeds = Math.max(0, Math.round(Number.isFinite(spec.reeds) ? spec.reeds : 3));
+    for (let i = 0; i < reeds; i += 1) {
+      const angle = phase + (i / Math.max(1, reeds)) * Math.PI * 2 + 0.4;
+      const px = sx + Math.cos(angle) * r * 0.94;
+      const py = sy + Math.sin(angle) * r * 0.62;
+      const sway = Math.sin(now * 0.0015 + i * 1.7 + phase) * ts * 0.07;
+      ctx.strokeStyle = 'rgba(116, 160, 80, 0.92)';
+      ctx.lineWidth = Math.max(1.2, ts * 0.065);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(px, py + ts * 0.14);
+      ctx.quadraticCurveTo(
+        px + sway,
+        py - ts * 0.3,
+        px + sway * 1.5,
+        py - ts * 0.58
+      );
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(126, 108, 58, 0.92)';
+      ctx.beginPath();
+      ctx.ellipse(px + sway * 1.5, py - ts * 0.62, ts * 0.055, ts * 0.13, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (spec.lily) {
+      const bob = Math.sin(now * 0.0016 + phase) * ts * 0.03;
+      ctx.fillStyle = 'rgba(78, 126, 66, 0.92)';
+      ctx.beginPath();
+      ctx.ellipse(sx - r * 0.22, sy + r * 0.08 + bob, ts * 0.28, ts * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(104, 158, 84, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(sx - r * 0.22, sy + r * 0.08 + bob);
+      ctx.arc(sx - r * 0.22, sy + r * 0.08 + bob, ts * 0.28, -0.6, 0.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(232, 160, 190, 0.9)';
+      ctx.beginPath();
+      ctx.arc(sx - r * 0.16, sy + r * 0.06 + bob, Math.max(1, ts * 0.05), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   /* Бельзебуфо — полноценная жаба: тельце, брюшко, широкий рот,
      выпуклые глаза, согнутые задние лапы с перепонками и тонкие
      передние. Окрас и размер у каждой особи свои. */
@@ -549,6 +695,29 @@
     const charge = enemy && Number.isFinite(enemy.charge)
       ? Math.max(0, Math.min(1, enemy.charge))
       : 0;
+    /* Движение лап: патруль и бой используют одни и те же фазы прыжка,
+       поэтому жаба не «скользит» по полу и не замирает в полёте. */
+    const hopState = enemy && enemy.hopState ? enemy.hopState : 'idle';
+    const hopProgress = enemy && Number.isFinite(enemy.hopProgress)
+      ? Math.max(0, Math.min(1, enemy.hopProgress))
+      : 0;
+    const moving = Boolean(enemy && (enemy.moving || hopState === 'air'));
+    const walking = moving && hopState === 'idle';
+    const crouchK = hopState === 'crouch' ? 1 : 0;
+    const airK = hopState === 'air' ? Math.sin(hopProgress * Math.PI) : 0;
+    const landK = enemy && Number.isFinite(enemy.landFlash)
+      ? Math.max(0, Math.min(1, enemy.landFlash))
+      : 0;
+    const phase = enemy && Number.isFinite(enemy.phase) ? enemy.phase : 0;
+    const stridePhase = enemy && Number.isFinite(enemy.stride) ? enemy.stride : 0;
+    const idleSway = Math.sin(now * 0.0017 + phase) * 0.2;
+    const stepFor = (side) => {
+      if (walking) return Math.sin(stridePhase + phase + (side > 0 ? 0 : Math.PI));
+      return idleSway * side;
+    };
+    const bodyBob = walking
+      ? Math.abs(Math.sin(stridePhase + phase)) * r * 0.035
+      : (crouchK ? r * 0.04 : 0);
 
     /* Присед, полёт и приземление меняют силуэт: жаба сжимается и
        вытягивается, как живая. */
@@ -590,34 +759,52 @@
     ctx.restore();
 
     ctx.save();
-    ctx.translate(sx, sy - lift * ts);
+    ctx.translate(sx, sy - lift * ts - bodyBob);
     ctx.scale(scaleX * flip, scaleY);
 
-    /* Задние лапы: согнутые, с широкими перепончатыми ступнями. */
+    /* Задние лапы: согнутые, с широкими перепончатыми ступнями.
+       В приседе они подбираются под тело, в полёте разводятся, а при
+       приземлении расплющиваются по земле. */
     const hindLeg = (side) => {
+      const step = stepFor(side);
+      const swing = step * r * 0.16 * (walking ? 1 : 0.35);
+      const liftStep = Math.max(0, step) * r * 0.13 * (walking ? 1 : 0);
+      const crouchPull = crouchK * r * 0.12;
+      const airSpread = airK * r * 0.24;
+      const landSpread = landK * r * 0.13;
+      const hipX = r * 0.54;
+      const hipY = r * 0.26;
+      const kneeX = hipX + r * 0.3 + swing * 0.55 + crouchPull * 0.3 + airSpread * 0.45 + landSpread * 0.5;
+      const kneeY = hipY + r * 0.12 - liftStep * 0.5 - crouchPull * 0.38 - airSpread * 0.3 + landSpread * 0.12;
+      const footX = r * 0.82 + swing + crouchPull * 0.55 + airSpread * 0.85 + landSpread * 0.75;
+      const footY = r * 0.86 - liftStep - crouchPull * 0.08 + airSpread * 0.3 + landSpread * 0.06;
+
       ctx.save();
       ctx.scale(side, 1);
       ctx.fillStyle = pal.legs;
       ctx.beginPath();
-      ctx.ellipse(r * 0.62, r * 0.34, r * 0.42, r * 0.3, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(hipX * 0.9, hipY, r * 0.4, r * 0.28, -0.42, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = pal.legs;
-      ctx.lineWidth = Math.max(2, r * 0.26);
+      ctx.lineWidth = Math.max(2, r * 0.25);
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo(r * 0.72, r * 0.3);
-      ctx.quadraticCurveTo(r * 1.05, r * 0.5, r * 0.82, r * 0.78);
+      ctx.moveTo(hipX, hipY);
+      ctx.quadraticCurveTo(kneeX, kneeY, footX, footY);
       ctx.stroke();
+      /* Перепончатая ступня поворачивается вслед за шагом. */
+      const footAngle = 0.1 + swing * 0.7 + airSpread * 0.4 - crouchPull * 0.3;
       ctx.fillStyle = pal.legs;
       ctx.beginPath();
-      ctx.ellipse(r * 0.82, r * 0.86, r * 0.34, r * 0.16, 0.1, 0, Math.PI * 2);
+      ctx.ellipse(footX, footY, r * 0.34, r * 0.16, footAngle, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgba(20, 26, 12, 0.5)';
       ctx.lineWidth = Math.max(1, r * 0.04);
       for (let i = -1; i <= 1; i += 1) {
         ctx.beginPath();
-        ctx.moveTo(r * 0.82 + i * r * 0.12, r * 0.78);
-        ctx.lineTo(r * 0.82 + i * r * 0.2, r * 0.98);
+        ctx.moveTo(footX + i * r * 0.12, footY - r * 0.05);
+        ctx.lineTo(footX + i * r * 0.2, footY + r * 0.14);
         ctx.stroke();
       }
       ctx.restore();
@@ -652,20 +839,34 @@
       ctx.fill();
     }
 
-    /* Передние лапы: тонкие, опираются на землю. */
+    /* Передние лапы: тонкие, опираются на землю. В полёте они тянутся
+       вперёд, в приседе подбираются к груди, при шаге переступают. */
     const foreLeg = (side) => {
+      const step = stepFor(side);
+      const liftStep = Math.max(0, step) * r * 0.1 * (walking ? 1 : 0);
+      const crouchFold = crouchK * r * 0.1;
+      const airReach = airK * r * 0.22;
+      const landSplay = landK * r * 0.06;
+      const handX = r * 0.2 + step * r * 0.1 * (walking ? 1 : 0.3) +
+        airReach * 0.55 + landSplay * 0.4;
+      const handY = r * 0.9 - liftStep - airReach * 0.5 - crouchFold * 0.25 + landSplay * 0.08;
       ctx.save();
       ctx.scale(side, 1);
       ctx.strokeStyle = pal.body;
       ctx.lineWidth = Math.max(1.6, r * 0.12);
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(r * 0.22, r * 0.2);
-      ctx.quadraticCurveTo(r * 0.34, r * 0.56, r * 0.2, r * 0.86);
+      ctx.moveTo(r * 0.18, r * 0.18);
+      ctx.quadraticCurveTo(
+        r * 0.36 + airReach * 0.15,
+        r * 0.52 - airReach * 0.28 - crouchFold * 0.2,
+        handX,
+        handY
+      );
       ctx.stroke();
       ctx.fillStyle = pal.legs;
       ctx.beginPath();
-      ctx.ellipse(r * 0.2, r * 0.9, r * 0.14, r * 0.08, 0, 0, Math.PI * 2);
+      ctx.ellipse(handX, handY + r * 0.03, r * 0.14, r * 0.08, step * 0.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     };
@@ -702,25 +903,71 @@
       ctx.fill();
     }
 
-    /* Выпуклые глаза сверху. */
+    /* Выпуклые глаза сверху: каждый глаз — купол на стебле, который
+       раздувается в покое, при приседе и особенно при заряде. */
+    const eyeBulge = 0.3 + pulse * 0.035 + charge * 0.16 + crouchK * 0.08 + airK * 0.05;
+    const eyeR = r * eyeBulge;
     for (const side of [-1, 1]) {
-      const ex = side * r * 0.5;
-      const ey = -r * 0.78;
-      ctx.fillStyle = pal.body;
+      const ex = side * (r * 0.5 + eyeR * 0.2);
+      const ey = -r * (0.78 + eyeBulge * 0.2);
+      /* Тень под глазным бугром: без неё глаз кажется наклейкой. */
+      ctx.fillStyle = 'rgba(18, 26, 12, 0.35)';
       ctx.beginPath();
-      ctx.arc(ex, ey, r * 0.26, 0, Math.PI * 2);
+      ctx.ellipse(ex, ey + eyeR * 0.58, eyeR * 0.88, eyeR * 0.34, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#f2efd6';
+      /* Сам бугор — продолжение тела, а не отдельный шарик. */
+      const dome = ctx.createRadialGradient(
+        ex - side * eyeR * 0.32, ey - eyeR * 0.48, eyeR * 0.12,
+        ex, ey, eyeR * 1.12
+      );
+      dome.addColorStop(0, pal.body);
+      dome.addColorStop(0.68, pal.legs);
+      dome.addColorStop(1, 'rgba(28, 38, 16, 0.92)');
+      ctx.fillStyle = dome;
       ctx.beginPath();
-      ctx.arc(ex, ey - r * 0.02, r * 0.19, 0, Math.PI * 2);
+      ctx.arc(ex, ey, eyeR, 0, Math.PI * 2);
       ctx.fill();
+      /* Веко у основания, чтобы бугор сидел в коже. */
+      ctx.strokeStyle = 'rgba(20, 30, 12, 0.55)';
+      ctx.lineWidth = Math.max(1, r * 0.035);
+      ctx.beginPath();
+      ctx.arc(ex, ey, eyeR * 0.93, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.stroke();
+      /* Золотая радужка. */
+      const irisR = eyeR * 0.66;
+      const iris = ctx.createRadialGradient(
+        ex - side * irisR * 0.18, ey - irisR * 0.32, irisR * 0.1,
+        ex, ey, irisR
+      );
+      iris.addColorStop(0, '#ffe98a');
+      iris.addColorStop(0.62, pal.eye || '#f2d64a');
+      iris.addColorStop(1, '#a9791c');
+      ctx.fillStyle = iris;
+      ctx.beginPath();
+      ctx.arc(ex, ey, irisR, 0, Math.PI * 2);
+      ctx.fill();
+      /* Зрачок смотрит вверх и чуть в сторону. */
       ctx.fillStyle = '#14140c';
       ctx.beginPath();
-      ctx.arc(ex + side * r * 0.02, ey, r * 0.1, 0, Math.PI * 2);
+      ctx.ellipse(
+        ex + side * irisR * 0.16,
+        ey - irisR * 0.12,
+        irisR * 0.42,
+        irisR * 0.56,
+        0,
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
       ctx.beginPath();
-      ctx.arc(ex - side * r * 0.05, ey - r * 0.06, r * 0.04, 0, Math.PI * 2);
+      ctx.arc(
+        ex - side * irisR * 0.3,
+        ey - irisR * 0.34,
+        Math.max(1, irisR * 0.22),
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
     }
 
@@ -1299,7 +1546,7 @@
         if (t === 2) drawWall(ctx, sx, sy, ts, x, y, world);
         else if (t === 3) drawPillar(ctx, sx, sy, ts, x, y);
         else if (t === 4) drawShelf(ctx, sx, sy, ts, x, y);
-        else drawFloor(ctx, sx, sy, ts, x, y, t);
+        else drawFloor(ctx, sx, sy, ts, x, y, t, world, now);
       }
     }
 
@@ -1381,6 +1628,9 @@
         const x = toScreenX(frog.x);
         const y = toScreenY(frog.y);
         if (x < -ts * 2 || x > view.w + ts * 2 || y < -ts * 2 || y > view.h + ts * 2) continue;
+        /* Болото теперь настоящий тайл мира, а не собственность жабы:
+           оно уже нарисовано вместе с полом и не исчезает, когда жаба
+           уходит из кадра или начинает бой. */
         drawBelzebufo(ctx, x, y, ts, now, frog);
       }
     }
@@ -1728,6 +1978,7 @@
     drawDust,
     drawCursorTarget,
     drawBelzebufo,
+    drawRoamSwamp,
     belzebufoLook,
     drawArenaBeetle,
     drawUmbrellaEnemy,

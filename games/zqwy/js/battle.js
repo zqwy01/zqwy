@@ -547,6 +547,13 @@
       hopProgress: 0,
       hopHeight: 0,
       landFlash: 0,
+      /* Фаза и шаг для анимации лап: присед, полёт и приземление
+         выглядят по-разному даже без спрайтовой ленты. */
+      phase: (battle.roamFrog && Number.isFinite(battle.roamFrog.phase))
+        ? battle.roamFrog.phase
+        : 0,
+      stride: 0,
+      moving: false,
       /* Длинный язык: достаёт аксолотля и подтягивает его к жабе. */
       tongue: config.tongue ? Object.assign({}, config.tongue) : null,
       tongueState: 'idle',
@@ -630,8 +637,18 @@
       enemy.target = null;
       return;
     }
+    /* Прямая видимость: если аксолотль в том же зале или коридоре,
+       жук идёт напрямую. Это отсекает BFS по тысячам клеток в
+       большинстве кадров и убирает рывки при погоне. */
+    if (straightClear(start, goal)) {
+      enemy.target = { x: player.x, y: player.y };
+      return;
+    }
+    /* Поиск пути — только когда между жуком и игроком стена. Лимиты
+       жёстче, чем у змеи: жуку не нужен маршрут через полмира. */
+    const limits = { depth: 40, nodes: 2200 };
     let next = typeof ZQ.chasePathStep === 'function'
-      ? ZQ.chasePathStep(start, goal, null)
+      ? ZQ.chasePathStep(start, goal, null, limits)
       : null;
     if (!next && typeof ZQ.chaseGreedyStep === 'function') {
       next = ZQ.chaseGreedyStep(start, goal, null);
@@ -667,8 +684,21 @@
     if (start.x === goal.x && start.y === goal.y) return null;
     const cfg = enemy.hop || {};
     const steps = Math.max(1, Math.round(Number.isFinite(cfg.distance) ? cfg.distance : 3));
+    /* Если игрок на прямой — прыгаем к нему без BFS. Путь нужен
+       только чтобы обойти стену на повороте. */
+    if (straightClear(start, goal)) {
+      const dx = goal.x - start.x;
+      const dy = goal.y - start.y;
+      const span = Math.max(Math.abs(dx), Math.abs(dy)) || 1;
+      const k = Math.min(steps, span);
+      return {
+        x: start.x + Math.round((dx / span) * k),
+        y: start.y + Math.round((dy / span) * k)
+      };
+    }
+    const limits = { depth: 40, nodes: 2200 };
     const path = typeof ZQ.chasePathFind === 'function'
-      ? ZQ.chasePathFind(start, goal, null)
+      ? ZQ.chasePathFind(start, goal, null, limits)
       : null;
     if (path && path.length >= 2) {
       const maxIndex = Math.min(steps, path.length - 1);
@@ -677,7 +707,7 @@
       }
     }
     let next = typeof ZQ.chasePathStep === 'function'
-      ? ZQ.chasePathStep(start, goal, null)
+      ? ZQ.chasePathStep(start, goal, null, limits)
       : null;
     if (!next && typeof ZQ.chaseGreedyStep === 'function') {
       next = ZQ.chaseGreedyStep(start, goal, null);
@@ -693,6 +723,7 @@
 
     if (state === 'idle') {
       enemy.hopHeight = 0;
+      enemy.moving = false;
       if (enemy.hopCooldown > 0) return;
       const target = hopTarget(enemy);
       if (!target) {
@@ -708,10 +739,13 @@
       enemy.facingY = dy / length;
       enemy.hopState = 'crouch';
       enemy.hopTimer = Number.isFinite(cfg.windup) ? cfg.windup : 0.16;
+      enemy.moving = true;
+      enemy.stride = 0;
       return;
     }
 
     if (state === 'crouch') {
+      enemy.moving = true;
       enemy.hopTimer -= dt;
       if (enemy.hopTimer <= 0) {
         const duration = Number.isFinite(cfg.duration) ? cfg.duration : 0.3;
@@ -724,10 +758,12 @@
     }
 
     if (state === 'air') {
+      enemy.moving = true;
       enemy.hopTimer -= dt;
       const duration = enemy.hopDuration || (Number.isFinite(cfg.duration) ? cfg.duration : 0.3);
       const progress = ZQ.clamp(1 - enemy.hopTimer / Math.max(0.001, duration), 0, 1);
       enemy.hopProgress = progress;
+      enemy.stride += dt * 16;
       enemy.x = enemy.hopFrom.x + (enemy.hopTo.x - enemy.hopFrom.x) * progress;
       enemy.y = enemy.hopFrom.y + (enemy.hopTo.y - enemy.hopFrom.y) * progress;
       const height = Number.isFinite(cfg.height) ? cfg.height : 1.05;
@@ -736,9 +772,12 @@
         enemy.x = enemy.hopTo.x;
         enemy.y = enemy.hopTo.y;
         enemy.hopHeight = 0;
+        enemy.hopProgress = 0;
         enemy.hopState = 'idle';
         enemy.hopCooldown = Number.isFinite(cfg.cooldown) ? cfg.cooldown : 0.12;
         enemy.landFlash = 1;
+        enemy.moving = false;
+        enemy.stride = 0;
         dropSlime(
           battle,
           enemy.x,
@@ -789,14 +828,16 @@
       enemy.tongueReach = ZQ.clamp(1 - enemy.tongueTimer / Math.max(0.001, outTime), 0, 1);
       if (enemy.tongueTimer <= 0) {
         const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-        enemy.tongueHit = distance <= range + 0.8;
+        /* Язык бьёт сам по себе: контактные i-frames от слизи и тела
+           не должны его гасить. Увернуться можно только рывком. */
+        enemy.tongueHit = distance <= range + 0.8 && battle.dashTimer <= 0;
         enemy.tongueState = 'pull';
         enemy.tongueTimer = pullTime;
         enemy.tongueReach = 1;
         enemy.tongueCooldown = Number.isFinite(cfg.cooldown) ? cfg.cooldown : 4.2;
-        if (enemy.tongueHit && battle.playerInvuln <= 0) {
+        if (enemy.tongueHit) {
           battle.playerHp -= Number.isFinite(cfg.damage) ? cfg.damage : 1;
-          battle.playerInvuln = 0.6;
+          battle.playerInvuln = Math.max(battle.playerInvuln, 0.6);
           battle.flash = 1;
           pushHint(t(
             'Язык обхватил аксолотля и тянет к жабе.',
@@ -1241,6 +1282,13 @@
     const battle = rt.battle;
     if (!battle || !battle.active) return;
     const config = battleConfig();
+    /* У бельзебуфо залпы пока отключены: она слишком тяжёлая для
+       текущего уровня. Включается обратно одним canShoot: true. */
+    if (config.canShoot === false || battle.canShoot === false) {
+      battle.telegraph = 0;
+      battle.telegraphTotal = 0;
+      return;
+    }
     const genre = battle.genre || genreFor(config);
 
     /* Телеграф: враг на мгновение «заряжается» на виду, и только потом
@@ -1288,6 +1336,21 @@
     const stickDelay = Number.isFinite(battle.bulletStickDelay) ? battle.bulletStickDelay : 0.22;
     const bullets = battle.bullets;
 
+    /* Пространственный хэш прилипших снарядов: без него каждый вязкий
+       выстрел сверяется со всеми остальными, и к концу боя получается
+       квадратичная нагрузка. */
+    let stuckGrid = null;
+    if (stickyEnabled) {
+      stuckGrid = new Map();
+      for (const other of bullets) {
+        if (!other.stuck) continue;
+        const key = `${Math.floor(other.x)},${Math.floor(other.y)}`;
+        const cell = stuckGrid.get(key);
+        if (cell) cell.push(other);
+        else stuckGrid.set(key, [other]);
+      }
+    }
+
     for (let i = bullets.length - 1; i >= 0; i -= 1) {
       const bullet = bullets[i];
       const sticky = stickyEnabled && !bullet.reflected;
@@ -1332,15 +1395,22 @@
           /* Слипание: выстрел, коснувшийся уже прилипшего, тоже
              застывает — так снаряды собираются в единую массу. */
           let contact = false;
-          for (let j = 0; j < bullets.length; j += 1) {
-            if (j === i) continue;
-            const other = bullets[j];
-            if (!other.stuck) continue;
-            const dx = bullet.x - other.x;
-            const dy = bullet.y - other.y;
-            if (dx * dx + dy * dy <= (bullet.r + other.r + 0.04) ** 2) {
-              contact = true;
-              break;
+          if (stuckGrid) {
+            const gx = Math.floor(bullet.x);
+            const gy = Math.floor(bullet.y);
+            for (let oy = -1; oy <= 1 && !contact; oy += 1) {
+              for (let ox = -1; ox <= 1 && !contact; ox += 1) {
+                const cell = stuckGrid.get(`${gx + ox},${gy + oy}`);
+                if (!cell) continue;
+                for (const other of cell) {
+                  const dx = bullet.x - other.x;
+                  const dy = bullet.y - other.y;
+                  if (dx * dx + dy * dy <= (bullet.r + other.r + 0.04) ** 2) {
+                    contact = true;
+                    break;
+                  }
+                }
+              }
             }
           }
           if (contact) stickBullet(bullet, prevX, prevY);
@@ -1465,7 +1535,15 @@
       battle.hintUntil = 0;
       resetHint();
     }
-    updateHud();
+    /* HUD — это десяток DOM-записей. Дёргать их 60 раз в секунду
+       незачем: время в нём округлено до секунд, а полоски успевают
+       обновиться и на 8–10 Гц. Ритм-режим требует более частого
+       обновления бегунка. */
+    battle.hudTimer = Math.max(0, (battle.hudTimer || 0) - dt);
+    if (battle.hudTimer <= 0) {
+      battle.hudTimer = battle.rhythmMode ? 0.05 : 0.12;
+      updateHud();
+    }
   }
 
   function dropRewardPickup(itemId, roomId) {
@@ -1525,10 +1603,19 @@
 
     if (outcome === 'success') {
       const flag = config.flag || `${kind}Done`;
-      if (config.perRoom && roomId) {
+      /* Засадная жаба не «зачищает» комнату: победа над ней только
+         успокаивает её до следующего раза. Флаг комнаты ставит лишь
+         встреча, привязанная к залу. */
+      if (config.perRoom && roomId && !battle.roam) {
         rt.state.flags[`${kind}_${roomId}`] = true;
-      } else {
+      } else if (!battle.roam) {
         rt.state.flags[flag] = true;
+      }
+      /* После победы враг не исчезает: он возвращается в свой ареал
+         и сидит там, выжидая. Долгая пауза не даёт начать новый бой
+         на том же месте, пока игрок не отойдёт. */
+      if (roamFrog && typeof ZQ.restoreRoamFrog === 'function') {
+        ZQ.restoreRoamFrog(roamFrog, { afterVictory: true });
       }
       rt.state.flags[`${kind}Attempted`] = true;
       const rewardId = config.rewardItem;
@@ -1706,6 +1793,7 @@
       bulletLife: Number.isFinite(config.bulletLife) ? config.bulletLife : 8,
       waveCooldown: 1.1,
       volley: 0,
+      canShoot: config.canShoot !== false,
       telegraph: 0,
       telegraphTotal: 0,
       hasUmbrella: hasUmbrella() || Boolean(config.borrowUmbrella),
@@ -1831,6 +1919,10 @@
     for (const bullet of battle.bullets) {
       const bx = params.toScreenX(bullet.x);
       const by = params.toScreenY(bullet.y);
+      /* За кадром снаряды не рисуем: прилипшие к дальним стенам
+         выстрелы иначе каждый кадр строят градиент впустую. */
+      if (bx < -ts * 3 || bx > params.view.w + ts * 3 ||
+          by < -ts * 3 || by > params.view.h + ts * 3) continue;
       const radius = Math.max(2, bullet.r * ts);
       ctx.save();
       if (bullet.stuck) {

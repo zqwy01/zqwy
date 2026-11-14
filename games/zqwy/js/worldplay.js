@@ -752,9 +752,9 @@
 
   /* ------------------- Засады бельзебуфо в проходах ---------------- */
   /* Жаба встречается не только в своих залах: часть жаб поджидает в
-     коридорах. Такая жаба не мигрирует по миру — она патрулирует
-     крохотный участок вокруг своей клетки, еле перебирая лапами, и
-     нападает, когда аксолотль подходит вплотную. */
+     проходах и обычных комнатах. Такая жаба не мигрирует по миру — она
+     патрулирует крохотный участок вокруг своего болотца, перепрыгивая
+     с кочки на кочку, и нападает, когда аксолотль подходит вплотную. */
   function ensureRoam() {
     if (!rt.roam || typeof rt.roam !== 'object') {
       rt.roam = { belzebufos: [], seeded: {}, cooldown: 0 };
@@ -766,90 +766,243 @@
     return roam;
   }
 
-  /* Засадная жаба: свой окрас и размер (детерминированы клеткой),
-     своё место обитания и медленный патруль вокруг него. */
-  function makeRoamFrog(x, y, h) {
+  /* Болотце засадной жабы: маленький плёс с камышом и кувшинкой.
+     Параметры детерминированы клеткой, поэтому одна и та же жаба
+     всегда сидит в одном и том же месте. */
+  function makeRoamSwamp(x, y, h) {
+    const cfg = C.faunaDynamics || {};
+    const spec = cfg.roamSwamp || {};
+    const radii = Array.isArray(spec.radius) ? spec.radius : [1.25, 1.55];
+    const reedRange = Array.isArray(spec.reeds) ? spec.reeds : [2, 5];
+    const mix = (salt) => {
+      const key = `${rt.state && rt.state.seed ? rt.state.seed : ''}:frogswamp:${x}:${y}:${salt}`;
+      return window.World && typeof window.World.hashString === 'function'
+        ? window.World.hashString(key) / 4294967296
+        : h;
+    };
+    const lo = Number.isFinite(radii[0]) ? radii[0] : 1.25;
+    const hi = Math.max(lo, Number.isFinite(radii[1]) ? radii[1] : 1.55);
+    const reedLo = Math.max(0, Math.round(Number.isFinite(reedRange[0]) ? reedRange[0] : 2));
+    const reedHi = Math.max(reedLo, Math.round(Number.isFinite(reedRange[1]) ? reedRange[1] : 5));
+    const reedCount = reedLo + Math.floor(mix('reeds') * (reedHi - reedLo + 1));
     return {
-      x: x + 0.5,
-      y: y + 0.5,
-      homeX: x + 0.5,
-      homeY: y + 0.5,
-      tx: x + 0.5,
-      ty: y + 0.5,
+      radius: lo + mix('radius') * (hi - lo),
+      reeds: reedCount,
+      lily: mix('lily') < (Number.isFinite(spec.lilyChance) ? spec.lilyChance : 0.55),
+      phase: h * 6.283
+    };
+  }
+
+  /* Засадная жаба: свой окрас и размер (детерминированы клеткой),
+     своё болотце и короткие прыжки вокруг него вместо ползания. */
+  function makeRoamFrog(x, y, h) {
+    const homeX = x + 0.5;
+    const homeY = y + 0.5;
+    return {
+      x: homeX,
+      y: homeY,
+      homeX,
+      homeY,
+      tx: homeX,
+      ty: homeY,
       seed: `${x},${y}`,
       phase: h * 6.283,
       facing: Math.PI / 2,
       moving: false,
-      pause: 2 + h * 8
+      pause: 1.5 + h * 6,
+      /* Прыжок патруля: присед, полёт по дуге, приземление. */
+      hopState: 'idle',
+      hopTimer: 0,
+      hopCooldown: 0,
+      hopDuration: 0,
+      hopFrom: { x: homeX, y: homeY },
+      hopTo: { x: homeX, y: homeY },
+      hopProgress: 0,
+      hopHeight: 0,
+      landFlash: 0,
+      stride: 0,
+      swamp: makeRoamSwamp(x, y, h)
     };
   }
 
-  /* Патруль: жаба не стоит камнем, но и не рыщет — она медленно
-     переползает на соседнюю клетку своего участка, потом надолго
-     замирает, выжидая мошек. */
+  /* Клетка годится для засады: болотный тайл в проходе или обычной
+     комнате, но не сюжетный зал и не чужая арена. */
+  function roamCellAllowed(x, y) {
+    if (!rt.world || !rt.world.isWalkable(x, y)) return false;
+    /* Жаба сидит именно в болоте, а не на любом полу: тайл 6 — её
+       настоящий ареал, который остаётся на карте навсегда. */
+    if (typeof rt.world.isSwamp === 'function' && !rt.world.isSwamp(x, y)) return false;
+    const room = rt.world.roomAtTile(x, y);
+    if (!room) return true;
+    if (room.faunaKind === 'belzebufo') return false;
+    if (room.role !== 'procedural' || room.storyIndex !== null) return false;
+    return true;
+  }
+
+  /* Прямая между клетками свободна: короткий прыжок патруля не должен
+     проходить сквозь стену. */
+  function roamLineClear(fromX, fromY, toX, toY) {
+    if (!rt.world) return false;
+    const steps = Math.max(Math.abs(toX - fromX), Math.abs(toY - fromY));
+    for (let i = 1; i < steps; i += 1) {
+      const x = Math.round(fromX + ((toX - fromX) * i) / steps);
+      const y = Math.round(fromY + ((toY - fromY) * i) / steps);
+      if (!rt.world.isWalkable(x, y)) return false;
+    }
+    return true;
+  }
+
+  /* Куда прыгнуть на патруле: болотная клетка своего участка, куда
+     ведёт прямая без стены. Прыжок длиннее одной клетки — жаба
+     перемахивает через кочку, а не переползает. */
+  function roamHopTarget(frog, radius, maxJump) {
+    const hx = Math.floor(frog.homeX);
+    const hy = Math.floor(frog.homeY);
+    const cx = Math.floor(frog.x);
+    const cy = Math.floor(frog.y);
+    const jumpLimit = Math.max(1, Math.round(Number.isFinite(maxJump) ? maxJump : 2));
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const ox = hx + Math.floor((Math.random() * 2 - 1) * radius);
+      const oy = hy + Math.floor((Math.random() * 2 - 1) * radius);
+      if (ox === cx && oy === cy) continue;
+      /* Держим жабу в пределах плёса: прыжок не длиннее пары клеток. */
+      const jump = Math.abs(ox - cx) + Math.abs(oy - cy);
+      if (jump < 1 || jump > jumpLimit) continue;
+      if (!roamCellAllowed(ox, oy)) continue;
+      if (!roamLineClear(cx, cy, ox, oy)) continue;
+      return { x: ox + 0.5, y: oy + 0.5 };
+    }
+    return null;
+  }
+
+  /* Патруль: жаба не стоит камнем, но и не рыщет — она перепрыгивает
+     на соседнюю клетку своего болотца, потом надолго замирает. */
   function updateRoamFrogs(dt) {
     const roam = ensureRoam();
     if (!roam.belzebufos.length || !rt.world) return;
     const cfg = C.faunaDynamics || {};
-    const speed = Number.isFinite(cfg.roamPatrolSpeed) ? cfg.roamPatrolSpeed : 0.28;
+    const hopCfg = cfg.roamHop || {};
+    const windup = Number.isFinite(hopCfg.windup) ? hopCfg.windup : 0.2;
+    const duration = Number.isFinite(hopCfg.duration) ? hopCfg.duration : 0.34;
+    const height = Number.isFinite(hopCfg.height) ? hopCfg.height : 0.72;
+    const hopCooldown = Number.isFinite(hopCfg.cooldown) ? hopCfg.cooldown : 0.15;
     const radius = Math.max(1, Math.round(
-      Number.isFinite(cfg.roamPatrolRadius) ? cfg.roamPatrolRadius : 2
+      Number.isFinite(cfg.roamPatrolRadius) ? cfg.roamPatrolRadius : 3
     ));
-    const pauseRange = Array.isArray(cfg.roamPatrolPause) ? cfg.roamPatrolPause : [4, 11];
+    const maxJump = Math.max(1, Math.round(
+      Number.isFinite(cfg.roamPatrolJump) ? cfg.roamPatrolJump : 2
+    ));
+    const pauseRange = Array.isArray(cfg.roamPatrolPause) ? cfg.roamPatrolPause : [3.5, 9];
+    const pauseLo = Number.isFinite(pauseRange[0]) ? pauseRange[0] : 3.5;
+    const pauseHi = Math.max(pauseLo, Number.isFinite(pauseRange[1]) ? pauseRange[1] : 9);
     for (const frog of roam.belzebufos) {
-      const dx = frog.tx - frog.x;
-      const dy = frog.ty - frog.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist > 0.05) {
-        const step = speed * dt;
-        if (dist <= step) {
-          frog.x = frog.tx;
-          frog.y = frog.ty;
-        } else {
-          frog.x += (dx / dist) * step;
-          frog.y += (dy / dist) * step;
-        }
-        frog.facing = Math.atan2(dy, dx);
+      if (frog.landFlash > 0) frog.landFlash = Math.max(0, frog.landFlash - dt * 3);
+      const state = frog.hopState || 'idle';
+      if (state === 'crouch') {
         frog.moving = true;
+        frog.hopTimer -= dt;
+        if (frog.hopTimer <= 0) {
+          frog.hopState = 'air';
+          frog.hopTimer = duration;
+          frog.hopDuration = duration;
+          frog.hopProgress = 0;
+        }
         continue;
       }
+      if (state === 'air') {
+        frog.moving = true;
+        frog.hopTimer -= dt;
+        const total = frog.hopDuration || duration;
+        const progress = ZQ.clamp(1 - frog.hopTimer / Math.max(0.001, total), 0, 1);
+        frog.hopProgress = progress;
+        frog.x = frog.hopFrom.x + (frog.hopTo.x - frog.hopFrom.x) * progress;
+        frog.y = frog.hopFrom.y + (frog.hopTo.y - frog.hopFrom.y) * progress;
+        frog.hopHeight = Math.sin(progress * Math.PI) * height;
+        frog.stride += dt * 16;
+        if (frog.hopTimer <= 0) {
+          frog.x = frog.hopTo.x;
+          frog.y = frog.hopTo.y;
+          frog.tx = frog.hopTo.x;
+          frog.ty = frog.hopTo.y;
+          frog.hopHeight = 0;
+          frog.hopProgress = 0;
+          frog.hopState = 'idle';
+          frog.hopCooldown = hopCooldown;
+          frog.landFlash = 1;
+          frog.moving = false;
+          frog.stride = 0;
+          frog.pause = pauseLo + Math.random() * (pauseHi - pauseLo);
+        }
+        continue;
+      }
+      if (frog.hopCooldown > 0) frog.hopCooldown = Math.max(0, frog.hopCooldown - dt);
       frog.moving = false;
-      frog.pause -= dt;
+      frog.hopHeight = 0;
+      frog.pause = (Number.isFinite(frog.pause) ? frog.pause : 0) - dt;
       if (frog.pause > 0) continue;
-      const hx = Math.floor(frog.homeX);
-      const hy = Math.floor(frog.homeY);
-      let target = null;
-      for (let attempt = 0; attempt < 8 && !target; attempt += 1) {
-        const ox = hx + Math.floor((Math.random() * 2 - 1) * radius);
-        const oy = hy + Math.floor((Math.random() * 2 - 1) * radius);
-        if (ox === hx && oy === hy) continue;
-        if (!rt.world.isWalkable(ox, oy)) continue;
-        if (rt.world.roomAtTile(ox, oy)) continue;
-        target = { x: ox + 0.5, y: oy + 0.5 };
+      const target = roamHopTarget(frog, radius, maxJump);
+      if (!target) {
+        frog.pause = 1.5 + Math.random() * 2;
+        continue;
       }
-      if (target) {
-        frog.tx = target.x;
-        frog.ty = target.y;
-      }
-      const lo = pauseRange[0];
-      const hi = Math.max(lo, pauseRange[1]);
-      frog.pause = lo + Math.random() * (hi - lo);
+      frog.hopFrom = { x: frog.x, y: frog.y };
+      frog.hopTo = { x: target.x, y: target.y };
+      frog.tx = target.x;
+      frog.ty = target.y;
+      const dx = target.x - frog.x;
+      const dy = target.y - frog.y;
+      const length = Math.hypot(dx, dy) || 1;
+      frog.facing = Math.atan2(dy, dx);
+      frog.facingX = dx / length;
+      frog.facingY = dy / length;
+      frog.hopState = 'crouch';
+      frog.hopTimer = windup;
+      frog.moving = true;
+      frog.stride = 0;
     }
   }
 
-  /* Возврат врага на ареал обитания: если аксолотль погиб (или ушёл),
-     жаба не побеждена — она снова сидит у своей клетки. */
-  function restoreRoamFrog(frog) {
+  /* Возврат врага на ареал обитания: после любого боя жаба не исчезает,
+     а снова сидит в своём болотце. После победы она «остывает» дольше,
+     чтобы игрок успел уйти, а не получал новую схватку на том же месте. */
+  function restoreRoamFrog(frog, opts) {
     if (!frog || typeof frog !== 'object') return false;
+    const options = opts || {};
     const roam = ensureRoam();
     if (roam.belzebufos.includes(frog)) return false;
-    frog.x = frog.homeX;
-    frog.y = frog.homeY;
-    frog.tx = frog.homeX;
-    frog.ty = frog.homeY;
-    frog.pause = 2;
+    const homeX = Number.isFinite(frog.homeX) ? frog.homeX : frog.x;
+    const homeY = Number.isFinite(frog.homeY) ? frog.homeY : frog.y;
+    frog.homeX = homeX;
+    frog.homeY = homeY;
+    frog.x = homeX;
+    frog.y = homeY;
+    frog.tx = homeX;
+    frog.ty = homeY;
+    frog.hopFrom = { x: homeX, y: homeY };
+    frog.hopTo = { x: homeX, y: homeY };
+    frog.hopState = 'idle';
+    frog.hopTimer = 0;
+    frog.hopCooldown = 0;
+    frog.hopProgress = 0;
+    frog.hopHeight = 0;
+    frog.landFlash = 0;
+    frog.stride = 0;
+    frog.pause = 4 + Math.random() * 4;
     frog.moving = false;
+    if (!frog.swamp) {
+      const x = Math.floor(homeX);
+      const y = Math.floor(homeY);
+      const h = window.World && typeof window.World.hashString === 'function'
+        ? window.World.hashString(`frog:${x}:${y}`) / 4294967296
+        : 0.5;
+      frog.swamp = makeRoamSwamp(x, y, h);
+    }
     roam.belzebufos.push(frog);
+    const cfg = C.faunaDynamics || {};
+    const cooldown = options.afterVictory
+      ? (Number.isFinite(cfg.roamVictoryCooldown) ? cfg.roamVictoryCooldown : 55)
+      : (Number.isFinite(cfg.roamReturnCooldown) ? cfg.roamReturnCooldown : 18);
+    roam.cooldown = Math.max(Number.isFinite(roam.cooldown) ? roam.cooldown : 0, cooldown);
     return true;
   }
 
@@ -863,33 +1016,37 @@
 
     const player = rt.state.player;
     const seedRadius = Number.isFinite(cfg.roamSeedRadius) ? cfg.roamSeedRadius : 13;
-    const chance = Number.isFinite(cfg.roamChance) ? cfg.roamChance : 0.018;
+    const chance = Number.isFinite(cfg.roamChance) ? cfg.roamChance : 0.0025;
+    const maxFrogs = Math.max(1, Math.round(
+      Number.isFinite(cfg.roamMaxFrogs) ? cfg.roamMaxFrogs : 1
+    ));
+    /* На участок довольно одной жабы: пока она жива, новые не сеются. */
+    if (roam.belzebufos.length > maxFrogs) {
+      roam.belzebufos.splice(0, roam.belzebufos.length - maxFrogs);
+    }
     const R = Math.max(1, Math.round(seedRadius));
     const cx = Math.floor(player.x);
     const cy = Math.floor(player.y);
-    for (let y = cy - R; y <= cy + R; y += 1) {
+    for (let y = cy - R; y <= cy + R && roam.belzebufos.length < maxFrogs; y += 1) {
       for (let x = cx - R; x <= cx + R; x += 1) {
         const key = `${x},${y}`;
         if (roam.seeded[key]) continue;
         roam.seeded[key] = 1;
-        /* Жабы живут только в проходах, а не в залах: залы заняты
-           своими стаями и сценами. */
-        if (!rt.world.isWalkable(x, y)) continue;
-        if (rt.world.roomAtTile(x, y)) continue;
+        /* Жабы сидят в болотце: в проходе или обычной комнате, но не
+           в сюжетном зале и не в чужой фаунной арене. */
+        if (!roamCellAllowed(x, y)) continue;
         const h = window.World.hashString(`${rt.state.seed}:roam:${x}:${y}`) / 4294967296;
         if (h >= chance) continue;
         roam.belzebufos.push(makeRoamFrog(x, y, h));
+        if (roam.belzebufos.length >= maxFrogs) break;
       }
     }
     /* Кэш посещённых клеток растёт по мере исследования: иногда чистим. */
     let seededCount = 0;
     for (const _key in roam.seeded) seededCount += 1;
     if (seededCount > 12000) roam.seeded = {};
-    if (roam.belzebufos.length > 24) {
-      roam.belzebufos.splice(0, roam.belzebufos.length - 24);
-    }
 
-    /* Патруль идёт всегда: жабы двигаются даже пока засада «остывает». */
+    /* Патруль идёт всегда: жабы прыгают даже пока засада «остывает». */
     updateRoamFrogs(dt);
 
     if (roam.cooldown > 0) return;
@@ -902,13 +1059,16 @@
       if (dx * dx + dy * dy > triggerSq) continue;
       roam.belzebufos.splice(i, 1);
       roam.cooldown = Number.isFinite(cfg.roamCooldown) ? cfg.roamCooldown : 34;
-      if (typeof ZQ.startBattle === 'function') {
-        ZQ.startBattle('belzebufo', {
+      const started = typeof ZQ.startBattle === 'function'
+        ? ZQ.startBattle('belzebufo', {
           roam: true,
           spawnAt: { x: frog.x, y: frog.y },
           frog
-        });
-      }
+        })
+        : false;
+      /* Если бой не начался (занят другой сценой, сработал флаг),
+         жаба не пропадает: она просто возвращается в своё болотце. */
+      if (!started) restoreRoamFrog(frog);
       return;
     }
   }

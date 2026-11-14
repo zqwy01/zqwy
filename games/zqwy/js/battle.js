@@ -499,11 +499,30 @@
     const speed = Number.isFinite(config.enemySpeed)
       ? config.enemySpeed
       : (Number.isFinite(genre.enemySpeed) ? genre.enemySpeed : 0);
+    /* Окрас и габарит особи: стаи не однородны. Засадная жаба помнит
+       свой вид с клетки, жаба зала выбирает его по комнате, а боевая
+       схватка — по своему seed'у. */
+    const seed = (battle.roamFrog && battle.roamFrog.seed)
+      ? battle.roamFrog.seed
+      : (battle.roomId || null);
+    const look = (config.enemy === 'belzebufo' &&
+      window.Renderer && typeof window.Renderer.belzebufoLook === 'function')
+      ? window.Renderer.belzebufoLook(seed)
+      : null;
+    const baseRadius = Number.isFinite(config.enemyRadius) ? config.enemyRadius : 0.55;
+    const radius = look && Number.isFinite(look.size)
+      ? baseRadius * look.size
+      : baseRadius;
     battle.enemy = {
       kind: config.enemy || 'belzebufo',
       x: spot.x + 0.5,
       y: spot.y + 0.5,
-      radius: Number.isFinite(config.enemyRadius) ? config.enemyRadius : 0.55,
+      radius,
+      seed,
+      look,
+      charge: 0,
+      facing: Math.PI / 2,
+      muzzleFlash: 0,
       speed,
       target: null,
       flash: 0,
@@ -836,6 +855,7 @@
     if (!enemy) return;
     if (enemy.flash > 0) enemy.flash = Math.max(0, enemy.flash - dt * 3);
     if (enemy.landFlash > 0) enemy.landFlash = Math.max(0, enemy.landFlash - dt * 3);
+    if (enemy.muzzleFlash > 0) enemy.muzzleFlash = Math.max(0, enemy.muzzleFlash - dt * 4.5);
     if (enemy.digCooldown > 0) enemy.digCooldown = Math.max(0, enemy.digCooldown - dt);
 
     /* Подкоп: пока жук в норе, он не движется; на выходе оказывается
@@ -1204,6 +1224,9 @@
       (Number.isFinite(genre.speedScale) ? genre.speedScale : 1);
     const radius = Number.isFinite(config.bulletRadius) ? config.bulletRadius : 0.13;
 
+    /* Вспышка у пасти врага: видно, кто именно выпустил залп. */
+    if (battle.enemy) battle.enemy.muzzleFlash = 1;
+
     switch ((battle.volley - 1) % 6) {
       case 0: aimedFan(battle, speed, radius, progress); break;
       case 1: rainWave(battle, speed, radius, progress); break;
@@ -1486,6 +1509,9 @@
     const roomId = battle.roomId || rt.state.currentRoomId || null;
     const roomCue = battle.roomCue ||
       (battle.room && battle.room.music) || 'labyrinth';
+    /* Засадная жаба: если схватка не окончилась победой, враг не
+       побеждён — он возвращается на своё место обитания. */
+    const roamFrog = battle.roamFrog || null;
     battle.active = false;
     ZQ.resetKeys();
     hideBattleHud();
@@ -1494,7 +1520,7 @@
     /* Схватка шла на своём треке: возвращаем кассету комнаты и снова
        зацикливаем её. */
     if (ZQ.audio && typeof ZQ.audio.endBattleTrack === 'function') {
-      ZQ.audio.endBattleTrack(roomCue);
+      ZQ.audio.endBattleTrack(roomCue, roomId);
     }
 
     if (outcome === 'success') {
@@ -1545,6 +1571,11 @@
       ZQ.saveGame();
       ZQ.updatePrompt();
       return;
+    }
+
+    /* Враг не побеждён: засадная жаба снова сидит у своей клетки. */
+    if (roamFrog && typeof ZQ.restoreRoamFrog === 'function') {
+      ZQ.restoreRoamFrog(roamFrog);
     }
 
     if (outcome === 'death') {
@@ -1634,6 +1665,9 @@
          кольце вокруг игрока. */
       spawnAt: options.spawnAt || null,
       roam: Boolean(options.roam),
+      /* Засадная жаба помнит себя: если аксолотль погиб, враг не
+         побеждён и возвращается на своё место обитания. */
+      roamFrog: options.frog || null,
       world: rt.world,
       elapsed: 0,
       survivalTime,
@@ -1820,7 +1854,7 @@
       const glow = ctx.createRadialGradient(bx, by, radius * 0.2, bx, by, radius * 2.6);
       const tint = bullet.reflected
         ? '236, 198, 118'
-        : (battle.kind === 'belzebufo' ? '142, 210, 118' : '138, 216, 220');
+        : (battle.kind === 'belzebufo' ? '242, 236, 96' : '138, 216, 220');
       glow.addColorStop(0, `rgba(${tint}, 0.95)`);
       glow.addColorStop(0.45, `rgba(${tint}, 0.35)`);
       glow.addColorStop(1, `rgba(${tint}, 0)`);
@@ -1828,7 +1862,9 @@
       ctx.beginPath();
       ctx.arc(bx, by, radius * 2.6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = bullet.reflected ? '#ffe0a6' : '#d9fbf4';
+      ctx.fillStyle = bullet.reflected
+        ? '#ffe0a6'
+        : (battle.kind === 'belzebufo' ? '#fdf7ae' : '#d9fbf4');
       ctx.beginPath();
       ctx.arc(bx, by, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -1837,8 +1873,22 @@
 
     /* Преследующий враг: рисуется поверх пола, под снарядами. */
     if (battle.enemy && window.Renderer) {
-      const ex = params.toScreenX(battle.enemy.x);
-      const ey = params.toScreenY(battle.enemy.y);
+      const enemy = battle.enemy;
+      const ex = params.toScreenX(enemy.x);
+      const ey = params.toScreenY(enemy.y);
+
+      /* Жаба поворачивается к цели и раздувается, пока копит залп. */
+      if ((Number.isFinite(enemy.facingX) && enemy.facingX) ||
+          (Number.isFinite(enemy.facingY) && enemy.facingY)) {
+        enemy.facing = Math.atan2(enemy.facingY || 0, enemy.facingX || 0);
+      }
+      enemy.charge = battle.telegraph > 0
+        ? 1 - ZQ.clamp(
+          battle.telegraph / (battle.telegraphTotal > 0 ? battle.telegraphTotal : 0.32),
+          0,
+          1
+        )
+        : 0;
 
       /* Телеграф залпа: кольцо сжимается к врагу перед волной, чтобы
          игрок успел увидеть атаку и уйти. */
@@ -1880,6 +1930,25 @@
           drawTongue(ctx, battle.enemy, ex, ey, ts, params);
         }
         drawEnemySprite(ctx, battle.enemy.kind, ex, ey, ts, params.now || 0, battle.enemy);
+
+        /* Вспышка у пасти: залп только что вышел из жабы. */
+        if (enemy.muzzleFlash > 0) {
+          const flash = enemy.muzzleFlash;
+          const face = Number.isFinite(enemy.facing) ? enemy.facing : Math.PI / 2;
+          const mx = ex + Math.cos(face) * ts * 0.28;
+          const my = ey + Math.sin(face) * ts * 0.28;
+          const mr = ts * (0.42 + flash * 0.6);
+          const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
+          mg.addColorStop(0, `rgba(250, 250, 172, ${0.85 * flash})`);
+          mg.addColorStop(0.5, `rgba(226, 240, 120, ${0.4 * flash})`);
+          mg.addColorStop(1, 'rgba(196, 228, 90, 0)');
+          ctx.save();
+          ctx.fillStyle = mg;
+          ctx.beginPath();
+          ctx.arc(mx, my, mr, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
 
       if (battle.enemy.flash > 0) {

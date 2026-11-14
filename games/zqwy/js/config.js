@@ -55,11 +55,11 @@
       storyFirstChance: 0.25,
       storyNextChance: 0.12,
       /* Шанс комнаты флоры/фауны среди процедурных клеток. Схватки
-         длинные, поэтому встреч должно быть мало: иначе игрок не
-         успевает перевести дух между врагами. */
-      faunaChance: 0.12,
-      /* Доля бельзебуфо среди фауны: жаба встречается чаще прочих. */
-      belzebufoShare: 0.5,
+         длинные, а встреча должна быть событием, а не фоном: залы
+         редки, и лабиринт между ними ощущается пустым. */
+      faunaChance: 0.055,
+      /* Доля бельзебуфо среди фауны: жаба — редкий зверь. */
+      belzebufoShare: 0.4,
       /* Плотность петель и дверей на границах чанков. */
       loopFactor: 0.82,
       boundaryChance: 0.42,
@@ -152,7 +152,22 @@
         lines: [
           'На тёплом камне сидит бельзебуфо. Кожа у неё влажная, а окрас слишком яркий, чтобы быть случайным.',
           'Апосематизм не прячет жабу — он предупреждает. Даже титанобоа обходит такое пятно стороной.'
-        ]
+        ],
+        /* Окрасы жаб: стаи не однородны между собой. У каждой особи
+           свой узор и габарит, но выбор детерминирован по месту
+           обитания — жаба в одном зале всегда одна и та же. */
+        palettes: [
+          { body: '#7d9c2e', belly: '#e6e08a', spots: '#4a3a12', legs: '#5f7d22', eye: '#f2d64a', mouth: '#8a2f2f' },
+          { body: '#3f7d4a', belly: '#cfe89a', spots: '#173a1c', legs: '#2f6136', eye: '#e8c33a', mouth: '#7a2430' },
+          { body: '#8a6a1f', belly: '#efd98a', spots: '#3c2a0c', legs: '#6f5216', eye: '#f0d24a', mouth: '#8a3a1a' },
+          { body: '#5a7f6a', belly: '#cfe6d0', spots: '#1d3a30', legs: '#436456', eye: '#d8c04a', mouth: '#7a2f3a' },
+          { body: '#9c5a24', belly: '#f0c98a', spots: '#3a1f0c', legs: '#7d4318', eye: '#f2c24a', mouth: '#8a2a1a' },
+          { body: '#6a5f8f', belly: '#dcd0ee', spots: '#2c2447', legs: '#4f4670', eye: '#e8d24a', mouth: '#7a2f4a' },
+          { body: '#b0a024', belly: '#f4e9a0', spots: '#5a4a10', legs: '#8a7d1c', eye: '#f6dd4a', mouth: '#8a2f2f' },
+          { body: '#2f6f6a', belly: '#bfe6e0', spots: '#123433', legs: '#255a55', eye: '#e0cf4a', mouth: '#7a2440' }
+        ],
+        /* Диапазон размера особи: жаба бывает и мелкой, и крупной. */
+        size: [0.82, 1.32]
       },
       titanoboa: {
         name: 'Титанобоа',
@@ -892,6 +907,15 @@
           cassetteTitle: 'кассета · Лёгкие',
           duration: 101.06
         },
+        /* Трахея: трек выживания бельзебуфо. Схватка длится ровно
+           столько, сколько звучит запись. */
+        trachea: {
+          file: 'assets/music/mice_inside/1_zqwy_trachea.opus',
+          title: 'Трахея',
+          cassette: 'cassette_mice_inside',
+          cassetteTitle: 'кассета · Mice Inside',
+          duration: 99.58
+        },
         /* Поляна: тёплый трек для залов диметродонов. Играет, пока
            аксолотль находится в их ареале обитания. */
         poljana: {
@@ -912,9 +936,20 @@
       beetle: { track: 'lungs', title: 'Внезапная вода' },
       umbrella: { track: 'umbrella', title: 'Зал с зонтиком' },
       titanoboa: { track: 'gall', title: 'Титанобоа', hard: true },
-      belzebufo: { track: 'gall', title: 'Бельзебуфо', hard: true },
-      /* Залы диметродонов звучат своей кассетой «Поляна». */
-      dimetrodon: { track: 'poljana', title: 'Поляна' },
+      /* Бельзебуфо: выживание под «Трахею». */
+      belzebufo: { track: 'trachea', title: 'Трахея', hard: true },
+      /* Залы диметродонов звучат альбомом «Кузя»: каждая стая слышит
+         свою дорожку, выбор детерминирован по комнате. */
+      dimetrodon: {
+        track: [
+          'kuzya__1_zqwy_clovek', 'kuzya__2_zqwy_zarodok', 'kuzya__3_zqwy_evkaliptus',
+          'kuzya__4_zqwy_malenjky', 'kuzya__5_zqwy_nebesny', 'kuzya__6_zqwy_dusa',
+          'kuzya__7_zqwy_blagomilost', 'kuzya__8_zqwy_letanje', 'kuzya__9_zqwy_izmena',
+          'kuzya__10_zqwy_mimika', 'kuzya__11_zqwy_poljana', 'kuzya__12_zqwy_primorje',
+          'kuzya__13_zqwy_pogled', 'kuzya__14_zqwy_vozduh', 'kuzya__15_zqwy_izhod'
+        ],
+        title: 'Кузя'
+      },
       labyrinth: { track: 'forest', title: 'Лабиринт' }
     },
 
@@ -1236,6 +1271,12 @@
       swimSpeedScale: 0.55,
       waterPools: [2, 3],
       waterBlob: [1, 2],
+      /* Болото бельзебуфо: широкие плёсы, камыш по берегам и листья
+         кувшинок на воде. Зал жабы выглядит как настоящее болото. */
+      swampPools: [3, 5],
+      swampBlob: [2, 3],
+      swampReeds: [6, 10],
+      swampLily: [3, 7],
       /* Окрасы стай. Каждая комната получает свою палитру: цвет,
          рисунок на парусе и пропорции тела детерминированы seed'ом.
          Цвета нарочно фантазийные — парус служит и терморегуляции, и
@@ -1251,11 +1292,18 @@
         { id: 'mint', body: '#3c7a6e', belly: '#98dfcc', sail: '#4fe6c4', sailHi: '#d6fff4', ridge: '#183a34', pattern: 'spots' }
       ],
       /* Засады бельзебуфо в проходах лабиринта: жаба ждёт у клетки и
-         нападает, когда аксолотль подходит вплотную. */
-      roamChance: 0.06,
+         нападает, когда аксолотль подходит вплотную. Засад мало: это
+         редкая встреча, а не постоянный фон. */
+      roamChance: 0.018,
       roamSeedRadius: 13,
       roamTrigger: 2.2,
-      roamCooldown: 26
+      roamCooldown: 34,
+      /* Медленное патрулирование засады: жаба не стоит камнем, но и
+         не рыщет — она еле перебирает лапами вокруг своего места,
+         выжидая мошек. */
+      roamPatrolSpeed: 0.28,
+      roamPatrolRadius: 2,
+      roamPatrolPause: [4, 11]
     }
   };
 

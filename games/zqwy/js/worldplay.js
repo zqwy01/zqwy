@@ -683,14 +683,9 @@
       }
     }
 
-    /* Бельзебуфо — повторяемая встреча. Жаба нападает сама: как только
-       Zemic входит в её зал, схватка начинается без броска шанса.
-       После успеха в этой комнате она больше не появляется. */
-    if (room.faunaKind === 'belzebufo' && !rt.state.flags[`belzebufo_${room.id}`] &&
-        rt.survivalBlockedRoom !== room.id) {
-      ZQ.startBattle('belzebufo');
-      return;
-    }
+    /* Бельзебуфо не бросается с порога: она сидит в болоте и ждёт,
+       пока Zemic подойдёт к её плёсу. Проверка дистанции живёт в
+       updateBelzebufoAmbush(). */
 
     /* Титанобоа ровно одна на мир. Погоня начинается при входе, пока
        змея не успокоилась. */
@@ -748,6 +743,29 @@
     if (!rt.world || !rt.state) return;
     const room = roomUnderPlayer();
     if (room && rt.state.currentRoomId !== room.id) enterRoom(room);
+    updateBelzebufoAmbush(room);
+  }
+
+  /* Жаба зала прячется в болоте. Бой начинается не на входе, а когда
+     аксолотль подходит к её плёсу: spawnAt держит жабу в центре зала,
+     где она и сидела всё это время. */
+  function updateBelzebufoAmbush(room) {
+    if (!room || room.faunaKind !== 'belzebufo') return;
+    if (!rt.state || !rt.state.player) return;
+    if ((rt.battle && rt.battle.active) || (rt.chase && rt.chase.active) || rt.trial) return;
+    if (rt.state.flags[`belzebufo_${room.id}`]) return;
+    if (rt.survivalBlockedRoom === room.id) return;
+    const cfg = C.faunaDynamics || {};
+    const trigger = Number.isFinite(cfg.roomTrigger) ? cfg.roomTrigger : 4.2;
+    const player = rt.state.player;
+    const dx = player.x - (room.centerX + 0.5);
+    const dy = player.y - (room.centerY + 0.5);
+    if (dx * dx + dy * dy > trigger * trigger) return;
+    if (typeof ZQ.startBattle !== 'function') return;
+    ZQ.startBattle('belzebufo', {
+      roomId: room.id,
+      spawnAt: { x: room.centerX + 0.5, y: room.centerY + 0.5 }
+    });
   }
 
   /* ------------------- Засады бельзебуфо в проходах ---------------- */
@@ -821,6 +839,9 @@
       hopHeight: 0,
       landFlash: 0,
       stride: 0,
+      /* Сколько жаба неподвижна: пока она сидит и игрок далеко, она
+         сливается с болотом. Прыжок выдаёт её. */
+      still: 1.5,
       swamp: makeRoamSwamp(x, y, h)
     };
   }
@@ -898,6 +919,8 @@
     for (const frog of roam.belzebufos) {
       if (frog.landFlash > 0) frog.landFlash = Math.max(0, frog.landFlash - dt * 3);
       const state = frog.hopState || 'idle';
+      if (state === 'crouch' || state === 'air') frog.still = 0;
+      else frog.still = (Number.isFinite(frog.still) ? frog.still : 0) + dt;
       if (state === 'crouch') {
         frog.moving = true;
         frog.hopTimer -= dt;
@@ -989,6 +1012,7 @@
     frog.stride = 0;
     frog.pause = 4 + Math.random() * 4;
     frog.moving = false;
+    frog.still = 0;
     if (!frog.swamp) {
       const x = Math.floor(homeX);
       const y = Math.floor(homeY);

@@ -351,6 +351,42 @@
     syncPrevBody(chase);
   }
 
+  /* Точка в дальней от аксолотля части зала. Змея уже лежит там,
+     когда игрок входит: она не материализуется у него под ногами, а
+     поднимается с другого конца комнаты. */
+  function roomSpawnTile(room) {
+    if (!room || !Number.isFinite(room.x1)) return null;
+    const player = playerTile();
+    let best = null;
+    let bestDistance = -1;
+    for (let y = room.y1; y <= room.y2; y += 1) {
+      for (let x = room.x1; x <= room.x2; x += 1) {
+        if (!walkable(x, y)) continue;
+        const distance = Math.hypot(x + 0.5 - player.x, y + 0.5 - player.y);
+        if (distance > bestDistance) {
+          bestDistance = distance;
+          best = { x, y };
+        }
+      }
+    }
+    return best;
+  }
+
+  function placeSnakeInRoom(chase, room) {
+    const spot = roomSpawnTile(room);
+    if (!spot) {
+      const fallback = playerTile();
+      placeSnakeNear(chase, fallback.x, fallback.y, 7);
+      return;
+    }
+    chase.body = apex(chase, spot, chase.bodyCells);
+    chase.squeezing = false;
+    chase.squeezeTimer = 0;
+    chase.stepTimer = 0;
+    computeMass(chase);
+    syncPrevBody(chase);
+  }
+
   function safeSpot(chase) {
     const head = chase.body[0] || playerTile();
     const far = farthestNode(head, 44, 8500);
@@ -773,12 +809,21 @@
       dashFlash: 0,
       stamina: 1,
       teleportCooldown: 0,
+      /* Пробуждение: короткая пауза, пока змея ещё лежит в зале. */
+      wakeTime: Number.isFinite(cfg.wakeTime) ? Math.max(0, cfg.wakeTime) : 1.8,
+      wakeTimer: Number.isFinite(cfg.wakeTime) ? Math.max(0, cfg.wakeTime) : 1.8,
+      woke: false,
+      spawnRoomId: room ? room.id : null,
       config: cfg,
       player,
       playerSpeed: Number.isFinite(cfg.playerSpeed) ? cfg.playerSpeed : 4.8
     };
 
-    placeSnakeNear(chase, start.x, start.y, 7);
+    /* В зале голова стоит в дальней от входа части комнаты. Без
+       комнаты (например, при отладке) работает старый безопасный
+       вариант — кольцо вокруг игрока. */
+    if (room) placeSnakeInRoom(chase, room);
+    else placeSnakeNear(chase, start.x, start.y, 7);
     chase.lastX = player.x;
     chase.lastY = player.y;
 
@@ -842,6 +887,28 @@
     chase.squeezeTimer = Math.max(0, chase.squeezeTimer - dt);
     if (chase.squeezeTimer <= 0) chase.squeezing = false;
     chase.teleportCooldown = Math.max(0, (chase.teleportCooldown || 0) - dt);
+
+    /* Первые мгновения змея ещё лежит в дальнем конце зала: игрок
+       успевает увидеть её до того, как кольца придут в движение. */
+    const wakeLeft = Number.isFinite(chase.wakeTimer) ? chase.wakeTimer : 0;
+    if (wakeLeft > 0) {
+      chase.wakeTimer = Math.max(0, wakeLeft - dt);
+      if (rt.state && rt.state.player) {
+        chase.lastX = rt.state.player.x;
+        chase.lastY = rt.state.player.y;
+      }
+      chase.stepTimer = 0;
+      if (chase.wakeTimer <= 0 && !chase.woke) {
+        chase.woke = true;
+        ZQ.appendLog(cfg.wakeLine || t(
+          'Из дальнего конца зала поднимается голова. Титанобоа просыпается.',
+          'A head rises at the far end of the hall. The titanoboa is awake.',
+          'Am fernen Ende der Halle hebt sich ein Kopf. Die Titanoboa ist erwacht.'
+        ), 'story', true, cfg.introSpeaker || 'ТИТАНОБОА');
+      }
+      updateHud();
+      return;
+    }
 
     const pressure = ZQ.clamp(chase.elapsed / Math.max(1, chase.duration), 0, 1);
     const regen = (cfg.staminaRegen || 0.24) - pressure * 0.1;

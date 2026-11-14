@@ -10,6 +10,29 @@
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
 
+  /* Плавный шум по мировым координатам: интерполирует tileNoise между
+     соседними узлами. Нужен болоту, чтобы цвет воды перетекал через
+     границы тайлов, а не распадался на ровную шахматку. */
+  function smoothTileNoise(x, y, salt) {
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    const xf = x - xi;
+    const yf = y - yi;
+    const u = xf * xf * (3 - 2 * xf);
+    const v = yf * yf * (3 - 2 * yf);
+    const n00 = tileNoise(xi, yi, salt);
+    const n10 = tileNoise(xi + 1, yi, salt);
+    const n01 = tileNoise(xi, yi + 1, salt);
+    const n11 = tileNoise(xi + 1, yi + 1, salt);
+    const a = n00 + (n10 - n00) * u;
+    const b = n01 + (n11 - n01) * u;
+    return a + (b - a) * v;
+  }
+
+  function clamp01(v) {
+    return v < 0 ? 0 : (v > 1 ? 1 : v);
+  }
+
   function roundedRect(ctx, x, y, w, h, r) {
     const rr = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
@@ -59,20 +82,27 @@
     return Math.max(lo, Math.min(hi, raw));
   }
 
-  /* Болотный тайл: вода с рябью, мшистый берег по краям и редкие
-     камышинки. Болото — часть пола, поэтому рисуется как обычный
-     тайл и не зависит ни от жабы, ни от боя. */
+  /* Болото больше не выглядит сеткой из одинаковых квадратов:
+     цвет воды считается по плавному шуму мировых координат, берег
+     рисуется волнистой мшистой кромкой только там, где рядом суша,
+     а рябь и камыш появляются крупными пятнами. Соседние тайлы
+     перетекают друг в друга и читаются как один плёс. */
   function drawSwampFloor(ctx, sx, sy, ts, x, y, world, now) {
-    const n = tileNoise(x, y, 23);
     const wave = 0.5 + 0.5 * Math.sin(now * 0.0016 + x * 0.9 + y * 1.7);
-    ctx.fillStyle = `rgb(${20 + n * 7}, ${42 + n * 10}, ${36 + n * 8})`;
-    ctx.fillRect(sx, sy, ts + 0.6, ts + 0.6);
+    const bed = smoothTileNoise(x / 4.6, y / 4.6, 23);
+    const deep = smoothTileNoise(x / 8.5 + 1.7, y / 8.5 + 0.6, 29);
+    const top = smoothTileNoise(x / 4.6, y / 4.6 - 0.32, 23);
+    const bottom = smoothTileNoise(x / 4.6, y / 4.6 + 0.32, 23);
+    ctx.fillStyle = `rgb(${Math.round(15 + bed * 10)}, ${Math.round(37 + bed * 17 + deep * 5)}, ${Math.round(31 + bed * 13 + deep * 4)})`;
+    ctx.fillRect(sx - 0.4, sy - 0.4, ts + 0.8, ts + 0.8);
 
-    /* Глубина: вода темнее к середине плёса и светлее у берега. */
-    ctx.fillStyle = `rgba(80, 132, 96, ${0.03 + wave * 0.045})`;
-    ctx.fillRect(sx, sy, ts, ts * 0.5);
-    ctx.fillStyle = `rgba(6, 22, 20, ${0.16 + wave * 0.06})`;
-    ctx.fillRect(sx, sy + ts * 0.55, ts, ts * 0.45);
+    /* Мягкий градиент глубины: верх светлее, низ темнее, но без
+       жёсткой полосы на границе клеток. */
+    const depth = ctx.createLinearGradient(sx, sy, sx, sy + ts);
+    depth.addColorStop(0, `rgba(92, 154, 108, ${0.025 + top * 0.035})`);
+    depth.addColorStop(1, `rgba(3, 16, 16, ${0.08 + bottom * 0.07})`);
+    ctx.fillStyle = depth;
+    ctx.fillRect(sx, sy, ts + 0.6, ts + 0.6);
 
     const swampAt = (dx, dy) => Boolean(
       world && typeof world.isSwamp === 'function' && world.isSwamp(x + dx, y + dy)
@@ -81,34 +111,60 @@
     const down = swampAt(0, 1);
     const left = swampAt(-1, 0);
     const right = swampAt(1, 0);
-    ctx.strokeStyle = 'rgba(128, 156, 92, 0.5)';
-    ctx.lineWidth = Math.max(1, ts * 0.08);
-    ctx.beginPath();
-    if (!up) { ctx.moveTo(sx, sy + 1); ctx.lineTo(sx + ts, sy + 1); }
-    if (!down) { ctx.moveTo(sx, sy + ts - 1); ctx.lineTo(sx + ts, sy + ts - 1); }
-    if (!left) { ctx.moveTo(sx + 1, sy); ctx.lineTo(sx + 1, sy + ts); }
-    if (!right) { ctx.moveTo(sx + ts - 1, sy); ctx.lineTo(sx + ts - 1, sy + ts); }
-    ctx.stroke();
 
-    /* Рябь: пара коротких дуг, фаза своя у каждого тайла. */
-    ctx.strokeStyle = `rgba(176, 214, 168, ${0.1 + wave * 0.16})`;
-    ctx.lineWidth = Math.max(1, ts * 0.045);
-    const r1 = tileNoise(x, y, 31);
-    const r2 = tileNoise(x, y, 37);
-    for (let i = 0; i < 2; i += 1) {
-      const rx = sx + ts * (0.2 + (i ? r2 : r1) * 0.55);
-      const ry = sy + ts * (0.25 + (i ? r1 : r2) * 0.5);
-      const rr = ts * (0.12 + (i ? r2 : r1) * 0.16);
+    /* Мшистая кромка: волнистая линия, а не ровный край тайла. */
+    const shoreline = (x1, y1, x2, y2, salt) => {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const nx = -(y2 - y1);
+      const ny = x2 - x1;
+      const len = Math.hypot(nx, ny) || 1;
+      const bend = (tileNoise(x, y, salt) - 0.5) * ts * 0.22;
       ctx.beginPath();
-      ctx.ellipse(rx, ry, rr, rr * 0.55, 0, 0, Math.PI * 2);
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo(mx + (nx / len) * bend, my + (ny / len) * bend, x2, y2);
       ctx.stroke();
+    };
+    if (!up || !down || !left || !right) {
+      const inset = ts * 0.08 + tileNoise(x, y, 43) * ts * 0.05;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(74, 104, 54, ${0.5 + wave * 0.12})`;
+      ctx.lineWidth = Math.max(1.5, ts * 0.19);
+      if (!up) shoreline(sx - 1, sy + inset, sx + ts + 1, sy + inset, 47);
+      if (!down) shoreline(sx - 1, sy + ts - inset, sx + ts + 1, sy + ts - inset, 53);
+      if (!left) shoreline(sx + inset, sy - 1, sx + inset, sy + ts + 1, 59);
+      if (!right) shoreline(sx + ts - inset, sy - 1, sx + ts - inset, sy + ts + 1, 61);
+      ctx.strokeStyle = `rgba(126, 158, 88, ${0.34 + wave * 0.16})`;
+      ctx.lineWidth = Math.max(1, ts * 0.07);
+      if (!up) shoreline(sx - 1, sy + inset * 1.7, sx + ts + 1, sy + inset * 1.7, 67);
+      if (!down) shoreline(sx - 1, sy + ts - inset * 1.7, sx + ts + 1, sy + ts - inset * 1.7, 71);
+      if (!left) shoreline(sx + inset * 1.7, sy - 1, sx + inset * 1.7, sy + ts + 1, 73);
+      if (!right) shoreline(sx + ts - inset * 1.7, sy - 1, sx + ts - inset * 1.7, sy + ts + 1, 79);
     }
 
-    /* Камыш и кувшинка — редко, чтобы не рябило в глазах. */
-    if (n > 0.82) {
+    /* Рябь крупными пятнами: не каждый тайл, иначе вода мерцает. */
+    const rippleSeed = smoothTileNoise(x / 5.2 + 0.4, y / 5.2 + 1.1, 83);
+    if (rippleSeed > 0.38) {
+      const r1 = tileNoise(x, y, 31);
+      const r2 = tileNoise(x, y, 37);
+      ctx.strokeStyle = `rgba(176, 214, 168, ${0.08 + wave * 0.14})`;
+      ctx.lineWidth = Math.max(1, ts * 0.045);
+      for (let i = 0; i < 2; i += 1) {
+        const rx = sx + ts * (0.2 + (i ? r2 : r1) * 0.55);
+        const ry = sy + ts * (0.25 + (i ? r1 : r2) * 0.5);
+        const rr = ts * (0.12 + (i ? r2 : r1) * 0.16);
+        ctx.beginPath();
+        ctx.ellipse(rx, ry, rr, rr * 0.55, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    /* Камыш и кувшинки — по крупным скоплениям, а не по одному тайлу. */
+    const flora = smoothTileNoise(x / 7.2 + 2.3, y / 7.2 + 0.8, 89);
+    if (flora > 0.66 && tileNoise(x, y, 97) > 0.42) {
       ctx.strokeStyle = 'rgba(122, 150, 74, 0.85)';
       ctx.lineWidth = Math.max(1, ts * 0.05);
-      const baseX = sx + ts * (0.2 + r1 * 0.6);
+      const baseX = sx + ts * (0.2 + tileNoise(x, y, 101) * 0.6);
       for (let i = -1; i <= 1; i += 1) {
         ctx.beginPath();
         ctx.moveTo(baseX + i * ts * 0.08, sy + ts * 0.92);
@@ -120,16 +176,49 @@
         );
         ctx.stroke();
       }
-    } else if (r2 > 0.84) {
+    } else if (flora < 0.22 && tileNoise(x, y, 103) > 0.7) {
       const lx = sx + ts * 0.55;
       const ly = sy + ts * 0.5;
       ctx.fillStyle = 'rgba(78, 128, 72, 0.92)';
       ctx.beginPath();
-      ctx.ellipse(lx, ly, ts * 0.2, ts * 0.14, r1 * 0.8, 0, Math.PI * 2);
+      ctx.ellipse(lx, ly, ts * 0.2, ts * 0.14, tileNoise(x, y, 107) * 0.8, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = 'rgba(30, 52, 36, 0.6)';
       ctx.lineWidth = 1;
       ctx.stroke();
+    }
+  }
+
+  /* Туман и испарения над болотом. Рисуется одним проходом поверх
+     пола: мягкие пятна перекрывают границы тайлов и связывают воду
+     в цельный плёс. */
+  function drawSwampMist(ctx, params) {
+    const world = params.world;
+    if (!world || typeof world.isSwamp !== 'function') return;
+    const ts = params.ts;
+    const now = params.now || 0;
+    const toScreenX = params.toScreenX;
+    const toScreenY = params.toScreenY;
+    for (let y = params.startY; y <= params.endY; y += 1) {
+      for (let x = params.startX; x <= params.endX; x += 1) {
+        if (!world.isSwamp(x, y)) continue;
+        const n = smoothTileNoise(x / 6.5 + 2.1, y / 6.5 + 0.4, 71);
+        if (n < 0.52) continue;
+        const drift = 0.5 + 0.5 * Math.sin(now * 0.00045 + x * 0.55 + y * 0.83);
+        const alpha = (n - 0.52) * 0.16 * (0.55 + 0.45 * drift);
+        if (alpha <= 0.002) continue;
+        const cx = toScreenX(x + 0.5) + Math.sin(now * 0.0003 + y * 0.7) * ts * 0.35;
+        const cy = toScreenY(y + 0.5) + Math.cos(now * 0.00027 + x * 0.6) * ts * 0.25;
+        const r = ts * (1.1 + n * 0.9);
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, `rgba(196, 224, 206, ${alpha})`);
+        grad.addColorStop(0.55, `rgba(132, 176, 160, ${alpha * 0.5})`);
+        grad.addColorStop(1, 'rgba(96, 140, 128, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
@@ -748,6 +837,29 @@
         : Math.PI / 2);
     const flip = Math.cos(face) < 0 ? -1 : 1;
 
+    /* Маскировка: вдали жаба почти сливается с болотом и сидит по
+       грудь в воде; вблизи проявляется. Бой передаёт reveal=1, поэтому
+       в схватке она всегда видна полностью. */
+    const revealK = enemy && Number.isFinite(enemy.reveal)
+      ? clamp01(enemy.reveal)
+      : 1;
+    const submergedK = enemy && Number.isFinite(enemy.submerged)
+      ? clamp01(enemy.submerged)
+      : 0;
+    ctx.save();
+    if (submergedK > 0.01) {
+      const waterline = sy + r * (0.72 - submergedK * 0.98);
+      ctx.beginPath();
+      ctx.rect(
+        sx - r * 2.6,
+        sy - r * 3.4,
+        r * 5.2,
+        Math.max(0, waterline - (sy - r * 3.4))
+      );
+      ctx.clip();
+    }
+    ctx.globalAlpha *= 0.32 + 0.68 * revealK;
+
     /* Тень остаётся на земле и уменьшается, пока жаба в воздухе. */
     const shadowK = 1 / (1 + lift * 0.8);
     ctx.save();
@@ -986,6 +1098,8 @@
       ctx.arc(0, -r * 0.2, r * 0.7, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+    /* Внешний restore закрывает клип маскировки. */
     ctx.restore();
   }
 
@@ -1491,9 +1605,12 @@
     ctx.restore();
   }
 
-  function drawFauna(ctx, room, sx, sy, ts, now) {
-    if (room.faunaKind === 'belzebufo') drawBelzebufo(ctx, sx, sy, ts, now, { seed: room.id });
-    else if (room.faunaKind === 'titanoboa') drawTitanoboa(ctx, sx, sy, ts, now, room);
+  function drawFauna(ctx, room, sx, sy, ts, now, extra) {
+    if (room.faunaKind === 'belzebufo') {
+      drawBelzebufo(ctx, sx, sy, ts, now, Object.assign({ seed: room.id }, extra || {}));
+    } else if (room.faunaKind === 'titanoboa') {
+      drawTitanoboa(ctx, sx, sy, ts, now, room);
+    }
     /* Диметродоны больше не статичная сцена зала: это живые мобы,
        которых ведёт fauna.js и рисует ZQ.drawFaunaWorld. */
   }
@@ -1550,6 +1667,20 @@
       }
     }
 
+    /* Туман над болотом: поверх пола, но под сценами и существами. */
+    drawSwampMist(ctx, {
+      world,
+      view,
+      ts,
+      toScreenX,
+      toScreenY,
+      now,
+      startX,
+      startY,
+      endX,
+      endY
+    });
+
     for (const room of world.rooms) {
       if (room.role !== 'trial') continue;
       if (toScreenX(room.ox) > view.w + ts * 6 || toScreenX(room.ox + room.w) < -ts * 6) continue;
@@ -1595,13 +1726,31 @@
       /* Пока бельзебуфо гонится за аксолотлем, статичная жаба в центре
          зала не рисуется: её ведёт боевая система. */
       if (room.faunaKind === 'belzebufo' && activeBattleKind() === 'belzebufo') continue;
+      let faunaExtra = null;
+      if (room.faunaKind === 'belzebufo') {
+        const player = state.player || { x: room.centerX + 0.5, y: room.centerY + 0.5 };
+        const distance = Math.hypot(
+          player.x - (room.centerX + 0.5),
+          player.y - (room.centerY + 0.5)
+        );
+        const range = Number.isFinite(C.faunaDynamics && C.faunaDynamics.roomReveal)
+          ? C.faunaDynamics.roomReveal
+          : 8.5;
+        const reveal = Math.max(0.14, clamp01(1.15 - distance / Math.max(1, range)));
+        faunaExtra = {
+          reveal,
+          /* Вдали жаба сидит по грудь в воде, вблизи выныривает. */
+          submerged: 0.3 + (1 - reveal) * 0.5
+        };
+      }
       drawFauna(
         ctx,
         room,
         toScreenX(room.centerX + 0.5),
         toScreenY(room.centerY + 0.5),
         ts,
-        now
+        now,
+        faunaExtra
       );
     }
 
@@ -1631,7 +1780,21 @@
         /* Болото теперь настоящий тайл мира, а не собственность жабы:
            оно уже нарисовано вместе с полом и не исчезает, когда жаба
            уходит из кадра или начинает бой. */
-        drawBelzebufo(ctx, x, y, ts, now, frog);
+        /* Засадная жаба сливается с болотом, пока сидит неподвижно
+           и игрок далеко. Прыжок сбрасывает still и выдаёт её. */
+        const dynamics = C.faunaDynamics || {};
+        const range = Number.isFinite(dynamics.roamReveal) ? dynamics.roamReveal : 9;
+        const stillRange = Number.isFinite(dynamics.roamStillHide)
+          ? dynamics.roamStillHide
+          : 2.2;
+        const player = state.player || { x: frog.x, y: frog.y };
+        const distance = Math.hypot(player.x - frog.x, player.y - frog.y);
+        const far = clamp01((distance - 2.2) / Math.max(1, range - 2.2));
+        const still = clamp01((Number.isFinite(frog.still) ? frog.still : 0) /
+          Math.max(0.5, stillRange));
+        const reveal = 1 - far * still * 0.86;
+        const submerged = 0.12 + far * still * 0.55;
+        drawBelzebufo(ctx, x, y, ts, now, Object.assign({}, frog, { reveal, submerged }));
       }
     }
 

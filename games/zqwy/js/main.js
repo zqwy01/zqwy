@@ -324,6 +324,7 @@
         if (typeof ZQ.updateBattle === 'function') ZQ.updateBattle(dt);
         if (typeof ZQ.updateChase === 'function') ZQ.updateChase(dt);
         if (typeof ZQ.updateFauna === 'function') ZQ.updateFauna(dt);
+        if (typeof ZQ.updateMirror === 'function') ZQ.updateMirror(dt);
         ZQ.updateCamera();
         if (!rt.trial) ZQ.updatePrompt();
       } catch (error) {

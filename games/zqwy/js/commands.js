@@ -24,6 +24,16 @@
     'where did you go': 'ты куда пропал',
     'come closer': 'подойди',
     'look around': 'осмотреться',
+    mirror: 'отражение',
+    reflection: 'отражение',
+    vishnya: 'отражение',
+    'mirror hall': 'отражение',
+    answer: 'ответить',
+    'answer me': 'ответить я',
+    'answer you': 'ответить ты',
+    'answer nobody': 'ответить никто',
+    forgive: 'прости',
+    'forgive me': 'прости',
     story: 'сюжет',
     logging: 'логгирование',
     history: 'история',
@@ -451,6 +461,11 @@
     перекрёсток: 'crossroad',
     перекресток: 'crossroad',
     crossroad: 'crossroad',
+    зеркало: 'mirror',
+    зеркальный: 'mirror',
+    отражение: 'mirror',
+    вишня: 'mirror',
+    mirror: 'mirror',
     жук: 'beetle',
     beetle: 'beetle',
     зонт: 'umbrella',
@@ -558,12 +573,12 @@
     return [
       t('Чит-телепорт к ближайшей нужной комнате.', 'Cheat teleport to the nearest needed room.'),
       t(
-        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт чанк 2 -1».',
-        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport tablet”, “teleport belzebufo”, “teleport chunk 2 -1”.'
+        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт зеркало», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт чанк 2 -1».',
+        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport mirror”, “teleport tablet”, “teleport belzebufo”, “teleport chunk 2 -1”.'
       ),
       t(
-        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, жук, зонт, титанобоа, бельзебуфо, процедурная. Можно указать часть имени комнаты.',
-        'Targets: tablet, trial, hazard, low, storage, crossroad, beetle, umbrella, titanoboa, belzebufo, procedural. A part of the room name also works.'
+        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, зеркало, жук, зонт, титанобоа, бельзебуфо, процедурная. Можно указать часть имени комнаты.',
+        'Targets: tablet, trial, hazard, low, storage, crossroad, mirror, beetle, umbrella, titanoboa, belzebufo, procedural. A part of the room name also works.'
       )
     ].join('\n');
   }
@@ -757,6 +772,31 @@
       reply = ZQ.stopMovement();
     } else if (cmd === 'осмотреться') {
       reply = ZQ.currentRoomDescription();
+    } else if (cmd === 'посмотреть' || cmd === 'посмотреть зеркало' || cmd === 'осмотреть зеркало') {
+      const target = typeof ZQ.findInteractable === 'function' ? ZQ.findInteractable() : null;
+      if (target && (target.type === 'mirror' || target.type === 'vishnya') &&
+          typeof ZQ.mirrorInteract === 'function') {
+        ZQ.mirrorInteract(target);
+        reply = '';
+      } else {
+        reply = t(
+          'Рядом нет зеркала или Вишни. Подойди к раме ближе.',
+          'No mirror or Vishnya is within reach. Step closer to a frame.'
+        );
+      }
+    } else if (cmd === 'отражение' || cmd === 'зеркало' || cmd === 'вишня') {
+      reply = typeof ZQ.mirrorStatus === 'function'
+        ? ZQ.mirrorStatus()
+        : t('Зеркальный зал ещё не подключён.', 'The mirror hall is not connected yet.');
+      replyInstant = true;
+    } else if (cmd === 'ответить' || cmd.startsWith('ответить ')) {
+      reply = typeof ZQ.mirrorAnswer === 'function'
+        ? ZQ.mirrorAnswer(cmd.replace(/^ответить\s*/, ''))
+        : t('Вишня тебя не слышит.', 'Vishnya cannot hear you.');
+    } else if (cmd === 'прости' || cmd === 'извини' || cmd === 'прощение') {
+      reply = typeof ZQ.mirrorForgive === 'function'
+        ? ZQ.mirrorForgive()
+        : t('Сейчас просить прощения не у кого.', 'There is no one to ask for forgiveness right now.');
     } else if (cmd === 'инвентарь') {
       if (!ZQ.hasUnlock('backpack')) {
         reply = ZQ.denyLocked('backpack');

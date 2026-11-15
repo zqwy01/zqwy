@@ -26,6 +26,7 @@
     else if (rt.termView === 'map') ZQ.closeMap();
     else if (rt.termView === 'settings' || rt.termView === 'termSettings' || rt.termView === 'fontSettings') ZQ.closeSettings();
     else if (rt.termView === 'music') ZQ.closeMusic();
+    else if (rt.termView === 'arcade') ZQ.closeArcade();
     else if (rt.termView === 'story') ZQ.closeStory();
   }
 

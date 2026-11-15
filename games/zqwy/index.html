@@ -9,6 +9,7 @@
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/game.css">
   <link rel="stylesheet" href="css/canvas.css">
+  <link rel="stylesheet" href="arcade/arcade.css">
 </head>
 <body>
   <div id="stage">
@@ -535,6 +536,38 @@
             </div>
           </div>
 
+          <div id="view-arcade" class="term-view hidden" aria-label="Аркадный автомат">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow" id="arcade-eyebrow">АРКАДА</span>
+                <h2 class="settings-title" id="arcade-title">Автомат</h2>
+                <p class="settings-subtitle" id="arcade-subtitle">кассеты zqwy · ритм-каталог</p>
+              </div>
+              <button class="close-btn" id="arcade-close" type="button" aria-label="Закрыть автомат">×</button>
+            </header>
+            <div class="arcade-body">
+              <div class="arcade-picker" id="arcade-picker">
+                <div class="arcade-picker-head">
+                  <span class="arcade-label" id="arcade-insert-label">ВСТАВЬ КАССЕТУ</span>
+                  <span class="arcade-count" id="arcade-count"></span>
+                </div>
+                <div class="arcade-cassettes" id="arcade-cassettes"></div>
+                <p class="arcade-empty hidden" id="arcade-empty"></p>
+              </div>
+              <div class="arcade-screen-wrap hidden" id="arcade-screen-wrap">
+                <div class="arcade-screen-head">
+                  <div class="arcade-now">
+                    <span class="arcade-label" id="arcade-now-label">АРКАДА</span>
+                    <strong class="arcade-now-track" id="arcade-now-track"></strong>
+                  </div>
+                  <button class="arcade-eject" id="arcade-eject" type="button" aria-label="Извлечь кассету" title="Извлечь кассету">⏏</button>
+                </div>
+                <iframe id="arcade-frame" class="arcade-frame" title="Ритм-каталог" allow="autoplay; fullscreen" loading="lazy"></iframe>
+                <p class="arcade-hint" id="arcade-hint">Выбери дорожку — автомат включит её. Играющие клавиши: D F J K или стрелки. Esc в кадре — пауза.</p>
+              </div>
+            </div>
+          </div>
+
           <div id="view-trial" class="term-view hidden" aria-label="Испытание Круга Очарования">
             <div id="trial-console" class="trial-console">
               <div class="trial-head">
@@ -584,6 +617,7 @@
   <script src="js/mirror.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/music.js"></script>
+  <script src="arcade/arcade.js"></script>
   <script src="js/input.js"></script>
   <script src="js/main.js"></script>
 </body>

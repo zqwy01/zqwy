@@ -291,6 +291,7 @@
     const edgeData = new Map();
     const edgesByCell = new Map();
     const itemPickups = [];
+    const arcades = [];
     const usedNames = new Map();
     const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
     let proceduralStoryCount = 0;
@@ -642,6 +643,35 @@
           if (index < 0 || chunk.tiles[index] !== 1) continue;
           setTileInChunk(chunk, px, py, 3);
           placed++;
+        }
+      }
+
+      /* Аркадный автомат: редкая находка процедурных залов. Место
+         выбирается детерминированно от seed и комнаты, поэтому один и
+         тот же мир всегда показывает автомат в одном и том же углу.
+         Автомат не занимает клетку пола: к нему можно подойти вплотную. */
+      if (room.role === 'procedural' && !room.arcade) {
+        const chance = Number.isFinite(W.arcadeChance) ? W.arcadeChance : 0.16;
+        const roll = hashString(`${seed}:arcade:${room.cx}:${room.cy}`) / 4294967296;
+        if (roll < chance) {
+          const rand = mulberry32(hashString(`${seed}:arcadeplace:${room.cx}:${room.cy}`));
+          const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          for (let attempt = 0; attempt < 56; attempt++) {
+            const x = room.x1 + 1 + Math.floor(rand() * Math.max(1, room.w - 2));
+            const y = room.y1 + 1 + Math.floor(rand() * Math.max(1, room.h - 2));
+            if (Math.hypot(x - centerX, y - centerY) < 2.5) continue;
+            const index = localTile(chunk, x, y);
+            if (index < 0 || chunk.tiles[index] !== 1) continue;
+            let approach = false;
+            for (const [dx, dy] of dirs) {
+              const near = localTile(chunk, x + dx, y + dy);
+              if (near >= 0 && chunk.tiles[near] === 1) { approach = true; break; }
+            }
+            if (!approach) continue;
+            room.arcade = { x, y, roomId: room.id };
+            arcades.push(room.arcade);
+            break;
+          }
         }
       }
     }
@@ -1222,6 +1252,7 @@
       stepX,
       stepY,
       rooms,
+      arcades,
       getTile,
       isWalkable,
       isSwamp,

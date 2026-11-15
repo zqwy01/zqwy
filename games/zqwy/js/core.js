@@ -96,6 +96,7 @@
     settingLanguageState: $('setting-language-state'),
 
     musicView: $('view-music'),
+    arcadeView: $('view-arcade'),
     musicClose: $('music-close'),
     musicBack: $('music-back'),
     openMusic: $('open-music'),
@@ -250,6 +251,7 @@
     termSettings: dom.termSettingsView,
     fontSettings: dom.fontSettingsView,
     music: dom.musicView,
+    arcade: dom.arcadeView,
     trial: dom.trialView
   };
 
@@ -396,6 +398,9 @@
       backpacks: [],
       cassettes: Object.keys((C.music && C.music.tracks) || {}),
       activeCassette: 'forest',
+      /* Последняя кассета, дорожка и результат аркадного автомата.
+         Прогресс аркады — только записи и терминальный лог. */
+      arcade: { cassette: null, album: null, track: null, plays: 0, last: null },
       mapMarks: [],
       inventoryPositions: {},
       inventoryLayout: 0,
@@ -552,6 +557,13 @@
       backpacks: state.backpacks,
       cassettes: Array.isArray(state.cassettes) ? state.cassettes : [],
       activeCassette: state.activeCassette || 'forest',
+      arcade: state.arcade ? {
+        cassette: state.arcade.cassette || null,
+        album: state.arcade.album || null,
+        track: state.arcade.track || null,
+        plays: Number.isFinite(state.arcade.plays) ? state.arcade.plays : 0,
+        last: state.arcade.last || null
+      } : undefined,
       mapMarks: state.mapMarks,
       inventoryPositions: state.inventoryPositions || {},
       inventoryLayout: Number.isFinite(state.inventoryLayout) ? state.inventoryLayout : 0,
@@ -978,6 +990,26 @@
       state.cassettes.includes(saved.activeCassette)
       ? saved.activeCassette
       : 'forest';
+    if (saved.arcade && typeof saved.arcade === 'object') {
+      const arcade = saved.arcade;
+      const last = arcade.last && typeof arcade.last === 'object' ? arcade.last : null;
+      state.arcade = {
+        cassette: typeof arcade.cassette === 'string' ? arcade.cassette : null,
+        album: typeof arcade.album === 'string' ? arcade.album : null,
+        track: typeof arcade.track === 'string' ? arcade.track : null,
+        plays: Number.isFinite(arcade.plays) ? Math.max(0, Math.floor(arcade.plays)) : 0,
+        last: last ? {
+          track: typeof last.track === 'string' ? last.track : '',
+          album: typeof last.album === 'string' ? last.album : '',
+          title: typeof last.title === 'string' ? last.title : '',
+          score: Number.isFinite(last.score) ? last.score : 0,
+          acc: Number.isFinite(last.acc) ? last.acc : 0,
+          rank: typeof last.rank === 'string' ? last.rank : '',
+          rankName: typeof last.rankName === 'string' ? last.rankName : '',
+          at: Number.isFinite(last.at) ? last.at : 0
+        } : null
+      };
+    }
     if (saved.inventoryPositions && typeof saved.inventoryPositions === 'object') {
       for (const id of Object.keys(saved.inventoryPositions)) {
         const entry = saved.inventoryPositions[id];
@@ -1400,8 +1432,9 @@
       /* Вкладки терминала — читаемые представления, а не модальные окна:
          инвентарь, карта, сюжет, настройки, музыка и стол не должны отбирать
          управление у Zemic. Схватка и погоня тоже живут в мире, поэтому
-         останавливает игру только испытание или скрытая вкладка. */
-      return rt.termView === 'trial';
+         останавливает игру только испытание, аркадный автомат или
+         скрытая вкладка. */
+      return rt.termView === 'trial' || rt.termView === 'arcade';
     },
     resetKeys() {
       rt.keys = Object.create(null);

@@ -14,6 +14,18 @@
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const lerp = (a, b, t) => a + (b - a) * t;
 
+  /* Встроенный режим: игру открывает аркадный автомат zqwy в iframe.
+     Тогда каталог не показывает собственные меню, а ждёт команды от
+     родительской страницы и возвращает ей результаты. */
+  const EMBED = (() => {
+    try {
+      return new URLSearchParams(location.search).get('embed') || '';
+    } catch (e) {
+      return '';
+    }
+  })();
+  const IS_EMBED = EMBED === 'zqwy' || EMBED === 'cabinet' || EMBED === '1';
+
   const SET_KEY = 'rhythmCatalog.settings.v1';
   const BEST_KEY = 'rhythmCatalog.bests.v1';
   const LAST_KEY = 'rhythmCatalog.last.v1';
@@ -30,7 +42,7 @@
     Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3
   };
   const SCREENS = [
-    'screen-menu', 'screen-select', 'screen-load', 'screen-ready',
+    'screen-menu', 'screen-select', 'screen-embed', 'screen-load', 'screen-ready',
     'screen-pause', 'screen-result', 'screen-error'
   ];
 
@@ -55,6 +67,7 @@
 
   const S = {
     phase: 'boot',
+    embed: IS_EMBED,
     albumIndex: 0,
     trackIndex: 0,
     album: null,
@@ -320,6 +333,100 @@
     if (S.phase === 'error') {
       const el = $('err-text');
       if (el && !el.dataset.raw) el.textContent = t('error.default');
+    }
+    if (IS_EMBED) {
+      const exit = t('embed.exit');
+      for (const id of ['btn-quit', 'btn-catalog', 'btn-err-back']) {
+        const el = $(id);
+        if (el) el.textContent = exit;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------- host bridge
+  function hostPost(type, payload) {
+    if (!IS_EMBED) return;
+    try {
+      window.parent.postMessage(
+        Object.assign({ source: 'rhythm-catalog', type: type }, payload || {}),
+        '*'
+      );
+    } catch (e) {}
+  }
+
+  function embedStandby() {
+    audio.stop();
+    S.leadActive = false;
+    S.leadPausedAt = null;
+    S.startLock = false;
+    resetTint();
+    closeAlbumSheet();
+    setPhase('embed');
+    showPauseButton(false);
+    hideScreens();
+    showScreen('screen-embed');
+    document.body.classList.remove('playing');
+  }
+
+  function embedExit() {
+    audio.stop();
+    hostPost('exit');
+    embedStandby();
+  }
+
+  /* В автомате следующую дорожку выбирает zqwy, а не каталог: иначе
+     «следующий трек» увёл бы игрока на чужую, не купленную кассету. */
+  function setupEmbedUi() {
+    const next = $('btn-next');
+    if (next) next.dataset.i18n = 'embed.next';
+    const hint = document.querySelector('#screen-result .panel-hint');
+    if (hint) hint.dataset.i18n = 'embed.resultHint';
+  }
+
+  function findTrackById(albumId, trackId) {
+    let album = null;
+    if (albumId) {
+      for (const a of albums) if (a.id === albumId) { album = a; break; }
+    }
+    if (album) {
+      for (const tr of album.tracks) if (tr.id === trackId) return { album, track: tr };
+    }
+    for (const a of albums) {
+      for (const tr of a.tracks) if (tr.id === trackId) return { album: a, track: tr };
+    }
+    return null;
+  }
+
+  async function embedStart(albumId, trackId, lang) {
+    if (lang) setLanguage(lang);
+    const found = findTrackById(albumId, trackId);
+    if (!found) {
+      hostPost('error', { code: 'not-found', album: albumId, track: trackId });
+      embedStandby();
+      return;
+    }
+    await ensureAudioUnlocked();
+    selectAlbum(albums.indexOf(found.album), found.album.tracks.indexOf(found.track), true);
+    await startTrack(found.album, found.track);
+  }
+
+  function handleHostMessage(event) {
+    if (!IS_EMBED) return;
+    if (event.source !== window.parent) return;
+    const data = event.data;
+    if (!data || typeof data !== 'object' || data.source !== 'zqwy-arcade') return;
+    if (data.lang) setLanguage(data.lang);
+    if (data.type === 'start') {
+      embedStart(data.album, data.track, data.lang);
+    } else if (data.type === 'pause') {
+      if (S.phase === 'playing') pauseGame();
+    } else if (data.type === 'resume') {
+      if (S.phase === 'paused') resumeGame();
+    } else if (data.type === 'stop') {
+      audio.stop();
+      embedStandby();
+    } else if (data.type === 'ping') {
+      hostPost('ready', { version: 1 });
     }
   }
 
@@ -949,6 +1056,11 @@
       showPauseButton(true);
       document.body.classList.add('playing');
       saveLast();
+      hostPost('track', {
+        album: album.id, track: track.id,
+        albumTitle: album.title, trackTitle: track.title,
+        bpm: track.bpm, difficulty: track.difficulty, duration: track.duration
+      });
       S.startLock = false;
     } catch (err) {
       console.error(err);
@@ -961,6 +1073,10 @@
         errEl.textContent = raw;
       }
       showScreen('screen-error');
+      hostPost('error', {
+        code: 'load-failed', album: album.id, track: track.id,
+        message: String(err && err.message ? err.message : err)
+      });
       S.startLock = false;
     }
   }
@@ -1004,6 +1120,7 @@
     showPauseButton(false);
     updateSettingsUi();
     showScreen('screen-pause');
+    hostPost('state', { phase: 'paused' });
   }
 
   async function resumeGame() {
@@ -1011,6 +1128,7 @@
     hideScreens();
     setPhase('playing');
     showPauseButton(true);
+    hostPost('state', { phase: 'playing' });
     if (S.leadPausedAt !== null) {
       S.leadStart = performance.now() - (S.leadPausedAt + LEAD_IN) * 1000;
       S.leadActive = true;
@@ -1035,6 +1153,7 @@
   }
 
   function quitToCatalog() {
+    if (IS_EMBED) { embedExit(); return; }
     audio.stop();
     S.leadActive = false;
     S.leadPausedAt = null;
@@ -1048,6 +1167,7 @@
   }
 
   function toMenu() {
+    if (IS_EMBED) { embedExit(); return; }
     closeAlbumSheet();
     if (S.searchActive) clearSearch(true);
     audio.stop();
@@ -1269,6 +1389,16 @@
     S.result = makeResult();
     const saved = saveBest(S.result);
     S.result.newBest = saved;
+    hostPost('result', {
+      album: S.album ? S.album.id : '',
+      track: S.track ? S.track.id : '',
+      albumTitle: S.album ? S.album.title : '',
+      trackTitle: S.track ? S.track.title : '',
+      score: S.result.score, acc: S.result.acc, maxCombo: S.result.maxCombo,
+      perfect: S.result.perfect, good: S.result.good, ok: S.result.ok, miss: S.result.miss,
+      total: S.result.total, rank: S.result.rank.key, rankName: S.result.rank.name,
+      newBest: Boolean(saved)
+    });
     S.flash = 0.2;
     showResult(S.result);
     setPhase('end');
@@ -1880,7 +2010,10 @@
     $('btn-restart').addEventListener('click', restartGame);
     $('btn-quit').addEventListener('click', quitToCatalog);
     $('btn-retry').addEventListener('click', restartGame);
-    $('btn-next').addEventListener('click', function () { nextTrack(); });
+    $('btn-next').addEventListener('click', function () {
+      if (IS_EMBED) { embedExit(); return; }
+      nextTrack();
+    });
     $('btn-catalog').addEventListener('click', quitToCatalog);
     $('btn-err-back').addEventListener('click', quitToCatalog);
 
@@ -1935,6 +2068,9 @@
         focusSearch();
       });
     }
+
+    const embedExitBtn = $('btn-embed-exit');
+    if (embedExitBtn) embedExitBtn.addEventListener('click', embedExit);
 
     $('btn-ready').addEventListener('click', async function () {
       hideScreens();
@@ -2044,7 +2180,10 @@
         if (code === 'Escape') { quitToCatalog(); return; }
       } else if (S.phase === 'end') {
         if (code === 'KeyR') { restartGame(); return; }
-        if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') { nextTrack(); return; }
+        if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
+          if (IS_EMBED) embedExit(); else nextTrack();
+          return;
+        }
         if (code === 'Escape') { quitToCatalog(); return; }
       } else if (S.phase === 'error') {
         if (code === 'Escape' || code === 'Enter') { quitToCatalog(); }
@@ -2064,6 +2203,7 @@
   // ------------------------------------------------------------------ init
   function init() {
     loadStore();
+    if (IS_EMBED) setupEmbedUi();
     if (I18N) I18N.setLang(S.settings.lang);
     resize();
     setupMenu();
@@ -2071,10 +2211,16 @@
     updateSettingsUi();
     wireUi();
     refreshLanguageUi();
-    setPhase('menu');
-    showScreen('screen-menu');
-    showPauseButton(false);
-    previewTheme();
+    if (IS_EMBED) {
+      window.addEventListener('message', handleHostMessage);
+      embedStandby();
+      hostPost('ready', { version: 1 });
+    } else {
+      setPhase('menu');
+      showScreen('screen-menu');
+      showPauseButton(false);
+      previewTheme();
+    }
     if (document.fonts && document.fonts.load) {
       document.fonts.load('16px Tiny5').catch(function () {});
     }
@@ -2092,7 +2238,11 @@
       state: S, audio: audio, catalog: CAT, art: Art, themes: Themes,
       startTrack: startTrack, judge: judge, endGame: endGame, pauseGame: pauseGame,
       selectAlbum: selectAlbum, selectTrack: selectTrack, nextTrack: nextTrack,
-      resize: resize, openCatalog: openCatalog
+      resize: resize, openCatalog: openCatalog,
+      embed: {
+        start: embedStart, standby: embedStandby,
+        exit: embedExit, post: hostPost
+      }
     };
   }
 

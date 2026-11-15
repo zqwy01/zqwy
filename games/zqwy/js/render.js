@@ -414,6 +414,85 @@
     ctx.restore();
   }
 
+  /* Аркадный автомат: тёмный корпус, светящийся экран и три кнопки.
+     Стоит на клетке пола и слегка подсвечивается, когда Zemic рядом. */
+  function drawArcadeCabinet(ctx, sx, sy, ts, now, active) {
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.003);
+    const w = ts * 0.86;
+    const h = ts * 1.18;
+    const x = sx - w / 2;
+    const y = sy - h * 0.62;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + h * 0.2, w * 0.72, ts * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const halo = ctx.createRadialGradient(sx, y + h * 0.4, ts * 0.05, sx, y + h * 0.4, ts * 1.9);
+    halo.addColorStop(0, `rgba(115, 214, 255, ${(active ? 0.2 : 0.1) + pulse * 0.08})`);
+    halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(sx, y + h * 0.4, ts * 1.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    const body = ctx.createLinearGradient(x, y, x + w, y + h);
+    body.addColorStop(0, '#242b2f');
+    body.addColorStop(0.55, '#151a1d');
+    body.addColorStop(1, '#0a0d0f');
+    ctx.fillStyle = body;
+    roundedRect(ctx, x, y, w, h, ts * 0.09);
+    ctx.fill();
+    ctx.strokeStyle = active
+      ? 'rgba(229, 161, 104, 0.75)'
+      : 'rgba(196, 204, 193, 0.28)';
+    ctx.lineWidth = Math.max(1, ts * 0.035);
+    ctx.stroke();
+
+    ctx.fillStyle = `rgba(229, 161, 104, ${0.55 + pulse * 0.3})`;
+    roundedRect(ctx, x + w * 0.12, y + h * 0.06, w * 0.76, h * 0.12, ts * 0.03);
+    ctx.fill();
+
+    const sw = w * 0.7;
+    const sh = h * 0.34;
+    const screenX = sx - sw / 2;
+    const screenY = y + h * 0.24;
+    ctx.fillStyle = '#04070c';
+    roundedRect(ctx, screenX, screenY, sw, sh, ts * 0.03);
+    ctx.fill();
+    ctx.fillStyle = `rgba(115, 214, 255, ${0.16 + pulse * 0.14})`;
+    ctx.fillRect(screenX + ts * 0.03, screenY + ts * 0.03, sw - ts * 0.06, sh - ts * 0.06);
+    ctx.fillStyle = 'rgba(6, 10, 14, 0.82)';
+    for (let i = 0; i < 4; i++) {
+      const height = sh * (0.18 + 0.1 * ((i + Math.floor(now * 0.004)) % 3));
+      ctx.fillRect(
+        screenX + sw * (0.16 + i * 0.2),
+        screenY + sh - height - ts * 0.06,
+        sw * 0.08,
+        height
+      );
+    }
+
+    ctx.fillStyle = '#2c2320';
+    roundedRect(ctx, x + w * 0.12, y + h * 0.68, w * 0.76, h * 0.1, ts * 0.025);
+    ctx.fill();
+
+    const lights = ['#e5a168', '#7affc0', '#8fd3ff'];
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = lights[i];
+      ctx.beginPath();
+      ctx.arc(x + w * (0.28 + i * 0.18), y + h * 0.745, ts * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#0a0d0f';
+    ctx.fillRect(x + w * 0.45, y + h * 0.84, w * 0.1, h * 0.035);
+    ctx.fillStyle = '#0a0c0e';
+    ctx.fillRect(x + w * 0.08, y + h * 0.93, w * 0.84, h * 0.05);
+    ctx.restore();
+  }
+
   function drawBackpack(ctx, b, sx, sy, ts, now) {
     const pulse = 0.5 + 0.5 * Math.sin(now * 0.0035 + b.x);
     ctx.save();
@@ -1691,6 +1770,15 @@
     for (const p of world.itemPickups) {
       if (state.flags[`taken_${p.itemId}`]) continue;
       drawPickup(ctx, p, toScreenX(p.x), toScreenY(p.y), ts, now);
+    }
+
+    const player = state.player || { x: 0, y: 0 };
+    for (const arcade of world.arcades || []) {
+      const ax = toScreenX(arcade.x + 0.5);
+      const ay = toScreenY(arcade.y + 0.5);
+      if (ax < -ts * 2 || ax > view.w + ts * 2 || ay < -ts * 2 || ay > view.h + ts * 2) continue;
+      const near = Math.hypot(player.x - (arcade.x + 0.5), player.y - (arcade.y + 0.5)) <= 2.4;
+      drawArcadeCabinet(ctx, ax, ay, ts, now, near);
     }
 
     const tablet = world.tablet;

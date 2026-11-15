@@ -1,0 +1,249 @@
+/* Аркадный автомат: список кассет и встроенный ритм-каталог. */
+
+#view-arcade {
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+#view-arcade .sheet-head {
+  flex: 0 0 auto;
+}
+
+.arcade-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.arcade-picker {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  gap: 6px;
+}
+
+.arcade-picker-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.arcade-label {
+  color: rgba(229, 161, 104, 0.9);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.arcade-count {
+  color: rgba(158, 164, 151, 0.7);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.arcade-cassettes {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  min-height: 0;
+  gap: 6px;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.arcade-cassette {
+  border: 1px solid rgba(196, 204, 193, 0.14);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(36, 44, 42, 0.4), rgba(10, 14, 15, 0.6));
+}
+
+.arcade-cassette[open] {
+  border-color: rgba(229, 161, 104, 0.36);
+}
+
+.arcade-cassette-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 9px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.arcade-cassette-head::-webkit-details-marker {
+  display: none;
+}
+
+.arcade-cassette-head::before {
+  content: '▸';
+  flex: 0 0 auto;
+  margin-right: 2px;
+  color: rgba(229, 161, 104, 0.7);
+  font-size: var(--fs-sm);
+  transition: transform 140ms ease;
+}
+
+.arcade-cassette[open] > .arcade-cassette-head::before {
+  transform: rotate(90deg);
+}
+
+.arcade-cassette-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: #e8dfcc;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-cassette-meta {
+  flex: 0 0 auto;
+  color: rgba(158, 164, 151, 0.72);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.arcade-tracks {
+  display: grid;
+  gap: 4px;
+  padding: 0 6px 7px;
+}
+
+.arcade-track {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid rgba(196, 204, 193, 0.1);
+  border-radius: 2px;
+  background: rgba(7, 10, 11, 0.5);
+  color: #ddd8c9;
+  text-align: left;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.arcade-track:hover,
+.arcade-track:focus-visible {
+  border-color: rgba(229, 161, 104, 0.6);
+  background: rgba(44, 32, 22, 0.55);
+}
+
+.arcade-track.active {
+  border-color: rgba(229, 161, 104, 0.75);
+  background: rgba(68, 43, 25, 0.55);
+}
+
+.arcade-track-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-track-meta {
+  flex: 0 0 auto;
+  color: rgba(158, 164, 151, 0.66);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.arcade-empty {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px dashed rgba(196, 204, 193, 0.18);
+  border-radius: 3px;
+  color: rgba(190, 191, 177, 0.72);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.arcade-screen-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  gap: 6px;
+}
+
+.arcade-screen-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 24px;
+}
+
+.arcade-now {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.arcade-now-track {
+  overflow: hidden;
+  color: #eee5d2;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arcade-eject {
+  flex: 0 0 auto;
+  min-width: 28px;
+  padding: 2px 7px;
+  border: 1px solid rgba(196, 204, 193, 0.2);
+  border-radius: 2px;
+  background: transparent;
+  color: rgba(227, 221, 204, 0.72);
+  font-size: var(--fs-md);
+  line-height: 1.3;
+}
+
+.arcade-eject:hover,
+.arcade-eject:focus-visible {
+  border-color: rgba(229, 161, 104, 0.6);
+  color: #f3e7d4;
+}
+
+.arcade-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid rgba(196, 204, 193, 0.18);
+  border-radius: 3px;
+  background: #05070c;
+}
+
+.arcade-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  color: rgba(158, 164, 151, 0.6);
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+}
+
+@media (max-height: 620px) {
+  .arcade-cassette-head {
+    padding: 4px 7px;
+  }
+
+  .arcade-track {
+    padding: 4px 7px;
+  }
+
+  .arcade-hint {
+    display: none;
+  }
+}

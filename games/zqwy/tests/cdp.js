@@ -5,6 +5,9 @@
 
 const http = require('http');
 
+/* Порт CDP можно переопределить: на машине может быть уже занят 9222. */
+const CDP_PORT = Number(process.env.CDP_PORT || 9222);
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -14,7 +17,7 @@ function request(method, path, body) {
     const payload = body === undefined ? null : JSON.stringify(body);
     const req = http.request({
       host: '127.0.0.1',
-      port: 9222,
+      port: CDP_PORT,
       path,
       method,
       headers: payload

@@ -1,10 +1,10 @@
 {
-  "startedAt": "2026-11-15T00:52:24.872Z",
-  "finishedAt": "2026-11-15T00:52:42.841Z",
-  "baseUrl": "http://127.0.0.1:8011/",
-  "passed": 14,
+  "startedAt": "2026-11-15T02:08:46.069Z",
+  "finishedAt": "2026-11-15T02:09:08.412Z",
+  "baseUrl": "http://127.0.0.1:8011/games/zqwy/",
+  "passed": 17,
   "failed": 16,
-  "total": 30,
+  "total": 33,
   "results": [
     {
       "id": "patch1.camera-centered",
@@ -26,11 +26,11 @@
       "patch": 1,
       "title": "Разделитель игры и терминала двигается",
       "status": "pass",
-      "detail": "доля терминала 0.500 → 0.663; строки: 588.672px 10px 299.328px",
+      "detail": "доля терминала 0.300 → 0.463; строки: 411.453px 10px 476.547px",
       "metrics": {
-        "before": 0.5,
-        "after": 0.6629213483146067,
-        "delta": 0.1629213483146067
+        "before": 0.30000000000000004,
+        "after": 0.46336025280898874,
+        "delta": 0.1633602528089887
       }
     },
     {
@@ -178,7 +178,7 @@
       "patch": 11,
       "title": "Титанобоа реально ползёт за игроком, а не стоит на месте",
       "status": "pass",
-      "detail": "голова (217,11) → (205,15), прошла 12.65 тайла; разных клеток головы 17, максимум от старта 12.65; дистанция 18.44 → минимум 6.00; тело 72 клеток, уникальных 72",
+      "detail": "голова (217,19) → (205,15), прошла 12.65 тайла; разных клеток головы 17, максимум от старта 12.65; дистанция 18.44 → минимум 6.00; тело 72 клеток, уникальных 71",
       "metrics": {
         "room": {
           "id": "r4_0",
@@ -188,7 +188,7 @@
         "started": true,
         "startHead": {
           "x": 217,
-          "y": 11
+          "y": 19
         },
         "endHead": {
           "x": 205,
@@ -200,7 +200,7 @@
         "endDistance": 6,
         "startBodyLength": 70,
         "endBodyLength": 72,
-        "uniqueBody": 72,
+        "uniqueBody": 71,
         "headTiles": 17,
         "maxFromStart": 12.649110640673518,
         "elapsed": 6.9999999999999805,
@@ -209,26 +209,26 @@
           {
             "t": 0,
             "x": 217,
-            "y": 11,
+            "y": 19,
             "d": 18.439
           },
           {
             "t": 1,
             "x": 217,
-            "y": 11,
+            "y": 19,
             "d": 18.439
           },
           {
             "t": 2,
             "x": 217,
-            "y": 11,
+            "y": 19,
             "d": 18.439
           },
           {
             "t": 3,
-            "x": 216,
-            "y": 13,
-            "d": 17.117
+            "x": 214,
+            "y": 18,
+            "d": 15.297
           },
           {
             "t": 4,
@@ -274,7 +274,7 @@
       "patch": 11,
       "title": "Комната титанобоа действительно огромная",
       "status": "pass",
-      "detail": "титанобоа 39×31 (1209); максимум процедурных 37×31; глобальный максимум 39×31",
+      "detail": "титанобоа 39×31 (1209); максимум процедурных 38×29; глобальный максимум 39×31",
       "metrics": {
         "room": {
           "w": 39,
@@ -282,9 +282,9 @@
           "area": 1209
         },
         "maxProcedural": {
-          "w": 37,
-          "h": 31,
-          "area": 1147
+          "w": 38,
+          "h": 29,
+          "area": 1102
         },
         "globalMax": {
           "w": 39,
@@ -374,35 +374,35 @@
       "patch": 12,
       "title": "При 800×600 детали и заметка инвентаря доступны и не срезаны",
       "status": "pass",
-      "detail": "прокрутка 169/169px, overflow-y=hidden; после прокрутки detail 495…533, note 553…592, view до 594",
+      "detail": "прокрутка 147/147px, overflow-y=hidden; после прокрутки detail 495…533, note 553…592, view до 594",
       "metrics": {
         "before": {
           "view": {
-            "top": 305,
+            "top": 283,
             "bottom": 594,
-            "height": 289
+            "height": 311
           },
           "graph": {
-            "top": 446,
-            "bottom": 656,
+            "top": 424,
+            "bottom": 634,
             "height": 210
           },
           "detail": {
-            "top": 664,
-            "bottom": 702,
+            "top": 642,
+            "bottom": 680,
             "height": 38
           },
           "note": {
-            "top": 722,
-            "bottom": 761,
+            "top": 700,
+            "bottom": 739,
             "height": 39
           }
         },
         "after": {
           "view": {
-            "top": 305,
+            "top": 283,
             "bottom": 594,
-            "height": 289
+            "height": 311
           },
           "detail": {
             "top": 495,
@@ -414,9 +414,9 @@
             "bottom": 592,
             "height": 39
           },
-          "scrollTop": 169,
+          "scrollTop": 147,
           "scrollHeight": 458,
-          "clientHeight": 289
+          "clientHeight": 311
         },
         "overflowY": "hidden"
       }
@@ -426,15 +426,15 @@
       "patch": 12,
       "title": "Колесо мыши прокручивает плеер",
       "status": "pass",
-      "detail": "scrollHeight=887, clientHeight=289, scrollTop 0 → 240",
+      "detail": "scrollHeight=887, clientHeight=311, scrollTop 0 → 240",
       "metrics": {
         "info": {
           "visible": true,
           "scrollTop": 0,
           "scrollHeight": 887,
-          "clientHeight": 289,
+          "clientHeight": 311,
           "x": 400,
-          "y": 449.5
+          "y": 438.7265625
         },
         "after": {
           "scrollTop": 240
@@ -502,15 +502,15 @@
       "patch": 12,
       "title": "Узлы инвентаря не накладываются друг на друга и целиком видны",
       "status": "fail",
-      "detail": "1600×900: узлов 51, наложений 4, вне кадра 32, рёбер 25/53; 800×600: узлов 51, наложений 47, вне кадра 34, рёбер 25/53",
+      "detail": "1600×900: узлов 51, наложений 0, вне кадра 28, рёбер 25/53; 800×600: узлов 51, наложений 47, вне кадра 34, рёбер 25/53",
       "metrics": {
         "results": [
           {
             "width": 1600,
             "height": 900,
             "nodes": 51,
-            "overlaps": 4,
-            "outside": 32,
+            "overlaps": 0,
+            "outside": 28,
             "edges": 53,
             "edgesInside": 25
           },
@@ -542,8 +542,8 @@
       "detail": "прямо 1.775 тайла (1.775, 0.000), по диагонали 1.775 тайла (1.255, 1.255), отношение 1.000",
       "metrics": {
         "spot": {
-          "x": 108.5,
-          "y": 122.5
+          "x": 100.5,
+          "y": 121.5
         },
         "straight": {
           "dx": 1.775000000000091,
@@ -609,6 +609,73 @@
       "status": "fail",
       "detail": "Исключение: TypeError: ZQ.itemLocation is not a function\n    at <anonymous>:12:10\n    at Array.filter (<anonymous>)\n    at countAt (<anonymous>:11:47)\n    at <anonymous>:13:27\n    at <anonymous>:60:5",
       "metrics": null
+    },
+    {
+      "id": "patch13.arcade-spawn-prompt",
+      "patch": 13,
+      "title": "Автомат появляется в зале и даёт подсказку",
+      "status": "pass",
+      "detail": "автоматов в мире: 15; комната r0_0; подсказка «сыграть на автомате»; кнопка действия=true; описание=true; пол под игроком=true",
+      "metrics": {
+        "count": 15,
+        "roomId": "r0_0",
+        "prompt": "сыграть на автомате",
+        "actionVisible": true,
+        "description": "Под ногами хрустит каменная крошка. Звук возвращается с опозданием. (выходов: 2; здесь стоит аркадный автомат).",
+        "hasDescription": true,
+        "canStand": true
+      }
+    },
+    {
+      "id": "patch13.arcade-cassettes",
+      "patch": 13,
+      "title": "Аркада показывает кассеты игрока и дорожки ритм-каталога",
+      "status": "pass",
+      "detail": "вкладка=arcade, видима=true, пауза=true; кассет=28, дорожек=257; счётчик «28 кассет · 257 дорожек»; первая «Кассета · 008008008» → «008008008»",
+      "metrics": {
+        "termView": "arcade",
+        "visible": true,
+        "paused": true,
+        "groups": 28,
+        "tracks": 257,
+        "countLabel": "28 кассет · 257 дорожек",
+        "firstCassette": "Кассета · 008008008",
+        "firstTrack": "008008008",
+        "emptyHidden": true
+      }
+    },
+    {
+      "id": "patch13.arcade-play-result-exit",
+      "patch": 13,
+      "title": "Дорожка запускается в iframe, результат пишется в лог, автомат закрывается",
+      "status": "pass",
+      "detail": "дорожка «008008008» (008008008-1-zqwy-008008008-32bit, playing) в кадре ../rhythm_catalog/index.html?embed=zqwy; результат: очков=0, ранг=ДЕБЮТ, лог «Аркада · «008008008»: 0 очков, 0.0%, ранг «ДЕБЮТ».»; после выхода вкладка=main, пауза=false",
+      "metrics": {
+        "picked": {
+          "title": "008008008",
+          "screenVisible": true,
+          "src": "../rhythm_catalog/index.html?embed=zqwy"
+        },
+        "started": {
+          "album": "008008008",
+          "track": "008008008-1-zqwy-008008008-32bit",
+          "title": "008008008",
+          "phase": "playing"
+        },
+        "result": {
+          "plays": 1,
+          "lastTrack": "008008008-1-zqwy-008008008-32bit",
+          "lastScore": 0,
+          "lastRank": "ДЕБЮТ",
+          "logText": "Аркада · «008008008»: 0 очков, 0.0%, ранг «ДЕБЮТ».",
+          "termView": "arcade"
+        },
+        "closed": {
+          "termView": "main",
+          "paused": false,
+          "viewHidden": true
+        }
+      }
     }
   ]
 }

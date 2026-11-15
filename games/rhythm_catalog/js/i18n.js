@@ -7,6 +7,12 @@
   const DICT = {
     ru: {
       'meta.title': 'РИТМ-КАТАЛОГ — ритм-игра по всей музыке zqwy',
+      'embed.eyebrow': 'АРКАДА · ZQWY',
+      'embed.title': 'КАССЕТА ВСТАВЛЕНА',
+      'embed.waiting': 'ЖДЁМ ВЫБОРА ТРЕКА В ТЕРМИНАЛЕ',
+      'embed.exit': 'ВЫЙТИ',
+      'embed.next': 'ДРУГАЯ ДОРОЖКА',
+      'embed.resultHint': 'R — ЕЩЁ РАЗ · ENTER — ДРУГАЯ ДОРОЖКА · ESC — ВЫЙТИ',
       'common.on': 'ВКЛ',
       'common.off': 'ВЫКЛ',
       'common.ms': 'МС',
@@ -151,6 +157,12 @@
 
     en: {
       'meta.title': 'RHYTHM CATALOG — a rhythm game for all of zqwy\'s music',
+      'embed.eyebrow': 'ARCADE · ZQWY',
+      'embed.title': 'CASSETTE INSERTED',
+      'embed.waiting': 'WAITING FOR A TRACK FROM THE TERMINAL',
+      'embed.exit': 'EXIT',
+      'embed.next': 'ANOTHER TRACK',
+      'embed.resultHint': 'R — RETRY · ENTER — ANOTHER TRACK · ESC — EXIT',
       'common.on': 'ON',
       'common.off': 'OFF',
       'common.ms': 'MS',

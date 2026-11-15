@@ -81,6 +81,7 @@
       trial: [19, 15],
       storage: [15, 13],
       crossroad: [13, 11],
+      mirror: [17, 13],
       beetle: [19, 15],
       umbrella: [21, 17]
     };
@@ -165,7 +166,8 @@
        соседних чанков прорезают именно её. */
     const STORY_ROLES = {
       tablet: true, hazard: true, low: true, trial: true,
-      storage: true, crossroad: true, beetle: true, umbrella: true
+      storage: true, crossroad: true, mirror: true,
+      beetle: true, umbrella: true
     };
     const SHAPE_KINDS = ['rect', 'chamfer', 'ellipse', 'hourglass', 'cross', 'lshape', 'cave'];
 

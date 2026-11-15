@@ -1892,6 +1892,20 @@
       now
     });
 
+    /* Зеркальный зал: рамы, Вишня, Косточка и красные блики осколка.
+       Рисуются поверх пола и фауны, но под аксолотлем. */
+    if (typeof window.ZQ !== 'undefined' && typeof window.ZQ.drawMirrorWorld === 'function') {
+      window.ZQ.drawMirrorWorld(ctx, {
+        state,
+        world,
+        view,
+        ts,
+        toScreenX,
+        toScreenY,
+        now
+      });
+    }
+
     drawPlayer(
       ctx,
       state,

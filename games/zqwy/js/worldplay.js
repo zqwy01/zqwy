@@ -1283,6 +1283,13 @@
       }
     }
 
+    /* Вишня и три рамы Зеркального зала живут в собственном модуле:
+       он сам решает, что находится в пределах шага. */
+    if (typeof ZQ.mirrorTarget === 'function') {
+      const mirror = ZQ.mirrorTarget(px, py);
+      if (mirror) consider(mirror, mirror.distance);
+    }
+
     return best;
   }
 
@@ -1299,6 +1306,8 @@
     if (target.type === 'tablet') return 'коснуться Скрижали';
     if (target.type === 'card') return 'взять карту';
     if (target.type === 'trial') return 'войти в круг';
+    if (target.type === 'vishnya') return 'заговорить с Вишней';
+    if (target.type === 'mirror') return `посмотреть в ${target.mirror.label}`;
     return '';
   }
 
@@ -1353,6 +1362,8 @@
       takeCard();
     } else if (target.type === 'trial') {
       ZQ.startTrial();
+    } else if (target.type === 'vishnya' || target.type === 'mirror') {
+      if (typeof ZQ.mirrorInteract === 'function') ZQ.mirrorInteract(target);
     }
   }
 
@@ -1382,6 +1393,10 @@
       text = rt.state.flags.umbrellaDone
         ? 'Зал притих. На камне лежит сложенный зонт, и воздух больше не свистит от снарядов.'
         : 'Зал кажется пустым. Под потолком медленно раскрывается огромный зонт, и спицы уже дрожат перед залпом.';
+    } else if (room.role === 'mirror') {
+      text = typeof ZQ.mirrorRoomDescription === 'function'
+        ? ZQ.mirrorRoomDescription()
+        : 'Три высоких зеркала стоят у стены. В каждом — ты, но ни в одном ты не один.';
     } else if (room.faunaKind && C.fauna[room.faunaKind]) {
       text = C.fauna[room.faunaKind].lines.join(' ');
     } else {

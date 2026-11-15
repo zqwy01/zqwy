@@ -334,7 +334,7 @@
       return 'Все три зеркала осмотрены. Вишня поднимает голову: «Ну? Кто здесь лишняя?»';
     }
     if (current === PHASE.trust) {
-      return 'Вишня улыбается из средней рамы. У твоих ног сидит Косточка и тихо стучит хвостом.';
+      return 'Вишня сидит между рамами и улыбается. У твоих ног сидит Косточка и тихо стучит хвостом.';
     }
     if (current === PHASE.hostile) {
       return 'Все три зеркала повёрнуты к тебе. В каждом — её лицо и твой силуэт за спиной.';
@@ -402,12 +402,11 @@
     const current = phase();
     if (current === PHASE.unmet) {
       setPhase(PHASE.met);
-      ZQ.appendLog('Вишня поднимает глаза. В отражении телефона мелькает твоё лицо.', 'story', false, 'ВИШНЯ');
+      playStory('mirror');
       ZQ.appendLog(
-        '«Три зеркала. Одно лжёт. Осмотри все — и я скажу, кто здесь лишняя».',
-        'reply',
-        true,
-        'ВИШНЯ'
+        'Осмотри все три рамы: подойди к каждой и нажми E или скажи «посмотреть».',
+        'sys',
+        true
       );
       ZQ.logEvent('actions', 'заговорил с Вишней', 'зеркало');
       ZQ.saveGame();
@@ -485,24 +484,6 @@
       const x = clamp(candidate.x, room.x1 + 1.1, room.x2 - 0.6);
       const y = clamp(candidate.y, room.y1 + 1.1, room.y2 - 0.6);
       if (ZQ.canStandAt(x, y)) return { x, y };
-    }
-    return home(room);
-  }
-
-  function followTarget(room) {
-    const player = rt.state.player;
-    const fx = Number.isFinite(player.facingX) ? player.facingX : 0;
-    const fy = Number.isFinite(player.facingY) ? player.facingY : -1;
-    const side = 0.9;
-    const back = 1.15;
-    const candidates = [
-      { x: player.x - fx * back - fy * side, y: player.y - fy * back + fx * side },
-      { x: player.x - fx * back + fy * side, y: player.y - fy * back - fx * side },
-      { x: player.x - fx * back, y: player.y - fy * back },
-      home(room)
-    ];
-    for (const candidate of candidates) {
-      if (ZQ.canStandAt(candidate.x, candidate.y)) return candidate;
     }
     return home(room);
   }
@@ -627,7 +608,9 @@
         return;
       }
     } else if (current === PHASE.trust) {
-      moveToward(npc, followTarget(room), 2.5, dt);
+      /* После доверия Вишня остаётся у своих рам: за игроком идёт
+         Косточка, а не второе отражение. */
+      moveToward(npc, home(room), 1.1, dt);
     } else if (current === PHASE.met || current === PHASE.ready) {
       moveToward(npc, reflectionTarget(room), 1.7, dt);
     } else if (current === PHASE.regret) {

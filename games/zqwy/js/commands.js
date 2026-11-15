@@ -24,6 +24,8 @@
     'where did you go': 'ты куда пропал',
     'come closer': 'подойди',
     'look around': 'осмотреться',
+    'look closer': 'посмотреть',
+    осмотреть: 'посмотреть',
     mirror: 'отражение',
     reflection: 'отражение',
     vishnya: 'отражение',

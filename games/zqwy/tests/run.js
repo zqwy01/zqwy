@@ -2,8 +2,9 @@
 
 /* Проверка патчей 1–12 на живой игре.
    Запуск: node tests/run.js
-   Нужен Chrome с --remote-debugging-port=9222. Статическая раздача
-   поднимается автоматически на 127.0.0.1:8011. */
+   Нужен Chrome с --remote-debugging-port=9222 (или CDP_PORT).
+   Статическая раздача поднимается автоматически на 127.0.0.1:8011
+   из корня files/, чтобы работали и rhythm_catalog, и src/tracks. */
 
 const fs = require('fs');
 const path = require('path');
@@ -11,8 +12,12 @@ const { spawn } = require('child_process');
 const { Page, sleep } = require('./cdp');
 
 const ROOT = path.resolve(__dirname, '..');
+/* Сервер поднимается над корнем files/, как при обычной публикации:
+   так zqwy видит ../rhythm_catalog/, а ритм-каталог — общий архив
+   ../../src/tracks/ со звуком. */
+const FILES_ROOT = path.resolve(ROOT, '..', '..');
 const PORT = Number(process.env.TEST_PORT || 8011);
-const BASE_URL = process.env.BASE_URL || `http://127.0.0.1:${PORT}/`;
+const BASE_URL = process.env.BASE_URL || `http://127.0.0.1:${PORT}/games/zqwy/`;
 const STATUS_PATH = path.join(ROOT, 'PATCH_STATUS.md');
 const JSON_PATH = path.join(ROOT, 'tests', 'last-run.json');
 
@@ -37,7 +42,7 @@ async function waitForHttp(url, timeout) {
 async function startServer() {
   if (await waitForHttp(BASE_URL, 800)) return null;
   const child = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1'], {
-    cwd: ROOT,
+    cwd: FILES_ROOT,
     stdio: 'ignore'
   });
   const ok = await waitForHttp(BASE_URL, 8000);
@@ -50,6 +55,12 @@ async function startServer() {
 
 async function reset(page) {
   await page.eval(`(() => {
+    /* Язык хранится в localStorage профиля Chrome, поэтому прогон
+       принудительно возвращается к русскому: иначе проверки строк
+       зависят от того, что осталось после ручной проверки. */
+    if (window.ZQI18N && typeof window.ZQI18N.apply === 'function') {
+      window.ZQI18N.apply('ru');
+    }
     ZQ.startNewGame();
     ZQ.setTerminalView('main');
     return true;
@@ -1130,6 +1141,158 @@ test('patch9.inventory-two-locations', 9, 'Инвентарь и рюкзак �
     out);
 });
 
+/* ---------------------------- Аркада ------------------------------ */
+
+test('patch13.arcade-spawn-prompt', 13, 'Автомат появляется в зале и даёт подсказку', async (page) => {
+  await page.setViewport(1600, 900);
+  await reset(page);
+  const out = await page.eval(`(() => {
+    ZQ.C.world.arcadeChance = 1;
+    ZQ.rt.world = World.generate(ZQ.rt.state.seed);
+    const world = ZQ.rt.world;
+    const arcade = world.arcades.find((item) => {
+      const room = world.roomById(item.roomId);
+      return room && !room.faunaKind;
+    }) || world.arcades[0];
+    if (!arcade) return { error: 'no arcade spawned' };
+    const player = ZQ.rt.state.player;
+    player.x = arcade.x + 0.5;
+    player.y = arcade.y + 0.5;
+    player.moving = false;
+    ZQ.rt.state.currentRoomId = arcade.roomId;
+    ZQ.updatePrompt();
+    const description = ZQ.currentRoomDescription();
+    ZQ.C.world.arcadeChance = 0.16;
+    return {
+      count: world.arcades.length,
+      roomId: arcade.roomId,
+      prompt: ZQ.rt.promptLabel,
+      actionVisible: !ZQ.dom.btnAction.classList.contains('hidden'),
+      description,
+      hasDescription: description.includes('аркадный автомат'),
+      canStand: ZQ.canStandAt(player.x, player.y)
+    };
+  })()`);
+  if (out.error) return check(false, out.error, out);
+  const ok = out.count > 0 &&
+    out.prompt === 'сыграть на автомате' &&
+    out.actionVisible &&
+    out.hasDescription &&
+    out.canStand;
+  return check(ok,
+    `автоматов в мире: ${out.count}; комната ${out.roomId}; подсказка «${out.prompt}»; ` +
+    `кнопка действия=${out.actionVisible}; описание=${out.hasDescription}; пол под игроком=${out.canStand}`,
+    out);
+});
+
+test('patch13.arcade-cassettes', 13, 'Аркада показывает кассеты игрока и дорожки ритм-каталога', async (page) => {
+  await page.setViewport(1600, 900);
+  await reset(page);
+  await page.eval(`ZQ.handleCommand('автомат', 'terminal')`);
+  await page.waitFor(`document.querySelectorAll('#arcade-cassettes .arcade-track').length > 0`, 10000);
+  const out = await page.eval(`(() => {
+    const view = document.querySelector('#view-arcade');
+    const groups = [...document.querySelectorAll('#arcade-cassettes .arcade-cassette')];
+    const tracks = [...document.querySelectorAll('#arcade-cassettes .arcade-track')];
+    return {
+      termView: ZQ.rt.termView,
+      visible: !view.classList.contains('hidden'),
+      paused: ZQ.isPaused(),
+      groups: groups.length,
+      tracks: tracks.length,
+      countLabel: document.querySelector('#arcade-count').textContent,
+      firstCassette: groups[0] ? groups[0].querySelector('.arcade-cassette-title').textContent : '',
+      firstTrack: tracks[0] ? tracks[0].querySelector('.arcade-track-title').textContent : '',
+      emptyHidden: document.querySelector('#arcade-empty').classList.contains('hidden')
+    };
+  })()`);
+  const ok = out.termView === 'arcade' &&
+    out.visible &&
+    out.paused &&
+    out.groups > 0 &&
+    out.tracks > 0 &&
+    out.emptyHidden &&
+    /кассет/.test(out.countLabel);
+  return check(ok,
+    `вкладка=${out.termView}, видима=${out.visible}, пауза=${out.paused}; ` +
+    `кассет=${out.groups}, дорожек=${out.tracks}; счётчик «${out.countLabel}»; ` +
+    `первая «${out.firstCassette}» → «${out.firstTrack}»`,
+    out);
+});
+
+test('patch13.arcade-play-result-exit', 13, 'Дорожка запускается в iframe, результат пишется в лог, автомат закрывается', async (page) => {
+  await page.setViewport(1600, 900);
+  await reset(page);
+  await page.eval(`ZQ.handleCommand('автомат', 'terminal')`);
+  await page.waitFor(`document.querySelectorAll('#arcade-cassettes .arcade-track').length > 0`, 10000);
+  const picked = await page.eval(`(() => {
+    const button = document.querySelector('#arcade-cassettes .arcade-track');
+    const title = button.querySelector('.arcade-track-title').textContent;
+    button.click();
+    return {
+      title,
+      screenVisible: !document.querySelector('#arcade-screen-wrap').classList.contains('hidden'),
+      src: document.querySelector('#arcade-frame').getAttribute('src') || ''
+    };
+  })()`);
+  await page.waitFor(`(() => {
+    const frame = document.getElementById('arcade-frame');
+    const debug = frame && frame.contentWindow && frame.contentWindow.RhythmDebug;
+    return Boolean(debug && debug.state.track && debug.state.phase !== 'boot' && debug.state.phase !== 'embed');
+  })()`, 20000);
+  const started = await page.eval(`(() => {
+    const frame = document.getElementById('arcade-frame');
+    const state = frame.contentWindow.RhythmDebug.state;
+    return {
+      album: state.album ? state.album.id : '',
+      track: state.track ? state.track.id : '',
+      title: state.track ? state.track.title : '',
+      phase: state.phase
+    };
+  })()`);
+  await page.eval(`(() => {
+    const frame = document.getElementById('arcade-frame');
+    const debug = frame.contentWindow.RhythmDebug;
+    if (debug.state.phase !== 'end') debug.endGame();
+    return debug.state.phase;
+  })()`);
+  await page.waitFor(`ZQ.rt.state.arcade && ZQ.rt.state.arcade.plays === 1`, 8000);
+  const result = await page.eval(`(() => {
+    const state = ZQ.rt.state.arcade;
+    const lines = [...document.querySelectorAll('#log .log-line')];
+    const last = lines[lines.length - 1];
+    return {
+      plays: state.plays,
+      lastTrack: state.last ? state.last.track : '',
+      lastScore: state.last ? state.last.score : null,
+      lastRank: state.last ? state.last.rankName : '',
+      logText: last ? last.dataset.rawText : '',
+      termView: ZQ.rt.termView
+    };
+  })()`);
+  await page.eval(`ZQ.handleCommand('аркада', 'terminal')`);
+  await sleep(200);
+  const closed = await page.eval(`({
+    termView: ZQ.rt.termView,
+    paused: ZQ.isPaused(),
+    viewHidden: document.querySelector('#view-arcade').classList.contains('hidden')
+  })`);
+  const ok = picked.screenVisible &&
+    picked.src.includes('embed=zqwy') &&
+    started.track === result.lastTrack &&
+    result.plays === 1 &&
+    /Аркада/.test(result.logText) &&
+    result.termView === 'arcade' &&
+    closed.termView === 'main' &&
+    !closed.paused &&
+    closed.viewHidden;
+  return check(ok,
+    `дорожка «${picked.title}» (${started.track}, ${started.phase}) в кадре ${picked.src}; ` +
+    `результат: очков=${result.lastScore}, ранг=${result.lastRank}, лог «${result.logText}»; ` +
+    `после выхода вкладка=${closed.termView}, пауза=${closed.paused}`,
+    { picked, started, result, closed });
+});
+
 /* --------------------------- Запуск ------------------------------- */
 
 function escapeCell(value) {
@@ -1192,7 +1355,7 @@ function writeStatus(results, startedAt, finishedAt) {
   lines.push('node tests/run.js');
   lines.push('```');
   lines.push('');
-  lines.push('Нужен Chrome с `--remote-debugging-port=9222`. Статическая раздача поднимается на `127.0.0.1:8011` автоматически.');
+  lines.push('Нужен Chrome с `--remote-debugging-port=9222` (порт можно задать через `CDP_PORT`). Статическая раздача поднимается на `127.0.0.1:8011` из корня `files/` автоматически.');
   lines.push('');
   fs.writeFileSync(STATUS_PATH, lines.join('\n'), 'utf8');
 }
@@ -1205,7 +1368,13 @@ async function main() {
   try {
     log(`Открываю ${BASE_URL}`);
     page = await Page.open(BASE_URL, { width: 1600, height: 900 });
-    for (const item of TESTS) {
+    /* TEST_FILTER позволяет прогнать только нужные проверки, например
+       TEST_FILTER=arcade node tests/run.js. */
+    const filter = String(process.env.TEST_FILTER || '').trim();
+    const selected = filter
+      ? TESTS.filter((item) => item.id.includes(filter) || item.title.includes(filter))
+      : TESTS;
+    for (const item of selected) {
       let result;
       try {
         const value = await item.run(page);

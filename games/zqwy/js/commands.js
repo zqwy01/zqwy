@@ -51,6 +51,10 @@
     language: 'язык',
     music: 'музыка',
     player: 'плеер',
+    arcade: 'аркада',
+    cabinet: 'аркада',
+    arkade: 'аркада',
+    автомат: 'аркада',
     clear: 'очисти',
     'new game': 'новая игра',
     backpack: 'рюкзак',
@@ -177,10 +181,22 @@
     return cmd;
   }
 
+  /* Названия групп в справке локализованы, а id остаются русскими.
+     Псевдонимы позволяют открыть группу на любом языке. */
+  const GROUP_ALIASES = {
+    'музыка': 'плеер',
+    music: 'плеер',
+    musik: 'плеер',
+    автомат: 'аркада',
+    arcade: 'аркада',
+    arkade: 'аркада',
+    cabinet: 'аркада'
+  };
+
   function commandGroup(name) {
     const needle = String(name || '').trim().toLowerCase();
     if (!needle) return null;
-    const alias = ['музыка', 'music', 'musik'].includes(needle) ? 'плеер' : needle;
+    const alias = GROUP_ALIASES[needle] || needle;
     return C.terminal.helpGroups.find((group) =>
       String(group.id).toLowerCase() === alias ||
       String(group.title).toLowerCase() === alias
@@ -374,7 +390,8 @@
       `• сюжетная комната (первая): ${percent(world.storyFirstChance === undefined ? 0.25 : world.storyFirstChance)}`,
       `• сюжетная комната (следующая): ${percent(world.storyNextChance === undefined ? 0.12 : world.storyNextChance)}`,
       `• доля бельзебуфо среди фауны: ${percent(world.belzebufoShare === undefined ? 0.62 : world.belzebufoShare)}`,
-      `• встреча с бельзебуфо в комнате фауны: ${percent(fauna.belzebufo && fauna.belzebufo.chance !== undefined ? fauna.belzebufo.chance : 0.62)}`
+      `• встреча с бельзебуфо в комнате фауны: ${percent(fauna.belzebufo && fauna.belzebufo.chance !== undefined ? fauna.belzebufo.chance : 0.62)}`,
+      `• аркадный автомат в процедурном зале: ${percent(world.arcadeChance === undefined ? 0.16 : world.arcadeChance)}`
     ];
     lines.push('Титанобоа: ровно одна комната в мире, шансом не управляется.');
     lines.push('Использование: «шанс фауны 0.4», «шанс сюжет 0.25», «шанс бельзебуфо 0.5».');
@@ -468,6 +485,12 @@
     отражение: 'mirror',
     вишня: 'mirror',
     mirror: 'mirror',
+    автомат: 'arcade',
+    автоматы: 'arcade',
+    аркада: 'arcade',
+    аркадный: 'arcade',
+    arcade: 'arcade',
+    cabinet: 'arcade',
     жук: 'beetle',
     beetle: 'beetle',
     зонт: 'umbrella',
@@ -492,6 +515,8 @@
     const target = normalizeTarget(needle);
     if (!target) return false;
     const role = TELEPORT_ROLES[target] || target;
+    /* Аркада — не роль зала, а предмет внутри процедурной комнаты. */
+    if (role === 'arcade') return Boolean(room.arcade);
     if (room.role === role || room.faunaKind === role) return true;
     if (String(room.id).toLowerCase() === target) return true;
     const name = normalizeTarget(room.name);
@@ -545,9 +570,23 @@
     return null;
   }
 
+  /* Для аркады телепорт ставит Zemic прямо к корпусу, а не в центр
+     зала: иначе чит-переход не показывает подсказку «сыграть на
+     автомате» и приходится искать автомат по комнате. */
+  function spotNearArcade(room) {
+    const arcade = room && room.arcade;
+    if (!arcade) return null;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = arcade.x + dx + 0.5;
+      const y = arcade.y + dy + 0.5;
+      if (ZQ.canStandAt(x, y)) return { x, y };
+    }
+    return null;
+  }
+
   function teleportToRoom(room) {
     if (!room) return null;
-    const spot = safeSpotInRoom(room);
+    const spot = spotNearArcade(room) || safeSpotInRoom(room);
     if (!spot) return null;
     const player = rt.state.player;
     player.x = spot.x;
@@ -575,12 +614,12 @@
     return [
       t('Чит-телепорт к ближайшей нужной комнате.', 'Cheat teleport to the nearest needed room.'),
       t(
-        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт зеркало», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт чанк 2 -1».',
-        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport mirror”, “teleport tablet”, “teleport belzebufo”, “teleport chunk 2 -1”.'
+        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт зеркало», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт автомат», «телепорт чанк 2 -1».',
+        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport mirror”, “teleport tablet”, “teleport belzebufo”, “teleport arcade”, “teleport chunk 2 -1”.'
       ),
       t(
-        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, зеркало, жук, зонт, титанобоа, бельзебуфо, процедурная. Можно указать часть имени комнаты.',
-        'Targets: tablet, trial, hazard, low, storage, crossroad, mirror, beetle, umbrella, titanoboa, belzebufo, procedural. A part of the room name also works.'
+        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, зеркало, жук, зонт, титанобоа, бельзебуфо, автомат, процедурная. Можно указать часть имени комнаты.',
+        'Targets: tablet, trial, hazard, low, storage, crossroad, mirror, beetle, umbrella, titanoboa, belzebufo, arcade, procedural. A part of the room name also works.'
       )
     ].join('\n');
   }
@@ -934,6 +973,16 @@
       } else {
         ZQ.openMusic();
         reply = '';
+      }
+    } else if (cmd === 'аркада') {
+      if (rt.termView === 'arcade' && source === 'terminal') {
+        ZQ.closeArcade();
+        reply = t('Аркада закрыта.', 'The arcade is closed.', 'Die Arkade ist geschlossen.');
+      } else {
+        const opened = typeof ZQ.openArcade === 'function' ? ZQ.openArcade() : false;
+        reply = opened
+          ? ''
+          : t('Сейчас аркада недоступна.', 'The arcade is unavailable right now.', 'Die Arkade ist gerade nicht verfügbar.');
       }
     } else if (cmd === 'сохранить') {
       const ok = ZQ.saveWorld(false);

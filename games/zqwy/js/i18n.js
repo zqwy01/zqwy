@@ -600,6 +600,15 @@
           { command: 'player', description: 'opens the player and cassette library: play/pause, stop, seek, volume, waveform and 0.5×–2× speed', bindable: true },
           { command: 'music', description: 'synonym for the “player” command', bindable: true }
         ]
+      },
+      {
+        id: 'аркада',
+        title: 'arcade',
+        description: 'cabinet, cassettes and the rhythm catalog',
+        commands: [
+          { command: 'arcade', description: 'opens the arcade cabinet: pick one of your cassettes and a track from the rhythm catalog', bindable: true },
+          { command: 'cabinet', description: 'synonym for “arcade”; E next to the cabinet does the same', bindable: true }
+        ]
       }
     );
   })();
@@ -1068,6 +1077,15 @@
           ]
         },
         {
+          id: 'аркада',
+          title: 'arkade',
+          description: 'Automat, Kassetten und der Rhythmus-Katalog',
+          commands: [
+            { command: 'arcade', description: 'öffnet den Arkadenautomaten: eigene Kassette und eine Spur aus dem Rhythmus-Katalog wählen', bindable: true },
+            { command: 'cabinet', description: 'Synonym für „arcade“; E am Automaten tut dasselbe', bindable: true }
+          ]
+        },
+        {
           id: 'читы',
           title: 'cheats',
           description: 'Debuggen der Generierung',
@@ -1137,6 +1155,8 @@
   const PHRASES = {
     'АРЕНА': 'ARENA',
     'Сейчас не до команд.': 'Not now for commands.',
+    'сыграть на автомате': 'play the arcade cabinet',
+    'здесь стоит аркадный автомат': 'an arcade cabinet stands here',
     'Рюкзак пуст.': 'The backpack is empty.',
     'Пустой рюкзак возвращён': 'The empty backpack has been recovered.',
     'Готово.': 'Done.',
@@ -1300,6 +1320,8 @@
   const DE_PHRASES = {
     'АРЕНА': 'ARENA',
     'Сейчас не до команд.': 'Jetzt ist keine Zeit für Befehle.',
+    'сыграть на автомате': 'an der Arkade spielen',
+    'здесь стоит аркадный автомат': 'hier steht eine Arkade',
     'Готово.': 'Erledigt.',
     'Движение остановлено.': 'Bewegung angehalten.',
     'Рюкзак пуст.': 'Der Rucksack ist leer.',
@@ -1365,7 +1387,8 @@
       const known = parts.every((part) =>
         /^выходов: \d+$/.test(part) ||
         part === 'рядом что-то лежит' ||
-        part === 'здесь оставлен рюкзак'
+        part === 'здесь оставлен рюкзак' ||
+        part === 'здесь стоит аркадный автомат'
       );
       if (!known) return `${tr(m[1])} (${m[2]}).`;
       const details = parts.map((part) => {
@@ -1373,6 +1396,7 @@
         if (exits) return `exits: ${exits[1]}`;
         if (part === 'рядом что-то лежит') return 'something lies nearby';
         if (part === 'здесь оставлен рюкзак') return 'a backpack was left here';
+        if (part === 'здесь стоит аркадный автомат') return 'an arcade cabinet stands here';
         return part;
       });
       return `${tr(m[1])} (${details.join('; ')}).`;
@@ -1662,6 +1686,17 @@
       setText('#music-back', '← general settings');
       setText('#music-player-state', 'on');
 
+      setText('#view-arcade .eyebrow', 'ARCADE');
+      setText('#view-arcade .settings-title', 'Cabinet');
+      setText('#view-arcade .settings-subtitle', 'zqwy cassettes · rhythm catalog');
+      setAttr('#view-arcade', 'aria-label', 'Arcade cabinet');
+      setAttr('#arcade-close', 'aria-label', 'Close the cabinet');
+      setText('#arcade-insert-label', 'INSERT A CASSETTE');
+      setText('#arcade-hint', 'Pick a track — the cabinet will start it. Play keys: D F J K or arrows. Esc inside the frame pauses.');
+      setAttr('#arcade-eject', 'aria-label', 'Eject cassette');
+      setAttr('#arcade-eject', 'title', 'Eject cassette');
+      setAttr('#arcade-frame', 'title', 'Rhythm catalog');
+
       setText('#view-trial .trial-head .eyebrow', 'CIRCLE OF ENCHANTMENT');
 
       setText('#battle-reflect', '☂ umbrella · F');
@@ -1786,6 +1821,17 @@
       setText('#setting-log-actions-text', 'действия');
       setText('#setting-log-commands-text', 'команды');
       setText('#setting-log-note', 'Запись действий — это фильтр полезного текста. Например, «движение» записывает шаги. Команда «логгирование» включает всё или одну категорию: «логгирование движение», «логгирование действия», «логгирование терминал».');
+
+      setText('#view-arcade .eyebrow', 'АРКАДА');
+      setText('#view-arcade .settings-title', 'Автомат');
+      setText('#view-arcade .settings-subtitle', 'кассеты zqwy · ритм-каталог');
+      setAttr('#view-arcade', 'aria-label', 'Аркадный автомат');
+      setAttr('#arcade-close', 'aria-label', 'Закрыть автомат');
+      setText('#arcade-insert-label', 'ВСТАВЬ КАССЕТУ');
+      setText('#arcade-hint', 'Выбери дорожку — автомат включит её. Играющие клавиши: D F J K или стрелки. Esc в кадре — пауза.');
+      setAttr('#arcade-eject', 'aria-label', 'Извлечь кассету');
+      setAttr('#arcade-eject', 'title', 'Извлечь кассету');
+      setAttr('#arcade-frame', 'title', 'Ритм-каталог');
 
       setText('#view-trial .trial-head .eyebrow', 'КРУГ ОЧАРОВАНИЯ');
 
@@ -1947,6 +1993,17 @@
       setText('#music-rate-note', 'Verlangsamen und Beschleunigen ändern das Tempo ohne Neustart des Tracks.');
       setText('#music-back', '← allgemeine Einstellungen');
       setText('#music-player-state', 'an');
+
+      setText('#view-arcade .eyebrow', 'ARKADE');
+      setText('#view-arcade .settings-title', 'Automat');
+      setText('#view-arcade .settings-subtitle', 'zqwy-Kassetten · Rhythmus-Katalog');
+      setAttr('#view-arcade', 'aria-label', 'Arkadenautomat');
+      setAttr('#arcade-close', 'aria-label', 'Automaten schließen');
+      setText('#arcade-insert-label', 'KASSETTE EINSETZEN');
+      setText('#arcade-hint', 'Wähle eine Spur — der Automat startet sie. Spieltasten: D F J K oder Pfeile. Esc im Rahmen pausiert.');
+      setAttr('#arcade-eject', 'aria-label', 'Kassette auswerfen');
+      setAttr('#arcade-eject', 'title', 'Kassette auswerfen');
+      setAttr('#arcade-frame', 'title', 'Rhythmus-Katalog');
 
       setText('#view-trial .trial-head .eyebrow', 'KREIS DER VERZAUBERUNG');
 

@@ -1119,6 +1119,14 @@ body[data-scene="city"] .menu-panel {
 
 .load-card .primary { margin-top: 1.2em; width: min(100%, 420px); }
 
+.embed-card {
+  width: min(92vw, 560px);
+}
+
+.embed-card .ghost {
+  margin-top: 1.4em;
+}
+
 .pause-actions,
 .result-actions {
   display: flex;

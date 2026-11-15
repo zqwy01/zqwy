@@ -1255,6 +1255,17 @@
       consider({ type: 'backpack', backpack }, Math.hypot(px - backpack.x, py - backpack.y));
     }
 
+    /* Аркадный автомат стоит на клетке пола, поэтому подойти можно
+       вплотную или встать рядом. Радиус чуть больше обычного: корпус
+       выше Zemic, и подсказка должна появляться до касания. */
+    for (const arcade of rt.world.arcades || []) {
+      const distance = Math.hypot(px - (arcade.x + 0.5), py - (arcade.y + 0.5));
+      if (distance <= 1.35 && distance < bestDistance) {
+        bestDistance = distance;
+        best = { type: 'arcade', arcade };
+      }
+    }
+
     const tabletDistance = Math.hypot(px - rt.world.tablet.x, py - rt.world.tablet.y);
     if (tabletDistance <= 1.65 && tabletDistance < bestDistance) {
       bestDistance = tabletDistance;
@@ -1306,6 +1317,7 @@
     if (target.type === 'tablet') return 'коснуться Скрижали';
     if (target.type === 'card') return 'взять карту';
     if (target.type === 'trial') return 'войти в круг';
+    if (target.type === 'arcade') return 'сыграть на автомате';
     if (target.type === 'vishnya') return 'заговорить с Вишней';
     if (target.type === 'mirror') return `посмотреть в ${target.mirror.label}`;
     return '';
@@ -1362,6 +1374,8 @@
       takeCard();
     } else if (target.type === 'trial') {
       ZQ.startTrial();
+    } else if (target.type === 'arcade') {
+      if (typeof ZQ.openArcade === 'function') ZQ.openArcade();
     } else if (target.type === 'vishnya' || target.type === 'mirror') {
       if (typeof ZQ.mirrorInteract === 'function') ZQ.mirrorInteract(target);
     }
@@ -1412,6 +1426,7 @@
     if (hasPickup) details.push('рядом что-то лежит');
     const hasBackpack = rt.state.backpacks.some((bp) => bp.roomId === room.id);
     if (hasBackpack) details.push('здесь оставлен рюкзак');
+    if (room.arcade) details.push('здесь стоит аркадный автомат');
     if (details.length) text += ` (${details.join('; ')}).`;
     return text;
   }

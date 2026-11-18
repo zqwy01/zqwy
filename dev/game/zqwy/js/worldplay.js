@@ -177,8 +177,28 @@
     return true;
   }
 
+  function doorState(door) {
+    const value = rt.state && rt.state.flags ? rt.state.flags[door.flag] : 'open';
+    return value === 'closed' || value === 'locked' ? value : 'open';
+  }
+
+  function doorBlockedAt(x, y, radius) {
+    if (!rt.world || !Array.isArray(rt.world.doors)) return null;
+    const r = Number.isFinite(radius) ? radius : C.player.radius;
+    for (const door of rt.world.doors) {
+      if (doorState(door) === 'open') continue;
+      for (const tile of door.tiles) {
+        const nearX = ZQ.clamp(x, tile.x, tile.x + tile.w);
+        const nearY = ZQ.clamp(y, tile.y, tile.y + tile.h);
+        if (Math.hypot(x - nearX, y - nearY) < r * 0.85) return door;
+      }
+    }
+    return null;
+  }
+
   function canStandAt(x, y) {
     if (!canStandWalls(x, y)) return false;
+    if (doorBlockedAt(x, y, C.player.radius)) return false;
     if (arcadeBlockedAt(x, y, C.player.radius)) return false;
     if (typeof ZQ.mirrorBlockedAt === 'function' &&
         ZQ.mirrorBlockedAt(x, y, C.player.radius)) return false;
@@ -518,6 +538,12 @@
     if (boost && Number.isFinite(boost.playerSpeedScale) && boost.playerSpeedScale > 0) {
       step *= boost.playerSpeedScale;
     }
+    /* Сапоги ускоряют обычный шаг. Рывок задаётся отдельной скоростью
+       и намеренно не зависит от экипировки. */
+    if (rt.state.items.includes('boots') && C.items.boots &&
+        Number.isFinite(C.items.boots.speedMultiplier)) {
+      step *= C.items.boots.speedMultiplier;
+    }
     if (mode === 'dash') {
       step = (Number.isFinite(boost.dashSpeed) ? boost.dashSpeed : 12.5) * dt;
     }
@@ -560,6 +586,7 @@
       !ZQ.belzebufoBlockedAt(x, y, C.player.radius);
     const tryAxis = (targetX, targetY, pushX, pushY) => {
       if (!canStandWalls(targetX, targetY)) return false;
+      if (doorBlockedAt(targetX, targetY, C.player.radius)) return false;
       /* Корпус автомата твёрдый и тяжёлый: шаг в него толкает автомат
          лишь чуть-чуть, поэтому сдвинуть его можно только упором. */
       let arcade = arcadeBlockedAt(targetX, targetY, C.player.radius);
@@ -1328,13 +1355,18 @@
     }
   }
 
+  const DEATH_FX_DURATION = 1250;
+
   function die(cause) {
-    if (!rt.state) return;
+    if (!rt.state || (rt.deathFx && rt.deathFx.active)) return;
     const roomId = roomIdForPosition();
+    const now = ZQ.now();
+    const deathX = rt.state.player.x;
+    const deathY = rt.state.player.y;
     const backpack = {
       id: ZQ.makeId('bp'),
-      x: rt.state.player.x,
-      y: rt.state.player.y,
+      x: deathX,
+      y: deathY,
       roomId,
       items: rt.state.items.slice(),
       cause,
@@ -1343,8 +1375,20 @@
     rt.state.backpacks.push(backpack);
     rt.state.items = [];
     rt.state.deaths = (rt.state.deaths || 0) + 1;
-    respawnAtTablet();
-    rt.invulnUntil = ZQ.now() + 2600;
+    /* Анимация идёт на месте гибели; возврат к Скрижали произойдёт,
+       когда она закончится. */
+    rt.deathFx = {
+      active: true,
+      startedAt: now,
+      duration: DEATH_FX_DURATION,
+      x: deathX,
+      y: deathY,
+      facingX: rt.state.player.facingX || 0,
+      facingY: rt.state.player.facingY || -1,
+      roomId,
+      cause
+    };
+    rt.invulnUntil = now + DEATH_FX_DURATION + 2600;
 
     const room = roomId ? rt.world.roomById(roomId) : null;
     const roomPhrase = room ? `в комнате «${room.name}»` : 'в переходе между комнатами';
@@ -1362,6 +1406,24 @@
     rt.lastFrame = ZQ.now();
     ZQ.saveGame();
     updatePrompt();
+  }
+
+  function finishDeath() {
+    if (!rt.deathFx || !rt.deathFx.active) return false;
+    rt.deathFx = null;
+    respawnAtTablet();
+    ZQ.resetKeys();
+    updateRoomDetection();
+    ZQ.saveGame();
+    updatePrompt();
+    return true;
+  }
+
+  function updateDeathFx() {
+    const fx = rt.deathFx;
+    if (!fx || !fx.active) return false;
+    if (ZQ.now() - fx.startedAt < fx.duration) return false;
+    return finishDeath();
   }
 
   function collectItemPickup(pickup) {
@@ -1487,6 +1549,16 @@
       consider({ type: 'backpack', backpack }, Math.hypot(px - backpack.x, py - backpack.y));
     }
 
+    for (const door of rt.world.doors || []) {
+      for (const approach of door.approaches) {
+        consider(
+          { type: 'door', door },
+          Math.hypot(px - approach.x, py - approach.y),
+          1.3
+        );
+      }
+    }
+
     /* Аркадный автомат стоит на клетке пола, поэтому подойти можно
        вплотную или встать рядом. Радиус чуть больше обычного: корпус
        выше Zemic, и подсказка должна появляться до касания. */
@@ -1555,6 +1627,12 @@
       return count ? `подобрать рюкзак (${count})` : 'подобрать пустой рюкзак';
     }
     if (target.type === 'tablet') return 'коснуться Скрижали';
+    if (target.type === 'door') {
+      const status = doorState(target.door);
+      if (status === 'locked') return 'отпереть замок некрополя';
+      if (status === 'closed') return 'закрыть дверь некрополя на замок';
+      return 'закрыть дверь некрополя';
+    }
     if (target.type === 'card') return 'взять карту';
     if (target.type === 'trial') return 'войти в круг';
     if (target.type === 'arcade') return 'сыграть на автомате';
@@ -1600,6 +1678,21 @@
     dom.btnAction.classList.remove('hidden');
   }
 
+  function toggleDoor(door) {
+    const current = doorState(door);
+    const next = current === 'open' ? 'closed' : (current === 'closed' ? 'locked' : 'open');
+    rt.state.flags[door.flag] = next;
+    const message = next === 'closed'
+      ? t('Дверь некрополя закрыта.', 'The necropolis door is closed.', 'Die Tür zum Nekropolf ist geschlossen.')
+      : next === 'locked'
+        ? t('Замок щёлкает. Дверь некрополя заперта.', 'The lock clicks. The necropolis door is locked.', 'Das Schloss schnappt. Die Tür zum Nekropolf ist verschlossen.')
+        : t('Замок открыт. Дверь некрополя снова проходима.', 'The lock opens. The necropolis door is passable again.', 'Das Schloss ist offen. Die Tür zum Nekropolf ist wieder passierbar.');
+    ZQ.appendLog(message, 'sys', true);
+    ZQ.logEvent('actions', `дверь ${door.id}: ${next}`, 'дверь');
+    ZQ.saveGame();
+    updatePrompt();
+  }
+
   function interact(force) {
     if ((!force && ZQ.isPaused()) || ZQ.isTyping()) return;
     const target = findInteractable();
@@ -1614,6 +1707,8 @@
         ZQ.unlock('backpack');
         ZQ.unlock('table');
       }, true);
+    } else if (target.type === 'door') {
+      toggleDoor(target.door);
     } else if (target.type === 'card') {
       takeCard();
     } else if (target.type === 'trial') {
@@ -1667,6 +1762,12 @@
       text = typeof ZQ.earedRoomDescription === 'function'
         ? ZQ.earedRoomDescription()
         : 'На подушках сидит кто-то ушастый и мордастый. Лицо спрятано под шарфом, а на столе ждут бутерброды.';
+    } else if (room.role === 'necropolis') {
+      text = t(
+        'Каменные гробницы стоят ровными рядами. Сюжета здесь пока нет — только тишина, пыль и чьи-то сапоги.',
+        'Stone tombs stand in even rows. There is no story here yet — only silence, dust and someone’s boots.',
+        'Steinene Grabstätten stehen in ordentlichen Reihen. Eine Geschichte gibt es hier noch nicht — nur Stille, Staub und jemandes Stiefel.'
+      );
     } else if (room.faunaKind && C.fauna[room.faunaKind]) {
       text = C.fauna[room.faunaKind].lines.join(' ');
     } else {
@@ -1749,6 +1850,13 @@
   ZQ.belzebufoBlockedAt = belzebufoBlockedAt;
   ZQ.restoreRoamFrog = restoreRoamFrog;
   ZQ.die = die;
+  ZQ.deathFxDuration = DEATH_FX_DURATION;
+  ZQ.isDeathAnimating = () => Boolean(rt.deathFx && rt.deathFx.active);
+  ZQ.updateDeathFx = updateDeathFx;
+  ZQ.finishDeath = finishDeath;
+  ZQ.doorState = doorState;
+  ZQ.doorBlockedAt = doorBlockedAt;
+  ZQ.toggleDoor = toggleDoor;
   ZQ.collectItemPickup = collectItemPickup;
   ZQ.takeCard = takeCard;
   ZQ.retrieveBackpack = retrieveBackpack;

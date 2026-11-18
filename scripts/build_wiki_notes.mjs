@@ -64,7 +64,11 @@ function markdown(value) {
   let inCode = false;
 
   const flushParagraph = () => {
-    if (paragraph.length) out.push(`<p>${inline(paragraph.join(" "))}</p>`);
+    // Markdown treats a single newline as a soft break inside the same
+    // paragraph. Keep those line breaks explicitly: joining lines with a
+    // space loses hand-written formatting (and the minifier collapses a bare
+    // newline during the site build).
+    if (paragraph.length) out.push(`<p>${paragraph.map(inline).join("<br>\n")}</p>`);
     paragraph = [];
   };
   const flushList = () => {
@@ -231,7 +235,9 @@ fs.writeFileSync(META_FILE, `${JSON.stringify({
   notes: notes.map((note) => ({
     title: note.title,
     path: `./wiki/zqwy/${note.slug}.html`,
-    text: note.text.slice(0, 240),
+    // Keep the full note text searchable: important phrases can easily sit
+    // past the first 240 characters, and the index is still tiny.
+    text: note.text,
     category: "Заметки",
     type: "note",
     keywords: ["zqwy", "заметки", "notes", "markdown", note.slug],

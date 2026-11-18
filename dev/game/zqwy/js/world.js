@@ -84,7 +84,8 @@
       mirror: [17, 13],
       beetle: [19, 15],
       umbrella: [21, 17],
-      eared: [15, 13]
+      eared: [15, 13],
+      necropolis: [15, 13]
     };
     for (const kind of Object.keys(C.fauna || {})) {
       const def = C.fauna[kind];
@@ -98,6 +99,18 @@
     for (const role of Object.keys(C.fixedRooms)) {
       const f = C.fixedRooms[role];
       fixedByCell.set(cellKey(f.cx, f.cy), role);
+    }
+
+    /* Двери привязаны к рёбрам фиксированных комнат. Геометрия проёма
+       вычисляется при прорезании коридора, здесь известна только пара
+       комнат и имя флага состояния. */
+    const doors = [];
+    const doorByEdge = new Map();
+    for (const spec of Object.values(C.doors || {})) {
+      const from = C.fixedRooms[spec.from];
+      const to = C.fixedRooms[spec.to];
+      if (!from || !to) continue;
+      doorByEdge.set(edgeKey(from.cx, from.cy, to.cx, to.cy), spec);
     }
 
     /* Роль клетки вычисляется детерминированно и до создания комнаты:
@@ -168,7 +181,7 @@
     const STORY_ROLES = {
       tablet: true, hazard: true, low: true, trial: true,
       storage: true, crossroad: true, mirror: true,
-      beetle: true, umbrella: true, eared: true
+      beetle: true, umbrella: true, eared: true, necropolis: true
     };
     const SHAPE_KINDS = ['rect', 'chamfer', 'ellipse', 'hourglass', 'cross', 'lshape', 'cave'];
 
@@ -503,6 +516,28 @@
           setTileInChunk(chunk, xStart, y, 5);
           setTileInChunk(chunk, xEnd, y, 5);
         }
+        const horizontalDoor = doorByEdge.get(edge.key);
+        if (horizontalDoor && !doors.some((door) => door.id === horizontalDoor.id)) {
+          const middle = (y1 + y2) / 2 + 0.5;
+          doors.push({
+            id: horizontalDoor.id,
+            flag: horizontalDoor.flag,
+            axis: 'x',
+            span: doorWidth,
+            tiles: [
+              { x: xStart, y: y1, w: 1, h: doorWidth },
+              { x: xEnd, y: y1, w: 1, h: doorWidth }
+            ],
+            panels: [
+              { x: xStart + 0.5, y: middle },
+              { x: xEnd + 0.5, y: middle }
+            ],
+            approaches: [
+              { x: xStart - 0.5, y: middle },
+              { x: xEnd + 1.5, y: middle }
+            ]
+          });
+        }
         /* Если у стены нет пола из-за формы зала, дверь прорезает
            горловину вглубь, пока не встретит пол. */
         const depthLeft = Math.max(4, Math.min(18,
@@ -533,6 +568,28 @@
         for (let x = x1; x <= x2; x++) {
           setTileInChunk(chunk, x, yStart, 5);
           setTileInChunk(chunk, x, yEnd, 5);
+        }
+        const verticalDoor = doorByEdge.get(edge.key);
+        if (verticalDoor && !doors.some((door) => door.id === verticalDoor.id)) {
+          const middle = (x1 + x2) / 2 + 0.5;
+          doors.push({
+            id: verticalDoor.id,
+            flag: verticalDoor.flag,
+            axis: 'y',
+            span: doorWidth,
+            tiles: [
+              { x: x1, y: yStart, w: doorWidth, h: 1 },
+              { x: x1, y: yEnd, w: doorWidth, h: 1 }
+            ],
+            panels: [
+              { x: middle, y: yStart + 0.5 },
+              { x: middle, y: yEnd + 0.5 }
+            ],
+            approaches: [
+              { x: middle, y: yStart - 0.5 },
+              { x: middle, y: yEnd + 1.5 }
+            ]
+          });
         }
         const depthTop = Math.max(4, Math.min(18,
           Math.floor(Math.min(topBox.w, topBox.h) * 0.6)));
@@ -593,6 +650,23 @@
       } else if (room.role === 'hazard') {
         for (const [dx, dy] of [[-dxWide, -dyTall], [dxWide, -dyTall], [-dxWide, dyTall], [dxWide, dyTall], [-dxWide + 1, -2], [dxWide - 1, 2]]) {
           setTileInChunk(chunk, centerX + dx, centerY + dy, 3);
+        }
+      } else if (room.role === 'necropolis') {
+        /* Пока без сюжета: только надгробия и находка. Центр оставляем
+           свободным, чтобы дверь из Слепого зала вела в простор зала. */
+        for (const [dx, dy] of [
+          [-dxWide, -dyTall], [dxWide, -dyTall],
+          [-dxWide, dyTall], [dxWide, dyTall]
+        ]) {
+          setTileInChunk(chunk, centerX + dx, centerY + dy, 4);
+        }
+        if (!itemPickups.some((p) => p.itemId === 'boots')) {
+          itemPickups.push({
+            itemId: 'boots',
+            x: centerX + 0.5,
+            y: centerY + 0.5,
+            roomId: room.id
+          });
         }
       } else if (room.role === 'storage') {
         for (let x = room.x1 + 2; x <= room.x2 - 2; x++) {
@@ -995,6 +1069,12 @@
         if (earedCell) {
           addEdge(tabletCell.cx, tabletCell.cy, earedCell.cx, earedCell.cy);
         }
+        /* Некрополь висит на том же узле, что и Слепой зал: вход
+           запирается, но сам зал остаётся частью основного графа. */
+        const necropolisCell = C.fixedRooms.necropolis;
+        if (necropolisCell) {
+          addEdge(hazardCell.cx, hazardCell.cy, necropolisCell.cx, necropolisCell.cy);
+        }
         const umbrellaCell = C.fixedRooms.umbrella;
         if (umbrellaCell) {
           addEdge(beetleCell.cx, beetleCell.cy, umbrellaCell.cx, umbrellaCell.cy);
@@ -1267,6 +1347,7 @@
       stepY,
       rooms,
       arcades,
+      doors,
       getTile,
       isWalkable,
       isSwamp,
@@ -1289,6 +1370,7 @@
       crossroadRoom: roomsByCell.get(cellKey(C.fixedRooms.crossroad.cx, C.fixedRooms.crossroad.cy)),
       beetleRoom: roomsByCell.get(cellKey(C.fixedRooms.beetle.cx, C.fixedRooms.beetle.cy)),
       umbrellaRoom: roomsByCell.get(cellKey(C.fixedRooms.umbrella.cx, C.fixedRooms.umbrella.cy)),
+      necropolisRoom: roomsByCell.get(cellKey(C.fixedRooms.necropolis.cx, C.fixedRooms.necropolis.cy)),
       itemPickups
     };
 

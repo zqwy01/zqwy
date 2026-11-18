@@ -8,6 +8,9 @@ services:
     environment:
       - TZ=Europe/Moscow
       - PORT=3000
+    volumes:
+      # Site build is taken from the host, not baked into the image.
+      - ./dist:/app/dist:ro
     networks:
       - zqwy_reverse_proxy
 

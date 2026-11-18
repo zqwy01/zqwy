@@ -318,6 +318,9 @@
       const dt = Number.isFinite(raw) ? Math.min(0.05, Math.max(0, raw)) : 0;
       rt.lastFrame = time;
       ZQ.pollGamepad();
+      /* Таймер смерти обязан идти даже всегда, когда isPaused() уже
+         вернул true — иначе анимация никогда не завершится. */
+      if (typeof ZQ.updateDeathFx === 'function') ZQ.updateDeathFx();
 
       if (!ZQ.isPaused()) {
         /* Ошибка в одном кадре не должна останавливать цикл: иначе игра

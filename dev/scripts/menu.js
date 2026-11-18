@@ -210,7 +210,31 @@
     return normalize(values.join(" "));
   }
 
-  function runSearch(data, query) {
+  /* Multi-word aliases from the index let a whole phrase be found even when
+     the visitor types it inside a longer sentence. The normal token search
+     runs first; only if it finds nothing do we retry with the recognised
+     phrase forms, so existing results keep their order. */
+  function phraseQueries(data, query) {
+    const queries = [query];
+    const normalized = normalize(query);
+    const seen = new Set([normalized]);
+    const groups = Array.isArray(data) ? [] : (data && data.phrases) || [];
+    for (const group of groups) {
+      const forms = (Array.isArray(group) ? group : (group && group.phrases) || [])
+        .map(normalize)
+        .filter(Boolean);
+      if (!forms.length) continue;
+      if (!forms.some((form) => ` ${normalized} `.includes(` ${form} `))) continue;
+      for (const form of forms) {
+        if (seen.has(form)) continue;
+        seen.add(form);
+        queries.push(form);
+      }
+    }
+    return queries;
+  }
+
+  function searchTokens(data, query) {
     const items = Array.isArray(data) ? data : (data && data.items) || [];
     const groups = Array.isArray(data) ? [] : (data && data.synonyms) || (data && data.synonymGroups) || [];
     const map = synonymMap(groups);
@@ -231,7 +255,22 @@
         }
         return [...variants].some((word) => word && hay.includes(word));
       });
-    }).slice(0, 50);
+    });
+  }
+
+  function runSearch(data, query) {
+    const results = [];
+    const seen = new Set();
+    for (const candidate of phraseQueries(data, query)) {
+      for (const item of searchTokens(data, candidate)) {
+        const key = `${item.type || ""}:${item.path || ""}:${item.title || ""}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push(item);
+      }
+      if (results.length) break;
+    }
+    return results.slice(0, 50);
   }
 
   const TYPE_ICON = {

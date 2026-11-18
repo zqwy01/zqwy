@@ -43,7 +43,8 @@
       crossroad: { name: 'Quiet Crossroads', tag: 'trace' },
       beetle: { name: 'Hall of Sudden Water', tag: 'first survival' },
       umbrella: { name: 'Umbrella Hall', tag: 'second survival' },
-      eared: { name: 'Eared Hall', tag: 'someone hides a face' }
+      eared: { name: 'Eared Hall', tag: 'someone hides a face' },
+      necropolis: { name: 'Necropolis', tag: 'no story yet' }
     },
     fauna: {
       belzebufo: {
@@ -109,6 +110,11 @@
         name: 'Glass Bead',
         description: 'A cloudy bead with a hole. A tiny bubble of air seems frozen inside.',
         note: 'Does nothing. It simply rests in a pocket of the inventory.'
+      },
+      boots: {
+        name: 'Swift-Step Boots',
+        description: 'Light boots of supple leather. Their soles barely wear down, as if stone itself gives way.',
+        note: 'While the boots are in the inventory, Zemic walks faster. Only normal steps are sped up, not the dash.'
       },
       backpack: {
         name: 'Backpack',
@@ -672,7 +678,8 @@
       crossroad: { name: 'Stille Kreuzung', tag: 'Spur' },
       beetle: { name: 'Halle des plötzlichen Wassers', tag: 'erstes Überleben' },
       umbrella: { name: 'Regenschirmhalle', tag: 'zweites Überleben' },
-      eared: { name: 'Ohrenhalle', tag: 'jemand verbirgt sein Gesicht' }
+      eared: { name: 'Ohrenhalle', tag: 'jemand verbirgt sein Gesicht' },
+      necropolis: { name: 'Nekropole', tag: 'noch keine Geschichte' }
     },
     fauna: {
       belzebufo: {
@@ -738,6 +745,11 @@
         name: 'Glasperle',
         description: 'Eine trübe Perle mit einem Loch. Eine winzige Luftblase scheint darin eingefroren.',
         note: 'Tut nichts. Sie ruht einfach in einer Tasche des Inventars.'
+      },
+      boots: {
+        name: 'Stiefel der schnellen Schritte',
+        description: 'Leichte Stiefel aus weichem Leder. Die Sohlen nutzen sich kaum ab, als weiche der Stein selbst.',
+        note: 'Solange die Stiefel im Inventar liegen, geht Zemic schneller. Nur normale Schritte werden beschleunigt, nicht der Sprung.'
       },
       backpack: {
         name: 'Rucksack',

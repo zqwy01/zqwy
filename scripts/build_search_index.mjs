@@ -10,7 +10,7 @@
  *   dev/data/search-synonyms.json — пары слов RU/EN для поиска «tiktok = тикток»
  *
  * Результат: dev/data/search-index.json в формате
- *   { generatedAt, synonyms, items: [{title, path, text, tags, category, type, keywords}] }
+ *   { generatedAt, synonyms, phrases, items: [{title, path, text, tags, category, type, keywords}] }
  *
  * Запускается автоматически из scripts/build_dist.sh и вручную:
  *   node scripts/build_search_index.mjs
@@ -120,11 +120,26 @@ const TRACK_WORD_RU = {
   twelve: ["двенадцать"], umbrella: ["зонт"], urban: ["городской"],
   vector: ["вектор"], vein: ["вена"], vessel: ["сосуд"],
   video: ["видео"], virtual: ["виртуальный"], virus: ["вирус"],
-  vojna: ["война"], walk: ["прогулка"], wall: ["стена"],
+  vojna: ["война"], mir: ["мир"], mier: ["мир"], walk: ["прогулка"], wall: ["стена"],
   warlock: ["колдун", "варлок"], whisper: ["шёпот"], winter: ["зима"],
   wither: ["увядание"], word: ["слово"], wrangle: ["борьба"],
   zemic: ["земик"], zqwy: ["зкуи", "зквай"],
 };
+
+/*
+ * Фразы, которые скалькированы с других языков и не выводятся по слову.
+ * `vojna a mier` — это «Война и мир»: отдельно `mier` не переводится, а
+ * транслитерация даёт «миер», поэтому целую фразу нужно задавать целиком.
+ * Группы не попадают в `synonyms` (счётчик групп остаётся прежним), но
+ * публикуются в индексе как `phrases`, чтобы поиск мог распознавать такую
+ * фразу внутри более длинного предложения.
+ */
+const PHRASE_ALIASES = [
+  {
+    phrases: ["vojna a mier", "vojna i mir", "война и мир", "войну и мир", "war and peace"],
+    keywords: ["vojna a mier", "vojna i mir", "война и мир", "войну и мир", "war and peace"],
+  },
+];
 
 const LATIN_TO_CYRILLIC = [
   ["shch", "щ"], ["sch", "щ"], ["sh", "ш"], ["ch", "ч"], ["zh", "ж"],
@@ -174,6 +189,11 @@ function musicKeywords(text) {
     }
   }
   result.add(words.map((word) => (/^[a-z]+$/.test(word) ? transliterate(word) : word)).join(" "));
+  const phrase = normalizeWord(text);
+  for (const group of PHRASE_ALIASES) {
+    if (!group.phrases.some((value) => normalizeWord(value) === phrase)) continue;
+    for (const keyword of group.keywords) result.add(normalizeWord(keyword));
+  }
   return [...result].filter(Boolean);
 }
 
@@ -344,6 +364,7 @@ const payload = {
   synonymGroups: synonyms.length,
   itemCount: items.length,
   synonyms,
+  phrases: PHRASE_ALIASES.map((group) => group.phrases),
   items,
 };
 

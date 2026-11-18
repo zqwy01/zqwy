@@ -91,12 +91,12 @@ body {
 .menu-button-container {
   margin-top: 20px;
   /* Pin the shared logo + search to the top while the page scrolls, exactly
-     like the full-screen catalog overlay. The shadow masks content passing
-     underneath without changing the row's geometry. */
+     like the full-screen catalog overlay. The opaque background masks content
+     passing underneath; do not add a large shadow here — at this z-index it
+     also paints over the catalog overlay and darkens its headings. */
   position: sticky;
   top: 0;
   background: var(--bg);
-  box-shadow: 0 10px 12px 6px var(--bg);
   /* keep the logo + search above the fixed overlay so they never disappear
      while the menu opens/closes */
   z-index: 1000000;

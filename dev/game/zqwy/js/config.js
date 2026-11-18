@@ -133,7 +133,19 @@
       beetle: { cx: 2, cy: 4 },
       umbrella: { cx: 3, cy: 4 },
       eared: { cx: 1, cy: 3 },
+      necropolis: { cx: 1, cy: 2 },
       titanoboa: { cx: 4, cy: 0 }
+    },
+
+    /* Запираемая дверь между Слепым залом и некрополем. Состояние хранится
+       в state.flags[necropolisDoor]: open → closed → locked → open. */
+    doors: {
+      necropolis: {
+        id: 'necropolis',
+        flag: 'necropolisDoor',
+        from: 'hazard',
+        to: 'necropolis'
+      }
     },
 
     roomMeta: {
@@ -186,6 +198,11 @@
         name: 'Ушастый зал',
         tag: 'кто-то прячет лицо',
         music: 'eared'
+      },
+      necropolis: {
+        name: 'Некрополь',
+        tag: 'пока без сюжета',
+        music: 'hazard'
       }
     },
 
@@ -330,6 +347,16 @@
         description: 'Тяжёлый чёрный зонт с костяной ручкой. Спицы гудят, будто помнят течение.',
         note: 'Зонт нужно подобрать в зале. Он отводит и отражает снаряды, перезарядка 15 секунд.',
         reflectCooldown: 15
+      },
+      boots: {
+        id: 'boots',
+        name: 'Сапоги скорых шагов',
+        kind: 'equipment',
+        command: null,
+        action: null,
+        description: 'Лёгкие сапоги из мягкой кожи. Подошвы почти не стираются, будто камень сам уступает им дорогу.',
+        note: 'Пока сапоги в инвентаре, Zemic идёт быстрее. Ускоряется только обычный шаг, не рывок.',
+        speedMultiplier: 1.35
       },
       music_player: {
         id: 'music_player',

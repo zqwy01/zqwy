@@ -747,6 +747,93 @@
     ctx.restore();
   }
 
+  /* Смерть: тот же спрайт, но падающий и растворяющийся. Обычный
+     drawPlayer не вызывается, пока активен deathFx. */
+  function drawDeathPlayer(ctx, state, sx, sy, ts, images, progress) {
+    const p = state.player || {};
+    const frame = frameForPlayer(state);
+    const fw = C.player.spriteFrameW;
+    const fh = C.player.spriteFrameH;
+    const srcX = (frame % C.player.spriteFrames) * fw;
+    const h = ts * 2.05;
+    const w = h * (fw / fh);
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.08, 1 - progress * 0.92);
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.55 * (1 - progress)})`;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy + ts * 0.48, ts * 0.28 * (1 - progress * 0.4), ts * 0.11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.translate(sx, sy + ts * 0.3 * progress);
+    const fall = (p.facingX || 0) < 0 ? -1 : 1;
+    ctx.rotate(fall * progress * Math.PI * 0.48);
+    ctx.scale(1 + progress * 0.12, Math.max(0.2, 1 - progress * 0.25));
+
+    if (images.zemic && images.zemic.complete && images.zemic.naturalWidth) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(images.zemic, srcX, 0, fw, fh, -w / 2, -h * 0.78, w, h);
+    } else {
+      ctx.fillStyle = '#e7e6dc';
+      ctx.beginPath();
+      ctx.arc(0, -h * 0.2, ts * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(-ts * 0.22, -ts * 0.05, ts * 0.44, ts * 0.6);
+    }
+    ctx.restore();
+  }
+
+  /* Дверь рисуется поверх пола, но под персонажем: закрытая — досками,
+     запертая — ещё и замком. Открытая оставляет только каменную раму. */
+  function drawDoorPanel(ctx, panel, axis, status, ts, now) {
+    const sx = panel.x;
+    const sy = panel.y;
+    const thickness = Math.max(3, ts * 0.26);
+    const span = Math.max(1, panel.span || 1) * ts;
+    const isY = axis === 'y';
+    const x = isY ? sx - span / 2 : sx - thickness / 2;
+    const y = isY ? sy - thickness / 2 : sy - span / 2;
+    const width = isY ? span : thickness;
+    const height = isY ? thickness : span;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(13, 12, 11, 0.94)';
+    ctx.fillRect(x - 2.5, y - 2.5, width + 5, height + 5);
+    ctx.strokeStyle = 'rgba(147, 129, 103, 0.72)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x - 2.5, y - 2.5, width + 5, height + 5);
+
+    if (status !== 'open') {
+      ctx.fillStyle = '#4b3020';
+      ctx.fillRect(x, y, width, height);
+      ctx.fillStyle = 'rgba(20, 12, 8, 0.55)';
+      const bars = Math.max(1, Math.round(span / Math.max(4, ts * 0.5)));
+      for (let i = 1; i < bars; i++) {
+        if (isY) ctx.fillRect(x + (i / bars) * width - 1, y, 2, height);
+        else ctx.fillRect(x, y + (i / bars) * height - 1, width, 2);
+      }
+      ctx.fillStyle = 'rgba(208, 162, 84, 0.7)';
+      if (isY) ctx.fillRect(x, sy - 1, width, 2);
+      else ctx.fillRect(sx - 1, y, 2, height);
+    }
+
+    if (status === 'locked') {
+      const bob = Math.sin(now * 0.004) * ts * 0.02;
+      const lx = sx;
+      const ly = sy + bob;
+      ctx.strokeStyle = '#e2b451';
+      ctx.lineWidth = Math.max(1.5, ts * 0.06);
+      ctx.beginPath();
+      ctx.arc(lx, ly - ts * 0.06, ts * 0.11, Math.PI, 0);
+      ctx.stroke();
+      ctx.fillStyle = '#c99432';
+      ctx.fillRect(lx - ts * 0.14, ly - ts * 0.04, ts * 0.28, ts * 0.2);
+      ctx.fillStyle = '#2a1d0c';
+      ctx.fillRect(lx - ts * 0.02, ly + ts * 0.02, ts * 0.04, ts * 0.08);
+    }
+    ctx.restore();
+  }
+
   /* Пыль живёт в координатах мира. Она не приклеена к экрану: при
      движении камеры одни пылинки уходят, другие появляются. Индексы
      сетки берутся от абсолютных координат, поэтому при ходьбе пыль
@@ -1929,6 +2016,21 @@
       now
     );
 
+    for (const door of world.doors || []) {
+      const flag = state.flags[door.flag];
+      const status = flag === 'locked' || flag === 'closed' ? flag : 'open';
+      for (const panel of door.panels) {
+        drawDoorPanel(
+          ctx,
+          { x: toScreenX(panel.x), y: toScreenY(panel.y), span: door.span },
+          door.axis,
+          status,
+          ts,
+          now
+        );
+      }
+    }
+
     /* Вода, камыш и кувшинки залов: рисуются под всеми сценами, чтобы
        жаба и звери стояли поверх собственного болота или пруда. */
     if (typeof window.ZQ !== 'undefined' && typeof window.ZQ.drawFaunaFeatures === 'function') {
@@ -2149,14 +2251,33 @@
       now
     });
 
-    drawPlayer(
-      ctx,
-      state,
-      toScreenX(state.player.x),
-      toScreenY(state.player.y),
-      ts,
-      images
-    );
+    const death = zq.rt && zq.rt.deathFx;
+    const deathActive = Boolean(death && death.active &&
+      Math.abs(player.x - death.x) < 0.01 && Math.abs(player.y - death.y) < 0.01);
+    const deathProgress = deathActive
+      ? Math.min(1, Math.max(0, (now - death.startedAt) / death.duration))
+      : 0;
+
+    if (deathProgress > 0) {
+      drawDeathPlayer(
+        ctx,
+        state,
+        toScreenX(death.x),
+        toScreenY(death.y),
+        ts,
+        images,
+        deathProgress
+      );
+    } else {
+      drawPlayer(
+        ctx,
+        state,
+        toScreenX(state.player.x),
+        toScreenY(state.player.y),
+        ts,
+        images
+      );
+    }
 
     /* Снаряды, след рывка и раскрытый зонт живут в тех же мировых
        координатах, что и Zemic. */
@@ -2173,6 +2294,17 @@
     }
 
     drawDust(ctx, { view, now, toScreenX, toScreenY, cam, ts });
+
+    if (deathProgress > 0 && typeof zq.drawDeathFx === 'function') {
+      zq.drawDeathFx(ctx, {
+        x: toScreenX(death.x),
+        y: toScreenY(death.y),
+        w: view.w,
+        h: view.h,
+        progress: deathProgress,
+        now
+      });
+    }
   }
 
   function drawMap(canvas, state, world) {
@@ -2270,6 +2402,7 @@
           ctx.fillStyle = seen ? 'rgba(49, 59, 58, 0.92)' : 'rgba(29, 36, 36, 0.7)';
           if (room.role === 'tablet') ctx.fillStyle = 'rgba(92, 55, 33, 0.92)';
           if (room.role === 'trial') ctx.fillStyle = 'rgba(77, 55, 34, 0.9)';
+          if (room.role === 'necropolis') ctx.fillStyle = 'rgba(58, 62, 70, 0.92)';
           roundedRect(ctx, x, y, boxW, boxH, 3);
           ctx.fill();
           ctx.strokeStyle = isCurrent

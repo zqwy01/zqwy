@@ -311,6 +311,8 @@
     lastFrame: 0,
     keys: Object.create(null),
     invulnUntil: 0,
+    /* Не сохраняется: короткая анимация гибели живёт только в кадре. */
+    deathFx: null,
     promptLabel: '',
     activePrompt: null,
     audio: null,
@@ -1482,6 +1484,7 @@
     applyAspectCrop: applyAspectLayout,
     checkAspectRatio,
     resetTransientMotion,
+    isDeathAnimating() { return Boolean(rt.deathFx && rt.deathFx.active); },
     knownItemId,
     inventoryCapacity,
     inventoryUsed,
@@ -1513,6 +1516,9 @@
     },
     isPaused() {
       if (document.hidden) return true;
+      /* Пока Zemic падает после смерти, мир стоит: возврат к Скрижали
+         произойдёт из updateDeathFx() в конце анимации. */
+      if (rt.deathFx && rt.deathFx.active) return true;
       /* Вкладки терминала — читаемые представления, а не модальные окна:
          инвентарь, карта, сюжет, настройки, музыка и стол не должны отбирать
          управление у Zemic. Схватка и погоня тоже живут в мире, поэтому

@@ -80,13 +80,24 @@ echo "Исходники:   $SRC_DIR"
 echo "Результат:   $DIST_DIR"
 echo
 
-# Обложки — производные от оригиналов из content/category/photo/sound_cover.
-# В src/covers должны лежать только лёгкие .webp, поэтому обновляем их перед
-# каталогом музыки (он подхватывает свежие пути к обложкам).
+# Обложки — генерируются только при сборке, если указаны оригиналы (путь не хранится в приложении после сборки).
+# Укажите каталог оригиналов: export COVERS_ORIGINALS=/путь/к/оригиналам_обложек
 if [[ -f "$PROJECT_DIR/scripts/build_covers.py" ]]; then
-    echo "Обновление обложек (WebP)..."
-    python3 "$PROJECT_DIR/scripts/build_covers.py"
-    echo
+    if [[ -n "${COVERS_ORIGINALS:-}" ]]; then
+        if [[ -d "$COVERS_ORIGINALS" ]]; then
+            echo "Обновление обложек (WebP) из оригиналов: $COVERS_ORIGINALS"
+            python3 "$PROJECT_DIR/scripts/build_covers.py" --originals "$COVERS_ORIGINALS"
+            echo
+        else
+            echo "Предупреждение: COVERS_ORIGINALS задан, но каталог не найден: $COVERS_ORIGINALS (шаг пропущен)."
+            echo "В приложении используются уже собранные .webp из src/covers (если они есть)."
+            echo
+        fi
+    else
+        echo "Пропуск генерации обложек: не задан COVERS_ORIGINALS (путь к оригиналам указывается только при сборке)."
+        echo "В сборку попадают готовые файлы из src/covers/, если они присутствуют в репозитории/контексте."
+        echo
+    fi
 fi
 
 # Каталог музыки — производный от src/tracks файл, поэтому обновляем его

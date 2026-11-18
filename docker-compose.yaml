@@ -1,0 +1,17 @@
+services:
+  zqwy_web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zqwy_web
+    restart: always
+    environment:
+      - TZ=Europe/Moscow
+      - PORT=3000
+    networks:
+      - zqwy_reverse_proxy
+
+networks:
+  zqwy_reverse_proxy:
+    name: zqwy_reverse_proxy
+    external: true

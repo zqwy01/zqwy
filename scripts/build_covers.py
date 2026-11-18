@@ -35,7 +35,7 @@ except ImportError:
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent
-DEFAULT_ORIGINALS = Path("/home/zqwy/smb/sda/content/category/photo/sound_cover")
+DEFAULT_ORIGINALS = Path("/covers-originals-placeholder")  # задайте реальный путь через --originals или COVERS_ORIGINALS при сборке
 DEFAULT_OUTPUT = PROJECT / "src" / "covers"
 MANIFEST_FILE = HERE / ".covers-manifest.json"
 
@@ -175,7 +175,9 @@ def main() -> int:
     output: Path = args.out.expanduser().resolve()
 
     if not originals.is_dir():
-        print(f"Нет каталога с оригиналами: {originals}", file=sys.stderr)
+        print(f"Нет каталога с оригиналами обложек: {originals}", file=sys.stderr)
+        print("Укажите путь к оригиналам при сборке: python3 scripts/build_covers.py --originals /путь/к/оригиналам", file=sys.stderr)
+        print("(переменная COVERS_ORIGINALS используется в build_dist.sh). После сборки приложения этот путь не нужен — в dist используются готовые .webp.", file=sys.stderr)
         return 1
 
     output.mkdir(parents=True, exist_ok=True)

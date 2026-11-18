@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "settings": {
+    "maxSize": 512,
+    "quality": 78,
+    "method": 6
+  },
+  "outputs": {
+    "008008008": {
+      "source": "008008008/covers/compressed/zqwy_008008008_cover.jpg",
+      "size": 1241662,
+      "mtimeNs": 1773945364711601600
+    },
+    "algiz": {
+      "source": "algiz/covers/compressed/zqwy_algiz_cover.jpg",
+      "size": 660553,
+      "mtimeNs": 1773947537783703900
+    },
+    "alone": {
+      "source": "alone/covers/compressed/zqwy_alone_cover_site.webp",
+      "size": 188592,
+      "mtimeNs": 1774353935332447400
+    },
+    "axs": {
+      "source": "axs/covers/compressed/axolotl_cover.webp",
+      "size": 492918,
+      "mtimeNs": 1773948492781093600
+    },
+    "be_simpler": {
+      "source": "be_simpler/covers/original/ZQWY_BE_SIMPLER_COVER_ORIG.jpg",
+      "size": 3994629,
+      "mtimeNs": 1745495580000000000
+    },
+    "biela": {
+      "source": "biela/covers/compressed/zqwy_biela_cover_original.webp",
+      "size": 746054,
+      "mtimeNs": 1773949132120721900
+    },
+    "blizko_boha": {
+      "source": "blizko_boha/covers/zqwy_blizko_boha_cover_site.webp",
+      "size": 327678,
+      "mtimeNs": 1774354509143558700
+    },
+    "broken_space": {
+      "source": "broken_space/covers/zqwy_broken_space_cover_site.webp",
+      "size": 439402,
+      "mtimeNs": 1774376018452584600
+    },
+    "cyber_absolutus": {
+      "source": "cyber_absolutus/covers/zqwy_limon_cover_site.webp",
+      "size": 49976,
+      "mtimeNs": 1774355166478217100
+    },
+    "cyber_logos": {
+      "source": "cyber_logos/covers/zqwy_cyber_logos_cover_site.webp",
+      "size": 1635078,
+      "mtimeNs": 1774019098116651000
+    },
+    "cybernetic_lifeform": {
+      "source": "cybernetic_lifeform/covers/ZQWY_CYBERNETIC_LIFEFORM_COVER.jpg",
+      "size": 121178,
+      "mtimeNs": 1776969026131886300
+    },
+    "death_to_capital": {
+      "source": "death_to_capital/covers/zqwy_death_to_capital_cover_site.webp",
+      "size": 2536000,
+      "mtimeNs": 1774355160052867000
+    },
+    "dystopian_future": {
+      "source": "dystopian_future/covers/dystopian_future_cover.jpg",
+      "size": 109125,
+      "mtimeNs": 1774820721258440800
+    },
+    "endorphin": {
+      "source": "endorphin/covers/zqwy_endorphin_cover_site.webp",
+      "size": 144628,
+      "mtimeNs": 1774355042266061100
+    },
+    "forthy_hours": {
+      "source": "forthy_hours/covers/zqwy_forty_hours_cover.jpg",
+      "size": 570297,
+      "mtimeNs": 1774820721278440600
+    },
+    "forty_hours": {
+      "source": "forty_hours/covers/zqwy_forty_hours_cover.jpg",
+      "size": 570297,
+      "mtimeNs": 1772315437694425300
+    },
+    "glioma": {
+      "source": "glioma/covers/zqwy_glioma_cover_site.webp",
+      "size": 797898,
+      "mtimeNs": 1774354857145991900
+    },
+    "hurting_other_people": {
+      "source": "hurting_other_people/covers/zqwy_hurting_other_people_site.webp",
+      "size": 682996,
+      "mtimeNs": 1774355132699438900
+    },
+    "joker": {
+      "source": "joker/covers/zqwy_joker_cover_site.webp",
+      "size": 87454,
+      "mtimeNs": 1774355121900796700
+    },
+    "kuzya": {
+      "source": "kuzya/covers/zqwy_kuzya_cover_site.webp",
+      "size": 278220,
+      "mtimeNs": 1774354154727988100
+    },
+    "mannequins": {
+      "source": "mannequins/covers/ZQWY_MANNEQUINS_COVER.jpg",
+      "size": 4764103,
+      "mtimeNs": 1757371067000000000
+    },
+    "mice_inside": {
+      "source": "mice_inside/covers/mice_inside_cover_site.webp",
+      "size": 186666,
+      "mtimeNs": 1774355113108797200
+    },
+    "must_all_things_end": {
+      "source": "must_all_things_end/covers/zqwy_must_all_things_end_cover_site.webp",
+      "size": 647042,
+      "mtimeNs": 1773964503644922200
+    },
+    "na_hrane": {
+      "source": "na_hrane/covers/ZQWY_NA_HRANE_COVER_site.webp",
+      "size": 1964326,
+      "mtimeNs": 1774354320527778800
+    },
+    "new_adventure": {
+      "source": "new_adventure/covers/zqwy_new_adventure_cover_site.webp",
+      "size": 30948,
+      "mtimeNs": 1774355090190272600
+    },
+    "new_tablet": {
+      "source": "new_tablet/covers/tablet_of_the_souls_site.webp",
+      "size": 407138,
+      "mtimeNs": 1773961171146204600
+    },
+    "not_diverse": {
+      "source": "not_diverse/covers/ZQWY_NOT_DIVERSE_COVER.webp",
+      "size": 297662,
+      "mtimeNs": 1773950614823466800
+    },
+    "petunia": {
+      "source": "petunia/covers/zqwy_petunia_cover_site.webp",
+      "size": 77284,
+      "mtimeNs": 1774354736710313100
+    },
+    "rastignac": {
+      "source": "rastignac/covers/RASTIGNAC_ZQWY_COVER.jpg",
+      "size": 312420,
+      "mtimeNs": 1757371068000000000
+    },
+    "runner": {
+      "source": "runner/covers/zqwy_runner_cover_site.webp",
+      "size": 104230,
+      "mtimeNs": 1774355081595213600
+    },
+    "someone": {
+      "source": "someone/covers/someone_cover_site.webp",
+      "size": 471318,
+      "mtimeNs": 1773960546839198000
+    },
+    "the_remaining_one": {
+      "source": "the_remaining_one/covers/the_remaining_one_cover_site.webp",
+      "size": 562944,
+      "mtimeNs": 1774355073840154400
+    },
+    "void_face": {
+      "source": "void_face/covers/zqwy_void_face_cover_site.webp",
+      "size": 148174,
+      "mtimeNs": 1774355059710488200
+    },
+    "voidstorm": {
+      "source": "voidstorm/covers/zqwy_voidstorm_cover_site.webp",
+      "size": 96616,
+      "mtimeNs": 1774199105816832600
+    }
+  }
+}

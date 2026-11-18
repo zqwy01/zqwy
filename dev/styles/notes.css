@@ -1,0 +1,58 @@
+/* --- generated zqwy notes mode (src/notes/ → dev/wiki/zqwy/) --- */
+
+.notes-page { padding-bottom: 60px; }
+.notes-head { margin-top: 12px; }
+.notes-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 22px 0 10px;
+}
+.note-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.note-card:hover,
+.note-card:focus-visible { border-color: var(--focus-border); background: var(--bg-elevated-2); }
+.note-card span { color: var(--muted); font-size: 0.78rem; }
+.notes-empty { margin: 0; color: var(--muted); }
+.notes-article {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  line-height: 1.6;
+}
+.note-header h2,
+.note-preview h2 { margin: 0 0 10px; font-size: 1.25rem; }
+.note-header p { margin: 0 0 16px; color: var(--muted); font-size: 0.8rem; }
+.note-preview + .note-preview { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--border); }
+.notes-article h3 { margin: 18px 0 8px; font-size: 1.1rem; }
+.notes-article h4,
+.notes-article h5 { margin: 14px 0 6px; font-size: 1rem; }
+.notes-article p { margin: 8px 0; }
+.notes-article ul { margin: 8px 0; padding-left: 22px; }
+.notes-article code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--bg-elevated-2);
+  font-size: 0.9em;
+}
+.notes-article pre {
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated-2);
+}
+.notes-article pre code { padding: 0; background: none; }
+.notes-article a { color: var(--text); }

@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07090a">
+  <meta name="description" content="Лабиринт сознаний — браузерный прототип о Zemic: комнаты, терминал и стол со связанными клавишами.">
+  <title>Лабиринт сознаний · Zemic</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/canvas.css">
+  <link rel="stylesheet" href="css/arcade.css">
+</head>
+<body>
+  <div id="stage">
+    <main id="app" aria-label="Лабиринт сознаний">
+      <section id="play" class="play" aria-label="Лабиринт">
+        <canvas id="world-canvas"></canvas>
+        <div id="game-cursor" class="game-cursor hidden" aria-hidden="true">
+          <span class="game-cursor-ring"></span>
+          <span class="game-cursor-dot"></span>
+        </div>
+
+        <div class="touch-ui">
+          <div class="dpad" aria-label="Управление движением">
+            <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Вверх">▲</button>
+            <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Влево">◀</button>
+            <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Вправо">▶</button>
+            <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Вниз">▼</button>
+          </div>
+          <button id="btn-action" class="round-action hidden" type="button" aria-label="Взаимодействие">✦</button>
+        </div>
+
+        <div class="vignette" aria-hidden="true"></div>
+        <div id="swamp-veil" class="swamp-veil" aria-hidden="true"></div>
+
+        <div id="trial-stage" class="trial-stage hidden" aria-label="Испытание Круга Очарования">
+          <canvas id="trial-canvas"></canvas>
+          <div class="trial-touch" aria-label="Управление в круге">
+            <div class="dpad">
+              <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="Вверх">▲</button>
+              <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="Влево">◀</button>
+              <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="Вправо">▶</button>
+              <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="Вниз">▼</button>
+            </div>
+            <button id="trial-seal" class="round-action" type="button" aria-label="Закрыть печать">✦</button>
+          </div>
+        </div>
+
+        <div id="battle-stage" class="fight-hud battle-hud hidden" aria-label="Внезапное выживание аксолотля">
+          <div class="fight-top">
+            <span id="battle-eyebrow" class="fight-eyebrow">ВЫЖИВАНИЕ · АКСОЛОТЛЬ</span>
+            <button id="battle-abort" class="fight-abort" type="button">выйти</button>
+          </div>
+          <div class="fight-stats">
+            <span class="fight-stat"><span class="fight-label">жизни</span> <b id="battle-player-hp">6</b></span>
+            <span class="fight-stat"><span id="battle-enemy-name" class="fight-label">продержаться</span> <b id="battle-beetle-hp">18</b></span>
+          </div>
+          <div class="battle-bars">
+            <div class="battle-bar"><span id="battle-player-bar"></span></div>
+            <div class="battle-bar beetle"><span id="battle-beetle-bar"></span></div>
+          </div>
+          <div id="battle-hint" class="fight-hint">Схватка идёт вместе с треком. Снаряды летят по Лабиринту; зонт — F.</div>
+          <div id="battle-rhythm" class="battle-rhythm hidden" aria-label="Ритм зонта">
+            <div class="battle-rhythm-track">
+              <span id="battle-rhythm-beat" class="battle-rhythm-beat"></span>
+            </div>
+            <span id="battle-rhythm-combo" class="battle-rhythm-combo">ритм ×0</span>
+          </div>
+          <div class="fight-actions">
+            <span id="battle-dash-state" class="battle-reflect-state battle-dash-state">рывок: готов</span>
+            <span id="battle-reflect-state" class="battle-reflect-state">зонт: —</span>
+            <button id="battle-dash" class="fight-btn battle-dash" type="button">⚡ рывок · Shift</button>
+            <button id="battle-reflect" class="fight-btn battle-reflect" type="button" disabled>☂ зонт · F</button>
+            <button id="battle-dash-touch" class="fight-btn fight-touch dash-action" type="button" aria-label="Рывок">⚡</button>
+            <button id="battle-reflect-touch" class="fight-btn fight-touch reflect-action" type="button" aria-label="Раскрыть зонтик">☂</button>
+          </div>
+        </div>
+
+        <div id="chase-stage" class="fight-hud chase-hud hidden" aria-label="Погоня титанобоа">
+          <div class="fight-top">
+            <span class="fight-eyebrow">ПОБЕГ · ТИТАНОБОА</span>
+            <button id="chase-abort" class="fight-abort" type="button">сдаться</button>
+          </div>
+          <div class="fight-stats">
+            <span class="fight-stat"><span class="fight-label">трек</span> <b id="chase-breaths">0%</b></span>
+            <span class="fight-stat"><span class="fight-label">дистанция</span> <b id="chase-time">0 м</b></span>
+          </div>
+          <div class="battle-bars">
+            <div class="battle-bar"><span id="chase-stamina-bar"></span></div>
+          </div>
+          <div id="chase-hint" class="fight-hint">Уходи. Одно касание — и тебя нет. Shift — рывок.</div>
+          <div class="fight-actions">
+            <button id="chase-dash-touch" class="fight-btn fight-touch dash-action" type="button" aria-label="Ускориться">⚡</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="divider" class="divider" role="separator" aria-orientation="horizontal" aria-valuemin="20" aria-valuemax="80" aria-valuenow="56" tabindex="0" aria-label="Разделитель игровой области и терминала">
+        <span class="divider-grip" aria-hidden="true"></span>
+      </div>
+
+      <section id="terminal" class="terminal" aria-label="Терминал">
+        <div id="term-views" class="term-views">
+          <div id="view-main" class="term-view">
+            <div id="log" class="log" role="log" aria-live="polite"></div>
+            <div id="term-context" class="term-context" aria-live="polite"></div>
+            <form id="command-form" class="term-input" autocomplete="off">
+              <label for="command-input" class="prompt-glyph">&gt;</label>
+              <div class="term-field">
+                <span id="command-ghost" class="command-ghost hidden" aria-hidden="true"></span>
+                <input id="command-input" name="command" type="text" placeholder="Введите команду и нажмите отправить" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120">
+              </div>
+              <button class="term-send" type="submit" aria-label="Отправить команду">↵</button>
+            </form>
+          </div>
+
+          <div id="view-inventory" class="term-view hidden" aria-label="Инвентарь">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ГРАФ ПЕРЕНОСИМОГО</span>
+                <h2 id="inv-title">Инвентарь</h2>
+              </div>
+              <div class="inventory-head-tools">
+                <span id="inventory-capacity" class="inventory-capacity">0 / 4</span>
+                <button class="close-btn" id="inventory-close" type="button" aria-label="Закрыть инвентарь">×</button>
+              </div>
+            </header>
+            <div id="inventory-slots" class="inventory-slots" aria-label="Ячейки инвентаря"></div>
+            <div id="inventory-graph" class="canvas-workspace inventory-workspace">
+              <div id="inventory-grid" class="canvas-grid" aria-hidden="true"></div>
+              <div id="inventory-stage" class="canvas-stage">
+                <svg id="inventory-links" class="canvas-links" aria-hidden="true"></svg>
+                <div id="inventory-nodes" class="canvas-elements"></div>
+              </div>
+            </div>
+            <div id="inventory-detail" class="inventory-detail"></div>
+            <p id="inventory-note" class="sheet-note">Тяни узлы, чтобы разложить связи. Выбери предмет, чтобы открыть его действия.</p>
+          </div>
+
+          <div id="view-map" class="term-view hidden" aria-label="Карта">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ЛОКАЛЬНЫЙ УЧАСТОК</span>
+                <h2 id="map-title">Карта</h2>
+              </div>
+              <button class="close-btn" id="map-close" type="button" aria-label="Закрыть карту">×</button>
+            </header>
+            <canvas id="map-canvas"></canvas>
+            <p class="sheet-note" id="map-note">Пока это только память о пройденном.</p>
+          </div>
+
+          <div id="view-canvas" class="term-view hidden" aria-label="Стол">
+            <header class="canvas-head">
+              <div>
+                <h2 id="canvas-title">Стол</h2>
+              </div>
+              <button id="canvas-exit" class="exit-btn canvas-close" type="button" aria-label="Закрыть стол">×</button>
+            </header>
+            <span id="canvas-hint" class="canvas-tip">Перетаскивай элементы. Нажми, чтобы выполнить. Свяжи клавишу с целями, чтобы запускать их одной кнопкой.</span>
+
+            <div id="canvas-workspace" class="canvas-workspace" aria-label="Рабочая поверхность стола">
+              <div id="canvas-grid" class="canvas-grid" aria-hidden="true"></div>
+              <div id="canvas-stage" class="canvas-stage">
+                <svg id="canvas-links" class="canvas-links" aria-hidden="true"></svg>
+                <div id="canvas-elements" class="canvas-elements"></div>
+                <div id="canvas-empty" class="canvas-empty">
+                  <span>здесь пока пусто</span>
+                  <small>Добавь найденную вещь, команду или клавишу из панели «+». Клавишу можно связать с несколькими целями.</small>
+                </div>
+              </div>
+            </div>
+
+            <div id="canvas-keys" class="canvas-keys hidden">
+              <div class="keys-head">
+                <span>СХЕМА УПРАВЛЕНИЯ</span>
+                <div id="canvas-keys-tabs" class="keys-tabs" role="tablist" aria-label="Устройство">
+                  <button type="button" class="active" data-device="keyboard" role="tab" aria-selected="true">клавиатура</button>
+                  <button type="button" data-device="gamepad" role="tab" aria-selected="false">геймпад</button>
+                  <button type="button" data-device="phone" role="tab" aria-selected="false">телефон</button>
+                  <button type="button" data-device="mouse" role="tab" aria-selected="false">мышь</button>
+                </div>
+              </div>
+              <p id="canvas-keyboard-hint" class="scheme-intro">Нажми на клавишу — она сразу появится на столе.</p>
+              <div id="canvas-keyboard" class="canvas-keyboard" aria-label="Интерактивная клавиатура"></div>
+              <div id="canvas-keys-body" class="keys-body"></div>
+            </div>
+
+            <div id="canvas-drawer" class="canvas-drawer hidden">
+              <div class="drawer-head">
+                <span>ДОБАВИТЬ НА СТОЛ</span>
+                <button id="canvas-drawer-close" class="mini-close" type="button" aria-label="Закрыть панель">×</button>
+              </div>
+              <div id="canvas-add-list" class="canvas-add-list"></div>
+            </div>
+
+            <div class="canvas-response" aria-live="polite">
+              <span id="canvas-response-command" class="cr-command">готово</span>
+              <span id="canvas-response-reply" class="cr-reply">Нажми на размещённый элемент, чтобы выполнить его команду.</span>
+            </div>
+          </div>
+
+          <div id="view-card" class="term-view hidden" aria-label="Просмотр карты">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">КАРТА</span>
+                <h2 id="card-title">Карта</h2>
+              </div>
+              <button class="close-btn" id="card-close" type="button" aria-label="Вернуться к столу">×</button>
+            </header>
+            <div class="card-detail">
+              <div class="card-detail-art">
+                <img id="card-art" alt="">
+              </div>
+              <div class="card-detail-copy">
+                <div id="card-command" class="inv-command"></div>
+                <p id="card-description"></p>
+                <div id="card-state" class="card-state"></div>
+                <div class="card-detail-actions">
+                  <button id="card-run" class="primary-btn" type="button">произнести</button>
+                  <button id="card-place" class="ghost-btn" type="button">на стол</button>
+                  <button id="card-back" class="ghost-btn" type="button">← к столу</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-story" class="term-view hidden" aria-label="Ветвь истории">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ВЕТВЬ</span>
+                <h2 id="story-title">Сюжет</h2>
+              </div>
+              <button class="close-btn" id="story-close" type="button" aria-label="Закрыть ветвь истории">×</button>
+            </header>
+            <div id="story-tree" class="canvas-workspace story-tree" aria-label="Ветвь истории">
+              <div id="story-canvas-grid" class="canvas-grid" aria-hidden="true"></div>
+              <div id="story-stage" class="canvas-stage story-stage">
+                <svg id="story-links" class="canvas-links story-edges" aria-hidden="true"></svg>
+                <div id="story-nodes" class="canvas-elements story-board"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-settings" class="term-view hidden" aria-label="Настройки">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ИНТЕРФЕЙС</span>
+                <h2 class="settings-title">Настройки</h2>
+                <p class="settings-subtitle">интерфейс, звук и данные</p>
+              </div>
+              <button class="close-btn" id="settings-close" type="button" aria-label="Закрыть настройки">×</button>
+            </header>
+            <div class="settings-body">
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-language-title">Язык</span>
+                  <b id="setting-language-state">русский</b>
+                </div>
+                <div class="setting-presets" id="setting-language">
+                  <button type="button" data-lang="ru">русский</button>
+                  <button type="button" data-lang="en">English</button>
+                  <button type="button" data-lang="de">Deutsch</button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-font-title">Шрифт</span>
+                  <b id="setting-font-current">14 px</b>
+                </div>
+                <p id="setting-font-note" class="setting-note-inline">Общий размер и размеры по разделам настраиваются в отдельном разделе.</p>
+                <button id="open-font-settings" class="ghost-btn" type="button">Настройки шрифта →</button>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-music-title">Музыка</span>
+                  <b id="music-state">включена</b>
+                </div>
+                <p id="setting-music-note" class="setting-note-inline">Плеер: остановка, перемотка, громкость, волна и скорость воспроизведения.</p>
+                <button id="open-music" class="ghost-btn" type="button">Открыть плеер →</button>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-data-title">Данные</span>
+                  <b>браузер</b>
+                </div>
+                <div class="setting-presets data-actions">
+                  <button id="data-save" type="button">сохранить мир</button>
+                  <button id="data-load" type="button">загрузить автосохранение</button>
+                  <button id="data-export" type="button">экспорт мира</button>
+                  <button id="data-import" type="button">импорт мира</button>
+                  <input id="data-import-file" class="hidden" type="file" accept="application/json,.json">
+                </div>
+                <div class="save-slots">
+                  <div class="save-slots-head">
+                    <span id="save-slots-title">Именованные сохранения</span>
+                    <b id="save-slot-count">0</b>
+                  </div>
+                  <select id="save-slot-select" class="save-slot-select" aria-label="Именованное сохранение"></select>
+                  <input id="save-slot-name" class="save-slot-name" type="text" maxlength="40" placeholder="имя сохранения" aria-label="Имя сохранения">
+                  <div class="setting-presets save-slot-actions">
+                    <button id="save-slot-save" type="button">сохранить в слот</button>
+                    <button id="save-slot-load" type="button">загрузить слот</button>
+                    <button id="save-slot-rename" type="button">переименовать</button>
+                    <button id="save-slot-delete" type="button">удалить</button>
+                  </div>
+                  <p id="save-slot-status" class="setting-note-inline">Слоты хранятся в браузере отдельно от автосохранения.</p>
+                </div>
+              </section>
+
+              <button id="open-term-settings" class="ghost-btn" type="button">Настройки терминала →</button>
+              <button id="settings-reset" class="ghost-btn" type="button">вернуть по умолчанию</button>
+            </div>
+          </div>
+
+          <div id="view-term-settings" class="term-view hidden" aria-label="Настройки терминала">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ТЕРМИНАЛ</span>
+                <h2 class="settings-title">Настройки: терминал</h2>
+                <p class="settings-subtitle">текст и запись событий</p>
+              </div>
+              <button class="close-btn" id="term-settings-close" type="button" aria-label="Закрыть настройки терминала">×</button>
+            </header>
+            <div class="settings-body">
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-speed-title">Скорость появления текста</span>
+                  <b id="setting-speed-value">70 зн/с</b>
+                </div>
+                <div class="setting-control-row">
+                  <input id="setting-speed-number" class="setting-number" type="number" min="0" max="220" step="2" value="70" inputmode="numeric" aria-label="Скорость появления текста в знаках в секунду">
+                  <input id="setting-speed" class="setting-range" type="range" min="0" max="220" step="2" value="70" aria-label="Скорость появления текста">
+                </div>
+                <div class="setting-presets" id="setting-speed-presets">
+                  <button type="button" data-speed="0">сразу</button>
+                  <button type="button" data-speed="30">медленно</button>
+                  <button type="button" data-speed="70">обычно</button>
+                  <button type="button" data-speed="130">быстро</button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-log-title">Запись действий</span>
+                  <b id="setting-log-state">выключено</b>
+                </div>
+                <label class="setting-toggle">
+                  <input id="setting-log-enabled" type="checkbox">
+                  <span id="setting-log-enable-text">записывать события в терминал</span>
+                </label>
+                <div class="setting-log-grid">
+                  <label class="setting-toggle">
+                    <input id="setting-log-terminal" type="checkbox">
+                    <span id="setting-log-terminal-text">терминал</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-scenes" type="checkbox">
+                    <span id="setting-log-scenes-text">сцены</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-system" type="checkbox">
+                    <span id="setting-log-system-text">система</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-world" type="checkbox">
+                    <span id="setting-log-world-text">мир</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-movement" type="checkbox">
+                    <span id="setting-log-movement-text">движение</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-actions" type="checkbox">
+                    <span id="setting-log-actions-text">действия</span>
+                  </label>
+                  <label class="setting-toggle">
+                    <input id="setting-log-commands" type="checkbox">
+                    <span id="setting-log-commands-text">команды</span>
+                  </label>
+                </div>
+                <p id="setting-log-note" class="setting-note-inline">Запись действий — это фильтр полезного текста. Например, «движение» записывает шаги. Команда «логгирование» включает всё или одну категорию: «логгирование движение», «логгирование действия», «логгирование терминал».</p>
+              </section>
+
+              <button id="term-settings-back" class="ghost-btn" type="button">← общие настройки</button>
+            </div>
+          </div>
+
+          <div id="view-font-settings" class="term-view hidden" aria-label="Настройки шрифта">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ИНТЕРФЕЙС</span>
+                <h2 class="settings-title">Настройки: шрифт</h2>
+                <p class="settings-subtitle">общий размер и размеры по разделам</p>
+              </div>
+              <button class="close-btn" id="font-settings-close" type="button" aria-label="Закрыть настройки шрифта">×</button>
+            </header>
+            <div class="settings-body">
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-font-size-title">Общий размер шрифта</span>
+                  <b id="setting-font-value">14 px</b>
+                </div>
+                <div class="setting-control-row">
+                  <input id="setting-font-number" class="setting-number" type="number" min="10" max="24" step="1" value="14" inputmode="numeric" aria-label="Общий размер шрифта в пикселях">
+                  <input id="setting-font" class="setting-range" type="range" min="10" max="24" step="1" value="14" aria-label="Общий размер шрифта">
+                </div>
+                <div class="setting-presets" id="setting-font-presets">
+                  <button type="button" data-font="12">12</button>
+                  <button type="button" data-font="14">14</button>
+                  <button type="button" data-font="16">16</button>
+                  <button type="button" data-font="18">18</button>
+                </div>
+                <p id="setting-font-size-note" class="setting-note-inline">Общий размер применяется ко всему интерфейсу.</p>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="setting-overrides-title">Размеры по разделам</span>
+                  <b>необязательно</b>
+                </div>
+                <div class="setting-override" data-override="terminal">
+                  <span class="setting-override-name" id="setting-override-terminal-name">терминал</span>
+                  <input id="setting-font-terminal-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта терминала; 0 — как общий">
+                  <input id="setting-font-terminal" class="setting-range" type="range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта терминала">
+                  <button type="button" class="setting-auto" data-font-clear="terminal">авто</button>
+                </div>
+                <div class="setting-override" data-override="table">
+                  <span class="setting-override-name" id="setting-override-table-name">стол</span>
+                  <input id="setting-font-table-number" class="setting-number" type="number" min="0" max="28" step="1" value="0" inputmode="numeric" aria-label="Размер шрифта стола; 0 — как общий">
+                  <input id="setting-font-table" class="setting-range" min="0" max="28" step="1" value="0" aria-label="Размер шрифта стола">
+                  <button type="button" class="setting-auto" data-font-clear="table">авто</button>
+                </div>
+                <p id="setting-overrides-note" class="setting-note-inline">0 — наследовать общий размер. Предметы и клавиши на столе масштабируются вместе с разделом.</p>
+              </section>
+
+              <button id="font-settings-back" class="ghost-btn" type="button">← общие настройки</button>
+            </div>
+          </div>
+
+          <div id="view-music" class="term-view hidden" aria-label="Музыкальный плеер">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow">ЗВУК</span>
+                <h2 class="settings-title">Музыка</h2>
+                <p class="settings-subtitle">плеер лабиринта</p>
+              </div>
+              <button class="close-btn" id="music-close" type="button" aria-label="Закрыть плеер">×</button>
+            </header>
+            <div class="settings-body music-body">
+              <section class="setting-group music-card">
+                <div class="setting-head">
+                  <span>Трек</span>
+                  <b id="music-player-state">включена</b>
+                </div>
+                <div class="music-meta">
+                  <span id="music-cue">Лабиринт</span>
+                  <span id="music-time">0:00 / 0:00</span>
+                </div>
+                <canvas id="music-wave" class="music-wave" width="640" height="120" aria-label="Полная волна трека, нажми, чтобы перемотать"></canvas>
+                <input id="music-seek" class="music-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
+                <p class="setting-note-inline music-seek-note">Волна показывает весь трек. Нажми на неё или веди ползунок, чтобы перейти в любую точку.</p>
+                <div class="music-controls">
+                  <button id="music-toggle" class="ghost-btn music-symbol" type="button" aria-label="Играть" title="Играть">▶</button>
+                  <button id="music-stop" class="ghost-btn music-symbol" type="button" aria-label="Стоп и в начало" title="Стоп и в начало">■</button>
+                </div>
+              </section>
+
+              <section class="setting-group music-library">
+                <div class="setting-head">
+                  <span id="music-library-title">Кассеты</span>
+                  <b id="music-library-count">0</b>
+                </div>
+                <label class="music-picker">
+                  <span>альбом</span>
+                  <select id="music-album" class="music-select" aria-label="Кассета или альбом"></select>
+                </label>
+                <label class="music-picker">
+                  <span>дорожка</span>
+                  <select id="music-track" class="music-select" aria-label="Дорожка кассеты"></select>
+                </label>
+                <button id="music-queue-add" class="ghost-btn music-queue-add" type="button">+ в очередь</button>
+                <p class="setting-note-inline" id="music-library-note">Все найденные альбомы подключаются автоматически. Выбери дорожку — она сразу зазвучит, или поставь её в очередь.</p>
+              </section>
+
+              <section class="setting-group music-queue">
+                <div class="setting-head">
+                  <span id="music-queue-title">Очередь кассет</span>
+                  <b id="music-queue-count">0</b>
+                </div>
+                <div id="music-queue-list" class="music-queue-list" aria-live="polite"></div>
+                <p class="setting-note-inline music-queue-empty" id="music-queue-empty">Очередь пуста. Добавь дорожку кнопкой «в очередь».</p>
+                <div class="music-queue-actions">
+                  <button id="music-queue-play" class="ghost-btn" type="button">▶ играть очередь</button>
+                  <button id="music-queue-next" class="ghost-btn" type="button">⏭ следующая</button>
+                  <button id="music-queue-clear" class="ghost-btn" type="button">очистить</button>
+                </div>
+              </section>
+
+              <section class="setting-group music-volume-group">
+                <div class="setting-head">
+                  <span id="music-volume-label">Громкость</span>
+                  <b id="music-volume-value">55%</b>
+                </div>
+                <div class="music-volume">
+                  <span class="music-volume-icon" aria-hidden="true">🔈</span>
+                  <input id="music-volume" class="setting-range" type="range" min="0" max="100" step="1" value="55" aria-label="Громкость музыки">
+                  <span class="music-volume-icon" aria-hidden="true">🔊</span>
+                  <button id="music-mute" class="ghost-btn music-mute" type="button" aria-pressed="false">🔇 выкл</button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-head">
+                  <span id="music-rate-title">Скорость</span>
+                  <b id="music-rate-value">1.00×</b>
+                </div>
+                <input id="music-rate" class="setting-range" type="range" min="50" max="200" step="5" value="100" aria-label="Скорость воспроизведения">
+                <div class="setting-presets music-rate-presets">
+                  <button type="button" data-rate="75">медленно</button>
+                  <button type="button" data-rate="100">обычно</button>
+                  <button type="button" data-rate="125">быстро</button>
+                  <button type="button" data-rate="150">очень быстро</button>
+                </div>
+                <p id="music-rate-note" class="setting-note-inline">Замедление и ускорение меняют темп воспроизведения без перезапуска трека.</p>
+                <div class="setting-head algorithm-head">
+                  <span id="music-algorithm-title">Алгоритм скорости</span>
+                  <b id="music-algorithm-current">темп</b>
+                </div>
+                <div id="music-algorithm-presets" class="setting-presets music-algorithm-presets">
+                  <button type="button" data-algorithm="tempo">темп</button>
+                  <button type="button" data-algorithm="pitch">высота</button>
+                  <button type="button" data-algorithm="drift">дрейф</button>
+                </div>
+              </section>
+
+              <button id="music-back" class="ghost-btn" type="button">← общие настройки</button>
+            </div>
+          </div>
+
+          <div id="view-arcade" class="term-view hidden" aria-label="Аркадный автомат">
+            <header class="sheet-head">
+              <div>
+                <span class="eyebrow" id="arcade-eyebrow">АРКАДА</span>
+                <h2 class="settings-title" id="arcade-title">Автомат</h2>
+                <p class="settings-subtitle" id="arcade-subtitle">кассеты zqwy · ритм-каталог</p>
+              </div>
+              <button class="close-btn" id="arcade-close" type="button" aria-label="Закрыть автомат">×</button>
+            </header>
+            <div class="arcade-body">
+              <div class="arcade-picker" id="arcade-picker">
+                <div class="arcade-picker-head">
+                  <span class="arcade-label" id="arcade-insert-label">ВСТАВЬ КАССЕТУ</span>
+                  <span class="arcade-count" id="arcade-count"></span>
+                </div>
+                <div class="arcade-slot" id="arcade-slot">
+                  <span class="arcade-slot-label">ГНЕЗДО</span>
+                  <span class="arcade-slot-name" id="arcade-slot-name">пусто</span>
+                  <button class="arcade-slot-eject hidden" id="arcade-slot-eject" type="button">⏏ вынуть</button>
+                </div>
+                <div class="arcade-cassettes" id="arcade-cassettes"></div>
+                <p class="arcade-empty hidden" id="arcade-empty"></p>
+              </div>
+              <div class="arcade-screen-wrap hidden" id="arcade-screen-wrap">
+                <div class="arcade-screen-head">
+                  <div class="arcade-now">
+                    <span class="arcade-label" id="arcade-now-label">АРКАДА</span>
+                    <strong class="arcade-now-track" id="arcade-now-track"></strong>
+                  </div>
+                  <button class="arcade-eject" id="arcade-eject" type="button" aria-label="Извлечь кассету" title="Извлечь кассету">⏏</button>
+                </div>
+                <iframe id="arcade-frame" class="arcade-frame" title="Ритм-каталог" allow="autoplay; fullscreen" loading="lazy"></iframe>
+                <p class="arcade-hint" id="arcade-hint">Выбери дорожку — автомат включит её. Играющие клавиши: D F J K или стрелки. Esc в кадре — пауза.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-trial" class="term-view hidden" aria-label="Испытание Круга Очарования">
+            <div id="trial-console" class="trial-console">
+              <div class="trial-head">
+                <span class="eyebrow">КРУГ ОЧАРОВАНИЯ</span>
+              </div>
+              <div class="trial-hud">
+                <div class="trial-stat"><span class="trial-label">печати</span><b id="trial-seals">0 / 2</b></div>
+                <div class="trial-stat"><span class="trial-label">искры</span><b id="trial-sparks">3</b></div>
+                <div class="trial-stat"><span class="trial-label">круг</span><b id="trial-time">0.0</b></div>
+              </div>
+              <div id="trial-hint" class="trial-hint">Двигайся. Печать закроется — нажми ПРОБЕЛ.</div>
+              <button id="trial-abort" class="ghost-btn trial-abort" type="button">покинуть круг</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <audio id="soundtrack" preload="auto" loop aria-hidden="true"></audio>
+  <audio id="soundtrack-b" preload="auto" aria-hidden="true"></audio>
+
+  <noscript>
+    <div class="noscript">Для этой игры нужен JavaScript. Включите его в браузере.</div>
+  </noscript>
+
+  <script src="js/build-info.js"></script>
+  <script src="js/tracks.generated.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/fonts.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/damage-fx.js"></script>
+  <script src="js/terminal.js"></script>
+  <script src="js/viewport.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/worldplay.js"></script>
+  <script src="js/commands.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/mapview.js"></script>
+  <script src="js/table.js"></script>
+  <script src="js/trial.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/titanoboa.js"></script>
+  <script src="js/fauna.js"></script>
+  <script src="js/mirror.js"></script>
+  <script src="js/eared.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/arcade.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

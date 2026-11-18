@@ -1,0 +1,498 @@
+/* --- universal persistent player (injected by scripts/player.js) --- */
+
+.player-bar {
+  position: fixed;
+  /* above the full-screen catalog overlay (999999) — playback must stay
+     visible and controllable in catalog mode; the logo row at 1000000 sits
+     at the top of the page and never overlaps the bar. */
+  z-index: 1000001;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px var(--page-padding) calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.4);
+  /* Open/close animation: the whole bar crawls up from beyond the bottom edge
+     of the viewport instead of simply fading in. */
+  transform: translateY(calc(100% + 12px));
+  opacity: 0;
+  transition:
+    transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.22s ease;
+  will-change: transform;
+}
+.player-bar.is-visible { transform: none; opacity: 1; }
+:root[data-theme="light"] .player-bar { box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.12); }
+
+.player-inner {
+  display: grid;
+  /* Equal side columns put the transport controls in the exact centre of the
+     bar in both engines. The seek row always spans the whole width, so the
+     waveform gets every available pixel. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    "now controls tools"
+    "seek seek seek";
+  align-items: center;
+  gap: 10px 14px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  /* The contents follow the bar a moment later, which makes the entrance read
+     as a single panel sliding out from below rather than a static pop-in. */
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.24s ease 0.06s,
+    transform 0.34s cubic-bezier(0.16, 1, 0.3, 1) 0.06s;
+}
+.player-bar.is-visible .player-inner { opacity: 1; transform: none; }
+.player-now { grid-area: now; justify-self: start; max-width: 100%; }
+.player-controls { grid-area: controls; justify-self: center; }
+.player-seek { grid-area: seek; }
+.player-tools {
+  grid-area: tools;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.player-now { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.player-cover {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated-2);
+  overflow: hidden;
+}
+/* Album covers are pixel art — keep the original pixels sharp. */
+.player-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+.player-cover-letter { font-size: 1.2rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.player-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  /* JS sets --title-chars from the track name length, so the block hugs the
+     title instead of leaving a wide empty gap before the controls. */
+  width: calc(var(--title-chars, 18) * 0.58em + 8px);
+  max-width: 100%;
+}
+.player-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; font-weight: 600; }
+.player-album { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8rem; }
+
+.player-controls { display: flex; align-items: center; gap: 4px; }
+
+.player-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.player-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.player-btn:hover, .player-btn:focus-visible { border-color: var(--border); background: var(--bg-elevated-2); }
+.player-play { position: relative; width: 42px; height: 42px; border-color: var(--border); background: var(--bg-elevated-2); }
+/* Cross-fade and scale the two icons instead of swapping `display`, so
+   starting and pausing are visibly animated in the bar as well. */
+.player-play svg {
+  position: absolute;
+  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.player-play .icon-pause { opacity: 0; transform: scale(0.5) rotate(-30deg); }
+.player-bar.is-playing .player-play .icon-play { opacity: 0; transform: scale(0.5) rotate(30deg); }
+.player-bar.is-playing .player-play .icon-pause { opacity: 1; transform: none; }
+
+.player-seek { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.player-time { flex: 0 0 auto; min-width: 34px; color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.player-time:last-of-type { text-align: right; }
+.player-range { width: 100%; min-width: 0; height: 18px; margin: 0; accent-color: var(--text); cursor: pointer; }
+.player-waveform { flex: 1 1 auto; min-width: 0; height: 64px; }
+.player-waveform canvas { display: block; width: 100%; height: 100%; }
+/* Waviz draws into a canvas; keep it inside the shared waveform row. */
+.player-waveform .player-waviz-canvas { width: 100%; height: 100%; }
+/* Peaks.js draws its own layers and needs an explicit full-size surface. */
+.player-waveform .peaks-zoomview,
+.player-waveform > div { width: 100%; height: 100%; }
+
+.player-extra { display: flex; align-items: center; gap: 4px; }
+.player-queue-toggle { position: relative; }
+.player-queue-count {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border: 1px solid var(--bg-elevated);
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+.player-queue-count[hidden] { display: none; }
+.player-volume { width: 90px; }
+/* The gear turns as the settings popover opens and turns back on close. */
+.player-settings-toggle svg { transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.player-settings-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+.player-toggle { position: relative; }
+.player-toggle[aria-pressed="true"] { border-color: var(--text); background: var(--text); color: var(--bg); }
+.player-repeat-one {
+  position: absolute; right: 3px; bottom: 1px; display: none;
+  padding: 0 2px; font-size: 0.62rem; font-weight: 700; line-height: 1;
+}
+.player-toggle[data-repeat="one"] .player-repeat-one { display: block; }
+.player-mute .icon-muted { display: none; }
+.player-bar.is-muted .player-mute .icon-volume { display: none; }
+.player-bar.is-muted .player-mute .icon-muted { display: block; }
+.player-close { color: var(--muted); }
+.player-close:hover { color: var(--text); }
+
+.player-status {
+  max-width: var(--max-width); margin: 4px auto 0;
+  color: var(--muted); font-size: 0.82rem;
+}
+.player-status:empty { display: none; }
+
+/* leave room for the fixed bar on every page */
+body.has-player .page-content { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+/* the second (waveform) row makes the bar taller */
+body.has-player.has-waveform .page-content { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+
+/* The catalog overlay is a second full-screen page; its scrollable content
+   needs the same clearance or the last menu items hide behind the player. */
+body.has-player .site-menu-content { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+
+/* --- settings popover in the bar + settings block on the music page --- */
+.player-settings {
+  position: absolute;
+  right: var(--page-padding);
+  /* The panel stays above the bar (otherwise it would leave the viewport),
+     but it now opens downward from its top edge instead of growing upward. */
+  bottom: calc(100% + 8px);
+  width: min(360px, calc(100vw - 2 * var(--page-padding)));
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  /* Open/close are both animated: JS removes [hidden], forces a reflow and
+     adds .is-open on open; on close it removes the class and only restores
+     [hidden] after the transition has finished. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-14px) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.24s;
+}
+.player-settings.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
+}
+:root[data-theme="light"] .player-settings { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }
+
+/* Upcoming tracks panel. Same downward motion as the settings popover, but it
+   opens from the queue button on the left of the transport tools. */
+.player-queue {
+  position: absolute;
+  right: var(--page-padding);
+  bottom: calc(100% + 8px);
+  width: min(360px, calc(100vw - 2 * var(--page-padding)));
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-14px) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.24s;
+}
+.player-queue.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
+}
+:root[data-theme="light"] .player-queue { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }
+.player-queue-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.player-queue-head strong { font-size: 0.95rem; }
+.player-queue-actions { display: flex; align-items: center; gap: 4px; }
+.player-queue-text-btn {
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.player-queue-text-btn:hover,
+.player-queue-text-btn:focus-visible { color: var(--text); border-color: var(--border); }
+.player-queue-close { width: 28px; height: 28px; font-size: 1.2rem; }
+.player-queue-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.player-queue-item { display: flex; align-items: stretch; gap: 4px; }
+.player-queue-play {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.player-queue-play:hover,
+.player-queue-play:focus-visible { border-color: var(--focus-border); }
+.player-queue-title { overflow: hidden; font-size: 0.86rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.player-queue-album { overflow: hidden; color: var(--muted); font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+.player-queue-remove { flex: 0 0 30px; width: 30px; height: 30px; color: var(--muted); font-size: 1.1rem; }
+.player-queue-empty { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.4; }
+.player-queue-empty[hidden] { display: none; }
+
+.player-settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.player-settings-head strong { font-size: 0.95rem; }
+.player-settings-close { width: 28px; height: 28px; font-size: 1.2rem; }
+.player-settings-body { display: flex; flex-direction: column; gap: 10px; }
+.player-settings-hint { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+.player-settings label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; line-height: 1.3; }
+.player-settings input[type="radio"],
+.player-settings input[type="checkbox"] { accent-color: var(--text); margin-top: 2px; }
+/* collapsible settings block inside the music sidebar */
+.player-settings-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+.player-settings-block summary {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  list-style: none;
+}
+.player-settings-block summary::-webkit-details-marker { display: none; }
+.player-settings-block summary::after {
+  content: "▾";
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.player-settings-block[open] summary::after { transform: rotate(180deg); }
+.player-settings-block > [data-player-settings-mount] { padding: 0 12px 12px; }
+
+/* Compact engine picker: one select instead of nine stacked radio rows. */
+.settings-field { display: flex; flex-direction: column; gap: 5px; }
+.settings-label { font-size: 0.86rem; font-weight: 600; }
+.settings-select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid var(--menu-search-border);
+  border-radius: 8px;
+  background: var(--menu-search-bg);
+  color: var(--menu-search-text);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.settings-select:focus {
+  outline: none;
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px rgba(128, 128, 128, 0.28);
+}
+
+/* --- visible library UI panel ("engine lab") --- */
+.engine-lab {
+  position: absolute;
+  left: var(--page-padding);
+  bottom: calc(100% + 8px);
+  width: min(480px, calc(100vw - 2 * var(--page-padding)));
+  max-height: min(70vh, 440px);
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-14px) scale(0.98);
+  transform-origin: top left;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.24s;
+}
+.engine-lab.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
+}
+:root[data-theme="light"] .engine-lab { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }
+.engine-lab-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.engine-lab-heading { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.engine-lab-heading strong { font-size: 0.95rem; }
+.engine-lab-heading span { color: var(--muted); font-size: 0.78rem; line-height: 1.3; }
+.engine-lab-body { min-height: 90px; }
+.lab-analyser {
+  display: block;
+  width: 100%;
+  height: 110px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated-2);
+}
+.lab-analyser-meta { display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); font-size: 0.78rem; }
+.lab-mediaelement { min-height: 54px; }
+.lab-mediaelement .mejs__container { width: 100%; }
+.lab-amplitude {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated-2);
+}
+.lab-amplitude-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lab-amplitude-cover {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg) center / cover no-repeat;
+  color: var(--muted);
+}
+.lab-amplitude-cover:empty::before { content: "♪"; display: flex; align-items: center; justify-content: center; height: 100%; font-size: 1.3rem; }
+.lab-amplitude-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lab-amplitude-title { overflow: hidden; font-size: 0.95rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.lab-amplitude-artist { color: var(--muted); font-size: 0.78rem; }
+.lab-amplitude input[type="range"] { width: 100%; accent-color: var(--text); cursor: pointer; }
+.lab-amplitude-row { display: flex; align-items: center; gap: 8px; }
+.lab-amplitude-play {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.lab-amplitude-sep { color: var(--muted); }
+.lab-amplitude-row .amplitude-current-time,
+.lab-amplitude-row .amplitude-duration-time { min-width: 34px; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.lab-amplitude-row .amplitude-volume-slider { flex: 1 1 auto; min-width: 50px; }
+.lab-aplayer { min-height: 66px; }
+.lab-aplayer .aplayer { margin: 0; box-shadow: none; }
+.lab-jplayer { min-width: 0; }
+.lab-jplayer .jp-audio { max-width: 100%; }
+
+@media (max-width: 900px) {
+  .player-volume { width: 70px; }
+}
+
+@media (max-width: 760px) {
+  .player-inner,
+  .player-bar.has-waveform .player-inner {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas:
+      "now controls ."
+      "seek seek seek"
+      "tools tools tools";
+    gap: 8px 10px;
+  }
+  .player-now { justify-self: start; }
+  .player-tools { justify-self: end; }
+  .player-volume { width: 120px; }
+  body.has-player .page-content { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
+  body.has-player.has-waveform .page-content { padding-bottom: calc(230px + env(safe-area-inset-bottom)); }
+  body.has-player .site-menu-content { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }
+  body.has-player.has-waveform .site-menu-content { padding-bottom: calc(240px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 520px) {
+  .player-btn { width: 34px; height: 34px; }
+  .player-play { width: 40px; height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-bar,
+  .player-bar.is-visible .player-inner,
+  .player-inner,
+  .player-settings,
+  .player-settings.is-open,
+  .player-queue,
+  .player-queue.is-open,
+  .engine-lab,
+  .engine-lab.is-open,
+  .player-settings-toggle svg,
+  .player-play svg,
+  .player-settings-block summary::after { transition: none; }
+}

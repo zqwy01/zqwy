@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>zqwy — notes</title>
+  <meta name="description" content="Заметки zqwy в формате markdown">
+  <link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../../styles/menu/menu.css">
+  <link rel="stylesheet" href="../../styles/menu/menu_logo.css">
+  <link rel="stylesheet" href="../../styles/base.css">
+  <link rel="stylesheet" href="../../styles/notes.css">
+  <link rel="stylesheet" href="../../styles/player.css">
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem("zqwy.site.settings.v1");
+        var s = raw ? JSON.parse(raw) : null;
+        var theme = s && s.theme ? s.theme : "dark";
+        if (theme === "system") {
+          theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        document.documentElement.lang = s && s.language === "en" ? "en" : "ru";
+      } catch (e) { document.documentElement.dataset.theme = "dark"; }
+    })();
+  </script>
+</head>
+<body>
+  <main class="page">
+    <div class="page-content notes-page">
+      <div class="container menu-button-container" id="menuButtonContainer">
+        <div class="menu-trigger-row">
+          <a class="menu-open-button" id="menuOpenButton" href="../../" data-back aria-label="Назад" data-i18n-aria-label="back">
+            <img class="menu-open-image" src="../../assets/icons/favicon.ico" alt="" aria-hidden="true">
+          </a>
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск" data-i18n-aria-label="siteSearch">
+            <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
+          </form>
+        </div>
+      </div>
+      <header class="home-head notes-head">
+        <h1 class="home-title">zqwy notes</h1>
+        <p class="home-heading" data-i18n="notesHeading">Заметки в формате markdown, собранные из src/notes/.</p>
+      </header>
+      <article class="notes-article">
+<nav class="notes-nav" aria-label="Заметки">
+          <a class="note-card" href="./folk.html"><strong>folk</strong><span>folk.md</span></a>
+        </nav>
+        <section class="note-preview" id="note-folk">
+          <h2>folk</h2>
+          <p>Эстетика: Инди-Фолк; Слушать: Леонарда Коэна; Читать: Унесённые Ветром; Спорить: Навсегда ли потеряна культура, на которой и была построена прекрасная, но и в чём-то ужасная современность</p>
+          <p>Для которых мылые случаи неприемлемы чем гигантские</p>
+          <p>Ведь действительно: зачем читать, к примеру, «Войну и мир», когда можно с лёгкостью объявить его «устаревшим». Жить в ностальгии — это вовсе не решение проблемы наследования; это лишь воспоминание о прошлом, словно ядовитая сладость, которая сообщает только одну мысль: то, что было раньше, уже не будет никогда. Однако с этим утверждением можно заявить о том, что одна повестка сменится другой. И проблема именно в том, что это как маятник, а не решение, которое выстраивает баланс, который и создаёт ту гармонию, когда каждый элемент занимает собственное место в соответствии с реальностью наследия, а не с ирреальностью через мнимую справедливость, которую почему-то реализуют за чью-то утрату. Ведь реальность в том, что жажда не мести, а именно правосудия. Вопрос в том, кто первым откажется от языка возмездия в пользу языка признания, — и это уже вопрос не эстетический, а политический, что делает его значительно медленнее, но тем не менее за этим гораздо познавательнее созидать и учиться.</p>
+          <p>И всё благодаря устройству, сети, инфраструктуре, которую придумали конкретные люди конкретной культуры, конкретного воспитания и конкретного происхождения. Это не значит, что отличные хуже или лучше: на то они и другие, что не способны понять, как это всё существует, и быть благодарными за это.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+  <script src="../../scripts/transition.js" defer></script>
+  <script src="../../scripts/menu.js" defer></script>
+  <script src="../../scripts/player.js" defer></script>
+</body>
+</html>

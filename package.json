@@ -1,0 +1,21 @@
+{
+  "name": "zqwy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Личный поисковый портал: логотип + поиск, каталог, темы",
+  "type": "commonjs",
+  "scripts": {
+    "build": "bash scripts/build_dist.sh",
+    "covers": "python3 scripts/build_covers.py",
+    "catalog": "node scripts/build_music_catalog.mjs",
+    "index": "node scripts/build_search_index.mjs",
+    "notes": "node scripts/build_wiki_notes.mjs",
+    "serve:dev": "python3 -m http.server 8080",
+    "serve:dist": "python3 -m http.server 8080 --directory dist"
+  },
+  "devDependencies": {
+    "clean-css-cli": "^5.6.3",
+    "html-minifier-terser": "^7.2.0",
+    "terser": "^5.51.2"
+  }
+}

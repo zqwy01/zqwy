@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>zqwy — игры</title>
+  <meta name="description" content="Игры и игровые проекты zqwy">
+  <link rel="icon" href="../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../styles/menu/menu.css">
+  <link rel="stylesheet" href="../styles/menu/menu_logo.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/links.css">
+  <link rel="stylesheet" href="../styles/game.css">
+  <link rel="stylesheet" href="../styles/player.css">
+  <script>
+    // apply stored theme before first paint (no flash)
+    (function () {
+      try {
+        var raw = localStorage.getItem("zqwy.site.settings.v1");
+        var s = raw ? JSON.parse(raw) : null;
+        var theme = s && s.theme ? s.theme : "dark";
+        if (theme === "system") {
+          theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
+</head>
+<body>
+  <main class="page">
+    <div class="page-content game-page">
+
+      <!-- Shared base element on every page: logo + search. The logo is a
+           deterministic return to the catalog, not a browser-history step. -->
+      <div class="container menu-button-container" id="menuButtonContainer">
+        <div class="menu-trigger-row">
+          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-back>
+            <img class="menu-open-image" src="../assets/icons/favicon.ico" alt="" aria-hidden="true">
+          </a>
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск">
+            <label class="visually-hidden" for="siteSearchInput">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)">
+          </form>
+        </div>
+      </div>
+
+      <header class="home-head game-head">
+        <h1 class="home-title">game</h1>
+        <p class="home-heading">Игры и игровые проекты zqwy.</p>
+      </header>
+
+      <section class="links-section" id="zemic" aria-labelledby="zemic-title">
+        <div class="zemic-hero-copy">
+          <span class="zemic-eyebrow">Главная игра каталога</span>
+          <h2 class="links-section-title zemic-title" id="zemic-title">Лабиринт сознаний · ZEMIC</h2>
+          <p class="zemic-lead">Не просто игра, а точка входа во всю вселенную zqwy: терминал, комнаты, связи между предметами и музыка, которая меняется вместе с миром.</p>
+          <p class="zemic-description">Процедурный лабиринт сознания, где каждое открытие меняет доступные команды. Мир сохраняется по seed, а стол позволяет связывать найденные предметы и клавиши в собственные сценарии.</p>
+          <dl class="zemic-facts">
+            <div><dt>Мир</dt><dd>бесконечный, с сохранением по seed</dd></div>
+            <div><dt>Управление</dt><dd>терминал, клавиатура, геймпад</dd></div>
+            <div><dt>Звук</dt><dd>динамическая музыка zqwy</dd></div>
+          </dl>
+        </div>
+
+        <div class="zemic-hero-side">
+          <div class="zemic-art" aria-hidden="true">
+            <span class="zemic-art-grid"></span>
+            <span class="zemic-art-ring zemic-art-ring-one"></span>
+            <span class="zemic-art-ring zemic-art-ring-two"></span>
+            <img src="./zqwy/assets/zemic-logo.svg" alt="Логотип ZEMIC">
+            <span class="zemic-art-caption">ZEMIC // LABYRINTH</span>
+          </div>
+          <a class="game-card" href="./zqwy/" target="_blank" rel="noopener noreferrer">
+            <span class="game-card-icon" aria-hidden="true">🌀</span>
+            <span class="game-card-body">
+              <span class="game-card-title">Лабиринт сознаний · Zemic</span>
+              <span class="game-card-desc">Запустить игру в новом окне — большая версия каталога</span>
+            </span>
+            <span class="game-card-open" aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </section>
+
+      <nav class="links-nav" aria-label="Разделы игр">
+        <a href="#zemic">ZEMIC</a>
+        <a href="#playable">Остальные игры</a>
+        <a href="#projects">Проекты</a>
+      </nav>
+
+      <section class="zemic-about" id="zemic-about" aria-labelledby="zemic-about-title">
+        <h2 class="links-section-title" id="zemic-about-title">Что внутри ZEMIC</h2>
+        <ul class="zemic-features">
+          <li><b>Терминал.</b> Команды открывают комнаты, предметы и новые маршруты.</li>
+          <li><b>Стол связей.</b> Собирайте клавиши и цели в собственные схемы управления.</li>
+          <li><b>Схватки и ритм.</b> Боевые сцены идут вместе с треками каталога.</li>
+          <li><b>Карта и инвентарь.</b> Возвращайтесь к найденному и продолжайте с того же seed.</li>
+        </ul>
+      </section>
+
+      <section class="links-section" id="playable" aria-labelledby="playable-title">
+        <h2 class="links-section-title" id="playable-title">Остальные игры в браузере</h2>
+        <ul class="links-grid game-grid">
+          <li>
+            <a class="game-card" href="./rhythm_catalog/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">♫</span>
+              <span class="game-card-body">
+                <span class="game-card-title">РИТМ-КАТАЛОГ</span>
+                <span class="game-card-desc">Четырёхдорожечная ритм-игра по всей музыке zqwy</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./umbrella/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">🌳</span>
+              <span class="game-card-body">
+                <span class="game-card-title">НЕМЕТОН — Песнь Древа</span>
+                <span class="game-card-desc">Ритуал-ритм в священной роще друидов</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./adventure/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">📓</span>
+              <span class="game-card-body">
+                <span class="game-card-title">Клетчатый лист</span>
+                <span class="game-card-desc">Тихая история о девочке, нарисованной на клетчатой бумаге</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./adventure/east.html" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">🧭</span>
+              <span class="game-card-body">
+                <span class="game-card-title">К Востоку</span>
+                <span class="game-card-desc">Браузерный прототип приключения</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./drill_to_the_neighbor/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">⛏️</span>
+              <span class="game-card-body">
+                <span class="game-card-title">БУР ДРУИДА</span>
+                <span class="game-card-desc">Ритуал соседнего кургана</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./the_remaining_one/beat/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">🌑</span>
+              <span class="game-card-body">
+                <span class="game-card-title">ОСТАВШИЙСЯ · The Remaining One</span>
+                <span class="game-card-desc">Ритм-игра по альбому The Remaining One</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./the_remaining_one/nine_sleeps/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">💤</span>
+              <span class="game-card-body">
+                <span class="game-card-title">КЕРН · ДЕВЯТЬ СНОВ</span>
+                <span class="game-card-desc">Вторая игра цикла The Remaining One</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="links-section" id="projects" aria-labelledby="projects-title">
+        <h2 class="links-section-title" id="projects-title">Проекты и исходники</h2>
+        <ul class="links-grid game-grid">
+          <li>
+            <a class="game-card" href="./to-east/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">📦</span>
+              <span class="game-card-body">
+                <span class="game-card-title">To East</span>
+                <span class="game-card-desc">Проект Godot: спрайты, уровни и темы</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+          <li>
+            <a class="game-card" href="./game_designer/" target="_blank" rel="noopener noreferrer">
+              <span class="game-card-icon" aria-hidden="true">🧩</span>
+              <span class="game-card-body">
+                <span class="game-card-title">Game Designer</span>
+                <span class="game-card-desc">Технические задания и заметки по дизайну игр</span>
+              </span>
+              <span class="game-card-open" aria-hidden="true">↗</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+  <script src="../scripts/transition.js" defer></script>
+  <script src="../scripts/menu.js" defer></script>
+  <script src="../scripts/player.js" defer></script>
+  <script src="../scripts/hover-glow.js" defer></script>
+</body>
+</html>

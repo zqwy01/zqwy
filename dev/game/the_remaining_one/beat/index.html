@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07060a">
+<meta name="description" content="ОСТАВШИЙСЯ — сюжетная ритм-игра о последнем друиде. Девять песен альбома The Remaining One, пиксельный мир и имя, которое должен произнести мир.">
+<title>ОСТАВШИЙСЯ · The Remaining One</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-phase="boot">
+
+<div id="app">
+  <div id="stageWrap">
+    <canvas id="world" width="480" height="300" aria-label="Пиксельный мир последнего друида"></canvas>
+
+    <div id="hud" class="hud hidden" aria-hidden="true">
+      <div class="hud-left">
+        <span id="hudNumeral" class="hud-numeral">I</span>
+        <span id="hudChapter" class="hud-chapter">БАРХАНЫ</span>
+        <span id="hudTrack" class="hud-track">BARCHANS</span>
+      </div>
+      <div class="hud-center">
+        <span class="hud-label">ПАМЯТЬ</span>
+        <div class="memory-meter"><i id="memoryFill"></i><span id="memoryMark"></span></div>
+      </div>
+      <div class="hud-right">
+        <span id="comboVal" class="combo">×0</span>
+        <button id="pauseBtn" class="icon-btn" type="button" aria-label="Пауза" title="Пауза (P / Esc)">II</button>
+        <button id="muteBtn" class="icon-btn" type="button" aria-label="Звук" title="Звук (M)">♪</button>
+      </div>
+    </div>
+
+    <div id="caption" class="caption" aria-live="polite"></div>
+    <div id="judge" class="judge" aria-live="polite"></div>
+
+    <div id="echoPrompt" class="echo-prompt hidden">
+      <button id="echoBtn" class="echo-btn" type="button" aria-label="Слушать голос земли">
+        <span class="echo-eye" aria-hidden="true"></span>
+        <span class="echo-text">СЛУШАТЬ</span>
+        <span class="echo-key">SPACE</span>
+      </button>
+    </div>
+
+    <div id="timeline" class="timeline hidden" aria-hidden="true">
+      <div class="timeline-bar"><i id="timelineFill"></i></div>
+      <span id="timeVal">0:00 / 0:00</span>
+    </div>
+  </div>
+
+  <div id="touchBar" class="touchbar" aria-label="Полосы ритма">
+    <button class="touch-lane" data-lane="0" type="button" aria-label="Полоса земли"><span>ᚐ</span><small>D</small></button>
+    <button class="touch-lane" data-lane="1" type="button" aria-label="Полоса трав"><span>ᚑ</span><small>F</small></button>
+    <button class="touch-lane" data-lane="2" type="button" aria-label="Полоса кости"><span>ᚒ</span><small>J</small></button>
+    <button class="touch-lane" data-lane="3" type="button" aria-label="Полоса неба"><span>ᚓ</span><small>K</small></button>
+    <button id="touchListen" class="touch-listen hidden" type="button" aria-label="Слушать">СЛУШАТЬ</button>
+  </div>
+</div>
+
+<div id="overlay" class="overlay">
+
+  <section id="bootScreen" class="screen boot-screen">
+    <div class="boot-inner">
+      <p class="kicker">THE REMAINING ONE</p>
+      <h1 class="boot-title">ОСТАВШИЙСЯ</h1>
+      <div class="boot-meter"><i id="bootFill"></i></div>
+      <p id="bootStatus" class="boot-status">ПРОБУЖДЕНИЕ ПЕСЕН…</p>
+      <p class="fine">9 треков · 1 друид · имя мира</p>
+    </div>
+  </section>
+
+  <section id="titleScreen" class="screen title-screen hidden">
+    <div class="title-bg" aria-hidden="true">
+      <img src="assets/cover.webp" alt="">
+      <div class="title-veil"></div>
+    </div>
+
+    <div class="title-layout">
+      <div class="title-copy">
+        <p class="kicker">АЛЬБОМ · THE REMAINING ONE</p>
+        <h1 class="logo">ОСТАВШИЙСЯ</h1>
+        <p class="logo-sub">THE REMAINING ONE</p>
+        <p class="tagline">девять песен · один друид · имя мира</p>
+        <p class="lead">Мир пережил Долгую Тишину. Моря стали песком, библиотеки — пеплом, боги — сном. Остался один друид и девять песен, которые ещё помнят, как мир назывался.</p>
+        <p class="lead lead-2">Слушай. Отвечай ритмом. Назови мир заново.</p>
+
+        <div class="menu">
+          <button id="continueBtn" class="btn primary" type="button">ПРОДОЛЖИТЬ ПУТЬ</button>
+          <button id="newBtn" class="btn" type="button">НОВЫЙ ПУТЬ</button>
+          <div class="menu-row">
+            <button id="chaptersBtn" class="btn ghost" type="button">ГЛАВЫ</button>
+            <button id="codexBtn" class="btn ghost" type="button">КОДЕКС</button>
+            <button id="settingsBtn" class="btn ghost" type="button">НАСТРОЙКИ</button>
+          </div>
+        </div>
+        <p id="saveLine" class="fine save-line"></p>
+        <p class="fine controls-line">D F J K · СТРЕЛКИ · 1 2 3 4 — РУНЫ · SPACE — СЛУШАТЬ · P — ПАУЗА · M — ЗВУК</p>
+      </div>
+
+      <aside class="druid-card" aria-label="Последний друид">
+        <div class="druid-frame">
+          <img src="assets/portrait.png" alt="Пиксельный портрет последнего друида">
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        </div>
+        <p class="druid-name">ПОСЛЕДНИЙ ДРУИД</p>
+        <p class="druid-note">«Я не спасу мир. Я только вспомню, как он назывался.»</p>
+      </aside>
+    </div>
+
+    <footer class="title-foot">
+      <span>9 треков · 22:04</span>
+      <span>клавиатура · касание</span>
+      <span id="versionLine">v1.1</span>
+    </footer>
+  </section>
+
+  <section id="chapterScreen" class="screen chapter-screen hidden">
+    <div class="chapter-layout">
+      <div class="chapter-main">
+        <p class="kicker" id="chKicker">ГЛАВА I · BARCHANS</p>
+        <div class="chapter-heading">
+          <span id="chNumeral" class="chapter-numeral">I</span>
+          <h2 id="chTitle">БАРХАНЫ</h2>
+        </div>
+        <p id="chScene" class="chapter-scene">Дюны бывшего моря</p>
+        <p id="chEpigraph" class="epigraph">«Море не исчезло. Оно научилось быть песком.»</p>
+        <p id="chIntro" class="intro"></p>
+
+        <div class="fact-row">
+          <div><span>ТРЕК</span><b id="chTrack">BARCHANS</b></div>
+          <div><span>ТЕМП</span><b id="chBpm">80 BPM</b></div>
+          <div><span>КЛЮЧ</span><b id="chKey">G</b></div>
+          <div><span>ДЛИНА</span><b id="chDur">4:03</b></div>
+        </div>
+
+        <div class="chapter-tips">
+          <p><b>РИТМ.</b> Руны падают в такт настоящим ударам. Попадай в полосу.</p>
+          <p><b>ЭХА.</b> В тихих местах появляется око. Нажми <kbd>SPACE</kbd> или «СЛУШАТЬ».</p>
+          <p><b>ВЫБОР.</b> После песни ты решишь, что оставить миру.</p>
+        </div>
+
+        <div class="chapter-actions">
+          <button id="chapterStartBtn" class="btn primary" type="button">ВОЙТИ В ПЕСНЮ</button>
+          <button id="chapterBackBtn" class="btn ghost" type="button">НАЗАД</button>
+        </div>
+        <div id="chapterLoad" class="chapter-load hidden">
+          <div class="load-meter"><i id="chapterLoadFill"></i></div>
+          <span id="chapterLoadText">ЗАГРУЗКА ТРЕКА…</span>
+        </div>
+        <p id="chapterError" class="error-line hidden"></p>
+        <p class="fine keyboard-note">D F J K · СТРЕЛКИ · 1 2 3 4 — РУНЫ · SPACE — СЛУШАТЬ · P — ПАУЗА</p>
+      </div>
+
+      <aside class="chapter-side">
+        <div class="chapter-art">
+          <img src="assets/chapter-art.webp" alt="">
+          <div class="chapter-art-num" id="chArtNumeral">I</div>
+          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        </div>
+        <div class="chapter-progress">
+          <span>ПУТЬ</span>
+          <div class="dash-row" id="chapterDots"></div>
+        </div>
+        <p class="fine">Треки читаются из <code>../../src/tracks/the_remaining_one/tracks/</code> — без копий.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="pauseScreen" class="screen pause-screen hidden">
+    <div class="pause-card">
+      <p class="kicker">ПЕСНЯ ПРИОСТАНОВЛЕНА</p>
+      <h2>ПАУЗА</h2>
+      <p class="lead small">Мир замер. Музыка тоже.</p>
+      <div class="stack">
+        <button id="resumeBtn" class="btn primary" type="button">ПРОДОЛЖИТЬ</button>
+        <button id="restartBtn" class="btn" type="button">НАЧАТЬ ГЛАВУ СНАЧАЛА</button>
+        <button id="pauseSettingsBtn" class="btn ghost" type="button">НАСТРОЙКИ</button>
+        <button id="pauseExitBtn" class="btn ghost" type="button">ВЫЙТИ В ГЛАВЫ</button>
+      </div>
+      <p class="fine">P / ESC — ПРОДОЛЖИТЬ · M — ЗВУК · <span id="pauseCalibration">задержка 0 мс</span></p>
+    </div>
+  </section>
+
+  <section id="resultScreen" class="screen result-screen hidden">
+    <div class="result-card">
+      <p class="kicker" id="resultKicker">ГЛАВА I ЗАВЕРШЕНА</p>
+      <h2 id="resultTitle">ПАМЯТЬ ЯСНА</h2>
+      <div class="clarity-hero">
+        <div class="clarity-ring" id="clarityRing"><span id="clarityPct">0%</span></div>
+        <div class="clarity-copy">
+          <p id="resultMemory" class="result-memory"></p>
+          <p class="fine" id="resultRank">РАНГ · СЛУШАТЕЛЬ</p>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div><span>ИДЕАЛЬНО</span><b id="resPerfect">0</b></div>
+        <div><span>ТОЧНО</span><b id="resGood">0</b></div>
+        <div><span>ПОПАДАНИЕ</span><b id="resOk">0</b></div>
+        <div><span>МИМО</span><b id="resMiss">0</b></div>
+        <div><span>СЕРИЯ</span><b id="resCombo">0</b></div>
+        <div><span>ЭХА</span><b id="resEcho">0 / 3</b></div>
+      </div>
+
+      <div id="choiceBlock" class="choice-block">
+        <p class="kicker">ВЫБОР</p>
+        <h3 id="choicePrompt"></h3>
+        <div id="choiceOptions" class="choice-options"></div>
+      </div>
+
+      <div id="choiceResult" class="choice-result hidden">
+        <p class="kicker">ТЫ ВЫБРАЛ</p>
+        <p id="choiceResultText"></p>
+      </div>
+
+      <div class="result-actions">
+        <button id="resultAgainBtn" class="btn ghost" type="button">ПОВТОРИТЬ ГЛАВУ</button>
+        <button id="resultNextBtn" class="btn primary hidden" type="button">ДАЛЬШЕ</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="endingScreen" class="screen ending-screen hidden">
+    <div class="ending-card">
+      <p class="kicker" id="endingKicker">ФИНАЛ</p>
+      <p class="ending-en" id="endingEn">THE REMAINING ONE</p>
+      <h2 id="endingTitle">ЗЕЛЁНЫЙ РАССВЕТ</h2>
+      <div class="ending-rule"></div>
+      <div id="endingText" class="ending-text"></div>
+      <div class="ending-stats">
+        <div><span>СРЕДНЯЯ ЯСНОСТЬ</span><b id="endClarity">0%</b></div>
+        <div><span>ЭХА</span><b id="endEchoes">0 / 27</b></div>
+        <div><span>СЕРИЯ</span><b id="endCombo">0</b></div>
+      </div>
+      <div class="ending-choices" id="endingChoices"></div>
+      <div class="result-actions">
+        <button id="endingAgainBtn" class="btn primary" type="button">НОВЫЙ ПУТЬ</button>
+        <button id="endingMenuBtn" class="btn ghost" type="button">В МЕНЮ</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="settingsScreen" class="screen settings-screen hidden">
+    <div class="settings-card">
+      <p class="kicker">НАСТРОЙКИ</p>
+      <h2>СЛУХ И РУКИ</h2>
+
+      <div class="setting">
+        <label for="volumeRange">ГРОМКОСТЬ <b id="volumeVal">90%</b></label>
+        <input id="volumeRange" type="range" min="0" max="100" value="90">
+      </div>
+
+      <div class="setting">
+        <label for="offsetRange">ЗАДЕРЖКА ЗВУКА <b id="offsetVal">0 мс</b></label>
+        <input id="offsetRange" type="range" min="-200" max="200" value="0" step="5">
+        <p class="fine">Если ты стабильно опаздываешь — увеличь задержку. Если спешишь — уменьши.</p>
+      </div>
+
+      <div class="setting">
+        <span class="setting-label">СЛОЖНОСТЬ</span>
+        <div class="segmented" id="difficultyGroup">
+          <button data-diff="easy" type="button">СЛУШАТЕЛЬ</button>
+          <button data-diff="normal" type="button">СПУТНИК</button>
+          <button data-diff="hard" type="button">ДРУИД</button>
+        </div>
+        <p class="fine" id="difficultyNote">Меньше рун, больше времени на вдох.</p>
+      </div>
+
+      <div class="setting toggles">
+        <label class="check"><input id="sfxToggle" type="checkbox" checked> <span>ЗВУК ПОПАДАНИЙ</span></label>
+        <label class="check"><input id="shakeToggle" type="checkbox" checked> <span>ДРОЖАНИЕ МИРА</span></label>
+        <label class="check"><input id="captionToggle" type="checkbox" checked> <span>ПОДСКАЗКИ ИСТОРИИ</span></label>
+      </div>
+
+      <div class="setting danger-zone">
+        <button id="resetBtn" class="btn danger" type="button">СБРОСИТЬ ПРОГРЕСС</button>
+        <p class="fine">Удаляет выборы, эха и открытые главы.</p>
+      </div>
+
+      <div class="result-actions">
+        <button id="settingsBackBtn" class="btn primary" type="button">НАЗАД</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="codexScreen" class="screen codex-screen hidden">
+    <div class="codex-card">
+      <p class="kicker">КОДЕКС</p>
+      <h2>ГОЛОСА ЗЕМЛИ</h2>
+      <p class="lead small">Эха, которые ты услышал. Их 27 — по три на каждую песню.</p>
+      <div id="codexList" class="codex-list"></div>
+      <div class="result-actions">
+        <button id="codexBackBtn" class="btn primary" type="button">НАЗАД</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="chaptersScreen" class="screen chapters-screen hidden">
+    <div class="chapters-card">
+      <p class="kicker">ПУТЬ</p>
+      <h2>ДЕВЯТЬ ПЕСЕН</h2>
+      <p class="lead small">Можно вернуться в любую открытую главу. Выборы и эха сохраняются.</p>
+      <div id="chapterList" class="chapter-list"></div>
+      <div class="result-actions">
+        <button id="chaptersBackBtn" class="btn primary" type="button">НАЗАД</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="confirmScreen" class="screen confirm-screen hidden">
+    <div class="confirm-card">
+      <p class="kicker">ПОДТВЕРЖДЕНИЕ</p>
+      <h2 id="confirmTitle">НАЧАТЬ ЗАНОВО?</h2>
+      <p id="confirmText" class="lead small"></p>
+      <div class="result-actions">
+        <button id="confirmYes" class="btn danger" type="button">ДА</button>
+        <button id="confirmNo" class="btn primary" type="button">НЕТ</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<noscript><p class="noscript">Для игры нужен JavaScript и звук.</p></noscript>
+
+<script src="js/charts.js"></script>
+<script src="js/story.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

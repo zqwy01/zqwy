@@ -124,8 +124,11 @@ if [[ -f "$PROJECT_DIR/scripts/build_search_index.mjs" ]]; then
 fi
 
 echo "Очистка директории сборки..."
-rm -rf -- "$DIST_DIR"
+# Не удаляем сам каталог dist/: он часто смонтирован в Docker-контейнер
+# (./dist:/app/dist). Пересоздание каталога ломает bind mount, из-за чего
+# после сборки приходится пересоздавать контейнер. Очищаем только содержимое.
 mkdir -p -- "$DIST_DIR"
+find "$DIST_DIR" -mindepth 1 -delete
 
 echo "Копирование исходных файлов..."
 cp -a -- "$SRC_DIR"/. "$DIST_DIR"/
@@ -135,8 +138,16 @@ cp -a -- "$SRC_DIR"/. "$DIST_DIR"/
 # треков не дублируются на диске. Если ссылки невозможны — обычное копирование.
 if [[ -d "$PROJECT_DIR/src" ]]; then
     echo "Публикация src/ (жёсткие ссылки)..."
-    cp -al -- "$PROJECT_DIR/src" "$DIST_DIR/src" 2>/dev/null \
-        || cp -a -- "$PROJECT_DIR/src" "$DIST_DIR/src"
+    # cp -al может прерваться на другой файловой системе, оставив частично
+    # созданный dist/src. Если после этого вызвать cp -a с тем же адресом, он
+    # скопирует src ВНУТРЬ dist/src и обложки окажутся по dist/src/src/covers —
+    # отсюда все 404. Перед каждым вариантом удаляем приёмник.
+    rm -rf -- "$DIST_DIR/src"
+    if ! cp -al -- "$PROJECT_DIR/src" "$DIST_DIR/src" 2>/dev/null; then
+        echo "  Жёсткие ссылки недоступны — копируем src/ обычным копированием."
+        rm -rf -- "$DIST_DIR/src"
+        cp -a -- "$PROJECT_DIR/src" "$DIST_DIR/src"
+    fi
 fi
 
 # Некоторые игры лежат во вложенных папках (the_remaining_one/beat) и ищут
@@ -146,8 +157,10 @@ if [[ -d "$DIST_DIR/game" && -d "$DIST_DIR/src/tracks" ]]; then
     echo "Публикация src/tracks для вложенных игр..."
     mkdir -p -- "$DIST_DIR/game/src"
     rm -rf -- "$DIST_DIR/game/src/tracks"
-    cp -al -- "$DIST_DIR/src/tracks" "$DIST_DIR/game/src/tracks" 2>/dev/null \
-        || cp -a -- "$DIST_DIR/src/tracks" "$DIST_DIR/game/src/tracks"
+    if ! cp -al -- "$DIST_DIR/src/tracks" "$DIST_DIR/game/src/tracks" 2>/dev/null; then
+        rm -rf -- "$DIST_DIR/game/src/tracks"
+        cp -a -- "$DIST_DIR/src/tracks" "$DIST_DIR/game/src/tracks"
+    fi
 fi
 
 

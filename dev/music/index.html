@@ -58,13 +58,15 @@
           <input class="music-filter" id="albumFilter" type="search" placeholder="Фильтр релизов" autocomplete="off">
           <div class="music-tools-row">
             <div class="album-tools-group">
-              <button class="album-fullscreen-btn" id="releasesFullscreen" type="button" aria-pressed="false" aria-label="Релизы на весь экран" title="Релизы на весь экран">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"/></svg>
-              </button>
-              <button class="album-fullscreen-btn album-expand-btn" id="tracksExpand" type="button" aria-pressed="false" aria-label="Свернуть список релизов" title="Свернуть список релизов — треки на весь экран">
-                <svg class="icon-collapse" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h9v2H3V5zm0 6h7v2H3v-2zm0 6h9v2H3v-2zm11-9.2 4.6 4.2-4.6 4.2V7.8z"/></svg>
-                <svg class="icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h9v2H3V5zm0 6h7v2H3v-2zm0 6h9v2H3v-2zm15.6-6-4.6-4.2v8.4L18.6 11z"/></svg>
-              </button>
+              <div class="album-mode-group" role="group" aria-label="Отображение релизов">
+                <button class="album-fullscreen-btn" id="releasesFullscreen" type="button" aria-pressed="false" aria-label="Релизы на весь экран" title="Релизы на весь экран">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"/></svg>
+                </button>
+                <button class="album-fullscreen-btn album-expand-btn" id="tracksExpand" type="button" aria-pressed="false" aria-label="Свернуть список релизов" title="Свернуть список релизов — треки на весь экран">
+                  <svg class="icon-collapse" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h9v2H3V5zm0 6h7v2H3v-2zm0 6h9v2H3v-2zm11-9.2 4.6 4.2-4.6 4.2V7.8z"/></svg>
+                  <svg class="icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h9v2H3V5zm0 6h7v2H3v-2zm0 6h9v2H3v-2zm15.6-6-4.6-4.2v8.4L18.6 11z"/></svg>
+                </button>
+              </div>
               <div class="album-view-toggle" role="group" aria-label="Вид релизов">
                 <button class="album-view-btn" type="button" data-album-view="list" aria-pressed="true" aria-label="Релизы списком" title="Список">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h3v3H4zm0 5h3v3H4zm0 5h3v3H4zm6-10h10v3H10zm0 5h10v3H10zm0 5h10v3H10z"/></svg>

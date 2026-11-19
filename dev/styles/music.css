@@ -16,8 +16,8 @@
   align-items: start;
   margin-top: 22px;
   transition:
-    grid-template-columns 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    gap 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    grid-template-columns var(--collapse-duration, 0.42s) var(--collapse-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    gap var(--collapse-duration, 0.42s) var(--collapse-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .music-layout.is-list { grid-template-columns: var(--album-columns, 280px) minmax(0, 1fr); }
 .music-layout.is-cards { grid-template-columns: var(--album-columns-cards, 320px) minmax(0, 1fr); }
@@ -27,24 +27,47 @@
 /* The tools come first; the release count sits on its own line underneath. */
 .music-tools-row { flex-wrap: wrap; }
 .album-tools-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; order: 1; }
+/* Collapse and full-screen releases are two states of one segmented control,
+   not two unrelated floating buttons. */
+.album-mode-group {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-elevated);
+}
+.album-mode-group .album-fullscreen-btn {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.album-mode-group .album-fullscreen-btn + .album-fullscreen-btn {
+  border-left: 1px solid var(--border);
+}
+.album-mode-group .album-fullscreen-btn[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--text);
+}
 .album-fullscreen-btn {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  min-height: 28px;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--bg-elevated);
   color: var(--muted);
   font: inherit;
   cursor: pointer;
   transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
-.album-fullscreen-btn svg { width: 15px; height: 15px; fill: currentColor; }
+.album-fullscreen-btn svg { width: 17px; height: 17px; fill: currentColor; }
 .album-fullscreen-btn:hover,
 .album-fullscreen-btn:focus-visible { color: var(--text); border-color: var(--focus-border); }
 .album-fullscreen-btn[aria-pressed="true"] { color: var(--bg); border-color: var(--text); background: var(--text); }
@@ -120,43 +143,87 @@ body.music-releases-fullscreen .music-main { display: none; }
 body.music-releases-fullscreen .player-settings-block { display: none; }
 
 /* --- tracks-only mode: collapse the release list so tracks fill the page --- */
+/* Collapsing and expanding are the SAME animation played in reverse: height,
+   width, spacing and opacity all share one duration/easing. Nothing switches
+   to display:none, so the release list folds away gradually and comes back
+   just as smoothly. The two mode buttons stay as a toolbar you can click. */
+:root {
+  --collapse-duration: 0.42s;
+  --collapse-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.music-sidebar,
+.music-filter,
+.music-count,
+.player-settings-block,
+.album-view-toggle,
+.album-list {
+  /* A real starting value is required — `max-height: none` cannot be animated
+     to 0, which made the content disappear in one frame instead of folding. */
+  max-height: 1200px;
+  transition:
+    max-height var(--collapse-duration) var(--collapse-ease),
+    max-width var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.65) ease,
+    transform var(--collapse-duration) var(--collapse-ease),
+    margin var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    visibility 0s linear 0s;
+}
 body.music-releases-collapsed .music-layout,
 body.music-releases-collapsed .music-layout.is-list,
 body.music-releases-collapsed .music-layout.is-cards,
 body.music-releases-collapsed .music-layout.is-large {
   grid-template-columns: minmax(0, 1fr);
 }
-/* Keep the sidebar as a slim toolbar: the collapse/expand button lives in
-   album-tools-group, so hiding the whole sidebar would hide the way back. */
 body.music-releases-collapsed .music-sidebar {
   position: static;
   width: 100%;
-  max-height: none;
+  max-height: 72px;
+}
+body.music-releases-collapsed .album-view-toggle {
+  max-width: 0;
+  border-width: 0;
 }
 body.music-releases-collapsed .music-filter,
 body.music-releases-collapsed .music-count,
 body.music-releases-collapsed .album-list,
 body.music-releases-collapsed .player-settings-block,
-body.music-releases-collapsed .album-view-toggle { display: none; }
-body.music-releases-collapsed .music-tools-row { justify-content: flex-start; }
+body.music-releases-collapsed .album-view-toggle {
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    max-height var(--collapse-duration) var(--collapse-ease),
+    max-width var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.5) ease,
+    transform var(--collapse-duration) var(--collapse-ease),
+    margin var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    visibility 0s linear var(--collapse-duration);
+}
+body.music-releases-collapsed .music-tools-row { justify-content: flex-start; min-height: 40px; }
 body.music-releases-collapsed .music-main { max-width: none; }
 body.music-releases-collapsed .album-expand-btn {
   color: var(--bg);
-  border-color: var(--text);
   background: var(--text);
 }
 
 /* --- album sidebar --- */
 .music-sidebar {
   position: sticky;
-  /* Sit below the now-sticky logo/search row instead of sliding underneath it. */
-  top: calc(var(--menu-bar-height, 92px) + 12px);
+  /* The logo/search row is in the document flow now, so the sidebar only
+     needs a small gap from the viewport top when it sticks. */
+  top: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
   max-height: calc(100vh - 24px);
-  transition: max-height 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .music-filter {
@@ -182,7 +249,7 @@ body.music-releases-collapsed .album-expand-btn {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 28px;
+  min-height: 36px;
 }
 
 .music-count {
@@ -211,14 +278,19 @@ body.music-releases-collapsed .album-expand-btn {
      sitting exactly on top of the release cards' border. */
   margin: 0 10px 0 0;
   padding: 2px 2px 6px;
+  max-height: 1200px;
   list-style: none;
   overflow-y: auto;
   overscroll-behavior: contain;
   transition:
     grid-template-columns 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     gap 0.24s ease,
-    padding 0.24s ease,
-    margin-right 0.24s ease;
+    padding 0.3s ease,
+    margin 0.3s ease,
+    max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0s;
 }
 
 .album-item {
@@ -278,10 +350,12 @@ body.music-releases-collapsed .album-expand-btn {
   position: relative;
   display: inline-flex;
   align-self: flex-start;
-  gap: 2px;
-  padding: 2px;
+  /* Also collapses horizontally so no empty slot is left in the toolbar. */
+  max-width: 116px;
+  gap: 3px;
+  padding: 3px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 11px;
   background: var(--bg-elevated);
 }
 /* One highlight slides between the three modes instead of three separate
@@ -290,13 +364,13 @@ body.music-releases-collapsed .album-expand-btn {
   content: "";
   position: absolute;
   z-index: 0;
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  width: 28px;
-  border-radius: 6px;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 34px;
+  border-radius: 7px;
   background: var(--text);
-  transform: translateX(calc(var(--view-index, 0) * 30px));
+  transform: translateX(calc(var(--view-index, 0) * 37px));
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
 }
@@ -306,17 +380,17 @@ body.music-releases-collapsed .album-expand-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 24px;
+  width: 34px;
+  height: 32px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
   transition: color 0.18s ease, transform 0.18s ease;
 }
-.album-view-btn svg { width: 15px; height: 15px; fill: currentColor; }
+.album-view-btn svg { width: 17px; height: 17px; fill: currentColor; }
 .album-view-btn:hover,
 .album-view-btn:focus-visible { color: var(--text); }
 .album-view-btn[aria-pressed="true"] { color: var(--bg); }
@@ -494,7 +568,21 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
   counter-reset: track;
 }
 
-.music-track-row { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+/* The whole row is one hover surface: the two round buttons are inside it,
+   so hovering anywhere highlights the controls and the title together. */
+.music-track-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  border-radius: 12px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+.music-track:hover .music-track-row,
+.music-track:focus-within .music-track-row {
+  background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
 /* Play/pause and "add to queue" are neighbours at the start of the row. */
 .music-track-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 
@@ -520,6 +608,10 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
     background-color 0.16s ease,
     transform 0.16s ease;
 }
+.music-track:hover .music-track-button,
+.music-track:hover .music-track-queue,
+.music-track:focus-within .music-track-button,
+.music-track:focus-within .music-track-queue,
 .music-track-button:hover,
 .music-track-button:focus-visible,
 .music-track-queue:hover,
@@ -549,8 +641,11 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
   cursor: pointer;
   transition: background-color 0.16s ease;
 }
-.music-track-info:hover,
-.music-track-info:focus-visible { background: var(--bg-elevated); }
+/* The row supplies the highlight; the info button only needs a focus ring. */
+.music-track-info:focus-visible {
+  outline: 1px solid var(--focus-border);
+  outline-offset: -1px;
+}
 .music-track-number {
   position: relative;
   display: flex;
@@ -799,7 +894,14 @@ body.cover-lightbox-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .music-layout,
   .music-sidebar,
+  .music-filter,
+  .music-count,
   .album-list,
+  .player-settings-block,
+  .album-view-toggle,
+  .music-track-row,
+  .music-track-button,
+  .music-track-queue,
   .album-item,
   .album-item-title,
   .album-item-count,

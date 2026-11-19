@@ -85,9 +85,10 @@
 
   function assetUrl(relative) {
     const segments = String(relative).split("/").filter(Boolean);
-    return ["..", "..", ...segments]
-      .map((segment, index) => (index < 2 ? segment : encodeURIComponent(segment)))
-      .join("/");
+    const tail = segments.map(encodeURIComponent).join("/");
+    // Resolve against the current base at call time: SPA navigation rewrites
+    // document.baseURI, and the music page always renders after that swap.
+    return new URL(`../../${tail}`, document.baseURI).href;
   }
 
   function formatTime(seconds) {
@@ -106,15 +107,27 @@
 
   function coverNode(album, image, letter) {
     if (!image || !letter) return;
+    const fallbackLetter = album && album.title
+      ? album.title.replace(/^!/, "").charAt(0) || "♪"
+      : "♪";
     if (album && album.cover) {
+      // A missing file must never leave an empty hole: fall back to the letter.
+      image.onload = () => { image.hidden = false; letter.hidden = true; };
+      image.onerror = () => {
+        image.hidden = true;
+        letter.hidden = false;
+        letter.textContent = fallbackLetter;
+      };
       image.src = assetUrl(album.cover);
       image.hidden = false;
       letter.hidden = true;
     } else {
+      image.onload = null;
+      image.onerror = null;
       image.removeAttribute("src");
       image.hidden = true;
       letter.hidden = false;
-      letter.textContent = album && album.title ? album.title.replace(/^!/, "").charAt(0) : "♪";
+      letter.textContent = fallbackLetter;
     }
   }
 

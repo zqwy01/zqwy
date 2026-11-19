@@ -19,10 +19,47 @@
   const reduced = window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)")
     : null;
+  // The whole page animates exactly like the catalog overlay opened by the
+  // logo. The class is unconditional: a bare @media rule was silently dropping
+  // the motion in Firefox, and the overlay itself never honoured that query.
+  // Reduced-motion users still get a (shorter) fade, never a dead jump.
+  root.classList.add("zqwy-motion");
+  const durationFor = () => (reduced && reduced.matches ? 200 : 420);
+  if (reduced) {
+    const onPreferenceChange = () => {
+      leaveMs = durationFor();
+      loaderDelay = leaveMs + 60;
+    };
+    if (typeof reduced.addEventListener === "function") {
+      reduced.addEventListener("change", onPreferenceChange);
+    } else if (typeof reduced.addListener === "function") {
+      reduced.addListener(onPreferenceChange);
+    }
+  }
   // Must match --catalog-open-duration in base.css so the outgoing page uses
   // the same motion as the catalog overlay opened by the logo.
-  const LEAVE_MS = reduced && reduced.matches ? 0 : 420;
-  const LOADER_DELAY = 180;
+  let leaveMs = durationFor();
+  // Let the leaving animation play out before an overlay can cover it.
+  let loaderDelay = leaveMs + 60;
+
+  /* Animate .page-content as one piece so the movement is impossible to miss
+     and matches the logo's overlay. The logo/search bar is a normal in-flow
+     object now, so a transform on this container cannot pin it to the
+     viewport. The class stays on the settled page to keep per-item stagger
+     animations from replaying underneath the completed page animation. */
+  function playPageEnter(content) {
+    if (!content) return;
+    void content.offsetWidth; // force a style flush so Firefox starts the animation
+    content.classList.add("page-entering");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      playPageEnter(document.querySelector(CONTENT));
+    }, { once: true });
+  } else {
+    playPageEnter(document.querySelector(CONTENT));
+  }
 
   // pushState changes document.baseURI, which silently re-resolves every
   // remaining relative href/src (./styles/base.css would become
@@ -36,7 +73,7 @@
   /* ---------- delayed loading overlay ---------- */
 
   const LOADER_CSS = `
-.zqwy-page-loader{position:fixed;inset:0;z-index:1000010;display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:var(--bg,#000);color:var(--text,#fff);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,visibility 0s linear .18s}
+.zqwy-page-loader{position:fixed;inset:0;z-index:1000010;display:flex;align-items:center;justify-content:center;box-sizing:border-box;background:var(--bg,#000);color:var(--text,#fff);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .1s ease,visibility 0s linear .1s}
 .zqwy-page-loader.is-visible{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .18s ease,visibility 0s}
 .zqwy-page-loader-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 28px;border:1px solid var(--border,#2a2a2a);border-radius:14px;background:var(--bg-elevated,#0b0b0b)}
 .zqwy-page-loader-spinner{width:28px;height:28px;border:2px solid var(--border,#2a2a2a);border-top-color:var(--text,#fff);border-radius:50%;animation:zqwy-loader-spin .8s linear infinite}
@@ -90,7 +127,7 @@
     initialLoaderTimer = window.setTimeout(() => {
       if (document.readyState !== "complete") showLoader();
       initialLoaderTimer = 0;
-    }, LOADER_DELAY);
+    }, loaderDelay);
   }
 
   let navigating = false;
@@ -173,10 +210,14 @@
     loaderTimer = window.setTimeout(() => {
       loaderShown = true;
       showLoader();
-    }, LOADER_DELAY);
+    }, loaderDelay);
 
+    // The incoming motion was left on the previous page after a navigation;
+    // drop it so the leave animation wins for the outgoing DOM.
+    document.querySelector(CONTENT)?.classList.remove("page-entering");
     root.classList.add("page-leaving");
-    if (LEAVE_MS) await sleep(LEAVE_MS);
+    void document.body.offsetWidth; // let Firefox start the leaving animation
+    if (leaveMs) await sleep(leaveMs);
 
     try {
       const response = await fetch(url.href, { cache: "no-store" });
@@ -192,6 +233,7 @@
       // half-styled or without its event handlers.
       await preloadStyles(doc, url);
       await preloadScripts(doc, url);
+      await waitForFonts();
 
       if (push) window.history.pushState({ zqwy: true, url: url.href }, "", url.href);
 
@@ -201,7 +243,10 @@
       root.classList.remove("page-leaving");
       window.scrollTo(0, 0);
 
-      await waitForFonts();
+      // Hide the loading cover before the entrance animation, otherwise the
+      // new page fades in behind an opaque overlay and the motion is invisible.
+      hideLoader();
+      playPageEnter(next);
       window.dispatchEvent(new CustomEvent("zqwy:pagechange", {
         detail: { href: url.href, path: url.pathname, document: doc },
       }));

@@ -67,8 +67,9 @@ body {
 .page-content {
   max-width: var(--max-width);
   margin: 0 auto;
-  /* The logo/search row is fixed, so the content reserves its height here. */
-  padding: calc(var(--menu-bar-height) + 20px) var(--page-padding) 40px;
+  /* The logo/search row is a normal in-flow object at the top of this column,
+     so no extra offset is needed — it simply occupies its own place. */
+  padding: 14px var(--page-padding) 40px;
 }
 .container {
   width: 100%;
@@ -89,15 +90,12 @@ body {
 }
 
 /* --- top of the page: logo first, headings under it --- */
-/* Fixed (not sticky) so scrolling can never drag the bar along with the page.
-   It stays in the same viewport coordinates on every page. The opaque
-   background masks content passing underneath; no shadow here, otherwise it
-   would darken the full-screen catalog overlay below it. */
+/* A plain in-flow block: it sits in its own place in the document and scrolls
+   with it instead of being pinned to the viewport. The high z-index keeps the
+   logo/search above the full-screen catalog overlay (which is fixed), so the
+   overlay still behaves exactly as before. */
 .menu-button-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
   max-width: var(--max-width);
   margin: 0 auto;
   background: var(--bg);
@@ -169,14 +167,14 @@ body {
   margin: 0;
 }
 /* align the menu content with the logo/search group and center it.
-   the top padding reserves the same space the logo bar occupies, so the
-   logo can stay above the overlay instead of being moved into it */
+   The logo/search bar stays in normal flow above the fixed overlay and paints
+   on top of it, so the menu content needs top offset for the bar height plus
+   the page-content top padding to avoid sliding under the bar. */
 .site-menu-content {
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
-  padding-top: calc(var(--menu-bar-height) + 28px);
-  padding-bottom: 32px;
+  padding: calc(14px + var(--menu-bar-height) + 12px) var(--menu-side-padding) 32px;
 }
 
 /* search input themed for both modes */
@@ -523,22 +521,37 @@ body {
 }
 
 /* --- transitions between pages of the catalog --- */
-/* Exactly the motion used when the logo opens the catalog overlay: the panel
-   fades in while crawling up from translateY(24px) scale(.985). The current
-   page performs the same movement in reverse before being swapped. Motion is
-   disabled when the user asks for it. */
-/* Opacity only: a transform on .page-content would turn it into the containing
-   block for the fixed logo/search row and make that row drift while scrolling. */
-@media (prefers-reduced-motion: no-preference) {
-  .page-content {
-    animation: page-fade-in var(--catalog-open-duration) var(--catalog-open-ease) backwards;
-  }
-  html.page-leaving .page-content {
-    opacity: 0;
-    transition: opacity var(--catalog-open-duration) var(--catalog-open-ease);
-  }
-}
-@keyframes page-fade-in {
+/* Opacity-only fade: transforms on .page-content would create a containing
+   block for fixed descendants (e.g. the full-screen menu overlay), which made
+   the menu shift during SPA page transitions. */
+@keyframes page-enter {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+@keyframes page-leave {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+html.zqwy-motion .page-content.page-entering {
+  animation: page-enter var(--catalog-open-duration) var(--catalog-open-ease) both;
+}
+/* Declared last so it wins over .page-entering when both are briefly present. */
+html.zqwy-motion.page-leaving .page-content {
+  animation: page-leave var(--catalog-open-duration) var(--catalog-open-ease) both;
+}
+/* One cohesive page motion: don't replay the per-item stagger underneath it. */
+html.zqwy-motion .page-content.page-entering .links-head,
+html.zqwy-motion .page-content.page-entering .links-nav a,
+html.zqwy-motion .page-content.page-entering .links-section-title,
+html.zqwy-motion .page-content.page-entering .links-grid li,
+html.zqwy-motion .page-content.page-entering .album-head,
+html.zqwy-motion .page-content.page-entering .album-item,
+html.zqwy-motion .page-content.page-entering .music-count,
+html.zqwy-motion .page-content.page-entering .music-filter,
+html.zqwy-motion .page-content.page-entering .music-track {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.zqwy-motion .page-content.page-entering,
+  html.zqwy-motion.page-leaving .page-content { animation-duration: 0.2s; }
 }

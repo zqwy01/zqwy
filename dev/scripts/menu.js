@@ -107,6 +107,7 @@
   function refresh() {
     const container = document.querySelector("#menuButtonContainer");
     const menu = document.querySelector("#siteMenu");
+
     els = {
       container,
       menu,

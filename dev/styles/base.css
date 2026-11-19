@@ -67,9 +67,8 @@ body {
 .page-content {
   max-width: var(--max-width);
   margin: 0 auto;
-  /* The logo/search row is a normal in-flow object at the top of this column,
-     so no extra offset is needed — it simply occupies its own place. */
-  padding: 14px var(--page-padding) 40px;
+  /* Reserve space for the fixed logo/search bar at the top of the viewport. */
+  padding: calc(var(--menu-bar-height) + 20px) var(--page-padding) 40px;
 }
 .container {
   width: 100%;
@@ -90,16 +89,51 @@ body {
 }
 
 /* --- top of the page: logo first, headings under it --- */
-/* A plain in-flow block: it sits in its own place in the document and scrolls
-   with it instead of being pinned to the viewport. The high z-index keeps the
-   logo/search above the full-screen catalog overlay (which is fixed), so the
-   overlay still behaves exactly as before. */
+/* Fixed at the top of the viewport so the logo/search row remains visible
+   while scrolling and above the full-screen catalog overlay when it is open. */
 .menu-button-container {
-  position: relative;
-  max-width: var(--max-width);
-  margin: 0 auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  min-height: var(--menu-bar-height);
+  margin: 0;
+  padding: 12px var(--menu-side-padding);
   background: var(--bg);
-  z-index: 1000000;
+  visibility: visible;
+  opacity: 1;
+}
+body.menu-is-open #menuButtonContainer {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 2000000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+body.menu-is-open #menuButtonContainer .menu-trigger-row,
+body.menu-is-open #menuButtonContainer .site-search,
+body.menu-is-open #menuButtonContainer .menu-open-button {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+body.menu-is-open #menuButtonContainer .menu-trigger-row {
+  width: 100%;
+  max-width: 760px;
 }
 .home-head {
   padding: 12px 4px 0;
@@ -167,14 +201,13 @@ body {
   margin: 0;
 }
 /* align the menu content with the logo/search group and center it.
-   The logo/search bar stays in normal flow above the fixed overlay and paints
-   on top of it, so the menu content needs top offset for the bar height plus
-   the page-content top padding to avoid sliding under the bar. */
+   The catalog overlay starts below the fixed logo/search bar, so menu
+   content only needs its own internal top spacing. */
 .site-menu-content {
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
-  padding: calc(14px + var(--menu-bar-height) + 12px) var(--menu-side-padding) 32px;
+  padding: 28px var(--menu-side-padding) 32px;
 }
 
 /* search input themed for both modes */

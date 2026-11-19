@@ -127,7 +127,7 @@
         <span class="player-queue-count" id="playerQueueCount" hidden>0</span>
       </button>
       <button class="player-btn player-toggle" id="playerShuffle" type="button" aria-label="Перемешать" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l4 4-4 4V8h-2.2l-2.3 2.6-1.3-1.5L14 6H7V4h7V3zm0 10l4 4-4 4v-3h-2.2l-2.3-2.6 1.3-1.5L16 17H7v-2h9v-2zM3 6l3.3 3.7-1.5 1.3L3 8.9V6zm0 12v-2.9l1.8-2.1 1.5 1.3L3 18z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4zm3.8-5.2 2 2L4.1 18.6 5.5 20 17.9 7.7l2 2V4h-5.5zm-.3 9.4-1.4 1.4 3.1 3.1-3.1 3.1 1.4 1.4 3.1-3.1V20H20v-4h-2.8l-3.1-3.1z"/></svg>
       </button>
       <button class="player-btn player-toggle" id="playerRepeat" type="button" aria-label="Повтор: выключен" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>

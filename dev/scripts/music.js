@@ -146,6 +146,7 @@
     }
     if (lightboxTimer) { window.clearTimeout(lightboxTimer); lightboxTimer = 0; }
     ui.lightbox.hidden = false;
+    ui.lightbox.classList.remove("is-closing");
     document.body.classList.add("cover-lightbox-open");
     void ui.lightbox.offsetWidth;
     ui.lightbox.classList.add("is-open");
@@ -155,12 +156,16 @@
   function closeCover() {
     if (!ui.lightbox || ui.lightbox.hidden) return;
     ui.lightbox.classList.remove("is-open");
+    ui.lightbox.classList.add("is-closing");
     document.body.classList.remove("cover-lightbox-open");
     if (lightboxTimer) window.clearTimeout(lightboxTimer);
     lightboxTimer = window.setTimeout(() => {
-      if (!ui.lightbox.classList.contains("is-open")) ui.lightbox.hidden = true;
+      if (!ui.lightbox.classList.contains("is-open")) {
+        ui.lightbox.hidden = true;
+        ui.lightbox.classList.remove("is-closing");
+      }
       lightboxTimer = 0;
-    }, 260);
+    }, 300);
   }
 
   function coverIsOpen() {
@@ -176,6 +181,8 @@
       node?.classList.remove("is-list", "is-cards", "is-large");
       node?.classList.add(`is-${state.view}`);
     }
+    const viewOrder = ["list", "cards", "large"];
+    document.querySelector(".album-view-toggle")?.style.setProperty("--view-index", String(viewOrder.indexOf(state.view)));
     ui.viewButtons?.forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.albumView === state.view));
     });
@@ -566,6 +573,18 @@
     markActiveTrack();
   }
 
+  function pulseViewButton(button) {
+    if (!button || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    button.classList.remove("is-switching");
+    void button.offsetWidth;
+    button.classList.add("is-switching");
+    const done = () => {
+      button.classList.remove("is-switching");
+      button.removeEventListener("animationend", done);
+    };
+    button.addEventListener("animationend", done);
+  }
+
   function pulseTrackButton(button) {
     if (!button || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     button.classList.remove("is-toggling");
@@ -587,6 +606,7 @@
     const viewButton = target.closest("[data-album-view]");
     if (viewButton && ui.viewButtons?.includes(viewButton)) {
       changeView(viewButton.dataset.albumView);
+      pulseViewButton(viewButton);
       return;
     }
 

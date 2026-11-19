@@ -747,38 +747,43 @@
     ctx.restore();
   }
 
-  /* Смерть: тот же спрайт, но падающий и растворяющийся. Обычный
-     drawPlayer не вызывается, пока активен deathFx. */
+  /* Смерть: пиксельное распадение вместо падения на бок. Спрайт быстро
+     растворяется на месте, пока drawDeathFx разбрасывает частицы. */
   function drawDeathPlayer(ctx, state, sx, sy, ts, images, progress) {
-    const p = state.player || {};
     const frame = frameForPlayer(state);
     const fw = C.player.spriteFrameW;
     const fh = C.player.spriteFrameH;
     const srcX = (frame % C.player.spriteFrames) * fw;
     const h = ts * 2.05;
     const w = h * (fw / fh);
+    const alpha = Math.max(0, 1 - progress * 1.45);
+    const jitter = Math.min(ts * 0.18, progress * ts * 0.35);
 
     ctx.save();
-    ctx.globalAlpha = Math.max(0.08, 1 - progress * 0.92);
-    ctx.fillStyle = `rgba(0, 0, 0, ${0.55 * (1 - progress)})`;
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * Math.max(0, 1 - progress)})`;
     ctx.beginPath();
-    ctx.ellipse(sx, sy + ts * 0.48, ts * 0.28 * (1 - progress * 0.4), ts * 0.11, 0, 0, Math.PI * 2);
+    ctx.ellipse(sx, sy + ts * 0.48, ts * 0.28 * (1 - progress * 0.6), ts * 0.11, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.translate(sx, sy + ts * 0.3 * progress);
-    const fall = (p.facingX || 0) < 0 ? -1 : 1;
-    ctx.rotate(fall * progress * Math.PI * 0.48);
-    ctx.scale(1 + progress * 0.12, Math.max(0.2, 1 - progress * 0.25));
+    if (alpha > 0.02) {
+      ctx.globalAlpha = alpha;
+      ctx.translate(sx, sy);
+      ctx.translate(
+        Math.sin(progress * 31) * jitter,
+        Math.cos(progress * 27) * jitter * 0.6
+      );
+      ctx.scale(1 + progress * 0.04, 1 - progress * 0.08);
 
-    if (images.zemic && images.zemic.complete && images.zemic.naturalWidth) {
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(images.zemic, srcX, 0, fw, fh, -w / 2, -h * 0.78, w, h);
-    } else {
-      ctx.fillStyle = '#e7e6dc';
-      ctx.beginPath();
-      ctx.arc(0, -h * 0.2, ts * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillRect(-ts * 0.22, -ts * 0.05, ts * 0.44, ts * 0.6);
+      if (images.zemic && images.zemic.complete && images.zemic.naturalWidth) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(images.zemic, srcX, 0, fw, fh, -w / 2, -h * 0.78, w, h);
+      } else {
+        ctx.fillStyle = '#e7e6dc';
+        ctx.beginPath();
+        ctx.arc(0, -h * 0.2, ts * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(-ts * 0.22, -ts * 0.05, ts * 0.44, ts * 0.6);
+      }
     }
     ctx.restore();
   }
@@ -2301,8 +2306,10 @@
         y: toScreenY(death.y),
         w: view.w,
         h: view.h,
+        radius: ts * 0.65,
         progress: deathProgress,
-        now
+        now,
+        seed: (state.death && state.death.count) || 0
       });
     }
   }

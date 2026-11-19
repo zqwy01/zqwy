@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Сборка прототипа: увеличивает номер ядра и записывает js/build-info.js.
-   Запуск: node build.js
+   Запуск: node scripts/build.js
    Версия берётся из js/config.js, поэтому одно место задаёт основу,
    а номер сборки меняется после каждого запуска. */
 'use strict';
@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const root = __dirname;
+const root = path.resolve(__dirname, '..');
 const configPath = path.join(root, 'js', 'config.js');
 const infoPath = path.join(root, 'js', 'build-info.js');
 
@@ -38,7 +38,7 @@ const info = {
   builtAt: new Date().toISOString()
 };
 
-const output = `/* Данные сборки. Файл обновляется командой «node build.js»:
+const output = `/* Данные сборки. Файл обновляется командой «node scripts/build.js»:
    номер сборки увеличивается, версия берётся из js/config.js. */
 window.ZQ_BUILD = ${JSON.stringify(info, null, 2)};
 `;

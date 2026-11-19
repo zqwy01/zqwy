@@ -95,9 +95,9 @@
     ctx.restore();
   }
 
-  /* Смерть рисуется поверх уже отрисованного падающего спрайта.
-     В отличие от обычного урона, эффект живёт ровно один проход:
-     progress приходит из rt.deathFx и никогда не зацикливается. */
+  /* Смерть: тело распадается на пиксельные частицы и улетает.
+     Эффект живёт ровно один проход: progress приходит из rt.deathFx
+     и никогда не зацикливается. */
   function drawDeathFx(ctx, options) {
     if (!ctx || !options) return;
     const progress = clamp(Number(options.progress) || 0, 0, 1);
@@ -110,56 +110,57 @@
     const x = Number(options.x) || 0;
     const y = Number(options.y) || 0;
     const now = Number(options.now) || 0;
+    const radius = Math.max(6, Number(options.radius) || 18);
+    const seed = Math.floor(Number(options.seed) || 0);
 
-    const pulse = Math.sin(progress * Math.PI);
-    const fade = progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
+    const fade = progress > 0.78 ? (progress - 0.78) / 0.22 : 0;
+    const burst = 1 - Math.pow(1 - progress, 2.2);
 
     ctx.save();
 
-    // Тёмная воронка схлопывается вокруг аксолотля.
-    const reach = Math.max(w, h) * 0.78;
+    // Затемнение вокруг точки распада, без "схлопывания" тела.
+    const reach = Math.max(w, h) * 0.82;
     const vignette = ctx.createRadialGradient(
-      x, y, Math.min(w, h) * 0.04,
+      x, y, Math.min(w, h) * 0.03,
       x, y, reach
     );
-    vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    vignette.addColorStop(0.52, `rgba(74, 10, 16, ${0.16 * pulse})`);
-    vignette.addColorStop(1, `rgba(3, 4, 5, ${0.5 * pulse + 0.62 * fade})`);
+    vignette.addColorStop(0, `rgba(40, 12, 18, ${0.08 * (1 - progress)})`);
+    vignette.addColorStop(0.55, `rgba(30, 8, 12, ${0.16 * (1 - fade)})`);
+    vignette.addColorStop(1, `rgba(3, 4, 5, ${0.42 + 0.58 * fade})`);
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, w, h);
 
-    // Короткие разрывы кадра подчёркивают момент гибели.
-    for (let i = 0; i < 7; i++) {
-      const jitter = 0.5 + 0.5 * Math.sin(now * 0.03 + i * 9.1);
-      const bandY = ((i + 0.5) / 7) * h + (jitter - 0.5) * 26 * pulse;
-      const bandH = (1 + 3 * jitter) * pulse;
-      ctx.fillStyle = i % 2 === 0
-        ? `rgba(255, 88, 62, ${0.14 * pulse})`
-        : `rgba(142, 224, 255, ${0.09 * pulse})`;
-      ctx.fillRect(0, bandY, w, bandH);
+    const particleCount = Math.max(22, Number(options.particles) || 54);
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2 + (seed % 360) * 0.017 + Math.sin(i * 2.3) * 0.12;
+      const speed = 0.55 + ((i * 37 + seed * 11) % 100) / 100;
+      const dist = radius * (0.2 + burst * speed * 5.2);
+      const driftY = burst * burst * radius * (0.18 + (i % 5) * 0.06);
+      const px = x + Math.cos(angle) * dist;
+      const py = y + Math.sin(angle) * dist + driftY;
+      const base = Math.max(1.5, radius * (0.08 + ((i * 13) % 7) * 0.03));
+      const size = base * (1 - progress * 0.82);
+      if (size <= 0.4) continue;
+      const alpha = (1 - progress) * (0.45 + ((i * 19) % 5) * 0.12);
+      const tint = i % 4;
+      if (tint === 0) ctx.fillStyle = `rgba(242, 236, 220, ${alpha})`;
+      else if (tint === 1) ctx.fillStyle = `rgba(255, 196, 150, ${alpha})`;
+      else if (tint === 2) ctx.fillStyle = `rgba(255, 124, 96, ${alpha * 0.92})`;
+      else ctx.fillStyle = `rgba(169, 105, 255, ${alpha * 0.85})`;
+      ctx.fillRect(px - size / 2, py - size / 2, size, size);
     }
 
-    // Кольцо сжимается к точке смерти, осколки разлетаются от неё.
-    const ring = 12 + (1 - progress) * 68;
-    ctx.strokeStyle = `rgba(255, 192, 156, ${0.72 * (1 - progress * 0.65)})`;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(x, y, ring, 0, Math.PI * 2);
-    ctx.stroke();
-
-    for (let i = 0; i < 14; i++) {
-      const angle = now * 0.0025 + (i / 14) * Math.PI * 2;
-      const dist = 10 + progress * (38 + (i % 4) * 15);
-      const size = (2.5 + (i % 3)) * (1 - progress * 0.45);
-      ctx.fillStyle = i % 3 === 0
-        ? `rgba(169, 105, 255, ${0.7 * (1 - progress)})`
-        : `rgba(255, 146, 92, ${0.8 * (1 - progress)})`;
-      ctx.fillRect(
-        x + Math.cos(angle) * dist - size / 2,
-        y + Math.sin(angle) * dist - size / 2,
-        size,
-        size
-      );
+    // Лёгкие цифровые полосы в начале распада.
+    const glitch = Math.max(0, 1 - progress * 1.8);
+    if (glitch > 0) {
+      for (let i = 0; i < 4; i++) {
+        const jitter = 0.5 + 0.5 * Math.sin(now * 0.04 + i * 7.3 + seed);
+        const bandY = y - radius * 0.9 + (i / 3) * radius * 1.8 + (jitter - 0.5) * 8;
+        ctx.fillStyle = i % 2 === 0
+          ? `rgba(255, 110, 80, ${0.12 * glitch})`
+          : `rgba(142, 224, 255, ${0.08 * glitch})`;
+        ctx.fillRect(x - radius * 1.4, bandY, radius * 2.8, 1.5);
+      }
     }
 
     ctx.restore();
@@ -168,5 +169,5 @@
   ZQ.drawDamageFx = drawDamageFx;
   ZQ.damageFxVersion = 'zemic-damage-v1';
   ZQ.drawDeathFx = drawDeathFx;
-  ZQ.deathFxVersion = 'zemic-death-v1';
+  ZQ.deathFxVersion = 'zemic-death-v2';
 })();

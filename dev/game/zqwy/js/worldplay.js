@@ -1355,7 +1355,7 @@
     }
   }
 
-  const DEATH_FX_DURATION = 1250;
+  const DEATH_FX_DURATION = 1350;
 
   function die(cause) {
     if (!rt.state || (rt.deathFx && rt.deathFx.active)) return;

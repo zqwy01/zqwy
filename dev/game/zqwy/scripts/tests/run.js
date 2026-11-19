@@ -1,7 +1,7 @@
 'use strict';
 
-/* Проверка патчей 1–12 на живой игре.
-   Запуск: node tests/run.js
+/* Проверка патчей на живой игре.
+   Запуск: node scripts/tests/run.js
    Нужен Chrome с --remote-debugging-port=9222 (или CDP_PORT).
    Статическая раздача поднимается автоматически на 127.0.0.1:8011
    из корня files/, чтобы работали и rhythm_catalog, и src/tracks. */
@@ -11,7 +11,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { Page, sleep } = require('./cdp');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 /* Сервер поднимается над корнем files/, как при обычной публикации:
    так zqwy видит ../rhythm_catalog/, а ритм-каталог — общий архив
    ../../src/tracks/ со звуком. */
@@ -19,7 +19,7 @@ const FILES_ROOT = path.resolve(ROOT, '..', '..');
 const PORT = Number(process.env.TEST_PORT || 8011);
 const BASE_URL = process.env.BASE_URL || `http://127.0.0.1:${PORT}/games/zqwy/`;
 const STATUS_PATH = path.join(ROOT, 'PATCH_STATUS.md');
-const JSON_PATH = path.join(ROOT, 'tests', 'last-run.json');
+const JSON_PATH = path.join(__dirname, 'last-run.json');
 
 function log(message) {
   process.stdout.write(`${message}\n`);
@@ -1522,7 +1522,7 @@ function writeStatus(results, startedAt, finishedAt) {
   lines.push('## Как повторить');
   lines.push('');
   lines.push('```bash');
-  lines.push('node tests/run.js');
+  lines.push('node scripts/tests/run.js');
   lines.push('```');
   lines.push('');
   lines.push('Нужен Chrome с `--remote-debugging-port=9222` (порт можно задать через `CDP_PORT`). Статическая раздача поднимается на `127.0.0.1:8011` из корня `files/` автоматически.');
@@ -1676,7 +1676,7 @@ async function main() {
     log(`Открываю ${BASE_URL}`);
     page = await Page.open(BASE_URL, { width: 1600, height: 900 });
     /* TEST_FILTER позволяет прогнать только нужные проверки, например
-       TEST_FILTER=arcade node tests/run.js. */
+       TEST_FILTER=arcade node scripts/tests/run.js. */
     const filter = String(process.env.TEST_FILTER || '').trim();
     const selected = filter
       ? TESTS.filter((item) => item.id.includes(filter) || item.title.includes(filter))

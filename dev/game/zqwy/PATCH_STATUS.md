@@ -120,7 +120,7 @@
 ## Как повторить
 
 ```bash
-node tests/run.js
+node scripts/tests/run.js
 ```
 
 Нужен Chrome с `--remote-debugging-port=9222` (порт можно задать через `CDP_PORT`). Статическая раздача поднимается на `127.0.0.1:8011` из корня `files/` автоматически.

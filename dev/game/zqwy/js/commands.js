@@ -511,6 +511,11 @@
     бельзебуфо: 'belzebufo',
     жаба: 'belzebufo',
     belzebufo: 'belzebufo',
+    некрополь: 'necropolis',
+    некрополис: 'necropolis',
+    necropolis: 'necropolis',
+    /* Скрытый псевдоним: работает, но не показывается в подсказках. */
+    склеп: 'necropolis',
     процедурная: 'procedural',
     обычная: 'procedural',
     procedural: 'procedural'
@@ -627,12 +632,12 @@
     return [
       t('Чит-телепорт к ближайшей нужной комнате.', 'Cheat teleport to the nearest needed room.'),
       t(
-        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт зеркало», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт автомат», «телепорт чанк 2 -1».',
-        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport mirror”, “teleport tablet”, “teleport belzebufo”, “teleport arcade”, “teleport chunk 2 -1”.'
+        'Использование: «телепорт титанобоа», «телепорт зонт», «телепорт зеркало», «телепорт скрижаль», «телепорт бельзебуфо», «телепорт некрополь», «телепорт автомат», «телепорт чанк 2 -1».',
+        'Usage: “teleport titanoboa”, “teleport umbrella”, “teleport mirror”, “teleport tablet”, “teleport belzebufo”, “teleport necropolis”, “teleport arcade”, “teleport chunk 2 -1”.'
       ),
       t(
-        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, зеркало, жук, зонт, титанобоа, бельзебуфо, автомат, процедурная. Можно указать часть имени комнаты.',
-        'Targets: tablet, trial, hazard, low, storage, crossroad, mirror, beetle, umbrella, titanoboa, belzebufo, arcade, procedural. A part of the room name also works.'
+        'Доступные цели: скрижаль, испытание, опасность, низкий, склад, перекрёсток, зеркало, жук, зонт, титанобоа, бельзебуфо, некрополь, автомат, процедурная. Можно указать часть имени комнаты.',
+        'Targets: tablet, trial, hazard, low, storage, crossroad, mirror, beetle, umbrella, titanoboa, belzebufo, necropolis, arcade, procedural. A part of the room name also works.'
       )
     ].join('\n');
   }
@@ -940,6 +945,9 @@
       t(`• чит кот — ${visible ? 'скрыть' : 'показать'} закрытые узлы ветви (сейчас ${visible ? 'видны' : 'скрыты'}).`,
         `• cheat cat — ${visible ? 'hide' : 'show'} locked branch nodes (now ${visible ? 'visible' : 'hidden'}).`,
         `• Cheat Katze — gesperrte Zweigknoten ${visible ? 'ausblenden' : 'einblenden'} (jetzt ${visible ? 'sichtbar' : 'verborgen'}).`),
+      t('Чтобы открыть весь сюжет целиком: «чит сюжет открыть *», затем «чит кот».',
+        'To open the entire story: “cheat story open *”, then “cheat cat”.',
+        'Um die ganze Geschichte zu öffnen: „Cheat Story öffnen *“, dann „Cheat Katze“.'),
       t('Главы: пробуждение, скрижаль, зеркало, склад, перекрёсток, опасность, жук, зонт, низкий, круг, очарование, стол, смерть.',
         'Chapters: awakening, tablet, mirror, storage, crossroad, hazard, beetle, umbrella, low, trial, card, table, death.',
         'Kapitel: Erwachen, Tafel, Spiegel, Lager, Kreuzung, Gefahr, Käfer, Schirm, Gewölbe, Kreis, Zauber, Tisch, Tod.')

@@ -2,10 +2,10 @@
 /* Сканер музыкального архива: каждый альбом-папка становится кассетой,
    а его основные треки — дорожками этой кассеты.
 
-   Запуск из корня игры:
-     node tools/sync-tracks.js
-     node tools/sync-tracks.js --source /path/to/src/tracks
-     node tools/sync-tracks.js --no-catalog
+   Запуск:
+     node scripts/tools/sync-tracks.js
+     node scripts/tools/sync-tracks.js --source /path/to/src/tracks
+     node scripts/tools/sync-tracks.js --no-catalog
 
    По умолчанию исходники ищутся в ../../src/tracks относительно игры
    (в рабочей копии путь можно передать явно). Сканер ничего не копирует:
@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 const DEFAULT_SOURCE = path.resolve(ROOT, '..', '..', 'src', 'tracks');
 /* URL-база относительно index.html: игра лежит в files/games/zqwy,
    а общий музыкальный архив — в files/src/tracks. */
@@ -54,7 +54,7 @@ function parseArgs(argv) {
     } else if (arg === '--no-catalog') {
       args.catalog = false;
     } else if (arg === '--help' || arg === '-h') {
-      console.log('Использование: node tools/sync-tracks.js [--source DIR] [--no-catalog]');
+      console.log('Использование: node scripts/tools/sync-tracks.js [--source DIR] [--no-catalog]');
       process.exit(0);
     }
   }

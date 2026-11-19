@@ -24,24 +24,26 @@
 .music-layout.is-large { grid-template-columns: var(--album-columns-large, 420px) minmax(0, 1fr); }
 
 /* --- releases first, full screen (tracks appear after a release is chosen) --- */
-.music-tools-row { flex-wrap: wrap; }
-.album-tools-group { display: inline-flex; align-items: center; gap: 8px; }
+.music-tools-row { flex-wrap: nowrap; }
+.album-tools-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .album-fullscreen-btn {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   min-height: 28px;
-  padding: 3px 9px;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--bg-elevated);
   color: var(--muted);
   font: inherit;
-  font-size: 0.78rem;
   cursor: pointer;
   transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
-.album-fullscreen-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.album-fullscreen-btn svg { width: 15px; height: 15px; fill: currentColor; }
 .album-fullscreen-btn:hover,
 .album-fullscreen-btn:focus-visible { color: var(--text); border-color: var(--focus-border); }
 .album-fullscreen-btn[aria-pressed="true"] { color: var(--bg); border-color: var(--text); background: var(--text); }
@@ -116,6 +118,21 @@ body.music-releases-fullscreen .album-list.is-large .album-card-open { font-size
 body.music-releases-fullscreen .music-main { display: none; }
 body.music-releases-fullscreen .player-settings-block { display: none; }
 
+/* --- tracks-only mode: collapse the release list so tracks fill the page --- */
+body.music-releases-collapsed .music-layout,
+body.music-releases-collapsed .music-layout.is-list,
+body.music-releases-collapsed .music-layout.is-cards,
+body.music-releases-collapsed .music-layout.is-large {
+  grid-template-columns: minmax(0, 1fr);
+}
+body.music-releases-collapsed .music-sidebar { display: none; }
+body.music-releases-collapsed .music-main { max-width: none; }
+body.music-releases-collapsed .album-expand-btn {
+  color: var(--bg);
+  border-color: var(--text);
+  background: var(--text);
+}
+
 /* --- album sidebar --- */
 .music-sidebar {
   position: sticky;
@@ -156,11 +173,15 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
 }
 
 .music-count {
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
   color: var(--muted);
   font-size: 0.82rem;
   letter-spacing: 0.04em;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .album-list {
@@ -403,7 +424,29 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
   color: var(--muted);
   text-transform: uppercase;
 }
-.album-meta { min-width: 0; }
+.album-meta { min-width: 0; flex: 1 1 auto; }
+/* Collapse the release list and give the track list the whole page. */
+.album-expand-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+.album-expand-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.album-expand-btn .icon-expand { display: none; }
+body.music-releases-collapsed .album-expand-btn .icon-collapse { display: none; }
+body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
+.album-expand-btn:hover,
+.album-expand-btn:focus-visible { color: var(--text); border-color: var(--focus-border); }
 .album-title {
   margin: 0;
   font-size: clamp(1.4rem, 2.6vw, 1.9rem);
@@ -433,16 +476,11 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
 }
 
 .music-track-row { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+/* Play/pause and "add to queue" are neighbours at the start of the row. */
+.music-track-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 
-.music-track-button {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 auto;
-  min-width: 0;
-  width: auto;
-  padding: 9px 12px;
+.music-track-button,
+.music-track-info {
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
@@ -452,8 +490,28 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
   cursor: pointer;
   transition: background-color 0.16s ease, border-color 0.16s ease;
 }
+.music-track-button {
+  display: flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+.music-track-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 12px;
+}
 .music-track-button:hover,
-.music-track-button:focus-visible {
+.music-track-button:focus-visible,
+.music-track-info:hover,
+.music-track-info:focus-visible {
   background: var(--bg-elevated);
   border-color: var(--border);
 }
@@ -462,14 +520,16 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 26px;
+  height: 26px;
   color: var(--muted);
   font-size: 0.84rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 .music-track-index { transition: opacity 0.18s ease, transform 0.18s ease; }
-/* A real button in the number column: on the current track it takes the
-   number's place, so the play/pause icon is centred exactly around it. */
+/* Visual play/pause icon in the number column: on the current track it takes
+   the number's place. The separate sibling buttons are the real controls. */
 .music-track-toggle {
   position: absolute;
   top: 50%;
@@ -479,12 +539,10 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
   justify-content: center;
   width: 26px;
   height: 26px;
-  padding: 0;
   border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--bg-elevated-2);
   color: var(--text);
-  cursor: pointer;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0.7);
@@ -505,13 +563,23 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
 .music-track.is-active .music-track-index { opacity: 0; transform: scale(0.8); }
 .music-track.is-active .music-track-toggle {
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translate(-50%, -50%) scale(1);
 }
 .music-track.is-playing .music-track-toggle .icon-play { opacity: 0; transform: scale(0.5) rotate(30deg); }
 .music-track.is-playing .music-track-toggle .icon-pause { opacity: 1; transform: none; }
-.music-track-toggle:hover,
-.music-track-toggle:focus-visible { border-color: var(--text); background: var(--bg-elevated); }
+.music-track-button:hover .music-track-toggle,
+.music-track-button:focus-visible .music-track-toggle { border-color: var(--text); background: var(--bg-elevated); }
+/* Play/pause feedback on the track button: the icons cross-fade above and the
+   circle gives a quick press pulse on every click. */
+@keyframes track-toggle-pulse {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(0.78); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+.music-track-button.is-toggling .music-track-toggle {
+  animation: track-toggle-pulse 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
 .music-track-title {
   min-width: 0;
   overflow: hidden;
@@ -548,7 +616,8 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
 }
 .music-track.is-queued .music-track-duration { color: var(--text); }
 
-.music-track.is-active .music-track-button {
+.music-track.is-active .music-track-button,
+.music-track.is-active .music-track-info {
   border-color: var(--text);
   background: var(--bg-elevated-2);
 }
@@ -729,6 +798,7 @@ body.cover-lightbox-open { overflow: hidden; }
   .cover-lightbox.is-open,
   .cover-lightbox-frame { transition: none; }
   body.music-releases-fullscreen .music-sidebar { animation: none; }
+  .music-track-button.is-toggling .music-track-toggle { animation: none; }
 }
 
 /* Player styles live in player.css (shared by every page). */
@@ -749,7 +819,7 @@ body.cover-lightbox-open { overflow: hidden; }
 @media (max-width: 520px) {
   .album-head { gap: 12px; }
   .album-cover { width: 84px; height: 84px; }
-  .music-track-button { padding: 8px 9px; }
+  .music-track-info { padding: 8px 9px; }
   .album-list { max-height: 210px; }
   .album-list.is-large .album-card-item { grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; padding: 9px 10px; }
   .album-list.is-large .album-card-cover { width: 72px; height: 72px; }

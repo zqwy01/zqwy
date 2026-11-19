@@ -11,6 +11,10 @@
 
   const SETTINGS_KEY = "zqwy.site.settings.v1";
   const INDEX_FILE = "./data/search-index.json";
+  // SPA navigation changes document.baseURI. Resolve the index once, while the
+  // script still runs on its original page, so suggestions keep working after
+  // moving to /music/, /links/ and every other section.
+  const INDEX_URL = new URL(INDEX_FILE, document.baseURI).href;
   const systemQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
 
   /* Site chrome is bilingual. Search data stays bilingual regardless of this
@@ -21,7 +25,8 @@
       siteSearch: "Поиск", siteSearchLabel: "Общий поиск сайта",
       searchPlaceholder: "Поиск", searchTitle: "Общий поиск сайта (Ctrl+F)",
       homeHeading: "Поиск по моим данным. Откройте меню (логотип) для каталога и настроек.",
-      searchResults: "Результаты поиска", siteMenu: "Меню сайта", mainMenu: "Основное меню",
+      searchResults: "Результаты поиска", suggestions: "Подсказки поиска",
+      siteMenu: "Меню сайта", mainMenu: "Основное меню",
       catalog: "Каталог", back: "Назад",
       notesHeading: "Заметки в формате markdown, собранные из src/notes/.",
       notesEmpty: "Заметки пока не добавлены. Положите .md-файлы в src/notes/.",
@@ -41,7 +46,8 @@
       siteSearch: "Search", siteSearchLabel: "Site-wide search",
       searchPlaceholder: "Search", searchTitle: "Site-wide search (Ctrl+F)",
       homeHeading: "Search across my data. Open the menu (logo) for the catalog and settings.",
-      searchResults: "Search results", siteMenu: "Site menu", mainMenu: "Main menu",
+      searchResults: "Search results", suggestions: "Search suggestions",
+      siteMenu: "Site menu", mainMenu: "Main menu",
       catalog: "Catalog", back: "Back",
       notesHeading: "Markdown notes collected from src/notes/.",
       notesEmpty: "No notes yet. Put .md files into src/notes/.",
@@ -79,6 +85,7 @@
         if (key) el.setAttribute(attr, t(key));
       }
     });
+    els.suggestions?.setAttribute("aria-label", t("suggestions"));
     if (els.logo && els.hasMenu) {
       els.logo.setAttribute("aria-label", t(els.menu.classList.contains("is-open") ? "menuClose" : "menuOpen"));
     }
@@ -91,6 +98,11 @@
   let lastFocus = null;
   let prevOverflow = "";
   let indexCache = null;
+  let suggestionCache = null;
+  let currentSuggestions = [];
+  let activeSuggestion = -1;
+  let suggestionSeq = 0;
+  let suggestionBlurTimer = 0;
 
   function refresh() {
     const container = document.querySelector("#menuButtonContainer");
@@ -110,6 +122,26 @@
       saved: document.getElementById("settings-saved"),
       reset: document.getElementById("settings-reset"),
     };
+
+    // The dropdown lives inside the form so it follows search to every page;
+    // creating it here also covers pages fetched by the SPA navigator.
+    if (els.form && els.input && !document.getElementById("searchSuggestions")) {
+      const list = document.createElement("div");
+      list.className = "search-suggestions";
+      list.id = "searchSuggestions";
+      list.setAttribute("role", "listbox");
+      list.setAttribute("aria-label", t("suggestions"));
+      list.hidden = true;
+      els.form.appendChild(list);
+
+      els.input.setAttribute("role", "combobox");
+      els.input.setAttribute("aria-autocomplete", "list");
+      els.input.setAttribute("aria-controls", "searchSuggestions");
+      els.input.setAttribute("aria-expanded", "false");
+    }
+    els.suggestions = document.getElementById("searchSuggestions");
+    currentSuggestions = [];
+    activeSuggestion = -1;
     els.hasMenu = !!(els.menu && els.panel && els.logo && els.logo.tagName === "BUTTON");
   }
 
@@ -273,6 +305,148 @@
     return results.slice(0, 50);
   }
 
+  /* ---------- prefix suggestions for the search field ----------
+   * The index already contains titles, aliases, tags and phrase forms. Build
+   * a flat word list from it once, then match the beginning of every word in
+   * the query. This is deliberately a prefix engine ("pervye bukvy"), not a
+   * fuzzy full-text search — the latter is run on submit. */
+  function buildSuggestionCorpus(data) {
+    const byKey = new Map();
+    const add = (value, type) => {
+      const label = String(value || "").trim();
+      if (!label) return;
+      const key = normalize(label);
+      if (!key || byKey.has(key)) return;
+      byKey.set(key, { label, type: type || "page" });
+    };
+    const items = Array.isArray(data) ? data : (data && data.items) || [];
+    for (const item of items) {
+      const type = item.type || "page";
+      add(item.title, type);
+      add(item.alias, type);
+      add(item.category, type);
+      if (Array.isArray(item.tags)) item.tags.forEach((tag) => add(tag, type));
+      else add(item.tags, type);
+      if (Array.isArray(item.keywords)) item.keywords.forEach((word) => add(word, type));
+      else add(item.keywords, type);
+      if (typeof item.text === "string" && item.text.length <= 60) add(item.text, type);
+    }
+    const groups = Array.isArray(data) ? [] : [
+      ...((data && data.phrases) || []),
+      ...((data && data.synonyms) || []),
+    ];
+    for (const group of groups) {
+      const forms = (Array.isArray(group) ? group : (group && group.phrases) || []);
+      forms.forEach((form) => add(form, "page"));
+    }
+    return [...byKey.values()].sort((a, b) =>
+      a.label.localeCompare(b.label, "ru", { sensitivity: "base" }));
+  }
+
+  function suggestionMatches(data, value) {
+    if (!suggestionCache) suggestionCache = buildSuggestionCorpus(data);
+    const query = normalize(value);
+    if (!query) return [];
+    const tokens = query.split(" ").filter(Boolean);
+    const last = tokens[tokens.length - 1];
+    const head = tokens.slice(0, -1);
+    const starts = [];
+    const words = [];
+
+    for (const entry of suggestionCache) {
+      const normalized = normalize(entry.label);
+      if (!normalized) continue;
+      const parts = normalized.split(" ");
+      if (head.length && !head.every((word) => parts.includes(word))) continue;
+      let pushed = false;
+      if (normalized.startsWith(query)) {
+        starts.push(entry);
+        pushed = true;
+      }
+      if (!pushed && parts.some((word) => word.startsWith(last))) words.push(entry);
+    }
+    return [...starts, ...words].slice(0, 8);
+  }
+
+  function hideSuggestions() {
+    if (!els.suggestions) return;
+    els.suggestions.hidden = true;
+    els.suggestions.replaceChildren();
+    els.input?.setAttribute("aria-expanded", "false");
+    els.input?.removeAttribute("aria-activedescendant");
+    currentSuggestions = [];
+    activeSuggestion = -1;
+  }
+
+  function setActiveSuggestion(index) {
+    if (!els.suggestions || !currentSuggestions.length) return;
+    activeSuggestion = Math.max(0, Math.min(index, currentSuggestions.length - 1));
+    [...els.suggestions.querySelectorAll("[data-suggestion]")].forEach((node, i) => {
+      const active = i === activeSuggestion;
+      node.classList.toggle("is-active", active);
+      node.setAttribute("aria-selected", String(active));
+    });
+    els.suggestions.querySelector(`[data-suggestion="${activeSuggestion}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+    els.input?.setAttribute("aria-activedescendant", `search-suggestion-${activeSuggestion}`);
+  }
+
+  function renderSuggestions(matches) {
+    if (!els.suggestions || !els.input) return;
+    hideSuggestions();
+    if (!matches.length) return;
+    currentSuggestions = matches;
+    const frag = document.createDocumentFragment();
+    matches.forEach((entry, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "search-suggestion";
+      button.id = `search-suggestion-${index}`;
+      button.dataset.suggestion = String(index);
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", "false");
+
+      const icon = document.createElement("span");
+      icon.className = "search-suggestion-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = TYPE_ICON[entry.type] || "⌕";
+
+      const label = document.createElement("span");
+      label.className = "search-suggestion-label";
+      label.textContent = entry.label;
+
+      button.append(icon, label);
+      frag.appendChild(button);
+    });
+    els.suggestions.appendChild(frag);
+    els.suggestions.hidden = false;
+    els.input.setAttribute("aria-expanded", "true");
+  }
+
+  async function updateSuggestions() {
+    if (!els.input || !els.suggestions) return;
+    const value = els.input.value.trim();
+    const seq = ++suggestionSeq;
+    if (!value) { hideSuggestions(); return; }
+    try {
+      const index = await loadIndex();
+      if (seq !== suggestionSeq) return;
+      renderSuggestions(suggestionMatches(index, value));
+    } catch {
+      if (seq === suggestionSeq) hideSuggestions();
+    }
+  }
+
+  function chooseSuggestion(index) {
+    const entry = currentSuggestions[index];
+    if (!entry || !els.input) return;
+    if (suggestionBlurTimer) { window.clearTimeout(suggestionBlurTimer); suggestionBlurTimer = 0; }
+    els.input.value = entry.label;
+    hideSuggestions();
+    updateSearchLayout();
+    els.form?.requestSubmit?.();
+  }
+
   const TYPE_ICON = {
     link: "🔗",
     track: "♪",
@@ -325,13 +499,14 @@
 
   async function loadIndex() {
     if (indexCache) return indexCache;
-    const response = await fetch(INDEX_FILE, { cache: "no-store" });
+    const response = await fetch(INDEX_URL, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     indexCache = await response.json();
     return indexCache;
   }
 
   async function performSearch(query) {
+    hideSuggestions();
     if (!els.results || !els.status) return;
     els.results.replaceChildren();
     if (!query) {
@@ -413,6 +588,12 @@
     const target = ev.target instanceof Element ? ev.target : null;
     if (!target) return;
 
+    const suggestion = target.closest("[data-suggestion]");
+    if (suggestion && els.suggestions?.contains(suggestion)) {
+      chooseSuggestion(Number(suggestion.dataset.suggestion));
+      return;
+    }
+
     if (target.closest("#menuOpenButton") && els.hasMenu) {
       els.menu.classList.contains("is-open") ? closeMenu() : openMenu();
       return;
@@ -467,7 +648,24 @@
   });
 
   document.addEventListener("input", (ev) => {
-    if (ev.target === els.input) updateSearchLayout();
+    if (ev.target === els.input) {
+      updateSearchLayout();
+      updateSuggestions();
+    }
+  });
+
+  // Keep focus in the field when a suggestion is pressed: the delayed blur
+  // below would otherwise close the list before the click is delivered.
+  document.addEventListener("mousedown", (ev) => {
+    if (ev.target instanceof Element && ev.target.closest(".search-suggestions")) ev.preventDefault();
+  });
+  document.addEventListener("focusout", (ev) => {
+    if (ev.target !== els.input) return;
+    if (suggestionBlurTimer) window.clearTimeout(suggestionBlurTimer);
+    suggestionBlurTimer = window.setTimeout(() => {
+      hideSuggestions();
+      suggestionBlurTimer = 0;
+    }, 140);
   });
 
   document.addEventListener("submit", (ev) => {
@@ -493,6 +691,30 @@
   });
 
   document.addEventListener("keydown", (ev) => {
+    // Navigate the prefix list while the search field has focus.
+    if (els.input && ev.target === els.input && els.suggestions && !els.suggestions.hidden) {
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        setActiveSuggestion(activeSuggestion + 1);
+        return;
+      }
+      if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        setActiveSuggestion(activeSuggestion - 1);
+        return;
+      }
+      if (ev.key === "Enter" && currentSuggestions.length) {
+        ev.preventDefault();
+        chooseSuggestion(activeSuggestion >= 0 ? activeSuggestion : 0);
+        return;
+      }
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        hideSuggestions();
+        return;
+      }
+    }
+
     // Ctrl/Cmd+F focuses the site's own search instead of the browser's find.
     if ((ev.ctrlKey || ev.metaKey) && (ev.key === "f" || ev.key === "F" || ev.code === "KeyF")) {
       const input = els.input || document.getElementById("siteSearchInput");

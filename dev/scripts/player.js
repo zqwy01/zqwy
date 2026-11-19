@@ -65,6 +65,58 @@
       <span class="player-time" id="playerCurrent">0:00</span>
       <input class="player-range player-progress" id="playerSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
       <div class="player-waveform" id="playerWaveform" hidden></div>
+      <!-- Libraries that draw their own controls live directly in this row,
+           next to the native seek bar / waveform — never in a panel above it. -->
+      <div class="player-engine-ui" id="playerEngineUi" hidden>
+        <div class="engine-ui-view" data-engine-view="howler" hidden>
+          <canvas class="lab-analyser" id="labAnalyser" width="640" height="56" aria-hidden="true"></canvas>
+          <span class="lab-analyser-level" id="labAnalyserLevel">0%</span>
+        </div>
+        <div class="engine-ui-view" data-engine-view="mediaelement" hidden>
+          <div class="lab-mediaelement" id="labMediaElement"></div>
+        </div>
+        <div class="engine-ui-view" data-engine-view="amplitude" hidden>
+          <div class="lab-amplitude">
+            <span class="lab-amplitude-cover" data-amplitude-song-info="cover_art_url"></span>
+            <div class="lab-amplitude-info">
+              <span class="lab-amplitude-title" data-amplitude-song-info="name">—</span>
+              <span class="lab-amplitude-artist" data-amplitude-song-info="artist">zqwy · AmplitudeJS</span>
+            </div>
+            <input class="amplitude-song-slider" type="range" min="0" max="100" value="0" aria-label="Позиция (AmplitudeJS)">
+            <button class="amplitude-play-pause lab-amplitude-play" type="button" aria-label="Воспроизвести/пауза">▶</button>
+            <span class="amplitude-current-time">0:00</span>
+            <span class="lab-amplitude-sep">/</span>
+            <span class="amplitude-duration-time">0:00</span>
+            <input class="amplitude-volume-slider" type="range" min="0" max="100" value="100" aria-label="Громкость (AmplitudeJS)">
+          </div>
+        </div>
+        <div class="engine-ui-view" data-engine-view="aplayer" hidden>
+          <div class="lab-aplayer" id="labAPlayer"></div>
+        </div>
+        <div class="engine-ui-view" data-engine-view="jplayer" hidden>
+          <div class="lab-jplayer" id="labJPlayer">
+            <div class="jp-jplayer" id="labJPlayerMedia"></div>
+            <div id="jp_container_1" class="jp-audio jp-type-single" role="application" aria-label="jPlayer">
+              <div class="jp-gui jp-interface">
+                <div class="jp-controls">
+                  <button class="jp-play" type="button" tabindex="0">play</button>
+                  <button class="jp-pause" type="button" tabindex="0">pause</button>
+                  <button class="jp-stop" type="button" tabindex="0">stop</button>
+                  <button class="jp-mute" type="button" tabindex="0" title="mute">mute</button>
+                  <button class="jp-unmute" type="button" tabindex="0" title="unmute">unmute</button>
+                </div>
+                <div class="jp-progress"><div class="jp-seek-bar"><div class="jp-play-bar"></div></div></div>
+                <div class="jp-volume-bar"><div class="jp-volume-bar-value"></div></div>
+                <div class="jp-time-holder">
+                  <div class="jp-current-time" role="timer" aria-label="time">&nbsp;</div>
+                  <div class="jp-duration" role="timer" aria-label="duration">&nbsp;</div>
+                </div>
+              </div>
+              <div class="jp-title" aria-label="title"></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <span class="player-time" id="playerDuration">0:00</span>
     </div>
 
@@ -88,9 +140,6 @@
       <input class="player-range player-volume" id="playerVolume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Громкость">
       <button class="player-btn player-settings-toggle" id="playerSettingsToggle" type="button" aria-label="Настройки плеера" aria-expanded="false" aria-controls="playerSettings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.6 7.6 0 0 0 .05-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54a7.3 7.3 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.6 7.6 0 0 0 0 1.88L2.82 14.5a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96a7.3 7.3 0 0 0 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.3 7.3 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
-      </button>
-      <button class="player-btn player-lab-toggle" id="playerLabToggle" type="button" aria-label="Интерфейс движка" aria-expanded="false" aria-controls="engineLab" title="Интерфейс движка">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v12H3V5zm2 2v8h14V7H5zm3 10h8v2H8v-2z"/></svg>
       </button>
     </div>
 
@@ -120,85 +169,6 @@
     <p class="player-queue-empty" id="playerQueueEmpty">Очередь пуста. Добавьте треки кнопкой «+» в каталоге.</p>
   </div>
 
-  <!-- A real, visible UI for the libraries that normally have no representation
-       in this player. Each view below is bound to the very same shared <audio>
-       element, so the library's own controls drive the actual playback. -->
-  <div class="engine-lab" id="engineLab" hidden>
-    <div class="engine-lab-head">
-      <div class="engine-lab-heading">
-        <strong id="engineLabTitle">Интерфейс движка</strong>
-        <span id="engineLabDesc">Выберите движок в настройках плеера.</span>
-      </div>
-      <button class="player-btn engine-lab-close" id="engineLabClose" type="button" aria-label="Закрыть интерфейс движка">×</button>
-    </div>
-    <div class="engine-lab-body">
-      <!-- Howler has no DOM UI of its own: show the live signal it processes. -->
-      <div class="engine-lab-view" data-lab-view="howler" hidden>
-        <canvas class="lab-analyser" id="labAnalyser" width="640" height="120" aria-hidden="true"></canvas>
-        <div class="lab-analyser-meta">
-          <span>Howler.js · живой аудиосигнал</span>
-          <span id="labAnalyserLevel">0%</span>
-        </div>
-      </div>
-
-      <!-- MediaElement.js wraps the shared <audio> and is moved in here. -->
-      <div class="engine-lab-view" data-lab-view="mediaelement" hidden>
-        <div class="lab-mediaelement" id="labMediaElement"></div>
-      </div>
-
-      <!-- AmplitudeJS binds to these class names during Amplitude.init(). -->
-      <div class="engine-lab-view" data-lab-view="amplitude" hidden>
-        <div class="lab-amplitude">
-          <div class="lab-amplitude-top">
-            <span class="lab-amplitude-cover" data-amplitude-song-info="cover_art_url"></span>
-            <div class="lab-amplitude-info">
-              <span class="lab-amplitude-title" data-amplitude-song-info="name">—</span>
-              <span class="lab-amplitude-artist" data-amplitude-song-info="artist">zqwy · AmplitudeJS</span>
-            </div>
-          </div>
-          <input class="amplitude-song-slider" type="range" min="0" max="100" value="0" aria-label="Позиция (AmplitudeJS)">
-          <div class="lab-amplitude-row">
-            <button class="amplitude-play-pause lab-amplitude-play" type="button" aria-label="Воспроизвести/пауза">▶</button>
-            <span class="amplitude-current-time">0:00</span>
-            <span class="lab-amplitude-sep">/</span>
-            <span class="amplitude-duration-time">0:00</span>
-            <input class="amplitude-volume-slider" type="range" min="0" max="100" value="100" aria-label="Громкость (AmplitudeJS)">
-          </div>
-        </div>
-      </div>
-
-      <!-- APlayer is created with this host as its container. -->
-      <div class="engine-lab-view" data-lab-view="aplayer" hidden>
-        <div class="lab-aplayer" id="labAPlayer"></div>
-      </div>
-
-      <!-- jPlayer: the standard markup its blue.monday skin expects. -->
-      <div class="engine-lab-view" data-lab-view="jplayer" hidden>
-        <div class="lab-jplayer" id="labJPlayer">
-          <div class="jp-jplayer" id="labJPlayerMedia"></div>
-          <div id="jp_container_1" class="jp-audio jp-type-single" role="application" aria-label="jPlayer">
-            <div class="jp-gui jp-interface">
-              <div class="jp-controls">
-                <button class="jp-play" type="button" tabindex="0">play</button>
-                <button class="jp-pause" type="button" tabindex="0">pause</button>
-                <button class="jp-stop" type="button" tabindex="0">stop</button>
-                <button class="jp-mute" type="button" tabindex="0" title="mute">mute</button>
-                <button class="jp-unmute" type="button" tabindex="0" title="unmute">unmute</button>
-              </div>
-              <div class="jp-progress"><div class="jp-seek-bar"><div class="jp-play-bar"></div></div></div>
-              <div class="jp-volume-bar"><div class="jp-volume-bar-value"></div></div>
-              <div class="jp-time-holder">
-                <div class="jp-current-time" role="timer" aria-label="time">&nbsp;</div>
-                <div class="jp-duration" role="timer" aria-label="duration">&nbsp;</div>
-              </div>
-            </div>
-            <div class="jp-title" aria-label="title"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <p class="player-status" id="playerStatus" aria-live="polite"></p>
   <audio id="audio" preload="metadata"></audio>
 </div>`;
@@ -217,8 +187,7 @@
   const queuePanel = $("playerQueuePanel");
   const queueToggle = $("playerQueueToggle");
   const statusEl = $("playerStatus");
-  const lab = $("engineLab");
-  const labToggle = $("playerLabToggle");
+  const engineUi = $("playerEngineUi");
 
   const listeners = new Map();
   const state = {
@@ -305,22 +274,14 @@
     document.body.classList.toggle("has-waveform", on);
   }
 
-  /* ---------- visible library UI ("engine lab") ----------
-   * The five libraries below normally have no visible representation in this
-   * player. Their real markup/controls are mounted in a panel above the bar so
-   * it is possible to see — and use — how each library actually handles the
-   * same track. Everything here is cosmetic: playback still goes through the
-   * one shared <audio> element.
+  /* ---------- engine-owned UI inside the player ----------
+   * MediaElement.js, AmplitudeJS, APlayer and jPlayer render their own controls.
+   * Those controls are placed in the same seek row as WaveSurfer's waveform —
+   * there is no second floating interface above the main player. Howler has no
+   * DOM UI of its own, so its live analyser uses that same slot.
    */
 
-  const LAB_INFO = {
-    howler: ["Howler.js", "Живой сигнал, который Howler передаёт в Web Audio."],
-    mediaelement: ["MediaElement.js", "Интерфейс MediaElement.js поверх общего аудио."],
-    amplitude: ["AmplitudeJS", "Элементы управления AmplitudeJS, привязанные к треку."],
-    aplayer: ["APlayer", "Интерфейс APlayer с обложкой и списком треков."],
-    jplayer: ["jPlayer", "Скин jPlayer blue.monday с общими элементами управления."],
-  };
-  const LAB_ENGINES = Object.keys(LAB_INFO);
+  const ENGINE_UI = new Set(["howler", "mediaelement", "amplitude", "aplayer", "jplayer"]);
 
   function loadEngineCss(file, key) {
     if (loadedEngineCss.has(key)) return;
@@ -332,15 +293,29 @@
     document.head.appendChild(link);
   }
 
-  function syncLabView(engine) {
-    const info = LAB_INFO[engine];
-    if (!lab || !info) return false;
-    lab.querySelectorAll("[data-lab-view]").forEach((view) => {
-      view.hidden = view.dataset.labView !== engine;
+  function showEngineUi(engine) {
+    if (!engineUi || !ENGINE_UI.has(engine)) return false;
+    if (engine === "aplayer") loadEngineCss("aplayer.min.css", "aplayer");
+    else if (engine === "mediaelement") loadEngineCss("mediaelementplayer.min.css", "mediaelement");
+    else if (engine === "jplayer") loadEngineCss("jplayer.blue.monday.min.css", "jplayer");
+
+    engineUi.hidden = false;
+    engineUi.querySelectorAll("[data-engine-view]").forEach((view) => {
+      view.hidden = view.dataset.engineView !== engine;
     });
-    $("engineLabTitle").textContent = info[0];
-    $("engineLabDesc").textContent = info[1];
+    seek.hidden = true;
+    waveform.hidden = true;
+    setWaveMode(true);
+    if (engine === "howler") startHowlerAnalyser();
+    else stopHowlerAnalyser();
     return true;
+  }
+
+  function hideEngineUi() {
+    stopHowlerAnalyser();
+    if (!engineUi) return;
+    engineUi.hidden = true;
+    engineUi.querySelectorAll("[data-engine-view]").forEach((view) => { view.hidden = true; });
   }
 
   function stopHowlerAnalyser() {
@@ -397,42 +372,6 @@
       if (level) level.textContent = `${Math.round((peak / 128) * 100)}%`;
     };
     draw();
-  }
-
-  function showLab(engine) {
-    if (!lab) return;
-    if (engine && !syncLabView(engine)) return;
-    if (!lab.hidden && lab.classList.contains("is-open")) return;
-    lab.hidden = false;
-    void lab.offsetWidth;
-    lab.classList.add("is-open");
-    labToggle?.setAttribute("aria-expanded", "true");
-    if (engine === "howler") startHowlerAnalyser();
-    else stopHowlerAnalyser();
-    window.dispatchEvent(new Event("resize"));
-  }
-
-  function hideLab() {
-    if (!lab || lab.hidden) return;
-    lab.classList.remove("is-open");
-    labToggle?.setAttribute("aria-expanded", "false");
-    stopHowlerAnalyser();
-    window.setTimeout(() => {
-      if (!lab.classList.contains("is-open")) lab.hidden = true;
-    }, 260);
-  }
-
-  function toggleLab() {
-    if (lab && !lab.hidden && lab.classList.contains("is-open")) hideLab();
-    else showLab(state.engine);
-  }
-
-  function autoShowLab(engine) {
-    if (!LAB_ENGINES.includes(engine)) { hideLab(); return; }
-    if (engine === "aplayer") loadEngineCss("aplayer.min.css", "aplayer");
-    else if (engine === "mediaelement") loadEngineCss("mediaelementplayer.min.css", "mediaelement");
-    else if (engine === "jplayer") loadEngineCss("jplayer.blue.monday.min.css", "jplayer");
-    showLab(engine);
   }
 
   /* ---------- audio formats ---------- */
@@ -793,12 +732,14 @@
   }
 
   function showWaveMode() {
+    hideEngineUi();
     waveform.hidden = false;
     seek.hidden = true;
     setWaveMode(true);
   }
 
   function hideWaveMode() {
+    hideEngineUi();
     waveform.hidden = true;
     seek.hidden = false;
     setWaveMode(false);
@@ -870,6 +811,9 @@
     if (state.engine === "aplayer" && aplayer) {
       try { aplayer.pause(); } catch {}
     }
+    if (state.engine === "mediaelement" && mediaElementWrapper) {
+      try { mediaElementWrapper.pause(); } catch {}
+    }
     if (state.engine === "jplayer" && jplayerHost && window.jQuery) {
       try { window.jQuery($("labJPlayerMedia")).jPlayer("pause"); } catch {}
     }
@@ -889,6 +833,7 @@
     destroyHowl();
     destroyWaviz();
     waveform?.replaceChildren();
+    hideEngineUi();
   }
 
   function fallbackToHtml5(message) {
@@ -1012,7 +957,7 @@
     }
     if (!window.Howl || !window.Howler) return false;
 
-    hideWaveMode();
+    showEngineUi("howler");
     audio.src = url;
     audio.load();
 
@@ -1105,17 +1050,21 @@
   }
 
   /* MediaElement.js wraps the shared element once and then delegates play,
-     pause and seeking to its native HTML5 renderer. The empty wrapper is kept
-     out of layout; the real <audio> stays in the player bar. */
+     pause and seeking to its native HTML5 renderer. Its own control bar is
+     mounted in the player's seek row — the same place WaveSurfer uses. */
   async function createMediaElement(url, startAt, autoplay) {
     try { await loadMediaElementScript(); } catch {
       fallbackToHtml5("MediaElement.js недоступен — используется HTML5.");
       notify("engine");
       return false;
     }
-    if (!window.MediaElement) return false;
+    if (!window.MediaElement) {
+      fallbackToHtml5("MediaElement.js недоступен — используется HTML5.");
+      notify("engine");
+      return false;
+    }
 
-    hideWaveMode();
+    showEngineUi("mediaelement");
     audio.src = url;
     audio.load();
     if (!mediaElementWrapper) {
@@ -1126,14 +1075,6 @@
         mediaElementWrapper = new PlayerClass(audio, {
           features: ["playpause", "current", "progress", "duration", "volume"],
         });
-        const host = $("labMediaElement");
-        const container = mediaElementWrapper?.container
-          || (audio.parentElement && audio.parentElement !== bar ? audio.parentElement : null);
-        if (host && container) {
-          host.replaceChildren(container);
-        } else if (mediaElementWrapper?.style) {
-          mediaElementWrapper.style.display = "none";
-        }
       } catch {
         mediaElementWrapper = null;
       }
@@ -1143,6 +1084,10 @@
       notify("engine");
       return false;
     }
+    const host = $("labMediaElement");
+    const container = mediaElementWrapper.container
+      || (audio.parentElement && audio.parentElement !== bar ? audio.parentElement : null);
+    if (host && container && host.firstElementChild !== container) host.replaceChildren(container);
     if (startAt) setTime(startAt);
     if (autoplay) attemptPlay();
     return true;
@@ -1158,9 +1103,13 @@
       notify("engine");
       return false;
     }
-    if (!window.Amplitude) return false;
+    if (!window.Amplitude) {
+      fallbackToHtml5("AmplitudeJS недоступен — используется HTML5.");
+      notify("engine");
+      return false;
+    }
 
-    hideWaveMode();
+    showEngineUi("amplitude");
     try {
       window.Amplitude.init({
         songs: [{ name: state.current?.title || "zqwy", artist: "zqwy", url }],
@@ -1213,15 +1162,19 @@
       notify("engine");
       return false;
     }
-    if (!window.APlayer) return false;
+    if (!window.APlayer) {
+      fallbackToHtml5("APlayer недоступен — используется HTML5.");
+      notify("engine");
+      return false;
+    }
 
-    hideWaveMode();
+    showEngineUi("aplayer");
     const track = aplayerTrack(url);
     try {
       if (!aplayer) {
-        // Render APlayer's own UI inside the visible engine panel instead of
-        // the off-screen host. It still receives the shared <audio> via the
-        // createElement shim, so its controls drive the real playback.
+        // Render APlayer's own UI in the player's seek row. It still receives
+        // the shared <audio> via the createElement shim, so its controls drive
+        // the real playback.
         aplayerHost = $("labAPlayer") || engineHost("zqwy-aplayer-host");
         const position = rememberAudioDom();
         aplayer = withSharedAudioElement(() => new window.APlayer({
@@ -1259,9 +1212,13 @@
       notify("engine");
       return false;
     }
-    if (!window.jQuery?.fn?.jPlayer) return false;
+    if (!window.jQuery?.fn?.jPlayer) {
+      fallbackToHtml5("jPlayer недоступен — используется HTML5.");
+      notify("engine");
+      return false;
+    }
 
-    hideWaveMode();
+    showEngineUi("jplayer");
     try {
       const media = $("labJPlayerMedia");
       jplayerHost = $("labJPlayer");
@@ -1318,7 +1275,6 @@
 
     destroyWaveforms();
     state.engine = name;
-    autoShowLab(name);
 
     const url = hadTrack ? assetUrl(resolveTrackPath(state.current)) : "";
     if (hadTrack) loadEngine(url, time, wasPlaying);
@@ -1565,10 +1521,24 @@
 
   /* ---------- UI ---------- */
 
+  function pulseElement(el, className = "is-pulsing") {
+    if (!el || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    el.classList.remove(className);
+    void el.offsetWidth; // restart the animation even on a rapid second click
+    el.classList.add(className);
+    const done = () => {
+      el.classList.remove(className);
+      el.removeEventListener("animationend", done);
+    };
+    el.addEventListener("animationend", done);
+  }
+
   function updatePlayState() {
     const playing = !!(state.current && !audio.paused && !audio.ended);
     bar.classList.toggle("is-playing", playing);
-    $("playerPlay").setAttribute("aria-label", playing ? "Пауза" : "Воспроизвести");
+    const playButton = $("playerPlay");
+    playButton.setAttribute("aria-label", playing ? "Пауза" : "Воспроизвести");
+    pulseElement(playButton);
     updateMediaSessionState();
     notify("playstate");
   }
@@ -1622,7 +1592,7 @@
       <option value="aplayer">APlayer (интерфейс)</option>
       <option value="jplayer">jPlayer (интерфейс)</option>
     </select>
-    <p class="player-settings-hint">Для Howler, MediaElement.js, AmplitudeJS, APlayer и jPlayer интерфейс библиотеки открывается отдельной панелью.</p>
+    <p class="player-settings-hint">Интерфейс выбранной библиотеки отображается прямо в строке плеера — отдельного окна больше нет.</p>
   </div>
   <fieldset class="settings-group">
     <legend>Формат аудиофайла</legend>
@@ -1746,11 +1716,8 @@
     const play = target.closest("[data-queue-play]");
     if (play) playQueued(Number(play.dataset.queuePlay));
   });
-  labToggle?.addEventListener("click", toggleLab);
-  $("engineLabClose")?.addEventListener("click", hideLab);
   document.addEventListener("keydown", (ev) => {
     if (ev.key !== "Escape") return;
-    if (lab && !lab.hidden && lab.classList.contains("is-open")) { hideLab(); return; }
     if (queuePanel && !queuePanel.hidden) closeQueue();
   });
 
@@ -1874,7 +1841,6 @@
     updateMuteState();
     renderQueue();
     mountSettings();
-    if (LAB_ENGINES.includes(state.engine)) autoShowLab(state.engine);
 
     if (!state.current || !state.current.path) return;
     showBar();

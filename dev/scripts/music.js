@@ -22,6 +22,7 @@
     durations: new Map(),
     view: "list", // "list", "cards" or "large"
     fullscreen: false, // releases fill the screen until one is chosen
+    collapsed: false, // releases hidden so the selected album's tracks fill the page
   };
 
   let ui = {};
@@ -53,6 +54,7 @@
       albumPanel: document.getElementById("albumPanel"),
       fullscreenBtn: document.getElementById("releasesFullscreen"),
       fullscreenLabel: document.getElementById("releasesFullscreenLabel"),
+      expandBtn: document.getElementById("tracksExpand"),
       trackList: document.getElementById("trackList"),
       albumTitle: document.getElementById("albumTitle"),
       albumSubtitle: document.getElementById("albumSubtitle"),
@@ -65,6 +67,14 @@
       lightboxLetter: document.getElementById("coverLightboxLetter"),
       lightboxCaption: document.getElementById("coverLightboxCaption"),
     };
+    if (ui.expandBtn) {
+      const label = state.collapsed ? "Показать список релизов" : "Свернуть список релизов";
+      ui.expandBtn.setAttribute("aria-pressed", String(state.collapsed));
+      ui.expandBtn.setAttribute("aria-label", label);
+      ui.expandBtn.setAttribute("title", state.collapsed
+        ? "Показать список релизов"
+        : "Свернуть список релизов — треки на весь экран");
+    }
   }
 
   function player() {
@@ -245,6 +255,25 @@
     animateReleaseRects(previous);
   }
 
+  // Hide the release sidebar entirely and let the selected album's tracks use
+  // the whole page. The same button restores the release list.
+  function applyCollapsed(on) {
+    state.collapsed = !!on;
+    document.body.classList.toggle("music-releases-collapsed", state.collapsed);
+    if (state.collapsed && state.fullscreen) applyFullscreen(false);
+    const label = state.collapsed
+      ? "Показать список релизов"
+      : "Свернуть список релизов";
+    if (ui.expandBtn) {
+      ui.expandBtn.setAttribute("aria-pressed", String(state.collapsed));
+      ui.expandBtn.setAttribute("aria-label", label);
+      ui.expandBtn.setAttribute("title", state.collapsed
+        ? "Показать список релизов"
+        : "Свернуть список релизов — треки на весь экран");
+    }
+    if (!state.collapsed) fitSidebarToTitles();
+  }
+
   // The release column hugs the longest visible title, leaving the rest of the
   // width for the track list. Measured with the real font of the row label.
   function fitSidebarToTitles() {
@@ -387,11 +416,16 @@
       const row = document.createElement("div");
       row.className = "music-track-row";
 
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "music-track-button";
-      button.dataset.index = String(index);
-      button.setAttribute("aria-label", `Играть: ${track.title}`);
+      // The queue button sits immediately next to the play/pause button at the
+      // start of the row. Both are real sibling buttons — never nested.
+      const controls = document.createElement("div");
+      controls.className = "music-track-controls";
+
+      const play = document.createElement("button");
+      play.type = "button";
+      play.className = "music-track-button";
+      play.dataset.index = String(index);
+      play.setAttribute("aria-label", `Играть: ${track.title}`);
 
       // The number cell doubles as a play/pause control for the active track.
       // Both icons live inside a real button so the state can be announced and
@@ -403,15 +437,33 @@
       indexLabel.className = "music-track-index";
       indexLabel.textContent = String(index + 1).padStart(2, "0");
 
-      const toggle = document.createElement("button");
-      toggle.type = "button";
+      const toggle = document.createElement("span");
       toggle.className = "music-track-toggle";
-      toggle.setAttribute("aria-label", `Играть: ${track.title}`);
+      toggle.setAttribute("aria-hidden", "true");
       toggle.innerHTML =
         '<svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>' +
         '<svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
 
       number.append(indexLabel, toggle);
+      play.appendChild(number);
+
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "music-track-queue";
+      add.dataset.index = String(index);
+      add.setAttribute("aria-label", `Добавить в очередь: ${track.title}`);
+      add.setAttribute("title", "Добавить в очередь");
+      add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11v2H4zM4 11h11v2H4zM4 16h7v2H4zM18 9h2v3h3v2h-3v3h-2v-3h-3v-2h3z"/></svg>';
+
+      controls.append(play, add);
+
+      // A separate info button keeps the whole title clickable without making
+      // the queue control a child of another button.
+      const info = document.createElement("button");
+      info.type = "button";
+      info.className = "music-track-info";
+      info.dataset.index = String(index);
+      info.setAttribute("aria-label", `Играть: ${track.title}`);
 
       const title = document.createElement("span");
       title.className = "music-track-title";
@@ -423,17 +475,8 @@
         ? formatTime(state.durations.get(track.path))
         : "—";
 
-      button.append(number, title, duration);
-
-      const add = document.createElement("button");
-      add.type = "button";
-      add.className = "music-track-queue";
-      add.dataset.index = String(index);
-      add.setAttribute("aria-label", `Добавить в очередь: ${track.title}`);
-      add.setAttribute("title", "Добавить в очередь");
-      add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11v2H4zM4 11h11v2H4zM4 16h7v2H4zM18 9h2v3h3v2h-3v3h-2v-3h-3v-2h3z"/></svg>';
-
-      row.append(button, add);
+      info.append(title, duration);
+      row.append(controls, info);
       item.appendChild(row);
       fragment.appendChild(item);
     });
@@ -465,13 +508,12 @@
       item.classList.toggle("is-playing", isPlaying);
       item.classList.toggle("is-queued", isQueued);
       const label = `${isPlaying ? "Пауза" : "Играть"}: ${state.album?.tracks[index]?.title || ""}`;
-      const button = item.querySelector(".music-track-button");
-      if (button) {
-        button.setAttribute("aria-pressed", String(active));
-        button.setAttribute("aria-label", label);
-      }
-      const toggle = item.querySelector(".music-track-toggle");
-      if (toggle) toggle.setAttribute("aria-label", label);
+      [".music-track-button", ".music-track-info"].forEach((selector) => {
+        const el = item.querySelector(selector);
+        if (!el) return;
+        el.setAttribute("aria-pressed", String(active));
+        el.setAttribute("aria-label", label);
+      });
       const addButton = item.querySelector(".music-track-queue");
       if (addButton) {
         addButton.setAttribute("title", isQueued ? "Уже в очереди" : "Добавить в очередь");
@@ -524,6 +566,18 @@
     markActiveTrack();
   }
 
+  function pulseTrackButton(button) {
+    if (!button || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    button.classList.remove("is-toggling");
+    void button.offsetWidth; // restart the animation on a rapid second click
+    button.classList.add("is-toggling");
+    const done = () => {
+      button.classList.remove("is-toggling");
+      button.removeEventListener("animationend", done);
+    };
+    button.addEventListener("animationend", done);
+  }
+
   /* ---------- delegated, SPA-safe events ---------- */
 
   document.addEventListener("click", (event) => {
@@ -537,7 +591,14 @@
     }
 
     if (target.closest("#releasesFullscreen")) {
-      applyFullscreen(!state.fullscreen);
+      const next = !state.fullscreen;
+      if (next && state.collapsed) applyCollapsed(false);
+      applyFullscreen(next);
+      return;
+    }
+
+    if (target.closest("#tracksExpand")) {
+      applyCollapsed(!state.collapsed);
       return;
     }
 
@@ -567,25 +628,20 @@
       return;
     }
 
-    // The small play/pause button sits inside the track button. Handle it
-    // first: toggling the active track must pause/resume, not restart it.
-    const toggle = target.closest(".music-track-toggle");
-    if (toggle && ui.trackList?.contains(toggle)) {
-      const item = toggle.closest(".music-track");
-      const index = Number(item?.dataset.index);
+    // Both the number button and the title button start/pause the track.
+    const trackButton = target.closest(".music-track-button, .music-track-info");
+    if (trackButton && ui.trackList?.contains(trackButton)) {
+      const index = Number(trackButton.dataset.index);
       const api = player();
       const current = api ? api.getState().current : null;
+      const playButton = trackButton.closest(".music-track")?.querySelector(".music-track-button");
+      pulseTrackButton(playButton);
       if (current && state.album && current.albumId === state.album.id && current.index === index) {
         api.toggle();
+        markActiveTrack();
       } else {
         playTrack(index);
       }
-      return;
-    }
-
-    const trackButton = target.closest(".music-track-button");
-    if (trackButton && ui.trackList?.contains(trackButton)) {
-      playTrack(Number(trackButton.dataset.index));
     }
   });
 
@@ -597,6 +653,7 @@
     if (event.key === "Escape") {
       if (coverIsOpen()) { closeCover(); return; }
       if (state.fullscreen) applyFullscreen(false);
+      else if (state.collapsed) applyCollapsed(false);
       return;
     }
     const target = event.target instanceof Element ? event.target : null;

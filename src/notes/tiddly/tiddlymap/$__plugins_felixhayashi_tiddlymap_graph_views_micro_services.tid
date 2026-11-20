@@ -1,0 +1,8 @@
+config.neighbourhood_scope: 
+config.raster: 50
+created: 20260723121007874
+id: f4da656a-6fcb-4779-890c-302d13fb6d5e
+isview: true
+modified: 20260725163111910
+title: $:/plugins/felixhayashi/tiddlymap/graph/views/micro_services
+type: text/vnd.tiddlywiki

@@ -120,8 +120,10 @@
 .zemic-art-ring-two { width: 88%; aspect-ratio: 1; border-style: dashed; opacity: 0.5; }
 .zemic-art img {
   position: relative;
-  width: clamp(84px, 26%, 128px);
+  width: clamp(96px, 34%, 180px);
   height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6));
 }
 .zemic-art-caption {

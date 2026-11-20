@@ -101,18 +101,29 @@ if [[ -f "$PROJECT_DIR/scripts/build_covers.py" ]]; then
 fi
 
 # Каталог музыки — производный от src/tracks файл, поэтому обновляем его
-# перед копированием исходников.
+# перед копированием исходников. В Docker-сборку src/ может не попадать
+# (например, если он исключён из контекста), тогда используем готовый
+# dev/data/music-catalog.json.
 if [[ -f "$PROJECT_DIR/scripts/build_music_catalog.mjs" ]]; then
-    echo "Обновление каталога музыки..."
-    node "$PROJECT_DIR/scripts/build_music_catalog.mjs"
+    if [[ -d "$PROJECT_DIR/src/tracks" ]]; then
+        echo "Обновление каталога музыки..."
+        node "$PROJECT_DIR/scripts/build_music_catalog.mjs"
+    else
+        echo "Пропуск каталога музыки: нет $PROJECT_DIR/src/tracks (используется готовый dev/data/music-catalog.json)."
+    fi
     echo
 fi
 
 # Заметки из src/notes/ — источник для режима wiki/zqwy. Генерируем их перед
-# индексом поиска: индекс подхватывает метаданные заметок.
+# индексом поиска: индекс подхватывает метаданные заметок. Если src/notes
+# отсутствует (Docker-контекст без src/), оставляем готовые файлы в dev/.
 if [[ -f "$PROJECT_DIR/scripts/build_wiki_notes.mjs" ]]; then
-    echo "Обновление заметок wiki (zqwy)..."
-    node "$PROJECT_DIR/scripts/build_wiki_notes.mjs"
+    if [[ -d "$PROJECT_DIR/src/notes" ]]; then
+        echo "Обновление заметок wiki (zqwy)..."
+        node "$PROJECT_DIR/scripts/build_wiki_notes.mjs"
+    else
+        echo "Пропуск заметок wiki: нет $PROJECT_DIR/src/notes (используются готовые dev/wiki/zqwy и dev/data/wiki-notes.json)."
+    fi
     echo
 fi
 

@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Rebuild the image on every `docker compose up` (no stale cached image).
+    pull_policy: build
     container_name: zqwy_web
     restart: always
     environment:

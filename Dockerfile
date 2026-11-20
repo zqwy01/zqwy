@@ -6,6 +6,9 @@ FROM node:24-bookworm-slim AS build
 
 WORKDIR /src
 
+COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY dev ./dev
 COPY scripts ./scripts
 

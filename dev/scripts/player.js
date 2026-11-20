@@ -7,7 +7,10 @@
  * Howler.js, Waviz, MediaElement.js, AmplitudeJS, APlayer and jPlayer — and all
  * settings are saved site-wide. The audio format (.opus/.mp3/.wav/.flac) is a
  * separate setting. Every engine drives the same <audio> element, so playback,
- * seeking, volume and Media Session stay identical across the site.
+ * seeking, volume and Media Session stay identical across the site. Track
+ * switches fade a temporary copy of the outgoing element through a Web Audio
+ * GainNode; the incoming track gets only a 14 ms anti-click ramp so an
+ * immediate drop is not softened.
  *
  * Public API (window.zqwyPlayer):
  *   playTrack(album, index, options) · setContext(album) · toggle() · play()
@@ -33,6 +36,8 @@
     "mediaelement", "amplitude", "aplayer", "jplayer",
   ];
   const FORMATS = ["opus", "mp3", "wav", "flac"];
+  const CROSSFADE_OPTIONS = [200, 400, 700];
+  const DEFAULT_CROSSFADE_MS = 400;
 
   const BAR_HTML = `
 <div class="player-bar" id="playerBar" hidden>
@@ -202,6 +207,8 @@
     format: "opus",
     autoNext: true,
     rememberPosition: true,
+    crossfade: true,          // fade the outgoing track under the incoming one
+    crossfadeMs: DEFAULT_CROSSFADE_MS,
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -237,6 +244,8 @@
   let labRaf = 0;
   let labNode = null;
   let labGain = null;
+  const activeFades = new Set(); // temporary <audio> elements fading out after a track switch
+  let incomingFadeToken = 0;     // invalidates an older anti-click ramp on rapid switches
 
   /* ---------- helpers ---------- */
 
@@ -542,30 +551,33 @@
   function playQueued(index) {
     const item = state.queue[index];
     if (!item) return;
-    state.queue.splice(index, 1);
-    state.context = {
-      albumId: item.albumId,
-      title: item.albumTitle,
-      cover: item.cover,
-      tracks: item.tracks || [],
+    const commit = () => {
+      state.queue.splice(index, 1);
+      state.context = {
+        albumId: item.albumId,
+        title: item.albumTitle,
+        cover: item.cover,
+        tracks: item.tracks || [],
+      };
+      state.current = {
+        albumId: item.albumId,
+        index: item.index,
+        title: item.title,
+        path: item.path,
+        formats: item.formats,
+        cover: item.cover,
+      };
+      state.time = 0;
+      showBar();
+      setStatus("");
+      renderMetadata();
+      loadCurrent({ autoplay: true, startTime: 0, antiClick: true });
+      renderQueue();
+      saveState();
+      notify("queue");
+      notify("track");
     };
-    state.current = {
-      albumId: item.albumId,
-      index: item.index,
-      title: item.title,
-      path: item.path,
-      formats: item.formats,
-      cover: item.cover,
-    };
-    state.time = 0;
-    showBar();
-    setStatus("");
-    renderMetadata();
-    loadCurrent({ autoplay: true, startTime: 0 });
-    renderQueue();
-    saveState();
-    notify("queue");
-    notify("track");
+    beginCrossfade(item, commit);
   }
 
   function getState() {
@@ -609,6 +621,7 @@
         volume: state.volume, muted: state.muted, shuffle: state.shuffle,
         repeat: state.repeat, engine: state.engine, format: state.format,
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
+        crossfade: state.crossfade, crossfadeMs: state.crossfadeMs,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -1329,6 +1342,9 @@
   }
 
   function pauseAudio() {
+    // A user-initiated pause must silence the fading copy of the previous
+    // track too — otherwise it would keep playing until its timer runs out.
+    stopFades();
     if (state.engine === "howler" && howl) {
       try { howl.pause(); return; } catch {}
     }
@@ -1347,13 +1363,201 @@
     audio.pause();
   }
 
+  /* ---------- smooth track switching ----------
+   * The outgoing track is copied into a detached <audio> and faded with a Web
+   * Audio GainNode: sample-accurate, no stepped "zipper" noise. We wait until
+   * that copy is really playing before replacing the shared element's src, so
+   * there is no silence gap and no wrong-offset overlap of the old track. The
+   * incoming track gets only the 14 ms anti-click ramp from loadCurrent(), so
+   * an immediate drop still hits at full level.
+   */
+  function cleanupFade(fade) {
+    if (!fade || fade.done) return;
+    fade.done = true;
+    if (fade.interval) window.clearInterval(fade.interval);
+    if (fade.timeout) window.clearTimeout(fade.timeout);
+    if (fade.startTimer) window.clearTimeout(fade.startTimer);
+    if (fade.playTimer) window.clearTimeout(fade.playTimer);
+    activeFades.delete(fade);
+    try { fade.source?.disconnect(); } catch {}
+    try { fade.gain?.disconnect(); } catch {}
+    fade.source = null;
+    fade.gain = null;
+    const element = fade.element;
+    if (!element) return;
+    try { element.pause(); } catch {}
+    try { element.removeAttribute("src"); element.load(); } catch {}
+  }
+
+  // `commit: false` is used only by stop(), where a pending switch must be
+  // discarded instead of starting a new track after the player was closed.
+  function stopFades(options = {}) {
+    const commit = options.commit !== false;
+    for (const fade of [...activeFades]) {
+      if (commit && !fade.committed) {
+        fade.committed = true;
+        fade.commitNow();
+      }
+      cleanupFade(fade);
+    }
+  }
+
+  function startFadeAutomation(fade) {
+    if (fade.started || fade.done) return;
+    fade.started = true;
+    fade.startedAt = performance.now();
+    const context = sharedAudioContext();
+    if (context) {
+      try {
+        const source = context.createMediaElementSource(fade.element);
+        const gain = context.createGain();
+        const now = context.currentTime;
+        gain.gain.setValueAtTime(1, now);
+        gain.gain.linearRampToValueAtTime(0, now + fade.duration / 1000);
+        source.connect(gain);
+        gain.connect(context.destination);
+        fade.source = source;
+        fade.gain = gain;
+        fade.timeout = window.setTimeout(() => cleanupFade(fade), fade.duration + 250);
+        return;
+      } catch {}
+    }
+    // No Web Audio available: ramp element.volume instead of cutting it.
+    fade.interval = window.setInterval(() => {
+      if (fade.done) return;
+      const progress = Math.min(1, (performance.now() - fade.startedAt) / fade.duration);
+      fade.element.volume = Math.max(0, fade.from * (1 - progress));
+      if (progress >= 1) cleanupFade(fade);
+    }, 20);
+    fade.timeout = window.setTimeout(() => cleanupFade(fade), fade.duration + 250);
+  }
+
+  function beginCrossfade(nextTrack, commit) {
+    const proceed = () => { if (typeof commit === "function") commit(); };
+    if (!state.crossfade || !state.current || audio.paused || audio.ended) { proceed(); return; }
+
+    const absoluteUrl = (value) => {
+      try { return new URL(value, document.baseURI).href; } catch { return value; }
+    };
+    const fromUrl = absoluteUrl(audio.currentSrc || audio.src || assetUrl(resolveTrackPath(state.current)));
+    const toUrl = nextTrack ? absoluteUrl(assetUrl(resolveTrackPath(nextTrack))) : "";
+    // Restarting the very same file (deep link / queue edge case) would only
+    // create a phasing copy of itself — nothing to smooth there.
+    if (!fromUrl || fromUrl === toUrl) { proceed(); return; }
+    const fromVolume = audio.muted ? 0 : Math.max(0, Math.min(1, audio.volume));
+    if (fromVolume <= 0) { proceed(); return; }
+    const fromTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+    const duration = state.crossfadeMs;
+
+    // A rapid next/next chain must not leave several overlapping ghosts.
+    stopFades({ commit: true });
+
+    const element = document.createElement("audio");
+    element.preload = "auto";
+    element.src = fromUrl;
+    element.volume = fromVolume; // gain node only shapes 1 → 0 on top of this
+
+    const fade = {
+      element,
+      source: null,
+      gain: null,
+      interval: 0,
+      timeout: 0,
+      startTimer: 0,
+      playTimer: 0,
+      committed: false,
+      started: false,
+      startedAt: 0,
+      done: false,
+      from: fromVolume,
+      duration,
+      commitNow: null,
+    };
+    activeFades.add(fade);
+
+    const commitOnce = () => {
+      if (fade.committed || fade.done) return;
+      fade.committed = true;
+      if (fade.startTimer) { window.clearTimeout(fade.startTimer); fade.startTimer = 0; }
+      if (fade.playTimer) { window.clearTimeout(fade.playTimer); fade.playTimer = 0; }
+      proceed();
+    };
+    fade.commitNow = commitOnce;
+
+    element.addEventListener("playing", () => {
+      if (fade.done) return;
+      startFadeAutomation(fade);
+      commitOnce();
+    }, { once: true });
+
+    const startPlayback = () => {
+      if (fade.done) return;
+      // Seek only after metadata exists: setting currentTime on a fresh
+      // HAVE_NOTHING element is unreliable and can restart the old intro.
+      try { element.currentTime = fromTime; } catch {}
+      const attempt = element.play();
+      if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(() => { startFadeAutomation(fade); commitOnce(); });
+      }
+      // If `playing` never fires, switch anyway instead of freezing the UI.
+      fade.playTimer = window.setTimeout(() => {
+        startFadeAutomation(fade);
+        commitOnce();
+      }, 160);
+    };
+
+    if (element.readyState >= 1) startPlayback();
+    else {
+      element.addEventListener("loadedmetadata", startPlayback, { once: true });
+      fade.startTimer = window.setTimeout(() => {
+        if (fade.committed || fade.done) return;
+        fade.committed = true;
+        cleanupFade(fade);
+        proceed();
+      }, 240);
+    }
+  }
+
+  /* A 14 ms ramp on the incoming track removes the click caused by starting
+   * playback on a non-zero sample. It is far too short to soften a drop, but
+   * it removes the "обрыв" sound at the exact switch moment. */
+  function runIncomingFade(target) {
+    const token = ++incomingFadeToken;
+    const duration = 14;
+    const started = performance.now();
+    let frame = 0;
+    const finish = () => {
+      if (token !== incomingFadeToken) return;
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = 0;
+      audio.volume = target;
+    };
+    const step = () => {
+      if (token !== incomingFadeToken) return;
+      const progress = Math.min(1, (performance.now() - started) / duration);
+      audio.volume = target * progress;
+      if (progress < 1) frame = window.requestAnimationFrame(step);
+      else finish();
+    };
+    frame = window.requestAnimationFrame(step);
+    // A hidden tab throttles rAF; never leave the track stuck at low volume.
+    window.setTimeout(finish, duration + 150);
+  }
+
   function loadCurrent(options = {}) {
     if (!state.current) return;
     pendingStart = options.startTime || 0;
     pendingAutoplay = options.autoplay !== false;
+    // Use the saved volume, not audio.volume: a previous anti-click ramp may
+    // still be in progress and would otherwise become the new ramp's target.
+    const incomingTarget = options.antiClick && !state.muted && !audio.muted
+      ? Math.max(0, Math.min(1, state.volume))
+      : 0;
+    if (incomingTarget > 0) audio.volume = 0;
     const url = assetUrl(resolveTrackPath(state.current));
     destroyWaveforms();
     loadEngine(url, pendingStart, pendingAutoplay);
+    if (incomingTarget > 0) runIncomingFade(incomingTarget);
   }
 
   function renderMetadata() {
@@ -1402,27 +1606,35 @@
   function playTrack(album, index, options = {}) {
     if (!album || !album.tracks || !album.tracks[index]) return;
     const track = album.tracks[index];
-    state.context = {
-      albumId: album.id,
-      title: album.title,
-      cover: album.cover || null,
-      tracks: album.tracks.map((item) => ({ title: item.title, path: item.path, formats: item.formats })),
+    const commit = () => {
+      state.context = {
+        albumId: album.id,
+        title: album.title,
+        cover: album.cover || null,
+        tracks: album.tracks.map((item) => ({ title: item.title, path: item.path, formats: item.formats })),
+      };
+      state.current = {
+        albumId: album.id,
+        index,
+        title: track.title,
+        path: track.path,
+        formats: track.formats,
+        cover: album.cover || null,
+      };
+      state.time = 0;
+      showBar();
+      setStatus("");
+      renderMetadata();
+      loadCurrent({
+        autoplay: options.autoplay !== false,
+        startTime: options.startTime || 0,
+        antiClick: options.autoplay !== false,
+      });
+      saveState();
+      notify("track");
     };
-    state.current = {
-      albumId: album.id,
-      index,
-      title: track.title,
-      path: track.path,
-      formats: track.formats,
-      cover: album.cover || null,
-    };
-    state.time = 0;
-    showBar();
-    setStatus("");
-    renderMetadata();
-    loadCurrent({ autoplay: options.autoplay !== false, startTime: options.startTime || 0 });
-    saveState();
-    notify("track");
+    if (options.autoplay !== false) beginCrossfade(track, commit);
+    else commit();
   }
 
   function setContext(album) {
@@ -1444,21 +1656,25 @@
     if (!tracks || !tracks.length) return;
     const wrapped = ((index % tracks.length) + tracks.length) % tracks.length;
     const item = tracks[wrapped];
-    state.current = {
-      albumId: state.context.albumId,
-      index: wrapped,
-      title: item.title,
-      path: item.path,
-      formats: item.formats,
-      cover: state.context.cover,
+    const commit = () => {
+      state.current = {
+        albumId: state.context.albumId,
+        index: wrapped,
+        title: item.title,
+        path: item.path,
+        formats: item.formats,
+        cover: state.context.cover,
+      };
+      state.time = 0;
+      showBar();
+      setStatus("");
+      renderMetadata();
+      loadCurrent({ autoplay, startTime: 0, antiClick: autoplay });
+      saveState();
+      notify("track");
     };
-    state.time = 0;
-    showBar();
-    setStatus("");
-    renderMetadata();
-    loadCurrent({ autoplay, startTime: 0 });
-    saveState();
-    notify("track");
+    if (autoplay) beginCrossfade(item, commit);
+    else commit();
   }
 
   function next(manual = false) {
@@ -1502,6 +1718,8 @@
   }
 
   function stop() {
+    // Closing the player must not let a pending crossfade commit a new track.
+    stopFades({ commit: false });
     pauseAudio();
     audio.removeAttribute("src");
     audio.load();
@@ -1605,7 +1823,17 @@
     <legend>Поведение</legend>
     <label><input type="checkbox" data-player-setting="autoNext"> Играть следующий трек автоматически</label>
     <label><input type="checkbox" data-player-setting="rememberPosition"> Запоминать позицию трека</label>
+    <label><input type="checkbox" data-player-setting="crossfade"> Плавный переход между треками</label>
   </fieldset>
+  <div class="settings-field">
+    <label class="settings-label" for="playerCrossfadeMs">Затухание предыдущего трека</label>
+    <select class="settings-select" id="playerCrossfadeMs" data-player-setting="crossfadeMs">
+      <option value="200">Короткое — 0,2 с</option>
+      <option value="400">Обычное — 0,4 с</option>
+      <option value="700">Длинное — 0,7 с</option>
+    </select>
+    <p class="player-settings-hint">Новый трек выходит на полную громкость за 14 мс — этого хватает против щелчка, но дроп в первые секунды не смягчается.</p>
+  </div>
 </div>`;
   }
 
@@ -1623,7 +1851,10 @@
         if (input instanceof HTMLSelectElement) input.value = state.engine;
         else input.checked = input.value === state.engine;
       } else if (key === "format") input.checked = input.value === state.format;
-      else if (key === "autoNext" || key === "rememberPosition") input.checked = !!state[key];
+      else if (key === "crossfadeMs") input.value = String(state.crossfadeMs);
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
+        input.checked = !!state[key];
+      }
     });
   }
 
@@ -1727,8 +1958,15 @@
     const key = input.dataset.playerSetting;
     if (key === "engine") setEngine(input.value);
     else if (key === "format") setFormat(input.value);
-    else if (key === "autoNext" || key === "rememberPosition") {
+    else if (key === "crossfadeMs") {
+      const value = Number(input.value);
+      state.crossfadeMs = CROSSFADE_OPTIONS.includes(value) ? value : DEFAULT_CROSSFADE_MS;
+      syncSettingsUI();
+      saveState();
+      notify("settings");
+    } else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
       state[key] = !!input.checked;
+      if (key === "crossfade" && !state.crossfade) stopFades();
       syncSettingsUI();
       saveState();
       notify("settings");
@@ -1828,6 +2066,11 @@
     state.format = FORMATS.includes(saved.format) ? saved.format : "opus";
     state.autoNext = saved.autoNext !== false;
     state.rememberPosition = saved.rememberPosition !== false;
+    state.crossfade = saved.crossfade !== false;
+    const savedCrossfadeMs = Number(saved.crossfadeMs);
+    state.crossfadeMs = CROSSFADE_OPTIONS.includes(savedCrossfadeMs)
+      ? savedCrossfadeMs
+      : DEFAULT_CROSSFADE_MS;
     state.queue = Array.isArray(saved.queue)
       ? saved.queue.filter((item) => item && item.path && Array.isArray(item.tracks)).slice(0, 100)
       : [];

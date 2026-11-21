@@ -10,9 +10,12 @@ services:
     environment:
       - TZ=Europe/Moscow
       - PORT=3000
-    volumes:
-      # Site build is taken from the host, not baked into the image.
-      - ./dist:/app/dist:ro
+    # По умолчанию отдаётся dist, собранный внутри образа при каждом build
+    # (включая генерацию заметок из src/notes). Bind-mount ниже переопределяет
+    # содержимое образа хостовым ./dist, поэтому при его использовании свежесть
+    # заметок зависит от локальной сборки на хосте (`npm run build`).
+    # volumes:
+    #   - ./dist:/app/dist:ro
     networks:
       - zqwy_reverse_proxy
 

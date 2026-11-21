@@ -11,6 +11,9 @@ RUN npm ci
 
 COPY dev ./dev
 COPY scripts ./scripts
+# Notes are the markdown source for wiki/zqwy; include them so the build can
+# regenerate note pages and the search index on every Docker build.
+COPY src/notes ./src/notes
 
 RUN bash scripts/build_dist.sh
 

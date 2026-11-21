@@ -1812,13 +1812,15 @@
     </select>
     <p class="player-settings-hint">Интерфейс выбранной библиотеки отображается прямо в строке плеера — отдельного окна больше нет.</p>
   </div>
-  <fieldset class="settings-group">
-    <legend>Формат аудиофайла</legend>
-    <label><input type="radio" name="player-format" data-player-setting="format" value="opus"> .opus</label>
-    <label><input type="radio" name="player-format" data-player-setting="format" value="mp3"> .mp3</label>
-    <label><input type="radio" name="player-format" data-player-setting="format" value="wav"> .wav</label>
-    <label><input type="radio" name="player-format" data-player-setting="format" value="flac"> .flac</label>
-  </fieldset>
+  <div class="settings-field">
+    <label class="settings-label" for="playerFormatSelect">Формат аудиофайла</label>
+    <select class="settings-select" id="playerFormatSelect" data-player-setting="format">
+      <option value="opus">.opus</option>
+      <option value="mp3">.mp3</option>
+      <option value="wav">.wav</option>
+      <option value="flac">.flac</option>
+    </select>
+  </div>
   <fieldset class="settings-group">
     <legend>Поведение</legend>
     <label><input type="checkbox" data-player-setting="autoNext"> Играть следующий трек автоматически</label>
@@ -1847,10 +1849,10 @@
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
-      if (key === "engine") {
-        if (input instanceof HTMLSelectElement) input.value = state.engine;
-        else input.checked = input.value === state.engine;
-      } else if (key === "format") input.checked = input.value === state.format;
+      if (key === "engine" || key === "format") {
+        if (input instanceof HTMLSelectElement) input.value = state[key];
+        else input.checked = input.value === state[key];
+      }
       else if (key === "crossfadeMs") input.value = String(state.crossfadeMs);
       else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
         input.checked = !!state[key];

@@ -7,6 +7,9 @@
  *          dev/wiki/zqwy/<slug>.html     (one page per note)
  *          dev/data/wiki-notes.json      (metadata for build_search_index.mjs)
  *
+ * Notes are grouped by directory path inside src/notes/ and shown as a
+ * collapsible tree on the landing page so folders/categories can be expanded.
+ *
  * No markdown dependency is used: the small converter below handles the
  * subset needed for notes — headings, lists, code fences, paragraphs and
  * inline emphasis/code/links. Run automatically from scripts/build_dist.sh.
@@ -53,6 +56,11 @@ function inline(value) {
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g,
       (match, text, url) => `<a href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${text}</a>`);
+}
+
+function writeFileSafe(file, content) {
+  try { fs.rmSync(file, { force: true }); } catch {}
+  fs.writeFileSync(file, content, "utf8");
 }
 
 function markdown(value) {
@@ -118,15 +126,36 @@ function slugify(value) {
     .slice(0, 80) || "note";
 }
 
+function sectionOf(relative) {
+  const dir = path.posix.dirname(String(relative || "").replace(/\\/g, "/"));
+  return dir === "." ? "" : dir;
+}
+
+function sectionLabel(section) {
+  return section ? section.split("/").join(" / ") : "Общие";
+}
+
+function noteCategory(section) {
+  return section ? `Заметки / ${section.split("/").join(" / ")}` : "Заметки";
+}
+
 function parseNote(file) {
   const raw = fs.readFileSync(file, "utf8");
   const firstHeading = /^#\s+(.+)$/m.exec(raw);
   const title = (firstHeading?.[1] || path.basename(file, ".md")).trim();
   const body = firstHeading ? raw.replace(/^#\s+.+\n?/m, "") : raw;
   const relative = path.relative(NOTES_DIR, file).replace(/\\/g, "/");
+  const section = sectionOf(relative);
   const baseSlug = slugify(path.basename(file, ".md"));
-  const slug = path.dirname(relative) === "." ? baseSlug : `${slugify(path.dirname(relative))}-${baseSlug}`;
-  return { title, slug, relative, text: body.replace(/[#*`\[\]()>]/g, " ").replace(/\s+/g, " ").trim(), html: markdown(body) };
+  const slug = section ? `${slugify(section.replace(/\//g, "-"))}-${baseSlug}` : baseSlug;
+  return {
+    title,
+    slug,
+    relative,
+    section,
+    text: body.replace(/[#*`\[\]()>]/g, " ").replace(/\s+/g, " ").trim(),
+    html: markdown(body),
+  };
 }
 
 function shell({ title, description, body, depth }) {
@@ -190,6 +219,59 @@ ${body}
 `;
 }
 
+function buildTree(notesList) {
+  const root = { name: "", path: "", folders: new Map(), notes: [] };
+  for (const note of notesList) {
+    const parts = note.section ? note.section.split("/") : [];
+    let node = root;
+    let cur = "";
+    for (const part of parts) {
+      cur = cur ? `${cur}/${part}` : part;
+      if (!node.folders.has(part)) node.folders.set(part, { name: part, path: cur, folders: new Map(), notes: [] });
+      node = node.folders.get(part);
+    }
+    node.notes.push(note);
+  }
+  return root;
+}
+
+function sortedFolders(node) {
+  return [...node.folders.values()].sort((a, b) => a.name.localeCompare(b.name, "ru"));
+}
+function sortedNotes(node) {
+  return [...node.notes].sort((a, b) => a.title.localeCompare(b.title, "ru") || a.relative.localeCompare(b.relative, "ru"));
+}
+
+function renderTree(node, depth = 0) {
+  const pad = "  ".repeat(depth);
+  let html = "";
+  for (const child of sortedFolders(node)) {
+    html += `${pad}<details class="notes-folder">\n`;
+    html += `${pad}  <summary><span class="notes-folder-name">${escapeHtml(child.name)}</span></summary>\n`;
+    html += `${pad}  <div class="notes-folder-body">\n`;
+    html += renderTree(child, depth + 2);
+    html += `${pad}  </div>\n`;
+    html += `${pad}</details>\n`;
+  }
+  for (const note of sortedNotes(node)) {
+    html += `${pad}<a class="note-tree-link" href="./${escapeHtml(note.slug)}.html"><span class="note-tree-title">${escapeHtml(note.title)}</span><span class="note-tree-path">${escapeHtml(note.relative)}</span></a>\n`;
+  }
+  return html;
+}
+
+function flattenTree(node) {
+  const out = [];
+  for (const child of sortedFolders(node)) out.push(...flattenTree(child));
+  out.push(...sortedNotes(node));
+  return out;
+}
+
+function countFolders(node) {
+  let n = node.folders.size;
+  for (const child of node.folders.values()) n += countFolders(child);
+  return n;
+}
+
 const notes = walk(NOTES_DIR).map(parseNote);
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
@@ -200,48 +282,62 @@ for (const file of fs.readdirSync(OUT_DIR)) {
   }
 }
 
-const indexBody = `
-        <nav class="notes-nav" aria-label="Заметки">
-${notes.length
-  ? notes.map((note) => `          <a class="note-card" href="./${escapeHtml(note.slug)}.html"><strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.relative)}</span></a>`).join("\n")
-  : `          <p class="notes-empty" data-i18n="notesEmpty">Заметки пока не добавлены. Положите .md-файлы в src/notes/.</p>`}
-        </nav>
-${notes.map((note) => `        <section class="note-preview" id="note-${escapeHtml(note.slug)}">
+const tree = buildTree(notes);
+const orderedNotes = flattenTree(tree);
+const folderCount = countFolders(tree);
+
+const treeHtml = notes.length
+  ? `        <nav class="notes-tree" aria-label="Заметки">\n${renderTree(tree, 5)}        </nav>`
+  : `        <p class="notes-empty" data-i18n="notesEmpty">Заметки пока не добавлены. Положите .md-файлы в src/notes/.</p>`;
+
+const previewsHtml = orderedNotes.map((note) => `        <section class="note-preview" id="note-${escapeHtml(note.slug)}">
+          <p class="note-preview-section">${escapeHtml(sectionLabel(note.section))}</p>
           <h2>${escapeHtml(note.title)}</h2>
 ${note.html.split("\n").map((line) => `          ${line}`).join("\n")}
-        </section>`).join("\n")}
-`.trim();
+        </section>`).join("\n");
 
-fs.writeFileSync(path.join(OUT_DIR, "index.html"), shell({
+const indexBody = `${treeHtml}\n${previewsHtml}`.trim();
+
+writeFileSafe(path.join(OUT_DIR, "index.html"), shell({
   title: "notes",
   description: "Заметки zqwy в формате markdown",
   body: indexBody,
   depth: 2,
-}), "utf8");
+}));
 
 for (const note of notes) {
-  fs.writeFileSync(path.join(OUT_DIR, `${note.slug}.html`), shell({
+  const label = sectionLabel(note.section);
+  writeFileSafe(path.join(OUT_DIR, `${note.slug}.html`), shell({
     title: note.title,
     description: note.text.slice(0, 150),
-    body: `        <header class="note-header"><h2>${escapeHtml(note.title)}</h2><p>${escapeHtml(note.relative)}</p></header>\n${note.html.split("\n").map((line) => `        ${line}`).join("\n")}`,
+    body: `        <header class="note-header"><p class="note-section">${escapeHtml(label)}</p><h2>${escapeHtml(note.title)}</h2><p>${escapeHtml(note.relative)}</p></header>\n${note.html.split("\n").map((line) => `        ${line}`).join("\n")}`,
     depth: 2,
-  }), "utf8");
+  }));
 }
 
 fs.mkdirSync(path.dirname(META_FILE), { recursive: true });
-fs.writeFileSync(META_FILE, `${JSON.stringify({
+writeFileSafe(META_FILE, `${JSON.stringify({
   generatedAt: new Date().toISOString(),
   count: notes.length,
   notes: notes.map((note) => ({
     title: note.title,
     path: `./wiki/zqwy/${note.slug}.html`,
+    section: note.section,
+    relative: note.relative,
     // Keep the full note text searchable: important phrases can easily sit
     // past the first 240 characters, and the index is still tiny.
     text: note.text,
-    category: "Заметки",
+    category: noteCategory(note.section),
     type: "note",
-    keywords: ["zqwy", "заметки", "notes", "markdown", note.slug],
+    keywords: [
+      "zqwy",
+      "заметки",
+      "notes",
+      "markdown",
+      note.slug,
+      ...note.section.split("/").filter(Boolean),
+    ],
   })),
-}, null, 2)}\n`, "utf8");
+}, null, 2)}\n`);
 
-console.log(`Wiki notes: ${notes.length} файлов → ${path.relative(PROJECT, OUT_DIR)}`);
+console.log(`Wiki notes: ${notes.length} файлов, ${folderCount} папок → ${path.relative(PROJECT, OUT_DIR)}`);

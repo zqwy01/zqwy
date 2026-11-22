@@ -2,7 +2,10 @@
 /*
  * Generate the "zqwy" notes mode from markdown files in src/notes/.
  *
- * Source:  src/notes/**\/*.md            (hand-written markdown, never edited here)
+ * Source:  src/notes/**\/*.md            (hand-written markdown)
+ *          src/notes/**\/*.txt and text files without an extension are
+ *          normalized to .md in place on every build, so newly added folders
+ *          and nested notes are picked up without manual conversion.
  * Output:  dev/wiki/zqwy/index.html      (notes landing, SPA-compatible)
  *          dev/wiki/zqwy/<slug>.html     (one page per note)
  *          dev/data/wiki-notes.json      (metadata for build_search_index.mjs)
@@ -24,6 +27,34 @@ const PROJECT = path.resolve(HERE, "..");
 const NOTES_DIR = path.join(PROJECT, "src", "notes");
 const OUT_DIR = path.join(PROJECT, "dev", "wiki", "zqwy");
 const META_FILE = path.join(PROJECT, "dev", "data", "wiki-notes.json");
+
+// Plain-text notes sometimes arrive as .txt or with no extension at all
+// (e.g. "Панорамирование"). Convert them to .md in place so the walk below —
+// and every subsequent build — sees them. Other formats (.tid, .meta, ...)
+// are left untouched, and an existing .md note is never overwritten.
+function normalizeNotes(dir) {
+  if (!fs.existsSync(dir)) return 0;
+  let converted = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      converted += normalizeNotes(full);
+      continue;
+    }
+    if (!entry.isFile() || entry.name.startsWith(".")) continue;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (ext !== "" && ext !== ".txt") continue;
+    const target = ext ? `${full.slice(0, -ext.length)}.md` : `${full}.md`;
+    if (fs.existsSync(target)) continue;
+    let content;
+    try { content = fs.readFileSync(full, "utf8"); } catch { continue; }
+    if (content.includes("\0")) continue;
+    writeFileSafe(target, content);
+    fs.rmSync(full, { force: true });
+    converted += 1;
+  }
+  return converted;
+}
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -268,6 +299,8 @@ function countFolders(node) {
   return n;
 }
 
+const normalized = normalizeNotes(NOTES_DIR);
+if (normalized) console.log(`Нормализовано заметок: ${normalized} → .md`);
 const notes = walk(NOTES_DIR).map(parseNote);
 fs.mkdirSync(OUT_DIR, { recursive: true });
 

@@ -11,7 +11,7 @@
 | `scripts/build_dist.sh` | сборка `dev/` → `dist/` | — |
 | `scripts/build_covers.py` | генератор лёгких WebP-обложек из оригиналов | — |
 | `scripts/build_music_catalog.mjs` | генератор каталога музыки из `src/tracks/` (карта форматов + длительность через `ffprobe`) | — |
-| `scripts/build_wiki_notes.mjs` | генератор заметок `zqwy` из `src/notes/**/*.md` | — |
+| `scripts/build_wiki_notes.mjs` | генератор заметок `zqwy` из `src/notes/**/*.md`; `.txt` и текстовые файлы без расширения нормализуются в `.md` при сборке | — |
 | `scripts/build_search_index.mjs` | генератор индекса поиска (страницы, ссылки, игры, релизы, треки, заметки) | — |
 | `dev/data/search-synonyms.json` | пары RU/EN слов для поиска (`tiktok` = `тикток`) | **да, при новых словах** |
 | `dev/scripts/` | первокод сайта: меню, поиск, SPA-переходы, плеер, страничные скрипты | **да, здесь** |
@@ -33,7 +33,7 @@
 | `dev/vendor/jplayer.blue.monday.min.css` | скин jPlayer blue.monday | **нет, библиотека** |
 | `dev/vendor/image/jplayer.blue.monday.*` | изображения скина jPlayer | **нет, библиотека** |
 | `src/covers/` | только сжатые `.webp`-обложки для сайта | **нет, генерируются** |
-| `src/notes/` | исходники заметок в markdown для режима `wiki/zqwy` | **да, markdown** |
+| `src/notes/` | исходники заметок для режима `wiki/zqwy` (`.md`, а также `.txt`/без расширения — конвертируются в `.md` при сборке) | **да, markdown** |
 | `src/` | аудио, шрифты, иконки и прочие данные | **нет, данные** |
 | `package.json` | инструменты минификации и команды запуска | при смене версий |
 
@@ -57,9 +57,9 @@ npm install --no-bin-links   # SMB-раздел не поддерживает sy
 npm run build                # или: bash scripts/build_dist.sh
 ```
 
-При сборке Docker-образа (`docker compose up --build` / `docker build`) в этап `build` копируются `dev/`, `scripts/` и `src/notes`, поэтому генерация заметок (`wiki/zqwy` из `src/notes/**/*.md`) и обновление индекса поиска выполняются автоматически на каждом Docker-сборке. По умолчанию `docker-compose.yaml` отдаёт именно этот собранный в образе `dist`, поэтому после пересборки контейнер получает актуальные заметки.
+При сборке Docker-образа (`docker compose up --build` / `docker build`) в этап `build` копируются `dev/`, `scripts/` и весь `src/`, поэтому генерация каталога музыки (из `src/tracks/`), заметок (`wiki/zqwy` из `src/notes/`) и обновление индекса поиска выполняются автоматически на каждом Docker-сборке. По умолчанию `docker-compose.yaml` отдаёт именно этот собранный в образе `dist`, поэтому после пересборки контейнер получает актуальные треки и заметки.
 
-Остальной `src/` (треки, обложки, шрифты) в образ не включается. Если включить bind-mount `./dist:/app/dist:ro`, контейнер будет отдавать хостовую сборку и тогда актуальность заметок зависит от локального `npm run build` на хосте.
+Если включить bind-mount `./dist:/app/dist:ro`, контейнер будет отдавать хостовую сборку и тогда актуальность каталога/заметок зависит от локального `npm run build` на хосте.
 
 `npm run build` очищает `dist/`, копирует туда `dev/` и минифицирует
 HTML/CSS/JS (`terser`, `clean-css-cli`, `html-minifier-terser`).

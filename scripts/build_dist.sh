@@ -101,9 +101,8 @@ if [[ -f "$PROJECT_DIR/scripts/build_covers.py" ]]; then
 fi
 
 # Каталог музыки — производный от src/tracks файл, поэтому обновляем его
-# перед копированием исходников. В Docker-сборку src/ может не попадать
-# (например, если он исключён из контекста), тогда используем готовый
-# dev/data/music-catalog.json.
+# перед копированием исходников. Если src/tracks нет (например, сборка без
+# контекста с аудио), используем готовый dev/data/music-catalog.json.
 if [[ -f "$PROJECT_DIR/scripts/build_music_catalog.mjs" ]]; then
     if [[ -d "$PROJECT_DIR/src/tracks" ]]; then
         echo "Обновление каталога музыки..."
@@ -115,8 +114,9 @@ if [[ -f "$PROJECT_DIR/scripts/build_music_catalog.mjs" ]]; then
 fi
 
 # Заметки из src/notes/ — источник для режима wiki/zqwy. Генерируем их перед
-# индексом поиска: индекс подхватывает метаданные заметок. Если src/notes
-# отсутствует (Docker-контекст без src/), оставляем готовые файлы в dev/.
+# индексом поиска: индекс подхватывает метаданные заметок. TXT и текстовые
+# файлы без расширения нормализуются в .md внутри генератора. Если src/notes
+# отсутствует, оставляем готовые файлы в dev/.
 if [[ -f "$PROJECT_DIR/scripts/build_wiki_notes.mjs" ]]; then
     if [[ -d "$PROJECT_DIR/src/notes" ]]; then
         echo "Обновление заметок wiki (zqwy)..."

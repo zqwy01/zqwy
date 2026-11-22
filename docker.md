@@ -11,9 +11,9 @@
 
 1. **`build`** (`node:24-bookworm-slim`, `WORKDIR /src`)
    - `COPY package.json package-lock.json` + `RUN npm ci` — установка зависимостей для минификации (`terser`, `clean-css-cli`, `html-minifier-terser`).
-   - `COPY dev ./dev`, `COPY scripts ./scripts` и `COPY src/notes ./src/notes`.
+   - `COPY dev ./dev`, `COPY scripts ./scripts` и `COPY src ./src`.
    - `RUN bash scripts/build_dist.sh` — сборка в `/src/dist`.
-   - `src/notes` копируется в образ, поэтому этап генерации заметок (`build_wiki_notes.mjs`, режим `wiki/zqwy`) и пересборка индекса поиска выполняются при каждом Docker-сборке. Остальной `src/` (треки, обложки, шрифты и т.д.) в образ не копируется: при отсутствии `src/tracks` скрипт пропускает генерацию каталога музыки и использует готовые `dev/data/*`.
+   - Весь `src/` копируется в образ: `src/notes` — источник заметок, `src/tracks` — аудио для плеера. Поэтому `build_music_catalog.mjs`, `build_wiki_notes.mjs` и индекс поиска пересоздаются при каждом Docker-сборке, а треки физически присутствуют в `dist/src/tracks` и отдаются сайтом (иначе каталог есть, а файлы — 404).
 
 2. **`runtime`** (`node:24-bookworm-slim`, `WORKDIR /app`)
    - `npm install -g serve@14`.
@@ -25,7 +25,7 @@
 - Сервис `zqwy_web`, сборка из локального `Dockerfile`.
 - `pull_policy: build` — при `docker compose up` образ пересобирается.
 - Переменные: `TZ=Europe/Moscow`, `PORT=3000`.
-- По умолчанию контейнер отдаёт `dist`, собранный внутри образа (включая сгенерированные заметки из `src/notes`) — это гарантирует свежую сборку при каждом `docker compose up --build`.
+- По умолчанию контейнер отдаёт `dist`, собранный внутри образа (включая сгенерированные каталог/заметки и аудио из `src/`) — это гарантирует свежую сборку при каждом `docker compose up --build`.
 - Опционально можно раскомментировать том `./dist:/app/dist:ro`, чтобы отдавать хостовую сборку. В этом режиме содержимое образного `dist` игнорируется, поэтому актуальность заметок зависит от локального `npm run build` на хосте.
 - Сеть: внешняя `zqwy_reverse_proxy` (должна существовать заранее).
 

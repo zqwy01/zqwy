@@ -220,12 +220,6 @@
 .player-close { color: var(--muted); }
 .player-close:hover { color: var(--text); }
 
-.player-status {
-  max-width: var(--max-width); margin: 4px auto 0;
-  color: var(--muted); font-size: 0.82rem;
-}
-.player-status:empty { display: none; }
-
 /* leave room for the fixed bar on every page */
 body.has-player .page-content { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 /* the second (waveform) row makes the bar taller */

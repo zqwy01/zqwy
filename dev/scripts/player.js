@@ -27,6 +27,10 @@
   const VENDOR_BASE = PLAYER_SCRIPT
     ? new URL("../vendor/", PLAYER_SCRIPT.src).href
     : null;
+  // Root of the site, derived from the script URL rather than document.baseURI:
+  // SPA navigation and note pages change the latter, which made ../../src/...
+  // resolve to the wrong folder and every track 404.
+  const SITE_ROOT = VENDOR_BASE ? new URL("../", VENDOR_BASE).href : null;
 
   const STORAGE_STATE = "zqwy.player.state.v1";
   const STORAGE_SETTINGS = "zqwy.player.settings.v1";
@@ -174,7 +178,6 @@
     <p class="player-queue-empty" id="playerQueueEmpty">Очередь пуста. Добавьте треки кнопкой «+» в каталоге.</p>
   </div>
 
-  <p class="player-status" id="playerStatus" aria-live="polite"></p>
   <audio id="audio" preload="metadata"></audio>
 </div>`;
 
@@ -191,7 +194,6 @@
   const settingsToggle = $("playerSettingsToggle");
   const queuePanel = $("playerQueuePanel");
   const queueToggle = $("playerQueueToggle");
-  const statusEl = $("playerStatus");
   const engineUi = $("playerEngineUi");
 
   const listeners = new Map();
@@ -250,10 +252,11 @@
   /* ---------- helpers ---------- */
 
   function assetUrl(relative) {
-    const segments = String(relative).split("/").filter(Boolean);
-    return ["..", "..", ...segments]
-      .map((part, index) => (index < 2 ? part : encodeURIComponent(part)))
+    const tail = String(relative).split("/").filter(Boolean)
+      .map((part) => encodeURIComponent(part))
       .join("/");
+    if (SITE_ROOT) return new URL(tail, SITE_ROOT).href;
+    return `../../${tail}`;
   }
 
   function basePrefix() {
@@ -272,8 +275,6 @@
     const total = Math.floor(seconds);
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
   }
-
-  function setStatus(text) { if (statusEl) statusEl.textContent = text || ""; }
 
   // WaveSurfer replaces the compact seek bar with a full-width waveform row;
   // marking both the bar and the body lets CSS enlarge the row and the page
@@ -412,11 +413,7 @@
     if (!state.current) return;
 
     const formats = trackFormats(state.current);
-    if (!formats[name]) {
-      setStatus(`Формат .${name} для этого трека отсутствует — используется доступный.`);
-      return;
-    }
-    setStatus("");
+    if (!formats[name]) return;
     loadCurrent({ autoplay: wasPlaying, startTime: time });
   }
 
@@ -569,7 +566,6 @@
       };
       state.time = 0;
       showBar();
-      setStatus("");
       renderMetadata();
       loadCurrent({ autoplay: true, startTime: 0, antiClick: true });
       renderQueue();
@@ -849,9 +845,8 @@
     hideEngineUi();
   }
 
-  function fallbackToHtml5(message) {
+  function fallbackToHtml5() {
     destroyWaveforms();
-    setStatus(message);
     state.engine = "html5";
     hideWaveMode();
     syncSettingsUI();
@@ -860,7 +855,7 @@
 
   async function createWaveSurfer(url, startAt, autoplay) {
     try { await loadWaveSurferScript(); } catch {
-      fallbackToHtml5("WaveSurfer.js недоступен — используется HTML5.");
+      fallbackToHtml5();
       return false;
     }
     if (!window.WaveSurfer) return false;
@@ -900,7 +895,7 @@
     // "ended" on the shared <audio> covers track completion; no need to
     // also handle WaveSurfer's "finish" (that would advance twice).
     waveSurfer.on("error", () => {
-      fallbackToHtml5("WaveSurfer не смог прочитать файл — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
     });
     return true;
@@ -908,7 +903,7 @@
 
   async function createPeaks(url, startAt, autoplay) {
     try { await loadPeaksScript(); } catch {
-      fallbackToHtml5("Peaks.js недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -916,7 +911,7 @@
 
     const audioContext = sharedAudioContext();
     if (!audioContext) {
-      fallbackToHtml5("Web Audio недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -946,7 +941,7 @@
       },
     }, (error) => {
       if (error) {
-        fallbackToHtml5("Peaks.js не смог прочитать файл — включён HTML5.");
+        fallbackToHtml5();
         notify("engine");
         return;
       }
@@ -964,7 +959,7 @@
    */
   async function createHowler(url, startAt, autoplay) {
     try { await loadHowlerScript(); } catch {
-      fallbackToHtml5("Howler.js недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -992,13 +987,13 @@
       global._obtainHtml5Audio = obtain;
     }
     if (!howl) {
-      fallbackToHtml5("Howler.js не смог создать плеер — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
 
     howl.on("loaderror", () => {
-      fallbackToHtml5("Howler.js не смог прочитать файл — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
     });
     howl.once("load", () => {
@@ -1012,7 +1007,7 @@
      waveform row; playback itself uses the same shared <audio> element. */
   async function createWaviz(url, startAt, autoplay) {
     try { await loadWavizScript(); } catch {
-      fallbackToHtml5("Waviz недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1021,7 +1016,7 @@
 
     const context = sharedAudioContext();
     if (!context) {
-      fallbackToHtml5("Web Audio недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1042,7 +1037,7 @@
     } catch {
       wavizCanvas?.remove();
       wavizCanvas = null;
-      fallbackToHtml5("Waviz не смог запустить визуализацию — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1067,12 +1062,12 @@
      mounted in the player's seek row — the same place WaveSurfer uses. */
   async function createMediaElement(url, startAt, autoplay) {
     try { await loadMediaElementScript(); } catch {
-      fallbackToHtml5("MediaElement.js недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
     if (!window.MediaElement) {
-      fallbackToHtml5("MediaElement.js недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1093,7 +1088,7 @@
       }
     }
     if (!mediaElementWrapper) {
-      fallbackToHtml5("MediaElement.js не смог создать плеер — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1112,12 +1107,12 @@
      our queue. */
   async function createAmplitude(url, startAt, autoplay) {
     try { await loadAmplitudeScript(); } catch {
-      fallbackToHtml5("AmplitudeJS недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
     if (!window.Amplitude) {
-      fallbackToHtml5("AmplitudeJS недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1134,7 +1129,7 @@
       config.audio = audio;
       if (config.songs?.[0]) config.active_metadata = config.songs[0];
     } catch {
-      fallbackToHtml5("AmplitudeJS не смог создать плеер — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1171,12 +1166,12 @@
      the component driving that element instead. */
   async function createAPlayer(url, startAt, autoplay) {
     try { await loadAPlayerScript(); } catch {
-      fallbackToHtml5("APlayer недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
     if (!window.APlayer) {
-      fallbackToHtml5("APlayer недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1208,7 +1203,7 @@
       aplayer.volume(state.volume, true);
     } catch {
       aplayer = null;
-      fallbackToHtml5("APlayer не смог создать плеер — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1221,12 +1216,12 @@
      same createElement shim hands it the shared audio element. */
   async function createJPlayer(url, startAt, autoplay) {
     try { await loadJPlayerScript(); } catch {
-      fallbackToHtml5("jPlayer недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
     if (!window.jQuery?.fn?.jPlayer) {
-      fallbackToHtml5("jPlayer недоступен — используется HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1252,7 +1247,7 @@
       }
       window.jQuery(media).jPlayer("setMedia", { mp3: url });
     } catch {
-      fallbackToHtml5("jPlayer не смог создать плеер — включён HTML5.");
+      fallbackToHtml5();
       notify("engine");
       return false;
     }
@@ -1336,9 +1331,7 @@
       try { result = mediaElementWrapper.play(); } catch {}
     }
     if (!result) result = audio.play();
-    if (result && typeof result.catch === "function") {
-      result.catch(() => setStatus("Нажмите ▶, чтобы начать воспроизведение."));
-    }
+    if (result && typeof result.catch === "function") result.catch(() => {});
   }
 
   function pauseAudio() {
@@ -1623,7 +1616,6 @@
       };
       state.time = 0;
       showBar();
-      setStatus("");
       renderMetadata();
       loadCurrent({
         autoplay: options.autoplay !== false,
@@ -1667,7 +1659,6 @@
       };
       state.time = 0;
       showBar();
-      setStatus("");
       renderMetadata();
       loadCurrent({ autoplay, startTime: 0, antiClick: autoplay });
       saveState();
@@ -1731,7 +1722,6 @@
     hideBar();
     $("playerTitle").textContent = "Ничего не играет";
     $("playerAlbum").textContent = "";
-    setStatus("");
     updateTime();
     saveState();
     notify("stop");
@@ -1988,7 +1978,6 @@
   audio.addEventListener("volumechange", updateMuteState);
   audio.addEventListener("ended", handleEnded);
   audio.addEventListener("error", () => {
-    if (state.current) setStatus("Не удалось загрузить трек. Проверьте файл в src/tracks.");
   });
 
   document.addEventListener("keydown", (ev) => {
@@ -2090,7 +2079,6 @@
     if (!state.current || !state.current.path) return;
     showBar();
     renderMetadata();
-    setStatus("Плеер восстановлен. Нажмите ▶, чтобы продолжить.");
     loadCurrent({ autoplay: false, startTime: state.rememberPosition ? state.time : 0 });
   }
 

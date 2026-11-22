@@ -11,9 +11,11 @@ RUN npm ci
 
 COPY dev ./dev
 COPY scripts ./scripts
-# Notes are the markdown source for wiki/zqwy; include them so the build can
-# regenerate note pages and the search index on every Docker build.
-COPY src/notes ./src/notes
+# The full src/ tree is needed: src/notes is the source for wiki/zqwy, and
+# src/tracks provides the audio referenced by the music catalog. With src/
+# present the build rescans both on every Docker build instead of shipping a
+# stale catalog with missing files.
+COPY src ./src
 
 RUN bash scripts/build_dist.sh
 

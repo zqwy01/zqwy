@@ -97,6 +97,9 @@
   let closeTimer = null;
   let lastFocus = null;
   let prevOverflow = "";
+  // Where the shared logo/search block lives in the page. It is moved into
+  // the scrollable catalog while the overlay is open, then put back here.
+  let containerHome = null;
   let indexCache = null;
   let suggestionCache = null;
   let currentSuggestions = [];
@@ -107,6 +110,13 @@
   function refresh() {
     const container = document.querySelector("#menuButtonContainer");
     const menu = document.querySelector("#siteMenu");
+
+    // A page swap destroys the old DOM: drop any in-flight close state before
+    // the new elements are wired up (transition.js may then click the logo to
+    // reopen the catalog on a "back" link).
+    closing = false;
+    if (closeTimer) { window.clearTimeout(closeTimer); closeTimer = null; }
+    menu?.classList.remove("is-closing");
 
     els = {
       container,
@@ -144,6 +154,31 @@
     currentSuggestions = [];
     activeSuggestion = -1;
     els.hasMenu = !!(els.menu && els.panel && els.logo && els.logo.tagName === "BUTTON");
+
+    // Remember the in-page position only when the block is not currently
+    // docked in the overlay, so a pagechange keeps the correct home.
+    if (els.container && els.container.parentElement && !els.container.closest("#siteMenu")) {
+      containerHome = { parent: els.container.parentElement, next: els.container.nextSibling };
+    }
+  }
+
+  /* The catalog is a full-screen overlay. Dock the shared logo/search block
+     into its scroll container while it is open, so the block scrolls with the
+     catalog instead of hovering above it; put it back into the page on close. */
+  function dockContainerInMenu() {
+    const host = els.menu?.querySelector(".site-menu-content");
+    if (!host || !els.container || els.container.parentElement === host) return;
+    host.prepend(els.container);
+    updateSearchLayout();
+  }
+
+  function restoreContainer() {
+    if (!els.container || !containerHome?.parent) return;
+    const { parent, next } = containerHome;
+    if (els.container.parentElement === parent) return;
+    if (next && next.parentNode === parent) parent.insertBefore(els.container, next);
+    else parent.appendChild(els.container);
+    updateSearchLayout();
   }
 
   /* ---------- menu overlay (home page only) ---------- */
@@ -158,7 +193,14 @@
   }
 
   function openMenu() {
-    if (!els.hasMenu || closing || els.menu.classList.contains("is-open")) return;
+    if (!els.hasMenu || els.menu.classList.contains("is-open")) return;
+    // A second click on the logo during the closing animation must reopen the
+    // catalog immediately instead of being swallowed by the `closing` guard.
+    if (closing) {
+      if (closeTimer) { window.clearTimeout(closeTimer); closeTimer = null; }
+      closing = false;
+      els.menu.classList.remove("is-closing");
+    }
     lastFocus = document.activeElement;
     prevOverflow = document.body.style.overflow;
     els.menu.classList.add("is-open");
@@ -167,6 +209,7 @@
     els.logo.setAttribute("aria-label", t("menuClose"));
     document.body.classList.add("menu-is-open");
     document.body.style.overflow = "hidden";
+    dockContainerInMenu();
     els.panel.scrollTop = 0;
   }
 
@@ -180,6 +223,7 @@
     els.logo.setAttribute("aria-label", t("menuOpen"));
     document.body.classList.remove("menu-is-open");
     document.body.style.overflow = prevOverflow;
+    restoreContainer();
     els.logo.focus();
     closeTimer = window.setTimeout(finishClose, 450);
   }
@@ -584,6 +628,16 @@
   }
 
   /* ---------- one delegated listener set for the whole site ---------- */
+
+  // A link inside the catalog navigates with the SPA. Close first, in the
+  // capture phase, so the logo/search block is back in the page before
+  // transition.js replaces .page-content with the next document.
+  document.addEventListener("click", (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+    if (!target || !els.hasMenu || !els.menu?.classList.contains("is-open")) return;
+    if (target.closest("#menuOpenButton") || target.closest("[data-menu-close]")) return;
+    if (target.closest("a[href]")) closeMenu();
+  }, true);
 
   document.addEventListener("click", (ev) => {
     const target = ev.target instanceof Element ? ev.target : null;

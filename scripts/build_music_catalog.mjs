@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { writeFileSafe } from "./lib/write-file-smb-safe.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, "..");
@@ -198,7 +199,7 @@ const payload = {
 };
 
 fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-fs.writeFileSync(OUT_FILE, `${JSON.stringify(payload)}\n`, "utf8");
+writeFileSafe(OUT_FILE, `${JSON.stringify(payload)}\n`);
 
 const sizeKb = Math.round(fs.statSync(OUT_FILE).size / 1024);
 console.log(`Каталог музыки: ${albums.length} релизов, ${totalTracks} треков`);

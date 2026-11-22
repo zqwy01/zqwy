@@ -139,7 +139,22 @@ echo "Очистка директории сборки..."
 # (./dist:/app/dist). Пересоздание каталога ломает bind mount, из-за чего
 # после сборки приходится пересоздавать контейнер. Очищаем только содержимое.
 mkdir -p -- "$DIST_DIR"
-find "$DIST_DIR" -mindepth 1 -delete
+find "$DIST_DIR" -mindepth 1 -delete 2>/dev/null || true
+# На SMB некоторые старые каталоги нельзя удалить на месте, хотя их можно
+# переименовать. Выносим их за пределы dist/, чтобы сборка не падала и чтобы
+# не расклеивать сам каталог dist/ (он может быть смонтирован в контейнер).
+if [[ -n "$(find "$DIST_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    stale_dir="$PROJECT_DIR/.dist-stale-$(date +%s)"
+    mkdir -p -- "$stale_dir"
+    echo "Предупреждение: часть dist/ не удалилась на месте, перенос в $stale_dir"
+    for entry in "$DIST_DIR"/* "$DIST_DIR"/.[!.]* "$DIST_DIR"/..?*; do
+        [[ -e "$entry" ]] || continue
+        mv -- "$entry" "$stale_dir"/ || {
+            echo "Ошибка: не удалось перенести $entry"
+            exit 1
+        }
+    done
+fi
 
 echo "Копирование исходных файлов..."
 cp -a -- "$SRC_DIR"/. "$DIST_DIR"/

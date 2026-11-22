@@ -17,6 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeFileSafe } from "./lib/write-file-smb-safe.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, "..");
@@ -56,11 +57,6 @@ function inline(value) {
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g,
       (match, text, url) => `<a href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${text}</a>`);
-}
-
-function writeFileSafe(file, content) {
-  try { fs.rmSync(file, { force: true }); } catch {}
-  fs.writeFileSync(file, content, "utf8");
 }
 
 function markdown(value) {

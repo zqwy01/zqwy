@@ -35,6 +35,9 @@
   --catalog-open-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --catalog-open-offset: 24px;
   --catalog-open-scale: 0.985;
+  /* Transparent by default so the theme switch can interpolate a soft halo
+     around the text. Zero blur/alpha means no visual change at rest. */
+  text-shadow: 0 0 0 rgba(0, 0, 0, 0);
 }
 
 *,
@@ -576,34 +579,50 @@ body.menu-is-open {
    menu.js adds .zqwy-theme-changing only for an explicit change (theme radio,
    reset, system preference), never for the first paint.
 
-   The background fades linearly while the text colour jumps exactly halfway
-   (steps(2, jump-none)). If both faded smoothly, white text on black and black
-   text on white would meet in the middle at the same grey and the text would
-   briefly vanish. With a linear background the halfway point is mid-grey, so
-   the jump keeps a strong contrast on both sides. */
+   Background and text now interpolate together instead of the old halfway
+   jump. A plain crossfade would make white-on-black and black-on-white meet
+   as grey-on-grey, so during the switch text gets a soft dark halo and the
+   page gets a very light wash of the incoming background. The halo keeps
+   letterforms readable exactly at the crossover, then fades away; the result
+   reads as one smooth ink-and-paper transition rather than a flicker. */
 :root.zqwy-theme-changing,
 :root.zqwy-theme-changing *,
 :root.zqwy-theme-changing *::before,
 :root.zqwy-theme-changing *::after {
-  transition-property: color, background-color, border-color, box-shadow, fill, stroke, filter;
+  transition-property: color, background-color, border-color, box-shadow, fill, stroke, filter, text-shadow;
   transition-duration: .42s;
-  transition-timing-function:
-    steps(2, jump-none), /* color */
-    linear,              /* background-color */
-    linear,              /* border-color */
-    ease,                /* box-shadow */
-    steps(2, jump-none), /* fill */
-    steps(2, jump-none), /* stroke */
-    ease;                /* filter */
+  transition-timing-function: ease;
   transition-delay: 0s;
+}
+:root.zqwy-theme-changing {
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.55), 0 0 9px rgba(0, 0, 0, 0.24);
+}
+html.zqwy-theme-changing::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1000009;
+  pointer-events: none;
+  background: var(--bg);
+  animation: zqwy-theme-wash .42s ease both;
+}
+@keyframes zqwy-theme-wash {
+  0% { opacity: 0; }
+  45% { opacity: .12; }
+  100% { opacity: 0; }
 }
 
 /* --- animated language switch ---
    The old wording fades out, is replaced while invisible, then fades in. */
-:root.zqwy-lang-changing [data-i18n] {
+:root.zqwy-lang-changing [data-i18n],
+:root.zqwy-lang-changing [data-i18n-placeholder],
+:root.zqwy-lang-changing [data-i18n-title],
+:root.zqwy-lang-changing [data-i18n-aria-label],
+:root.zqwy-lang-changing [data-i18n-aria],
+:root.zqwy-lang-changing [data-i18n-html] {
   transition: opacity .14s ease;
 }
-:root.zqwy-lang-changing [data-i18n].lang-out {
+:root.zqwy-lang-changing .lang-out {
   opacity: 0;
 }
 
@@ -614,7 +633,13 @@ body.menu-is-open {
   :root.zqwy-theme-changing *::after {
     transition-duration: 1ms;
   }
-  :root.zqwy-lang-changing [data-i18n] {
+  html.zqwy-theme-changing::after { animation-duration: 1ms; }
+  :root.zqwy-lang-changing [data-i18n],
+  :root.zqwy-lang-changing [data-i18n-placeholder],
+  :root.zqwy-lang-changing [data-i18n-title],
+  :root.zqwy-lang-changing [data-i18n-aria-label],
+  :root.zqwy-lang-changing [data-i18n-aria],
+  :root.zqwy-lang-changing [data-i18n-html] {
     transition-duration: 1ms;
   }
 }

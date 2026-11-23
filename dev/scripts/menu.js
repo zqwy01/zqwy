@@ -33,7 +33,18 @@
       searchResults: "Результаты поиска", suggestions: "Подсказки поиска",
       siteMenu: "Меню сайта", mainMenu: "Основное меню",
       catalog: "Каталог", back: "Назад",
+      catalogWiki: "вики", catalogGame: "игры", catalogMusic: "музыка",
+      catalogPhoto: "фото", catalogLinks: "ссылки", catalogSettings: "настройки",
+      homeGame: "игры", homeMusic: "музыка", homeLinks: "ссылки",
       notesHeading: "Заметки в формате markdown, собранные из src/notes/.",
+      blogHeading: "Блог · хронология",
+      blogHint: "Записи расположены по датам — от новых к старым.",
+      linksHeading: "Все мои ссылки в одном месте.",
+      linksNavSections: "Разделы ссылок",
+      linksNavSocial: "Соцсети и контент", linksNavMusic: "Музыкальные площадки",
+      linksNavStocks: "Стоки",
+      linksSectionSocial: "Соцсети и контент", linksSectionMusic: "Музыкальные площадки",
+      linksSectionStocks: "Стоки",
       notesEmpty: "Заметки пока не добавлены. Положите .md-файлы в src/notes/.",
       wikiHint: "Хранение текстовой информации. Формат: markdown (преобразуется в HTML выбранным движком).",
       settingsHint: "Настройки касаются всего веб-сайта.",
@@ -57,7 +68,18 @@
       searchResults: "Search results", suggestions: "Search suggestions",
       siteMenu: "Site menu", mainMenu: "Main menu",
       catalog: "Catalog", back: "Back",
+      catalogWiki: "wiki", catalogGame: "games", catalogMusic: "music",
+      catalogPhoto: "photo", catalogLinks: "links", catalogSettings: "settings",
+      homeGame: "games", homeMusic: "music", homeLinks: "links",
       notesHeading: "Markdown notes collected from src/notes/.",
+      blogHeading: "Blog · timeline",
+      blogHint: "Entries follow dates — newest first.",
+      linksHeading: "All my links in one place.",
+      linksNavSections: "Link sections",
+      linksNavSocial: "Social & content", linksNavMusic: "Music platforms",
+      linksNavStocks: "Stocks",
+      linksSectionSocial: "Social & content", linksSectionMusic: "Music platforms",
+      linksSectionStocks: "Stocks",
       notesEmpty: "No notes yet. Put .md files into src/notes/.",
       wikiHint: "Text storage. Format: markdown (converted to HTML by the selected engine).",
       settingsHint: "Settings apply to the whole site.",
@@ -118,7 +140,8 @@
 
     const root = document.documentElement;
     const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const nodes = animate && !reduceMotion ? [...document.querySelectorAll("[data-i18n]")] : [];
+    const selector = "[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label]";
+    const nodes = animate && !reduceMotion ? [...document.querySelectorAll(selector)] : [];
     if (!nodes.length) { commit(); return; }
 
     // Fade the old wording out, swap it while invisible, then fade the new

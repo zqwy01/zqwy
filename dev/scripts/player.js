@@ -48,6 +48,7 @@
   const CROSSFADE_MAX_MS = 3000;
   const DEFAULT_FADE_OUT_MS = 700;
   const DEFAULT_FADE_IN_MS = 500;
+  const DEFAULT_SKIP_INTRO_SEC = 12;
 
   const BAR_HTML = `
 <div class="player-bar" id="playerBar" hidden>
@@ -237,6 +238,8 @@
     crossfade: true,          // fade the outgoing track under the incoming one
     fadeOutMs: DEFAULT_FADE_OUT_MS,
     fadeInMs: DEFAULT_FADE_IN_MS,
+    skipIntro: false,         // jump over the first seconds of a fresh track
+    skipIntroSec: DEFAULT_SKIP_INTRO_SEC,
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -732,6 +735,7 @@
         engineExplicit: state.engineExplicit,
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
+        skipIntro: state.skipIntro, skipIntroSec: state.skipIntroSec,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -1865,7 +1869,11 @@
 
   function loadCurrent(options = {}) {
     if (!state.current) return;
-    pendingStart = options.startTime || 0;
+    let start = Number(options.startTime) || 0;
+    // An explicit saved position always wins. With the intro-skip setting on,
+    // a fresh start jumps over the first seconds of the track instead.
+    if (!start && state.skipIntro && state.skipIntroSec > 0) start = state.skipIntroSec;
+    pendingStart = start;
     pendingAutoplay = options.autoplay !== false;
     // Use the saved volume, not audio.volume: a previous anti-click ramp may
     // still be in progress and would otherwise become the new ramp's target.
@@ -2183,32 +2191,33 @@
     <label><input type="checkbox" data-player-setting="autoNext"> Играть следующий трек автоматически</label>
     <label><input type="checkbox" data-player-setting="rememberPosition"> Запоминать позицию трека</label>
     <label><input type="checkbox" data-player-setting="crossfade"> Плавный переход между треками</label>
+    <label><input type="checkbox" data-player-setting="skipIntro"> Пропускать интро автоматически</label>
   </fieldset>
   <div class="settings-field fade-setting" data-fade-setting>
     <div class="fade-setting-head">
-      <span class="settings-label">Fade in / fade out</span>
+      <span class="settings-label">Появление / затухание</span>
       <span class="fade-setting-value" id="playerFadeSummary"></span>
     </div>
     <div class="fade-visual" aria-hidden="true">
       <svg class="fade-visual-svg" viewBox="0 0 240 44" preserveAspectRatio="none">
         <line class="fade-visual-axis" x1="0" y1="40" x2="240" y2="40"></line>
-        <path class="fade-visual-out" id="playerFadeOutPath"></path>
         <path class="fade-visual-in" id="playerFadeInPath"></path>
+        <path class="fade-visual-out" id="playerFadeOutPath"></path>
       </svg>
       <div class="fade-visual-labels">
-        <span>out</span>
-        <span>in</span>
+        <span>появление</span>
+        <span>затухание</span>
       </div>
     </div>
-    <label class="fade-control" for="playerFadeOutMs">
-      <span class="fade-control-row"><span>Затухание</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
-      <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
-    </label>
     <label class="fade-control" for="playerFadeInMs">
       <span class="fade-control-row"><span>Появление</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
       <input class="fade-range" id="playerFadeInMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeInMs">
     </label>
-    <p class="player-settings-hint">Предыдущий трек плавно уходит, новый — мягко появляется. Можно настроить длительность или выключить любой из фейдов.</p>
+    <label class="fade-control" for="playerFadeOutMs">
+      <span class="fade-control-row"><span>Затухание</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
+      <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
+    </label>
+    <p class="player-settings-hint">Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.</p>
   </div>
 </div>`;
   }
@@ -2229,23 +2238,25 @@
   }
 
   function syncFadeVisual() {
-    const outMs = Math.max(0, Number(state.fadeOutMs) || 0);
+    // Visual order follows the setting order: fade-in first (left), fade-out
+    // last (right). The actual crossfade still overlaps both curves in time.
     const inMs = Math.max(0, Number(state.fadeInMs) || 0);
+    const outMs = Math.max(0, Number(state.fadeOutMs) || 0);
     const w = 240;
     const h = 36;
     const top = 4;
     const maxMs = 3000;
-    const outW = (outMs / maxMs) * (w * 0.46);
     const inW = (inMs / maxMs) * (w * 0.46);
-    const startIn = w - inW;
-    const outD = outMs <= 0
-      ? `M 0 ${top} L 0 ${h}`
-      : `M 0 ${top} C ${outW * 0.45} ${top}, ${outW * 0.75} ${h}, ${Math.max(2, outW)} ${h}`;
+    const outW = (outMs / maxMs) * (w * 0.46);
+    const startOut = w - outW;
     const inD = inMs <= 0
+      ? `M 0 ${top} L 0 ${h}`
+      : `M 0 ${h} C ${inW * 0.25} ${h}, ${inW * 0.55} ${top}, ${Math.max(2, inW)} ${top}`;
+    const outD = outMs <= 0
       ? `M ${w} ${top} L ${w} ${h}`
-      : `M ${startIn} ${h} C ${startIn + inW * 0.25} ${h}, ${startIn + inW * 0.55} ${top}, ${w} ${top}`;
+      : `M ${startOut} ${top} C ${startOut + outW * 0.45} ${top}, ${startOut + outW * 0.75} ${h}, ${w} ${h}`;
 
-    document.querySelectorAll("#playerFadeSummary").forEach((el) => { el.textContent = `${formatFadeMs(outMs)} / ${formatFadeMs(inMs)}`; });
+    document.querySelectorAll("#playerFadeSummary").forEach((el) => { el.textContent = `${formatFadeMs(inMs)} / ${formatFadeMs(outMs)}`; });
     document.querySelectorAll("#playerFadeOutValue").forEach((el) => { el.textContent = formatFadeMs(outMs); });
     document.querySelectorAll("#playerFadeInValue").forEach((el) => { el.textContent = formatFadeMs(inMs); });
     document.querySelectorAll("#playerFadeOutPath").forEach((el) => { el.setAttribute("d", outD); });
@@ -2268,7 +2279,7 @@
       }
       else if (key === "fadeOutMs") input.value = String(state.fadeOutMs);
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
-      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
         input.checked = !!state[key];
       }
     });
@@ -2400,7 +2411,7 @@
     else if (key === "format") setFormat(input.value);
     else if (key === "fadeOutMs" || key === "fadeInMs") {
       applyFadeSetting(key, input.value);
-    } else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
+    } else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
       syncSettingsUI();
@@ -2538,6 +2549,11 @@
     const legacy = clampFade(saved.crossfadeMs, DEFAULT_FADE_OUT_MS);
     state.fadeOutMs = saved.fadeOutMs == null ? legacy : clampFade(saved.fadeOutMs, DEFAULT_FADE_OUT_MS);
     state.fadeInMs = clampFade(saved.fadeInMs, DEFAULT_FADE_IN_MS);
+    state.skipIntro = !!saved.skipIntro;
+    const skipSec = Number(saved.skipIntroSec);
+    state.skipIntroSec = Number.isFinite(skipSec)
+      ? Math.min(120, Math.max(0, Math.round(skipSec)))
+      : DEFAULT_SKIP_INTRO_SEC;
     state.queue = Array.isArray(saved.queue)
       ? saved.queue.filter((item) => item && item.path && Array.isArray(item.tracks)).slice(0, 100)
       : [];

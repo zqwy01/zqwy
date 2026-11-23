@@ -168,6 +168,10 @@ function noteCategory(section) {
 
 function parseNote(file) {
   const raw = fs.readFileSync(file, "utf8");
+  // A date in the YAML front matter wins; otherwise use the file's mtime so
+  // the blog timeline still has a stable newest-first order.
+  const dateMatch = /(?:^|\n)\s*date:\s*(\d{4}-\d{2}-\d{2})/.exec(raw);
+  const date = dateMatch ? dateMatch[1] : new Date(fs.statSync(file).mtimeMs).toISOString().slice(0, 10);
   const firstHeading = /^#\s+(.+)$/m.exec(raw);
   const title = (firstHeading?.[1] || path.basename(file, ".md")).trim();
   const body = firstHeading ? raw.replace(/^#\s+.+\n?/m, "") : raw;
@@ -178,6 +182,7 @@ function parseNote(file) {
   return {
     title,
     slug,
+    date,
     relative,
     section,
     text: body.replace(/[#*`\[\]()>]/g, " ").replace(/\s+/g, " ").trim(),
@@ -232,6 +237,8 @@ function shell({ title, description, body, depth }) {
       <header class="home-head notes-head">
         <h1 class="home-title">zqwy notes</h1>
         <p class="home-heading" data-i18n="notesHeading">Заметки в формате markdown, собранные из src/notes/.</p>
+        <p class="home-heading blog-hint" data-i18n="blogHeading">Блог · хронология</p>
+        <p class="home-heading blog-hint dim" data-i18n="blogHint">Записи расположены по датам — от новых к старым.</p>
       </header>
       <article class="notes-article">
 ${body}
@@ -266,7 +273,11 @@ function sortedFolders(node) {
   return [...node.folders.values()].sort((a, b) => a.name.localeCompare(b.name, "ru"));
 }
 function sortedNotes(node) {
-  return [...node.notes].sort((a, b) => a.title.localeCompare(b.title, "ru") || a.relative.localeCompare(b.relative, "ru"));
+  // Blog format: newest dated entries first; title keeps ties deterministic.
+  return [...node.notes].sort((a, b) =>
+    b.date.localeCompare(a.date) ||
+    a.title.localeCompare(b.title, "ru") ||
+    a.relative.localeCompare(b.relative, "ru"));
 }
 
 function renderTree(node, depth = 0) {
@@ -281,7 +292,7 @@ function renderTree(node, depth = 0) {
     html += `${pad}</details>\n`;
   }
   for (const note of sortedNotes(node)) {
-    html += `${pad}<a class="note-tree-link" href="./${escapeHtml(note.slug)}.html"><span class="note-tree-title">${escapeHtml(note.title)}</span><span class="note-tree-path">${escapeHtml(note.relative)}</span></a>\n`;
+    html += `${pad}<a class="note-tree-link" href="./${escapeHtml(note.slug)}.html"><span class="note-tree-title">${escapeHtml(note.title)}</span><span class="note-tree-date">${escapeHtml(note.date)}</span><span class="note-tree-path">${escapeHtml(note.relative)}</span></a>\n`;
   }
   return html;
 }
@@ -321,6 +332,7 @@ const treeHtml = notes.length
 
 const previewsHtml = orderedNotes.map((note) => `        <section class="note-preview" id="note-${escapeHtml(note.slug)}">
           <p class="note-preview-section">${escapeHtml(sectionLabel(note.section))}</p>
+          <p class="note-preview-date">${escapeHtml(note.date)}</p>
           <h2>${escapeHtml(note.title)}</h2>
 ${note.html.split("\n").map((line) => `          ${line}`).join("\n")}
         </section>`).join("\n");

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>zqwy — ссылки</title>
-  <meta name="description" content="Все ссылки zqwy: музыка, социальные сети и площадки">
+  <meta name="description" content="Все ссылки zqwy: музыка, социальные сети и стоки">
   <link rel="icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="shortcut icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="../styles/menu/menu.css">
@@ -23,6 +23,7 @@
           theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
         }
         document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        document.documentElement.lang = s && s.language === "en" ? "en" : "ru";
       } catch (e) {
         document.documentElement.dataset.theme = "dark";
       }
@@ -38,31 +39,29 @@
            they came from this site, otherwise the parent page). -->
       <div class="container menu-button-container" id="menuButtonContainer">
         <div class="menu-trigger-row">
-          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-back>
+          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-i18n-aria-label="back" data-back>
             <img class="menu-open-image" src="../assets/icons/favicon.ico" alt="" aria-hidden="true">
           </a>
           <form class="site-search" id="siteSearch" role="search" aria-label="Поиск">
-            <label class="visually-hidden" for="siteSearchInput">Общий поиск сайта</label>
-            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)">
+            <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
           </form>
         </div>
       </div>
 
       <header class="home-head links-head">
-        <h1 class="home-title">links</h1>
-        <p class="home-heading">Все мои ссылки в одном месте.</p>
+        <h1 class="home-title" data-i18n="homeLinks">links</h1>
+        <p class="home-heading" data-i18n="linksHeading">Все мои ссылки в одном месте.</p>
       </header>
 
-      <nav class="links-nav" aria-label="Разделы ссылок">
-        <a href="#social">Соцсети и контент</a>
-        <a href="#music">Музыкальные площадки</a>
-        <a href="#streaming">Стриминги</a>
-        <a href="#audio-stocks">Аудиостоки</a>
-        <a href="#tools">Инструменты</a>
+      <nav class="links-nav" aria-label="Разделы ссылок" data-i18n-aria-label="linksNavSections">
+        <a href="#social" data-i18n="linksNavSocial">Соцсети и контент</a>
+        <a href="#music" data-i18n="linksNavMusic">Музыкальные площадки</a>
+        <a href="#stocks" data-i18n="linksNavStocks">Стоки</a>
       </nav>
 
       <section class="links-section" id="social" aria-labelledby="social-title">
-        <h2 class="links-section-title" id="social-title">Соцсети и контент</h2>
+        <h2 class="links-section-title" id="social-title" data-i18n="linksSectionSocial">Соцсети и контент</h2>
         <ul class="links-grid">
           <li>
             <a class="link-card" href="https://www.youtube.com/@zqwy" target="_blank" rel="noopener noreferrer">
@@ -160,18 +159,18 @@
               <span class="link-name">itch.io</span>
             </a>
           </li>
+          <li>
+            <a class="link-card" href="https://www.duolingo.com/profile/z_q_w_y" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#duolingo"></use></svg></span>
+              <span class="link-name">Duolingo</span>
+            </a>
+          </li>
         </ul>
       </section>
 
       <section class="links-section" id="music" aria-labelledby="music-title">
-        <h2 class="links-section-title" id="music-title">Музыкальные площадки</h2>
+        <h2 class="links-section-title" id="music-title" data-i18n="linksSectionMusic">Музыкальные площадки</h2>
         <ul class="links-grid">
-          <li>
-            <a class="link-card" href="https://www.pond5.com/ru/artist/zqwy_music" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#pond5"></use></svg></span>
-              <span class="link-name">pond5</span>
-            </a>
-          </li>
           <li>
             <a class="link-card" href="https://audiomack.com/zqwy" target="_blank" rel="noopener noreferrer">
               <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#audiomack"></use></svg></span>
@@ -301,121 +300,13 @@
         </ul>
       </section>
 
-      <section class="links-section" id="streaming" aria-labelledby="streaming-title">
-        <h2 class="links-section-title" id="streaming-title">Стриминги и видео</h2>
+      <section class="links-section" id="stocks" aria-labelledby="stocks-title">
+        <h2 class="links-section-title" id="stocks-title" data-i18n="linksSectionStocks">Стоки</h2>
         <ul class="links-grid">
           <li>
-            <a class="link-card" href="https://www.twitch.tv/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#twitch"></use></svg></span>
-              <span class="link-name">Twitch</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://www.youtube.com/live" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#youtube"></use></svg></span>
-              <span class="link-name">YouTube Live</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://kick.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#kick"></use></svg></span>
-              <span class="link-name">Kick</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://trovo.live/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#trovo"></use></svg></span>
-              <span class="link-name">Trovo</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://dlive.tv/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#dlive"></use></svg></span>
-              <span class="link-name">DLive</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://rumble.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#rumble"></use></svg></span>
-              <span class="link-name">Rumble</span>
-            </a>
-          </li>
-        </ul>
-      </section>
-
-      <section class="links-section" id="audio-stocks" aria-labelledby="audio-stocks-title">
-        <h2 class="links-section-title" id="audio-stocks-title">Аудиостоки и лицензирование</h2>
-        <ul class="links-grid">
-          <li>
-            <a class="link-card" href="https://pixabay.com/music/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#pixabay"></use></svg></span>
-              <span class="link-name">Pixabay Music</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://freesound.org/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#freesound"></use></svg></span>
-              <span class="link-name">Freesound</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://elements.envato.com/music/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#envato"></use></svg></span>
-              <span class="link-name">Envato Elements</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://artlist.io/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#artlist"></use></svg></span>
-              <span class="link-name">Artlist</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://www.epidemsound.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#epidemicsound"></use></svg></span>
-              <span class="link-name">Epidemic Sound</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://www.storyblocks.com/audio" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#storyblocks"></use></svg></span>
-              <span class="link-name">Storyblocks Audio</span>
-            </a>
-          </li>
-        </ul>
-      </section>
-
-      <section class="links-section" id="tools" aria-labelledby="tools-title">
-        <h2 class="links-section-title" id="tools-title">Инструменты и сообщества</h2>
-        <ul class="links-grid">
-          <li>
-            <a class="link-card" href="https://www.bandlab.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#bandlab"></use></svg></span>
-              <span class="link-name">BandLab</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://www.soundtrap.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#soundtrap"></use></svg></span>
-              <span class="link-name">Soundtrap</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://splice.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#splice"></use></svg></span>
-              <span class="link-name">Splice</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://www.landr.com/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#landr"></use></svg></span>
-              <span class="link-name">LANDR</span>
-            </a>
-          </li>
-          <li>
-            <a class="link-card" href="https://www.apple.com/mac/garageband/" target="_blank" rel="noopener noreferrer">
-              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#apple"></use></svg></span>
-              <span class="link-name">GarageBand</span>
+            <a class="link-card" href="https://www.pond5.com/ru/artist/zqwy_music" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#pond5"></use></svg></span>
+              <span class="link-name">pond5</span>
             </a>
           </li>
         </ul>

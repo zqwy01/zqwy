@@ -9,8 +9,8 @@
  * separate setting. Every engine drives the same <audio> element, so playback,
  * seeking, volume and Media Session stay identical across the site. Track
  * switches fade a temporary copy of the outgoing element through a Web Audio
- * GainNode; the incoming track gets only a 14 ms anti-click ramp so an
- * immediate drop is not softened.
+ * GainNode; the incoming track gets a configurable fade-in envelope on the
+ * shared main gain, so transitions are smooth and click-free.
  *
  * Public API (window.zqwyPlayer):
  *   playTrack(album, index, options) · setContext(album) · toggle() · play()
@@ -40,8 +40,10 @@
     "mediaelement", "amplitude", "aplayer", "jplayer",
   ];
   const FORMATS = ["opus", "mp3", "wav", "flac"];
-  const CROSSFADE_OPTIONS = [200, 400, 700];
-  const DEFAULT_CROSSFADE_MS = 400;
+  const CROSSFADE_MIN_MS = 0;
+  const CROSSFADE_MAX_MS = 3000;
+  const DEFAULT_FADE_OUT_MS = 700;
+  const DEFAULT_FADE_IN_MS = 500;
 
   const BAR_HTML = `
 <div class="player-bar" id="playerBar" hidden>
@@ -210,7 +212,8 @@
     autoNext: true,
     rememberPosition: true,
     crossfade: true,          // fade the outgoing track under the incoming one
-    crossfadeMs: DEFAULT_CROSSFADE_MS,
+    fadeOutMs: DEFAULT_FADE_OUT_MS,
+    fadeInMs: DEFAULT_FADE_IN_MS,
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -227,6 +230,7 @@
   let wavizPauseHandler = null;
   let audioContext = null;
   let mediaSourceNode = null;
+  let mainGainNode = null;
   let pendingStart = null;
   let pendingAutoplay = false;
   let saveTimer = 0;
@@ -248,6 +252,7 @@
   let labGain = null;
   const activeFades = new Set(); // temporary <audio> elements fading out after a track switch
   let incomingFadeToken = 0;     // invalidates an older anti-click ramp on rapid switches
+  let incomingFadeActive = 0;   // token of fade-in currently animating
 
   /* ---------- helpers ---------- */
 
@@ -339,20 +344,25 @@
   function startHowlerAnalyser() {
     if (labRaf || !$("labAnalyser")) return;
     const context = sharedAudioContext();
-    if (!context || !mediaSourceNode) return;
+    if (!context) return;
+    const main = ensureMainGain();
+    const tapSource = main?.gain || mediaSourceNode;
+    if (!tapSource) return;
     const canvas = $("labAnalyser");
     const ctx2d = canvas.getContext("2d");
     if (!ctx2d) return;
     const analyser = context.createAnalyser();
     analyser.fftSize = 1024;
-    // A unity gain keeps the shared element audible once createMediaElementSource
-    // has routed its signal through the AudioContext.
-    labGain = context.createGain();
-    labGain.gain.value = 1;
     try {
-      mediaSourceNode.connect(analyser);
-      analyser.connect(labGain);
-      labGain.connect(context.destination);
+      tapSource.connect(analyser);
+      // If we tapped mainGainNode, audio already reaches destination.
+      // Otherwise route through unity gain to keep element audible.
+      if (!main?.gain) {
+        labGain = context.createGain();
+        labGain.gain.value = 1;
+        analyser.connect(labGain);
+        labGain.connect(context.destination);
+      }
     } catch {}
     labNode = analyser;
 
@@ -567,7 +577,7 @@
       state.time = 0;
       showBar();
       renderMetadata();
-      loadCurrent({ autoplay: true, startTime: 0, antiClick: true });
+      loadCurrent({ autoplay: true, startTime: 0, fadeIn: true });
       renderQueue();
       saveState();
       notify("queue");
@@ -617,7 +627,7 @@
         volume: state.volume, muted: state.muted, shuffle: state.shuffle,
         repeat: state.repeat, engine: state.engine, format: state.format,
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
-        crossfade: state.crossfade, crossfadeMs: state.crossfadeMs,
+        crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -779,6 +789,34 @@
     }
     if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
     return audioContext;
+  }
+
+  // Route the shared <audio> through a GainNode so fades are sample-accurate
+  // (no zipper noise from stepping audio.volume). User volume stays on
+  // audio.volume; this gain is only for transition envelopes.
+  function ensureMainGain() {
+    const context = sharedAudioContext();
+    if (!context) return null;
+    if (mainGainNode) return { context, gain: mainGainNode };
+    if (!mediaSourceNode) {
+      try {
+        // Use the patched createMediaElementSource which caches the node.
+        mediaSourceNode = context.createMediaElementSource(audio);
+      } catch {
+        return null;
+      }
+    }
+    if (!mediaSourceNode) return null;
+    try {
+      mainGainNode = context.createGain();
+      mainGainNode.gain.value = 1;
+      mediaSourceNode.connect(mainGainNode);
+      mainGainNode.connect(context.destination);
+    } catch {
+      mainGainNode = null;
+      return null;
+    }
+    return { context, gain: mainGainNode };
   }
 
   function destroyHowl() {
@@ -1361,8 +1399,7 @@
    * Audio GainNode: sample-accurate, no stepped "zipper" noise. We wait until
    * that copy is really playing before replacing the shared element's src, so
    * there is no silence gap and no wrong-offset overlap of the old track. The
-   * incoming track gets only the 14 ms anti-click ramp from loadCurrent(), so
-   * an immediate drop still hits at full level.
+   * incoming track gets a configurable fade-in on the shared main gain.
    */
   function cleanupFade(fade) {
     if (!fade || fade.done) return;
@@ -1372,14 +1409,28 @@
     if (fade.startTimer) window.clearTimeout(fade.startTimer);
     if (fade.playTimer) window.clearTimeout(fade.playTimer);
     activeFades.delete(fade);
-    try { fade.source?.disconnect(); } catch {}
-    try { fade.gain?.disconnect(); } catch {}
-    fade.source = null;
-    fade.gain = null;
-    const element = fade.element;
-    if (!element) return;
-    try { element.pause(); } catch {}
-    try { element.removeAttribute("src"); element.load(); } catch {}
+    const disconnect = () => {
+      try { fade.source?.disconnect(); } catch {}
+      try { fade.gain?.disconnect(); } catch {}
+      fade.source = null;
+      fade.gain = null;
+      const element = fade.element;
+      if (!element) return;
+      try { element.pause(); } catch {}
+      try { element.removeAttribute("src"); element.load(); } catch {}
+    };
+    // Avoid click on abrupt stop: short ramp down before disconnecting.
+    if (fade.gain?.gain && audioContext) {
+      try {
+        const t = audioContext.currentTime;
+        fade.gain.gain.cancelScheduledValues(t);
+        fade.gain.gain.setValueAtTime(Math.max(0.0001, fade.gain.gain.value || 0.0001), t);
+        fade.gain.gain.linearRampToValueAtTime(0.0001, t + 0.02);
+      } catch {}
+      window.setTimeout(disconnect, 30);
+      return;
+    }
+    disconnect();
   }
 
   // `commit: false` is used only by stop(), where a pending switch must be
@@ -1399,30 +1450,38 @@
     if (fade.started || fade.done) return;
     fade.started = true;
     fade.startedAt = performance.now();
+    const duration = Math.max(0, fade.duration);
+    if (duration <= 0) { cleanupFade(fade); return; }
+
     const context = sharedAudioContext();
     if (context) {
       try {
         const source = context.createMediaElementSource(fade.element);
         const gain = context.createGain();
         const now = context.currentTime;
+        // Equal-power fade-out: smooth, no perceived dip when mixed with fade-in.
         gain.gain.setValueAtTime(1, now);
-        gain.gain.linearRampToValueAtTime(0, now + fade.duration / 1000);
+        gain.gain.setValueCurveAtTime(
+          Float32Array.from({ length: 65 }, (_, i) => Math.cos((i / 64) * Math.PI * 0.5)),
+          now,
+          duration / 1000,
+        );
         source.connect(gain);
         gain.connect(context.destination);
         fade.source = source;
         fade.gain = gain;
-        fade.timeout = window.setTimeout(() => cleanupFade(fade), fade.duration + 250);
+        fade.timeout = window.setTimeout(() => cleanupFade(fade), duration + 300);
         return;
       } catch {}
     }
     // No Web Audio available: ramp element.volume instead of cutting it.
     fade.interval = window.setInterval(() => {
       if (fade.done) return;
-      const progress = Math.min(1, (performance.now() - fade.startedAt) / fade.duration);
-      fade.element.volume = Math.max(0, fade.from * (1 - progress));
+      const progress = Math.min(1, (performance.now() - fade.startedAt) / duration);
+      fade.element.volume = Math.max(0, fade.from * Math.cos(progress * Math.PI * 0.5));
       if (progress >= 1) cleanupFade(fade);
     }, 20);
-    fade.timeout = window.setTimeout(() => cleanupFade(fade), fade.duration + 250);
+    fade.timeout = window.setTimeout(() => cleanupFade(fade), duration + 300);
   }
 
   function beginCrossfade(nextTrack, commit) {
@@ -1440,7 +1499,8 @@
     const fromVolume = audio.muted ? 0 : Math.max(0, Math.min(1, audio.volume));
     if (fromVolume <= 0) { proceed(); return; }
     const fromTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
-    const duration = state.crossfadeMs;
+    const duration = Math.max(0, Number(state.fadeOutMs) || 0);
+    if (duration <= 0) { proceed(); return; }
 
     // A rapid next/next chain must not leave several overlapping ghosts.
     stopFades({ commit: true });
@@ -1511,30 +1571,96 @@
     }
   }
 
-  /* A 14 ms ramp on the incoming track removes the click caused by starting
-   * playback on a non-zero sample. It is far too short to soften a drop, but
-   * it removes the "обрыв" sound at the exact switch moment. */
-  function runIncomingFade(target) {
+  /* Fade-in on the incoming track. Uses Web Audio GainNode for sample-accurate,
+   * click-free ramps when available; falls back to audio.volume ramp. A short
+   * minimum ramp is always applied on switches to avoid sample-start clicks. */
+  function runIncomingFade(target, fadeInMs) {
     const token = ++incomingFadeToken;
-    const duration = 14;
-    const started = performance.now();
-    let frame = 0;
-    const finish = () => {
+    incomingFadeActive = token;
+    const requested = Math.max(0, Number(fadeInMs) || 0);
+    // 0 = no audible fade-in, but keep a tiny anti-click ramp.
+    const duration = requested <= 0 ? 15 : requested;
+    const useGain = ensureMainGain();
+
+    // Always restore target volume; gain envelope handles the fade shape.
+    audio.volume = target;
+
+    const clearActive = () => { if (incomingFadeActive === token) incomingFadeActive = 0; };
+
+    if (useGain) {
+      const { context, gain } = useGain;
+      const applyCurve = () => {
+        if (token !== incomingFadeToken) return;
+        const now = context.currentTime;
+        try {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.setValueCurveAtTime(
+            Float32Array.from({ length: 65 }, (_, i) => Math.sin((i / 64) * Math.PI * 0.5)),
+            now,
+            duration / 1000,
+          );
+          gain.gain.setValueAtTime(1, now + duration / 1000);
+        } catch {
+          try { gain.gain.setValueAtTime(1, context.currentTime); } catch {}
+        }
+        window.setTimeout(() => {
+          if (token !== incomingFadeToken) return;
+          try {
+            const t = context.currentTime;
+            gain.gain.cancelScheduledValues(t);
+            gain.gain.setValueAtTime(1, t);
+          } catch {}
+          clearActive();
+        }, duration + 250);
+      };
+
+      // If playback hasn't started yet, schedule when it actually plays so the
+      // fade isn't consumed during load/buffer silence.
+      if (audio.paused) {
+        try {
+          gain.gain.cancelScheduledValues(context.currentTime);
+          gain.gain.setValueAtTime(0.0001, context.currentTime);
+        } catch {}
+        const onPlay = () => { audio.removeEventListener("playing", onPlay); applyCurve(); };
+        audio.addEventListener("playing", onPlay);
+        // Safety if play never happens.
+        window.setTimeout(() => {
+          if (token !== incomingFadeToken) return;
+          audio.removeEventListener("playing", onPlay);
+          applyCurve();
+        }, 1500);
+      } else {
+        applyCurve();
+      }
+      return;
+    }
+
+    // Fallback: ramp audio.volume (less precise, but better than a hard cut).
+    const startRamp = () => {
       if (token !== incomingFadeToken) return;
-      if (frame) window.cancelAnimationFrame(frame);
-      frame = 0;
-      audio.volume = target;
+      const started = performance.now();
+      let frame = 0;
+      const finish = () => {
+        if (token !== incomingFadeToken) return;
+        if (frame) window.cancelAnimationFrame(frame);
+        frame = 0;
+        audio.volume = target;
+        clearActive();
+      };
+      const step = () => {
+        if (token !== incomingFadeToken) return;
+        const progress = Math.min(1, (performance.now() - started) / duration);
+        audio.volume = target * Math.sin(progress * Math.PI * 0.5);
+        if (progress < 1) frame = window.requestAnimationFrame(step);
+        else finish();
+      };
+      audio.volume = 0;
+      frame = window.requestAnimationFrame(step);
+      window.setTimeout(finish, duration + 150);
     };
-    const step = () => {
-      if (token !== incomingFadeToken) return;
-      const progress = Math.min(1, (performance.now() - started) / duration);
-      audio.volume = target * progress;
-      if (progress < 1) frame = window.requestAnimationFrame(step);
-      else finish();
-    };
-    frame = window.requestAnimationFrame(step);
-    // A hidden tab throttles rAF; never leave the track stuck at low volume.
-    window.setTimeout(finish, duration + 150);
+    if (audio.paused) audio.addEventListener("playing", startRamp, { once: true });
+    else startRamp();
   }
 
   function loadCurrent(options = {}) {
@@ -1543,14 +1669,37 @@
     pendingAutoplay = options.autoplay !== false;
     // Use the saved volume, not audio.volume: a previous anti-click ramp may
     // still be in progress and would otherwise become the new ramp's target.
-    const incomingTarget = options.antiClick && !state.muted && !audio.muted
+    const incomingTarget = !state.muted && !audio.muted
       ? Math.max(0, Math.min(1, state.volume))
       : 0;
-    if (incomingTarget > 0) audio.volume = 0;
+    const fadeInEnabled = state.crossfade && options.fadeIn !== false;
+    const fadeInMs = fadeInEnabled ? (Number(options.fadeInMs ?? state.fadeInMs) || 0) : 0;
+
+    // Mute main gain before src/load swap to prevent click/pop on the shared
+    // element. runIncomingFade will ramp it back up.
+    const preGain = ensureMainGain();
+    if (preGain) {
+      try {
+        const t = preGain.context.currentTime;
+        preGain.gain.cancelScheduledValues(t);
+        preGain.gain.setValueAtTime(0.0001, t);
+      } catch {}
+    }
+
     const url = assetUrl(resolveTrackPath(state.current));
     destroyWaveforms();
     loadEngine(url, pendingStart, pendingAutoplay);
-    if (incomingTarget > 0) runIncomingFade(incomingTarget);
+    if (incomingTarget > 0) {
+      runIncomingFade(incomingTarget, fadeInMs);
+    } else {
+      // Ensure gain is not stuck low from a previous fade.
+      if (preGain) {
+        try { const t = preGain.context.currentTime; preGain.gain.cancelScheduledValues(t); preGain.gain.setValueAtTime(1, t); } catch {}
+      } else {
+        const g = ensureMainGain();
+        if (g) { try { const t = g.context.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(1, t); } catch {} }
+      }
+    }
   }
 
   function renderMetadata() {
@@ -1620,7 +1769,7 @@
       loadCurrent({
         autoplay: options.autoplay !== false,
         startTime: options.startTime || 0,
-        antiClick: options.autoplay !== false,
+        fadeIn: options.autoplay !== false,
       });
       saveState();
       notify("track");
@@ -1660,7 +1809,7 @@
       state.time = 0;
       showBar();
       renderMetadata();
-      loadCurrent({ autoplay, startTime: 0, antiClick: autoplay });
+      loadCurrent({ autoplay, startTime: 0, fadeIn: autoplay });
       saveState();
       notify("track");
     };
@@ -1711,6 +1860,15 @@
   function stop() {
     // Closing the player must not let a pending crossfade commit a new track.
     stopFades({ commit: false });
+    incomingFadeToken++;
+    incomingFadeActive = 0;
+    if (mainGainNode) {
+      try {
+        const t = audioContext.currentTime;
+        mainGainNode.gain.cancelScheduledValues(t);
+        mainGainNode.gain.setValueAtTime(1, t);
+      } catch { mainGainNode.gain.value = 1; }
+    }
     pauseAudio();
     audio.removeAttribute("src");
     audio.load();
@@ -1817,14 +1975,31 @@
     <label><input type="checkbox" data-player-setting="rememberPosition"> Запоминать позицию трека</label>
     <label><input type="checkbox" data-player-setting="crossfade"> Плавный переход между треками</label>
   </fieldset>
-  <div class="settings-field">
-    <label class="settings-label" for="playerCrossfadeMs">Затухание предыдущего трека</label>
-    <select class="settings-select" id="playerCrossfadeMs" data-player-setting="crossfadeMs">
-      <option value="200">Короткое — 0,2 с</option>
-      <option value="400">Обычное — 0,4 с</option>
-      <option value="700">Длинное — 0,7 с</option>
-    </select>
-    <p class="player-settings-hint">Новый трек выходит на полную громкость за 14 мс — этого хватает против щелчка, но дроп в первые секунды не смягчается.</p>
+  <div class="settings-field fade-setting" data-fade-setting>
+    <div class="fade-setting-head">
+      <span class="settings-label">Fade in / fade out</span>
+      <span class="fade-setting-value" id="playerFadeSummary"></span>
+    </div>
+    <div class="fade-visual" aria-hidden="true">
+      <svg class="fade-visual-svg" viewBox="0 0 240 44" preserveAspectRatio="none">
+        <line class="fade-visual-axis" x1="0" y1="40" x2="240" y2="40"></line>
+        <path class="fade-visual-out" id="playerFadeOutPath"></path>
+        <path class="fade-visual-in" id="playerFadeInPath"></path>
+      </svg>
+      <div class="fade-visual-labels">
+        <span>out</span>
+        <span>in</span>
+      </div>
+    </div>
+    <label class="fade-control" for="playerFadeOutMs">
+      <span class="fade-control-row"><span>Затухание</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
+      <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
+    </label>
+    <label class="fade-control" for="playerFadeInMs">
+      <span class="fade-control-row"><span>Появление</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
+      <input class="fade-range" id="playerFadeInMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeInMs">
+    </label>
+    <p class="player-settings-hint">Предыдущий трек плавно уходит, новый — мягко появляется. Можно настроить длительность или выключить любой из фейдов.</p>
   </div>
 </div>`;
   }
@@ -1836,6 +2011,45 @@
     syncSettingsUI();
   }
 
+  function formatFadeMs(ms) {
+    const value = Math.max(0, Number(ms) || 0);
+    if (value === 0) return "выкл";
+    if (value < 1000) return `${value} мс`;
+    const seconds = value / 1000;
+    return `${seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(1)} с`;
+  }
+
+  function syncFadeVisual() {
+    const outMs = Math.max(0, Number(state.fadeOutMs) || 0);
+    const inMs = Math.max(0, Number(state.fadeInMs) || 0);
+    const w = 240;
+    const h = 36;
+    const top = 4;
+    const maxMs = 3000;
+    const outW = (outMs / maxMs) * (w * 0.46);
+    const inW = (inMs / maxMs) * (w * 0.46);
+    const startIn = w - inW;
+    const outD = outMs <= 0
+      ? `M 0 ${top} L 0 ${h}`
+      : `M 0 ${top} C ${outW * 0.45} ${top}, ${outW * 0.75} ${h}, ${Math.max(2, outW)} ${h}`;
+    const inD = inMs <= 0
+      ? `M ${w} ${top} L ${w} ${h}`
+      : `M ${startIn} ${h} C ${startIn + inW * 0.25} ${h}, ${startIn + inW * 0.55} ${top}, ${w} ${top}`;
+
+    document.querySelectorAll("#playerFadeSummary").forEach((el) => { el.textContent = `${formatFadeMs(outMs)} / ${formatFadeMs(inMs)}`; });
+    document.querySelectorAll("#playerFadeOutValue").forEach((el) => { el.textContent = formatFadeMs(outMs); });
+    document.querySelectorAll("#playerFadeInValue").forEach((el) => { el.textContent = formatFadeMs(inMs); });
+    document.querySelectorAll("#playerFadeOutPath").forEach((el) => { el.setAttribute("d", outD); });
+    document.querySelectorAll("#playerFadeInPath").forEach((el) => { el.setAttribute("d", inD); });
+
+    document.querySelectorAll("[data-fade-setting]").forEach((el) => {
+      el.classList.toggle("is-disabled", !state.crossfade);
+      el.querySelectorAll("input[data-player-setting='fadeOutMs'], input[data-player-setting='fadeInMs']").forEach((input) => {
+        input.disabled = !state.crossfade;
+      });
+    });
+  }
+
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
@@ -1843,11 +2057,13 @@
         if (input instanceof HTMLSelectElement) input.value = state[key];
         else input.checked = input.value === state[key];
       }
-      else if (key === "crossfadeMs") input.value = String(state.crossfadeMs);
+      else if (key === "fadeOutMs") input.value = String(state.fadeOutMs);
+      else if (key === "fadeInMs") input.value = String(state.fadeInMs);
       else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
         input.checked = !!state[key];
       }
     });
+    syncFadeVisual();
   }
 
   function openSettings() {
@@ -1896,6 +2112,14 @@
     audio.volume = value;
     audio.muted = value === 0;
     state.muted = audio.muted;
+    // If user changes volume during fade-in, don't let fade override it later.
+    if (incomingFadeActive) {
+      incomingFadeToken++;
+      incomingFadeActive = 0;
+      if (mainGainNode) {
+        try { const t = audioContext.currentTime; mainGainNode.gain.cancelScheduledValues(t); mainGainNode.gain.setValueAtTime(1, t); } catch {}
+      }
+    }
     try { howl?.volume(value); howl?.mute(audio.muted); } catch {}
     updateMuteState();
     saveState();
@@ -1944,18 +2168,26 @@
     if (queuePanel && !queuePanel.hidden) closeQueue();
   });
 
+  function applyFadeSetting(key, rawValue) {
+    const clampFade = (value, fallback) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.min(CROSSFADE_MAX_MS, Math.max(CROSSFADE_MIN_MS, Math.round(n))) : fallback;
+    };
+    if (key === "fadeOutMs") state.fadeOutMs = clampFade(rawValue, DEFAULT_FADE_OUT_MS);
+    if (key === "fadeInMs") state.fadeInMs = clampFade(rawValue, DEFAULT_FADE_IN_MS);
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
   document.addEventListener("change", (ev) => {
     const input = ev.target instanceof Element ? ev.target.closest("[data-player-setting]") : null;
     if (!input) return;
     const key = input.dataset.playerSetting;
     if (key === "engine") setEngine(input.value);
     else if (key === "format") setFormat(input.value);
-    else if (key === "crossfadeMs") {
-      const value = Number(input.value);
-      state.crossfadeMs = CROSSFADE_OPTIONS.includes(value) ? value : DEFAULT_CROSSFADE_MS;
-      syncSettingsUI();
-      saveState();
-      notify("settings");
+    else if (key === "fadeOutMs" || key === "fadeInMs") {
+      applyFadeSetting(key, input.value);
     } else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
@@ -1963,6 +2195,13 @@
       saveState();
       notify("settings");
     }
+  });
+
+  document.addEventListener("input", (ev) => {
+    const input = ev.target instanceof Element ? ev.target.closest("[data-player-setting]") : null;
+    if (!input) return;
+    const key = input.dataset.playerSetting;
+    if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
   });
 
   audio.addEventListener("loadedmetadata", () => {
@@ -2058,10 +2297,14 @@
     state.autoNext = saved.autoNext !== false;
     state.rememberPosition = saved.rememberPosition !== false;
     state.crossfade = saved.crossfade !== false;
-    const savedCrossfadeMs = Number(saved.crossfadeMs);
-    state.crossfadeMs = CROSSFADE_OPTIONS.includes(savedCrossfadeMs)
-      ? savedCrossfadeMs
-      : DEFAULT_CROSSFADE_MS;
+    const clampFade = (value, fallback) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.min(CROSSFADE_MAX_MS, Math.max(CROSSFADE_MIN_MS, Math.round(n))) : fallback;
+    };
+    // Migrate legacy single crossfadeMs setting.
+    const legacy = clampFade(saved.crossfadeMs, DEFAULT_FADE_OUT_MS);
+    state.fadeOutMs = saved.fadeOutMs == null ? legacy : clampFade(saved.fadeOutMs, DEFAULT_FADE_OUT_MS);
+    state.fadeInMs = clampFade(saved.fadeInMs, DEFAULT_FADE_IN_MS);
     state.queue = Array.isArray(saved.queue)
       ? saved.queue.filter((item) => item && item.path && Array.isArray(item.tracks)).slice(0, 100)
       : [];

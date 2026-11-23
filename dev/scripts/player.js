@@ -40,6 +40,10 @@
     "mediaelement", "amplitude", "aplayer", "jplayer",
   ];
   const FORMATS = ["opus", "mp3", "wav", "flac"];
+  // When JavaScript and the APIs WaveSurfer needs are available, the waveform
+  // player is the default. The explicit user choice (or a legacy non-HTML5
+  // engine) always wins; see detectDefaultEngine()/restore().
+  const DEFAULT_ENGINE = "wavesurfer";
   const CROSSFADE_MIN_MS = 0;
   const CROSSFADE_MAX_MS = 3000;
   const DEFAULT_FADE_OUT_MS = 700;
@@ -158,6 +162,17 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4L13.4 12 19 6.4 17.6 5 12 10.6z"/></svg>
     </button>
     </div>
+
+    <!-- Loading state sits over the seek/waveform row in every engine, so the
+         percentage is visible even when a library renders its own controls. -->
+    <div class="player-loading" id="playerLoading" hidden role="status" aria-live="polite">
+      <span class="player-loading-ring" aria-hidden="true"></span>
+      <span class="player-loading-text">Загрузка трека</span>
+      <span class="player-loading-percent" id="playerLoadingPercent">0%</span>
+      <span class="player-loading-track" aria-hidden="true">
+        <span class="player-loading-fill" id="playerLoadingFill"></span>
+      </span>
+    </div>
   </div>
 
   <div class="player-settings" id="playerSettings" hidden>
@@ -181,6 +196,9 @@
   </div>
 
   <audio id="audio" preload="metadata"></audio>
+  <!-- Warms the HTTP cache for the upcoming track. It never plays and never
+       touches the shared audio element (Web Audio needs one source per node). -->
+  <audio id="preloadAudio" preload="auto" aria-hidden="true" tabindex="-1"></audio>
 </div>`;
 
   if (document.getElementById("playerBar")) return; // already injected
@@ -188,6 +206,10 @@
 
   const $ = (id) => document.getElementById(id);
   const audio = $("audio");
+  const preloadAudio = $("preloadAudio");
+  const loadingEl = $("playerLoading");
+  const loadingPercentEl = $("playerLoadingPercent");
+  const loadingFillEl = $("playerLoadingFill");
   const bar = $("playerBar");
   const seek = $("playerSeek");
   const waveform = $("playerWaveform");
@@ -207,7 +229,8 @@
     muted: false,
     shuffle: false,
     repeat: "off",
-    engine: "html5",
+    engine: DEFAULT_ENGINE,
+    engineExplicit: false, // true only after the visitor picks an engine manually
     format: "opus",
     autoNext: true,
     rememberPosition: true,
@@ -237,6 +260,11 @@
   let hideTimer = 0;
   let settingsTimer = 0;
   let queueTimer = 0;
+  let loadHideTimer = 0;
+  let loadFallbackTimer = 0;
+  let preloadTimer = 0;
+  let preloadUrl = "";
+  let shufflePick = null;
   let scriptPromise = null;
   let peaksScriptPromise = null;
   let howlerScriptPromise = null;
@@ -287,6 +315,78 @@
   function setWaveMode(on) {
     bar.classList.toggle("has-waveform", on);
     document.body.classList.toggle("has-waveform", on);
+  }
+
+  /* ---------- browser capability / default engine ---------- */
+
+  // The player script itself only runs when JavaScript is enabled. WaveSurfer
+  // additionally needs promises, fetch and a 2D canvas to draw the waveform;
+  // without them the native <audio> player remains the safe default.
+  function detectDefaultEngine() {
+    try {
+      if (typeof Promise !== "function" || typeof fetch !== "function") return "html5";
+      if (!window.requestAnimationFrame) return "html5";
+      const canvas = document.createElement("canvas");
+      if (!canvas.getContext || !canvas.getContext("2d")) return "html5";
+      return DEFAULT_ENGINE;
+    } catch {
+      return "html5";
+    }
+  }
+
+  /* ---------- loading progress (shown in the seek/waveform row) ---------- */
+
+  function setLoadingProgress(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+    const percent = Math.round(Math.min(100, Math.max(0, numeric)));
+    if (loadingPercentEl) loadingPercentEl.textContent = `${percent}%`;
+    if (loadingFillEl) loadingFillEl.style.width = `${percent}%`;
+    loadingEl?.setAttribute("aria-label", `Загрузка трека: ${percent}%`);
+  }
+
+  function setLoading(active, progress = 0) {
+    if (loadHideTimer) { window.clearTimeout(loadHideTimer); loadHideTimer = 0; }
+    if (loadFallbackTimer) { window.clearTimeout(loadFallbackTimer); loadFallbackTimer = 0; }
+    if (!loadingEl) return;
+    loadingEl.hidden = !active;
+    bar.classList.toggle("is-loading", !!active);
+    if (!active) return;
+    setLoadingProgress(progress);
+    // Never leave the overlay stuck if a browser/library reports no progress.
+    loadFallbackTimer = window.setTimeout(() => finishLoading(), 12000);
+  }
+
+  function finishLoading() {
+    if (!loadingEl || loadingEl.hidden) return;
+    setLoadingProgress(100);
+    if (loadFallbackTimer) { window.clearTimeout(loadFallbackTimer); loadFallbackTimer = 0; }
+    if (loadHideTimer) window.clearTimeout(loadHideTimer);
+    loadHideTimer = window.setTimeout(() => {
+      loadingEl.hidden = true;
+      bar.classList.remove("is-loading");
+      loadHideTimer = 0;
+    }, 220);
+  }
+
+  // Wave engines report their own loading progress; the shared element's
+  // buffered ranges would reach 100% long before the waveform is decoded.
+  function usesNativeProgress() {
+    return state.engine !== "wavesurfer" && state.engine !== "peaks";
+  }
+
+  function bufferedPercent() {
+    if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+      return audio.readyState >= 2 ? 100 : 0;
+    }
+    try {
+      if (audio.buffered && audio.buffered.length) {
+        const end = audio.buffered.end(audio.buffered.length - 1);
+        if (Number.isFinite(end)) return (end / audio.duration) * 100;
+      }
+    } catch {}
+    // readyState fallbacks for browsers that don't expose buffered ranges.
+    return ({ 0: 0, 1: 15, 2: 45, 3: 80, 4: 100 })[audio.readyState] || 0;
   }
 
   /* ---------- engine-owned UI inside the player ----------
@@ -531,6 +631,7 @@
     renderQueue();
     saveState();
     notify("queue");
+    schedulePreload();
     return true;
   }
 
@@ -540,6 +641,7 @@
     renderQueue();
     saveState();
     notify("queue");
+    schedulePreload();
     return true;
   }
 
@@ -549,6 +651,7 @@
     renderQueue();
     saveState();
     notify("queue");
+    schedulePreload();
   }
 
   function getQueue() {
@@ -626,6 +729,7 @@
       localStorage.setItem(STORAGE_SETTINGS, JSON.stringify({
         volume: state.volume, muted: state.muted, shuffle: state.shuffle,
         repeat: state.repeat, engine: state.engine, format: state.format,
+        engineExplicit: state.engineExplicit,
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
       }));
@@ -883,12 +987,21 @@
     hideEngineUi();
   }
 
-  function fallbackToHtml5() {
+  function fallbackToHtml5(options = {}) {
+    const shouldReload = options.reload !== false && !!state.current;
+    const autoplay = options.autoplay ?? pendingAutoplay;
+    const startTime = options.startTime ?? pendingStart ?? 0;
     destroyWaveforms();
     state.engine = "html5";
+    // A failed default engine stays eligible for retry next visit; an
+    // explicitly chosen engine is remembered as the visitor's preference.
     hideWaveMode();
+    setLoading(false);
     syncSettingsUI();
     saveState();
+    // The failed engine may never have set audio.src. Without an explicit
+    // reload the bar would show a track that can never start.
+    if (shouldReload) loadCurrent({ autoplay, startTime, fadeIn: false });
   }
 
   async function createWaveSurfer(url, startAt, autoplay) {
@@ -896,7 +1009,7 @@
       fallbackToHtml5();
       return false;
     }
-    if (!window.WaveSurfer) return false;
+    if (!window.WaveSurfer) { fallbackToHtml5(); return false; }
 
     showWaveMode();
     // WaveSurfer has no built-in "double click toggles playback" behaviour.
@@ -920,7 +1033,14 @@
       progressColor: colors.progressColor,
     });
 
+    // WaveSurfer reports 0..1 while it fetches/decodes the waveform — use it
+    // for the percentage instead of the element's buffered ranges.
+    waveSurfer.on("loading", (progress) => {
+      const fraction = Number(progress);
+      if (Number.isFinite(fraction)) setLoadingProgress(fraction <= 1 ? fraction * 100 : fraction);
+    });
     waveSurfer.on("ready", () => {
+      finishLoading();
       if (startAt) setTime(startAt);
       if (autoplay) attemptPlay();
     });
@@ -983,6 +1103,7 @@
         notify("engine");
         return;
       }
+      finishLoading();
       if (startAt) setTime(startAt);
       if (autoplay) attemptPlay();
     });
@@ -1035,6 +1156,7 @@
       notify("engine");
     });
     howl.once("load", () => {
+      finishLoading();
       if (startAt) setTime(startAt);
       if (autoplay) attemptPlay();
     });
@@ -1230,7 +1352,9 @@
           theme: "#ffffff",
           loop: "none",
           order: "none",
-          preload: "metadata",
+          // Auto preload lets the shared element report real progress to the
+          // loading indicator even when the track isn't auto-playing.
+          preload: "auto",
           listFolded: true,
         }));
         restoreAudioDom(position);
@@ -1273,7 +1397,7 @@
         withSharedAudioElement(() => {
           window.jQuery(media).jPlayer({
             supplied: "mp3",
-            preload: "metadata",
+            preload: "auto",
             loop: false,
             cssSelectorAncestor: "#jp_container_1",
             errorAlerts: false,
@@ -1295,6 +1419,7 @@
   }
 
   function loadEngine(url, startAt, autoplay) {
+    setLoading(true, 0);
     switch (state.engine) {
       case "wavesurfer": return createWaveSurfer(url, startAt, autoplay);
       case "peaks": return createPeaks(url, startAt, autoplay);
@@ -1314,20 +1439,95 @@
   }
 
   function setEngine(name) {
-    if (!ENGINES.includes(name) || name === state.engine) return;
+    if (!ENGINES.includes(name)) return;
+    if (name === state.engine) {
+      // Selecting the engine that is already active is still an explicit
+      // choice — e.g. confirming HTML5 after the default engine failed.
+      if (!state.engineExplicit) {
+        state.engineExplicit = true;
+        saveState();
+        notify("settings");
+      }
+      return;
+    }
     const wasPlaying = !audio.paused;
     const time = audio.currentTime || state.time || 0;
     const hadTrack = !!state.current;
 
     destroyWaveforms();
     state.engine = name;
+    state.engineExplicit = true;
 
     const url = hadTrack ? assetUrl(resolveTrackPath(state.current)) : "";
     if (hadTrack) loadEngine(url, time, wasPlaying);
-    else hideWaveMode();
+    else { hideWaveMode(); cancelPreload(); }
     syncSettingsUI();
     saveState();
     notify("engine");
+    schedulePreload();
+  }
+
+  /* ---------- next-track preload ---------- */
+
+  // Shuffle must choose the next index once and remember it: otherwise the
+  // preloaded file and the file next() actually picks would be different.
+  function pickShuffleIndex() {
+    const tracks = state.context?.tracks;
+    const length = tracks?.length || 0;
+    if (!length) return null;
+    if (shufflePick == null || shufflePick < 0 || shufflePick >= length
+      || (state.current && shufflePick === state.current.index)) {
+      if (length === 1) shufflePick = 0;
+      else {
+        do { shufflePick = Math.floor(Math.random() * length); }
+        while (shufflePick === state.current?.index);
+      }
+    }
+    return shufflePick;
+  }
+
+  function upcomingTrack() {
+    if (state.queue.length) return state.queue[0];
+    const tracks = state.context?.tracks;
+    if (!state.current || !tracks?.length) return null;
+    if (state.shuffle) {
+      const index = pickShuffleIndex();
+      return index == null ? null : tracks[index];
+    }
+    const nextIndex = state.current.index + 1;
+    if (nextIndex < tracks.length) return tracks[nextIndex];
+    // Manual "next" and repeat/auto-next wrap to the first track.
+    if (state.repeat === "all" || state.autoNext) return tracks[0];
+    return null;
+  }
+
+  function cancelPreload() {
+    if (preloadTimer) { window.clearTimeout(preloadTimer); preloadTimer = 0; }
+    preloadUrl = "";
+    if (!preloadAudio) return;
+    try { preloadAudio.pause(); } catch {}
+    try { preloadAudio.removeAttribute("src"); preloadAudio.load(); } catch {}
+  }
+
+  function schedulePreload(delay = 300) {
+    if (preloadTimer) window.clearTimeout(preloadTimer);
+    if (!state.current || !preloadAudio) { cancelPreload(); return; }
+    preloadTimer = window.setTimeout(updatePreload, delay);
+  }
+
+  function updatePreload() {
+    preloadTimer = 0;
+    const upcoming = upcomingTrack();
+    if (!upcoming) { cancelPreload(); return; }
+    const url = assetUrl(resolveTrackPath(upcoming));
+    if (!url || url === preloadUrl || url === assetUrl(resolveTrackPath(state.current))) return;
+    preloadUrl = url;
+    try {
+      preloadAudio.src = url;
+      preloadAudio.load();
+    } catch {
+      preloadUrl = "";
+    }
   }
 
   /* ---------- playback core ---------- */
@@ -1689,6 +1889,9 @@
     const url = assetUrl(resolveTrackPath(state.current));
     destroyWaveforms();
     loadEngine(url, pendingStart, pendingAutoplay);
+    // Warm the next file while the current one starts, so switching tracks
+    // doesn't feel like waiting for a fresh network request.
+    schedulePreload();
     if (incomingTarget > 0) {
       runIncomingFade(incomingTarget, fadeInMs);
     } else {
@@ -1789,6 +1992,9 @@
         tracks: album.tracks.map((item) => ({ title: item.title, path: item.path, formats: item.formats })),
       };
       saveState();
+      // A new album invalidates the old album's "up next" file. Wait for an
+      // explicit playTrack() before warming anything from the new context.
+      cancelPreload();
     }
   }
 
@@ -1824,9 +2030,9 @@
     if (!state.current || !state.context?.tracks?.length) return;
     const length = state.context.tracks.length;
     if (state.shuffle && length > 1) {
-      let target = state.current.index;
-      while (target === state.current.index) target = Math.floor(Math.random() * length);
-      selectByIndex(target);
+      const target = pickShuffleIndex();
+      shufflePick = null; // the preloaded pick has been consumed
+      selectByIndex(target ?? state.current.index + 1);
       return;
     }
     if (state.current.index + 1 < length) selectByIndex(state.current.index + 1);
@@ -1872,6 +2078,8 @@
     pauseAudio();
     audio.removeAttribute("src");
     audio.load();
+    cancelPreload();
+    setLoading(false);
     destroyWaveforms();
     setWaveMode(false);
     closeSettings();
@@ -1958,6 +2166,7 @@
       <option value="aplayer">APlayer (интерфейс)</option>
       <option value="jplayer">jPlayer (интерфейс)</option>
     </select>
+    <p class="player-settings-hint">По умолчанию используется WaveSurfer.js: JavaScript и нужные браузерные API определяются автоматически, при ошибке загрузки включается HTML5. Выбранный здесь движок сохраняется как явный выбор.</p>
     <p class="player-settings-hint">Интерфейс выбранной библиотеки отображается прямо в строке плеера — отдельного окна больше нет.</p>
   </div>
   <div class="settings-field">
@@ -2135,9 +2344,11 @@
 
   $("playerShuffle").addEventListener("click", () => {
     state.shuffle = !state.shuffle;
+    shufflePick = null;
     applyShuffle();
     saveState();
     notify("settings");
+    schedulePreload();
   });
 
   $("playerRepeat").addEventListener("click", () => {
@@ -2146,6 +2357,7 @@
     applyRepeat();
     saveState();
     notify("settings");
+    schedulePreload();
   });
 
   settingsToggle.addEventListener("click", () => {
@@ -2210,14 +2422,28 @@
     }
     pendingStart = null;
     updateTime();
+    if (usesNativeProgress() && loadingEl && !loadingEl.hidden) {
+      setLoadingProgress(Math.max(bufferedPercent(), 20));
+    }
   });
+  audio.addEventListener("progress", () => {
+    if (usesNativeProgress() && loadingEl && !loadingEl.hidden) setLoadingProgress(bufferedPercent());
+  });
+  audio.addEventListener("loadeddata", () => {
+    if (usesNativeProgress() && loadingEl && !loadingEl.hidden) {
+      setLoadingProgress(Math.max(bufferedPercent(), 45));
+    }
+  });
+  audio.addEventListener("canplay", () => { if (usesNativeProgress()) finishLoading(); });
+  audio.addEventListener("playing", finishLoading);
   audio.addEventListener("timeupdate", () => { updateTime(); saveStateSoon(); });
   audio.addEventListener("play", updatePlayState);
   audio.addEventListener("pause", () => { updatePlayState(); saveStateSoon(); });
   audio.addEventListener("volumechange", updateMuteState);
   audio.addEventListener("ended", handleEnded);
-  audio.addEventListener("error", () => {
-  });
+  audio.addEventListener("error", () => { setLoading(false); });
+  // A failed prefetch should not block the next attempt forever.
+  preloadAudio?.addEventListener("error", () => { preloadUrl = ""; });
 
   document.addEventListener("keydown", (ev) => {
     const target = ev.target;
@@ -2292,7 +2518,14 @@
     state.muted = saved.muted === true;
     state.shuffle = saved.shuffle === true;
     state.repeat = ["off", "all", "one"].includes(saved.repeat) ? saved.repeat : "off";
-    state.engine = ENGINES.includes(saved.engine) ? saved.engine : "html5";
+    // Explicit choice always wins. Older saves have no flag: a non-HTML5
+    // engine was a real choice, while the old built-in default moves to the
+    // new JS-capable default (WaveSurfer).
+    const savedEngine = ENGINES.includes(saved.engine) ? saved.engine : null;
+    const explicit = !!savedEngine && (saved.engineExplicit === true || savedEngine !== "html5");
+    state.engine = explicit ? savedEngine : detectDefaultEngine();
+    state.engineExplicit = explicit;
+    shufflePick = null;
     state.format = FORMATS.includes(saved.format) ? saved.format : "opus";
     state.autoNext = saved.autoNext !== false;
     state.rememberPosition = saved.rememberPosition !== false;

@@ -245,19 +245,31 @@ body.music-releases-collapsed .album-expand-btn {
 }
 
 .music-tools-row {
+  position: relative;
+  /* The release count is painted above the list. Without its own layer, the
+     FLIP transform on release buttons (switching list/cards/large) promotes
+     them to a composited layer that paints over this earlier sibling and
+     hides the "40 релизов · 296 треков" line. The background hides any
+     overlap instead of letting card corners show through the text. */
+  z-index: 2;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   min-height: 36px;
+  background: var(--bg);
 }
 
 .music-count {
+  position: relative;
+  z-index: 3;
   flex: 0 0 100%;
   order: 2;
   min-width: 0;
   margin: 0;
   overflow: hidden;
+  background: var(--bg);
   color: var(--muted);
   font-size: 0.82rem;
   letter-spacing: 0.04em;
@@ -267,6 +279,11 @@ body.music-releases-collapsed .album-expand-btn {
 }
 
 .album-list {
+  position: relative;
+  /* Keep transformed/animated release buttons inside their own stacking
+     context so they can never cover the toolbar above the list. */
+  z-index: 1;
+  isolation: isolate;
   display: flex;
   /* Let the list shrink inside the sticky sidebar so overflow-y actually
      works on wide screens too (flex items default to min-height: auto). */

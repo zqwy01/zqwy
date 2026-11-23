@@ -44,7 +44,7 @@
       searching: "Поиск: «{query}»…", found: "Найдено: {count}",
       noResults: "Ничего не найдено. Попробуйте слово на другом языке.",
       indexUnavailable: "Индекс поиска недоступен (data/search-index.json).",
-      build: "Версия сборки", buildUnavailable: "недоступна",
+      build: "Версия сборки", buildNumber: "сборка", buildUnavailable: "недоступна",
       themePreview: "Предпросмотр темы — нажмите «Сохранить».",
       languagePreview: "Предпросмотр языка — нажмите «Сохранить».",
       saved: "Сохранено.", resetDone: "Сброшено.", enterQuery: "Введите запрос для поиска.",
@@ -68,7 +68,7 @@
       searching: "Searching: “{query}”…", found: "Found: {count}",
       noResults: "Nothing found. Try a word in another language.",
       indexUnavailable: "Search index unavailable (data/search-index.json).",
-      build: "Build version", buildUnavailable: "unavailable",
+      build: "Build version", buildNumber: "build", buildUnavailable: "unavailable",
       themePreview: "Theme preview — click “Save” to keep it.",
       languagePreview: "Language preview — click “Save” to keep it.",
       saved: "Saved.", resetDone: "Reset.", enterQuery: "Enter a query to search.",
@@ -884,7 +884,13 @@
 
   function renderBuildInfo(element, info) {
     if (!element || !info) return;
-    const label = info.label || (info.version ? `v${info.version}` : "");
+    // The build counter is data, not text: keep the wording translated in the UI
+    // instead of baking "сборка/build" into build-info.json.
+    const parts = [];
+    if (info.version) parts.push(`v${info.version}`);
+    if (info.build) parts.push(`${t("buildNumber")} ${info.build}`);
+    if (info.commit) parts.push(info.commit);
+    const label = parts.join(" · ") || info.label || "";
     element.textContent = label || t("buildUnavailable");
     const when = info.builtAt ? new Date(info.builtAt) : null;
     if (when && !Number.isNaN(when.getTime())) {

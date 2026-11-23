@@ -13,6 +13,8 @@
 | `scripts/build_music_catalog.mjs` | генератор каталога музыки из `src/tracks/` (карта форматов + длительность через `ffprobe`) | — |
 | `scripts/build_wiki_notes.mjs` | генератор заметок `zqwy` из `src/notes/**/*.md`; `.txt` и текстовые файлы без расширения нормализуются в `.md` при сборке | — |
 | `scripts/build_search_index.mjs` | генератор индекса поиска (страницы, ссылки, игры, релизы, треки, заметки) | — |
+| `scripts/build_version.mjs` | генератор `dev/data/build-info.json`: версия из `package.json`, номер сборки из `scripts/.build-number`, хеш коммита, время | **да, при изменении формата** |
+| `scripts/.build-number` | единственный источник номера сборки; увеличивается на 1 при каждом `npm run build` | **нет, ведётся сборкой** |
 | `dev/data/search-synonyms.json` | пары RU/EN слов для поиска (`tiktok` = `тикток`) | **да, при новых словах** |
 | `dev/scripts/` | первокод сайта: меню, поиск, SPA-переходы, плеер, страничные скрипты | **да, здесь** |
 | `dev/vendor/` | локальные закреплённые библиотеки плеера, подгружаются лениво | **нет, библиотеки** |
@@ -65,6 +67,14 @@ npm run build                # или: bash scripts/build_dist.sh
 HTML/CSS/JS (`terser`, `clean-css-cli`, `html-minifier-terser`).
 Скрипт берёт точки входа пакетов из `node_modules/` напрямую, поэтому
 работает и без `.bin`-ссылок.
+
+Версия в меню (`settings` → «Версия сборки») берётся из
+`dev/data/build-info.json`. При каждой сборке `scripts/build_version.mjs`
+увеличивает число в `scripts/.build-number` на единицу и записывает его в
+поле `build`: в меню показывается `v1.0.0 · сборка 42 · <хеш>` (English:
+`build 42`). Human-readable версия задаётся в `package.json`, хеш — из git
+(в Docker отсутствует). Для CI/Docker номер можно передать переменной
+`BUILD_NUMBER=42` — тогда файл-счётчик не меняется.
 
 Перед копированием сборка пересоздаёт обложки в `src/covers/`
 (`python3 scripts/build_covers.py`, отдельно — `npm run covers`), затем

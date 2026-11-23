@@ -235,7 +235,6 @@ body.menu-is-open #menuButtonContainer::before {
   inset: 0;
   z-index: -1;
   background: var(--menu-background);
-  box-shadow: 0 1px 0 var(--border);
 }
 /* The copied stylesheet fades the overlay and translates/scales the whole
    panel. The fade was already neutralised, and the transform used to drag the

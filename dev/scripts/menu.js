@@ -15,6 +15,11 @@
   // script still runs on its original page, so suggestions keep working after
   // moving to /music/, /links/ and every other section.
   const INDEX_URL = new URL(INDEX_FILE, document.baseURI).href;
+  // Build info is only rendered in the home settings panel, but this script
+  // also runs on secondary pages. Anchor it to the script itself so a direct
+  // load of /music/ still points at the site-wide /data/ folder.
+  const SCRIPT_URL = document.currentScript?.src || new URL("./scripts/menu.js", document.baseURI).href;
+  const BUILD_INFO_URL = new URL("../data/build-info.json", SCRIPT_URL).href;
   const systemQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
 
   /* Site chrome is bilingual. Search data stays bilingual regardless of this
@@ -39,6 +44,9 @@
       searching: "Поиск: «{query}»…", found: "Найдено: {count}",
       noResults: "Ничего не найдено. Попробуйте слово на другом языке.",
       indexUnavailable: "Индекс поиска недоступен (data/search-index.json).",
+      build: "Версия сборки", buildUnavailable: "недоступна",
+      themePreview: "Предпросмотр темы — нажмите «Сохранить».",
+      languagePreview: "Предпросмотр языка — нажмите «Сохранить».",
       saved: "Сохранено.", resetDone: "Сброшено.", enterQuery: "Введите запрос для поиска.",
     },
     en: {
@@ -60,10 +68,21 @@
       searching: "Searching: “{query}”…", found: "Found: {count}",
       noResults: "Nothing found. Try a word in another language.",
       indexUnavailable: "Search index unavailable (data/search-index.json).",
+      build: "Build version", buildUnavailable: "unavailable",
+      themePreview: "Theme preview — click “Save” to keep it.",
+      languagePreview: "Language preview — click “Save” to keep it.",
       saved: "Saved.", resetDone: "Reset.", enterQuery: "Enter a query to search.",
     },
   };
   let language = "ru";
+  // A theme chosen in the settings form is only a preview until Save is pressed.
+  // It lives in memory so a reload falls back to the last saved choice.
+  let previewTheme = null;
+  let previewLanguage = null;
+  let themeAnimTimer = 0;
+  let langAnimTimer = 0;
+  let savedTimer = 0;
+  let buildInfoCache = null;
 
   function t(key, vars) {
     const value = I18N[language]?.[key] ?? I18N.ru[key] ?? key;
@@ -72,24 +91,49 @@
       Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : match);
   }
 
-  function applyLanguage(next) {
-    language = next === "en" ? "en" : "ru";
-    document.documentElement.lang = language;
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const value = t(el.dataset.i18n);
-      if (value) el.textContent = value;
-    });
-    document.querySelectorAll("[data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label]").forEach((el) => {
-      for (const attr of ["placeholder", "title", "aria-label"]) {
-        const key = el.getAttribute(`data-i18n-${attr}`);
-        if (key) el.setAttribute(attr, t(key));
+  function applyLanguage(next, animate = false) {
+    const resolved = next === "en" ? "en" : "ru";
+    language = resolved; // keep t() and aria labels in sync immediately
+    document.documentElement.lang = resolved;
+    if (langAnimTimer) { window.clearTimeout(langAnimTimer); langAnimTimer = 0; }
+
+    const commit = () => {
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const value = t(el.dataset.i18n);
+        if (value) el.textContent = value;
+      });
+      document.querySelectorAll("[data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label]").forEach((el) => {
+        for (const attr of ["placeholder", "title", "aria-label"]) {
+          const key = el.getAttribute(`data-i18n-${attr}`);
+          if (key) el.setAttribute(attr, t(key));
+        }
+      });
+      els.suggestions?.setAttribute("aria-label", t("suggestions"));
+      if (els.logo && els.hasMenu) {
+        els.logo.setAttribute("aria-label", t(els.menu.classList.contains("is-open") ? "menuClose" : "menuOpen"));
       }
-    });
-    els.suggestions?.setAttribute("aria-label", t("suggestions"));
-    if (els.logo && els.hasMenu) {
-      els.logo.setAttribute("aria-label", t(els.menu.classList.contains("is-open") ? "menuClose" : "menuOpen"));
-    }
-    updateSearchLayout();
+      updateSearchLayout();
+      loadBuildInfo();
+    };
+
+    const root = document.documentElement;
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nodes = animate && !reduceMotion ? [...document.querySelectorAll("[data-i18n]")] : [];
+    if (!nodes.length) { commit(); return; }
+
+    // Fade the old wording out, swap it while invisible, then fade the new
+    // wording in. Rapid clicks reuse the same timer, so only the last choice
+    // is ever committed.
+    root.classList.add("zqwy-lang-changing");
+    nodes.forEach((el) => el.classList.add("lang-out"));
+    langAnimTimer = window.setTimeout(() => {
+      commit();
+      nodes.forEach((el) => el.classList.remove("lang-out"));
+      langAnimTimer = window.setTimeout(() => {
+        root.classList.remove("zqwy-lang-changing");
+        langAnimTimer = 0;
+      }, 180);
+    }, 140);
   }
 
   let els = {};
@@ -97,9 +141,6 @@
   let closeTimer = null;
   let lastFocus = null;
   let prevOverflow = "";
-  // Where the shared logo/search block lives in the page. It is moved into
-  // the scrollable catalog while the overlay is open, then put back here.
-  let containerHome = null;
   let indexCache = null;
   let suggestionCache = null;
   let currentSuggestions = [];
@@ -154,31 +195,22 @@
     currentSuggestions = [];
     activeSuggestion = -1;
     els.hasMenu = !!(els.menu && els.panel && els.logo && els.logo.tagName === "BUTTON");
-
-    // Remember the in-page position only when the block is not currently
-    // docked in the overlay, so a pagechange keeps the correct home.
-    if (els.container && els.container.parentElement && !els.container.closest("#siteMenu")) {
-      containerHome = { parent: els.container.parentElement, next: els.container.nextSibling };
-    }
+    updateMenuOrigin();
   }
 
-  /* The catalog is a full-screen overlay. Dock the shared logo/search block
-     into its scroll container while it is open, so the block scrolls with the
-     catalog instead of hovering above it; put it back into the page on close. */
-  function dockContainerInMenu() {
-    const host = els.menu?.querySelector(".site-menu-content");
-    if (!host || !els.container || els.container.parentElement === host) return;
-    host.prepend(els.container);
-    updateSearchLayout();
-  }
+  /* The catalog is a full-screen overlay, but the logo/search row is NEVER
+     moved into it. Moving the row made it inherit the panel's opening
+     transform (it jumped down and shrank) and, on mobile, changed its width
+     and padding between the two modes. The row now stays in the page at one
+     fixed coordinate; the overlay is revealed from that point instead.
 
-  function restoreContainer() {
-    if (!els.container || !containerHome?.parent) return;
-    const { parent, next } = containerHome;
-    if (els.container.parentElement === parent) return;
-    if (next && next.parentNode === parent) parent.insertBefore(els.container, next);
-    else parent.appendChild(els.container);
-    updateSearchLayout();
+     These variables are the centre of the logo button in viewport pixels and
+     are used by base.css as the origin of the clip-path reveal. */
+  function updateMenuOrigin() {
+    if (!els.menu || !els.logo) return;
+    const rect = els.logo.getBoundingClientRect();
+    els.menu.style.setProperty("--menu-origin-x", `${Math.round(rect.left + rect.width / 2)}px`);
+    els.menu.style.setProperty("--menu-origin-y", `${Math.round(rect.top + rect.height / 2)}px`);
   }
 
   /* ---------- menu overlay (home page only) ---------- */
@@ -209,7 +241,8 @@
     els.logo.setAttribute("aria-label", t("menuClose"));
     document.body.classList.add("menu-is-open");
     document.body.style.overflow = "hidden";
-    dockContainerInMenu();
+    // Refresh the reveal origin in case the viewport changed while closed.
+    updateMenuOrigin();
     els.panel.scrollTop = 0;
   }
 
@@ -223,7 +256,6 @@
     els.logo.setAttribute("aria-label", t("menuOpen"));
     document.body.classList.remove("menu-is-open");
     document.body.style.overflow = prevOverflow;
-    restoreContainer();
     els.logo.focus();
     closeTimer = window.setTimeout(finishClose, 450);
   }
@@ -251,8 +283,13 @@
       wanted = ctx.measureText(sample).width + 34;
     }
     wanted = Math.max(120, wanted);
-    const maxSearch = Math.max(0, rowW - logoW - gap - 8);
+    // The logo is anchored to the centre of the row and the search field grows
+    // to its RIGHT, so only the space from the logo's right edge to the row's
+    // right edge is available. Using the whole row width here used to push the
+    // pair off-centre and move the logo as the query grew.
+    const maxSearch = Math.max(0, rowW / 2 - logoW / 2 - gap - 8);
     els.row.style.setProperty("--search-width", `${Math.round(Math.min(wanted, maxSearch))}px`);
+    updateMenuOrigin();
   }
 
   /* ---------- search: keywords + RU/EN synonyms + tracks ---------- */
@@ -578,11 +615,50 @@
 
   /* ---------- settings (site-wide) ---------- */
 
-  function applyTheme(theme) {
+  function setSavedMessage(message, timeout = 2000) {
+    if (!els.saved) return;
+    if (savedTimer) { window.clearTimeout(savedTimer); savedTimer = 0; }
+    els.saved.textContent = message;
+    if (timeout > 0) {
+      savedTimer = window.setTimeout(() => {
+        if (els.saved) els.saved.textContent = "";
+        savedTimer = 0;
+      }, timeout);
+    }
+  }
+
+  function applyTheme(theme, animate = false) {
     let resolved = theme;
     if (theme === "system") resolved = systemQuery && systemQuery.matches ? "light" : "dark";
-    document.documentElement.dataset.theme = resolved === "light" ? "light" : "dark";
+    const root = document.documentElement;
+    if (animate) {
+      // The class enables the CSS colour transitions for one switch. It is
+      // never added on first paint, so the stored theme appears without motion.
+      root.classList.add("zqwy-theme-changing");
+      if (themeAnimTimer) window.clearTimeout(themeAnimTimer);
+      themeAnimTimer = window.setTimeout(() => {
+        root.classList.remove("zqwy-theme-changing");
+        themeAnimTimer = 0;
+      }, 520);
+    } else if (!themeAnimTimer) {
+      root.classList.remove("zqwy-theme-changing");
+    }
+    root.dataset.theme = resolved === "light" ? "light" : "dark";
     window.dispatchEvent(new CustomEvent("zqwy:themechange", { detail: { theme: resolved } }));
+  }
+
+  function previewThemeChoice(theme) {
+    if (!["dark", "light", "system"].includes(theme)) return;
+    previewTheme = theme;
+    applyTheme(theme, true);
+    setSavedMessage(t("themePreview"), 0);
+  }
+
+  function previewLanguageChoice(next) {
+    if (!["ru", "en"].includes(next)) return;
+    previewLanguage = next;
+    applyLanguage(next, true);
+    setSavedMessage(t("languagePreview"), 0);
   }
 
   function readSettings() {
@@ -606,22 +682,22 @@
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
     applyTheme(settings.theme);
     applyLanguage(settings.language);
-    if (els.saved && !silent) {
-      els.saved.textContent = t("saved");
-      window.setTimeout(() => { if (els.saved) els.saved.textContent = ""; }, 2000);
-    }
+    loadBuildInfo();
+    if (!silent) setSavedMessage(t("saved"));
   }
 
   function loadSettings() {
     const settings = readSettings() || { theme: "dark", rememberQuery: false, language: "ru" };
-    applyTheme(settings.theme || "dark");
-    applyLanguage(settings.language);
+    const effectiveTheme = previewTheme || settings.theme || "dark";
+    const effectiveLanguage = previewLanguage || settings.language || "ru";
+    applyTheme(effectiveTheme);
+    applyLanguage(effectiveLanguage);
     if (els.settingsForm) {
-      const radio = els.settingsForm.querySelector(`input[name="theme"][value="${settings.theme || "dark"}"]`);
+      const radio = els.settingsForm.querySelector(`input[name="theme"][value="${effectiveTheme}"]`);
       if (radio) radio.checked = true;
       const remember = els.settingsForm.querySelector('input[name="rememberQuery"]');
       if (remember) remember.checked = !!settings.rememberQuery;
-      const langRadio = els.settingsForm.querySelector(`input[name="language"][value="${language}"]`);
+      const langRadio = els.settingsForm.querySelector(`input[name="language"][value="${effectiveLanguage}"]`);
       if (langRadio) langRadio.checked = true;
       if (els.input && settings.rememberQuery && settings.lastQuery) els.input.value = settings.lastQuery;
     }
@@ -657,16 +733,19 @@
 
     if (target.closest("#settings-reset")) {
       localStorage.removeItem(SETTINGS_KEY);
+      previewTheme = null;
+      previewLanguage = null;
       els.settingsForm?.reset();
       if (els.input) els.input.value = "";
-      applyTheme("dark");
-      applyLanguage("ru");
+      applyTheme("dark", true);
+      applyLanguage("ru", true);
+      loadBuildInfo();
       if (els.settingsForm) {
         const langRadio = els.settingsForm.querySelector('input[name="language"][value="ru"]');
         if (langRadio) langRadio.checked = true;
       }
       updateSearchLayout();
-      if (els.saved) { els.saved.textContent = t("resetDone"); window.setTimeout(() => { els.saved.textContent = ""; }, 2000); }
+      setSavedMessage(t("resetDone"));
       return;
     }
 
@@ -702,6 +781,15 @@
     }
   });
 
+  // Theme radios preview immediately; only the Save button writes them to
+  // localStorage. Other settings keep their existing save-time behaviour.
+  document.addEventListener("change", (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+    if (!target || !els.settingsForm?.contains(target)) return;
+    if (target.matches('input[name="theme"]')) previewThemeChoice(target.value);
+    if (target.matches('input[name="language"]')) previewLanguageChoice(target.value);
+  });
+
   document.addEventListener("input", (ev) => {
     if (ev.target === els.input) {
       updateSearchLayout();
@@ -727,6 +815,8 @@
     if (ev.target === els.settingsForm) {
       ev.preventDefault();
       saveSettings();
+      previewTheme = null;
+      previewLanguage = null;
       return;
     }
     if (ev.target !== els.form) return;
@@ -786,14 +876,46 @@
   });
 
   systemQuery?.addEventListener?.("change", () => {
-    if ((readSettings() || {}).theme === "system") applyTheme("system");
+    const theme = previewTheme || (readSettings() || {}).theme;
+    if (theme === "system") applyTheme("system", true);
   });
+
+  /* ---------- build version shown in the settings panel ---------- */
+
+  function renderBuildInfo(element, info) {
+    if (!element || !info) return;
+    const label = info.label || (info.version ? `v${info.version}` : "");
+    element.textContent = label || t("buildUnavailable");
+    const when = info.builtAt ? new Date(info.builtAt) : null;
+    if (when && !Number.isNaN(when.getTime())) {
+      element.title = `${label} · ${when.toLocaleString(language === "en" ? "en-GB" : "ru-RU", {
+        dateStyle: "short", timeStyle: "short",
+      })}`;
+    } else if (info.commit) {
+      element.title = `${label} · ${info.commit}`;
+    }
+  }
+
+  async function loadBuildInfo() {
+    const element = document.getElementById("build-version");
+    if (!element) return;
+    if (buildInfoCache) { renderBuildInfo(element, buildInfoCache); return; }
+    try {
+      const response = await fetch(BUILD_INFO_URL, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      buildInfoCache = await response.json();
+      renderBuildInfo(element, buildInfoCache);
+    } catch {
+      element.textContent = t("buildUnavailable");
+    }
+  }
 
   /* ---------- page lifecycle ---------- */
 
   function initPage() {
     refresh();
     loadSettings();
+    loadBuildInfo();
 
     document.querySelectorAll(".menu-catalog > .site-menu-item").forEach((el, i) => {
       el.style.setProperty("--i", String(i));

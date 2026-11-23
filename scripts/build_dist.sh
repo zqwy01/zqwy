@@ -127,6 +127,14 @@ if [[ -f "$PROJECT_DIR/scripts/build_wiki_notes.mjs" ]]; then
     echo
 fi
 
+# Версия сборки показывается в панели настроек. Генерируем её до копирования
+# исходников, чтобы dist/data/build-info.json всегда соответствовал сборке.
+if [[ -f "$PROJECT_DIR/scripts/build_version.mjs" ]]; then
+    echo "Обновление информации о сборке..."
+    node "$PROJECT_DIR/scripts/build_version.mjs"
+    echo
+fi
+
 # Индекс поиска зависит и от ссылок, и от свежего каталога музыки.
 if [[ -f "$PROJECT_DIR/scripts/build_search_index.mjs" ]]; then
     echo "Обновление индекса поиска..."

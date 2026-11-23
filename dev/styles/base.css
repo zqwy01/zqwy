@@ -50,6 +50,12 @@ html, body {
   overflow-x: hidden;
   overflow-x: clip;
 }
+/* Reserve the scrollbar space permanently. Otherwise opening the catalog sets
+   body overflow to hidden, the scrollbar disappears, and every centred element
+   — including the logo — shifts sideways by half its width. */
+html {
+  scrollbar-gutter: stable;
+}
 
 body {
   font-family: var(--font);
@@ -159,37 +165,46 @@ body.menu-is-open #menuButtonContainer .menu-trigger-row {
 }
 
 /* --- one permanent block: logo + search in the same row --- */
-/* Reset the copied absolutely-centred menu layout: the search is no longer a
-   hidden pop-out inside the menu, it is a normal flex sibling of the logo. */
+/* The logo is pinned to the centre of the row. The search field is positioned
+   to its RIGHT instead of being a flex sibling: a growing flex sibling would
+   pull the whole pair to the left and move the logo while typing or while the
+   catalog opens. With this layout the logo keeps the exact same coordinates
+   in every mode (closed, opening, open, closing) and on every viewport. */
 .menu-trigger-row {
-  position: static;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--menu-row-gap);
   width: 100%;
   max-width: 760px;
   height: auto;
   min-width: 0;
   margin: 0 auto;
+  gap: 0;
   /* compact at rest; menu.js grows it to fit the typed text */
   --search-width: 120px;
 }
 
 .menu-trigger-row .menu-open-button {
-  position: static;
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 2;
   flex: 0 0 auto;
   transform: none;
 }
 
 .site-search {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: calc(50% + var(--menu-logo-size) / 2 + var(--menu-row-gap));
+  z-index: 1;
   display: flex;
-  /* the field grows with its text instead of filling the row at once */
-  flex: 0 1 auto;
   width: var(--search-width, 120px);
   min-width: 0;
-  max-width: calc(100% - var(--menu-logo-size) - var(--menu-row-gap) - 8px);
+  /* only the space to the right of the centred logo may be used */
+  max-width: calc(50% - var(--menu-logo-size) / 2 - var(--menu-row-gap) - 8px);
+  transform: translateY(-50%);
   transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .site-search .menu-search-input {
@@ -197,47 +212,63 @@ body.menu-is-open #menuButtonContainer .menu-trigger-row {
   height: var(--menu-logo-size);
 }
 
-/* the menu header is empty: while the catalog is open the shared logo/search
-   block is docked into .site-menu-content by menu.js, so it must not take any
-   vertical space here */
+/* The header is empty: the permanent logo row stays in the page, above the
+   overlay, so the header must not reserve any space in the catalog. */
 .site-menu-header {
-  min-height: 0;
-  margin: 0;
+  display: none;
 }
-/* The logo/search block is the first child of this scroll container while the
-   catalog is open, so it scrolls away with the rest of the menu content.
-   No reserved top padding: the block brings its own spacing. */
+/* Catalog content begins exactly where the unchanged logo row ends. The row
+   is no longer inserted into this scroll container, so its height has to be
+   reserved here instead. */
 .site-menu-content {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: var(--page-top-padding) var(--menu-side-padding) 32px;
+  padding: calc(var(--page-top-padding) + var(--menu-bar-height)) var(--menu-side-padding) 32px;
 }
-/* While the catalog is open the shared logo/search block lives inside this
-   overlay. Fading the whole panel would fade that block too, so the panel
-   stays opaque and the catalog is revealed by a same-colour curtain instead.
-   The curtain is below the docked logo (its z-index is much higher), so the
-   logo stays visible while the catalog emerges from the background. */
+/* Solid shelf behind the permanent logo row. The row itself is transparent,
+   so without this catalog items scrolling underneath would show through the
+   gap between the logo and the search field. */
+body.menu-is-open #menuButtonContainer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--menu-background);
+  box-shadow: 0 1px 0 var(--border);
+}
+/* The copied stylesheet fades the overlay and translates/scales the whole
+   panel. The fade was already neutralised, and the transform used to drag the
+   logo down and shrink it while opening. Both are dropped now: the catalog
+   unfolds from the logo with a circular clip instead, and the panel itself
+   never changes position or size. */
 .site-menu-overlay,
 .site-menu-overlay.is-open,
 .site-menu-overlay.is-closing,
 .site-menu-overlay .site-menu {
   opacity: 1 !important;
 }
-.site-menu-overlay .site-menu::before {
-  content: "";
-  /* fixed (not absolute) so the curtain stays over the scrollport even when
-     the catalog was scrolled before closing */
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  background: var(--menu-background);
-  opacity: 1;
-  pointer-events: none;
-  transition: opacity var(--catalog-open-duration) var(--catalog-open-ease);
+.site-menu-overlay {
+  visibility: hidden !important;
+  transition: none !important;
 }
-.site-menu-overlay.is-open .site-menu::before { opacity: 0; }
-.site-menu-overlay.is-closing .site-menu::before { opacity: 1; }
+.site-menu-overlay.is-open,
+.site-menu-overlay.is-closing {
+  visibility: visible !important;
+}
+.site-menu-overlay .site-menu {
+  transform: none !important;
+  clip-path: circle(0px at var(--menu-origin-x, 50%) var(--menu-origin-y, 88px));
+  transition: clip-path var(--catalog-open-duration) var(--catalog-open-ease);
+  will-change: clip-path;
+}
+.site-menu-overlay.is-open .site-menu {
+  clip-path: circle(200% at var(--menu-origin-x, 50%) var(--menu-origin-y, 88px));
+}
+.site-menu-overlay.is-closing .site-menu {
+  clip-path: circle(0px at var(--menu-origin-x, 50%) var(--menu-origin-y, 88px));
+  transition: clip-path var(--catalog-open-duration) var(--catalog-open-ease);
+}
 
 /* The copied menu.css locks the page with `touch-action: none` while the
    catalog is open. On touch devices that also blocks panning INSIDE the
@@ -406,9 +437,25 @@ body.menu-is-open {
 .catalog-hint { margin: 0 0 8px; color: var(--muted); font-size: .9rem; }
 .site-menu-item.nested .site-menu-button { padding: 10px 12px; font-size: .98rem; min-height: 46px; }
 
-/* sequential reveal of catalog items, from first to last (--i set by script) */
+/* Catalog items rise into place after the reveal passes over them (--i is set
+   by menu.js). On close they leave quietly towards the logo — no stagger, no
+   downward slide — so the catalog collapses back into the button it came from. */
+.site-menu-overlay .site-menu-item {
+  transform: translateY(12px);
+  transition: opacity 0.28s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.site-menu-overlay.is-open .site-menu-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+.site-menu-overlay.is-closing .site-menu-item {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.24s ease;
+  transition-delay: 0s !important;
+}
 .site-menu-overlay.is-open .menu-catalog > .site-menu-item {
-  transition-delay: calc(0.08s + var(--i, 0) * 0.075s);
+  transition-delay: calc(0.06s + var(--i, 0) * 0.06s);
 }
 
 /* chevron on collapsible catalog buttons */
@@ -479,6 +526,24 @@ body.menu-is-open {
 .menu-action-btn:hover { background: var(--menu-button-background-hover); }
 .menu-action-btn.secondary { background: transparent; }
 .settings-saved { margin: 0; color: var(--accent); font-size: .9rem; min-height: 1.2em; }
+.settings-build {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.settings-build-value {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
 
 /* --- light theme: pure white / black --- */
 :root[data-theme="light"] {
@@ -506,6 +571,53 @@ body.menu-is-open {
 }
 :root[data-theme="light"] .site-menu-backdrop {
   background: rgba(0, 0, 0, 0.35);
+}
+
+/* --- animated theme switch ---
+   menu.js adds .zqwy-theme-changing only for an explicit change (theme radio,
+   reset, system preference), never for the first paint.
+
+   The background fades linearly while the text colour jumps exactly halfway
+   (steps(2, jump-none)). If both faded smoothly, white text on black and black
+   text on white would meet in the middle at the same grey and the text would
+   briefly vanish. With a linear background the halfway point is mid-grey, so
+   the jump keeps a strong contrast on both sides. */
+:root.zqwy-theme-changing,
+:root.zqwy-theme-changing *,
+:root.zqwy-theme-changing *::before,
+:root.zqwy-theme-changing *::after {
+  transition-property: color, background-color, border-color, box-shadow, fill, stroke, filter;
+  transition-duration: .42s;
+  transition-timing-function:
+    steps(2, jump-none), /* color */
+    linear,              /* background-color */
+    linear,              /* border-color */
+    ease,                /* box-shadow */
+    steps(2, jump-none), /* fill */
+    steps(2, jump-none), /* stroke */
+    ease;                /* filter */
+  transition-delay: 0s;
+}
+
+/* --- animated language switch ---
+   The old wording fades out, is replaced while invisible, then fades in. */
+:root.zqwy-lang-changing [data-i18n] {
+  transition: opacity .14s ease;
+}
+:root.zqwy-lang-changing [data-i18n].lang-out {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.zqwy-theme-changing,
+  :root.zqwy-theme-changing *,
+  :root.zqwy-theme-changing *::before,
+  :root.zqwy-theme-changing *::after {
+    transition-duration: 1ms;
+  }
+  :root.zqwy-lang-changing [data-i18n] {
+    transition-duration: 1ms;
+  }
 }
 
 /* --- cursor-reactive hover glow for link and game cards ---
@@ -633,5 +745,12 @@ html.zqwy-motion .page-content.page-entering .music-track {
   html.zqwy-motion .page-content.page-entering > :not(#menuButtonContainer),
   html.zqwy-motion.page-leaving .page-content > :not(#menuButtonContainer) { animation-duration: 0.2s; }
   /* keep the reveal, but make it short instead of removing it entirely */
-  .site-menu-overlay .site-menu::before { transition-duration: 0.2s; }
+  .site-menu-overlay .site-menu {
+    transition: clip-path 0.2s linear;
+  }
+  .site-menu-overlay .site-menu-item,
+  .site-menu-overlay.is-closing .site-menu-item {
+    transition: opacity 0.12s linear, transform 0.12s linear;
+    transform: none;
+  }
 }

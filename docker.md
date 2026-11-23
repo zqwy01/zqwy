@@ -13,7 +13,7 @@
    - `COPY package.json package-lock.json` + `RUN npm ci` — установка зависимостей для минификации (`terser`, `clean-css-cli`, `html-minifier-terser`).
    - `COPY dev ./dev`, `COPY scripts ./scripts` и `COPY src ./src`.
    - `RUN bash scripts/build_dist.sh` — сборка в `/src/dist`.
-   - Весь `src/` копируется в образ: `src/notes` — источник заметок, `src/tracks` — аудио для плеера. Поэтому `build_music_catalog.mjs`, `build_wiki_notes.mjs` и индекс поиска пересоздаются при каждом Docker-сборке, а треки физически присутствуют в `dist/src/tracks` и отдаются сайтом (иначе каталог есть, а файлы — 404).
+   - Весь `src/` копируется в образ: `src/notes` — источник заметок, `src/tracks` — аудио для плеера. Поэтому `build_music_catalog.mjs`, `build_wiki_notes.mjs`, `build_version.mjs` и индекс поиска пересоздаются при каждом Docker-сборке, а треки физически присутствуют в `dist/src/tracks` и отдаются сайтом (иначе каталог есть, а файлы — 404). `build_version.mjs` формирует `dev/data/build-info.json` (версия из `package.json`, хеш коммита, время сборки); в Docker `.git` исключён из контекста, поэтому хеш отсутствует — версия и дата остаются.
 
 2. **`runtime`** (`node:24-bookworm-slim`, `WORKDIR /app`)
    - `npm install -g serve@14`.

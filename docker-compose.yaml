@@ -16,10 +16,15 @@ services:
     # заметок зависит от локальной сборки на хосте (`npm run build`).
     # volumes:
     #   - ./dist:/app/dist:ro
-    networks:
-      - zqwy_reverse_proxy
+    # Локальный тест: публикуем порт 3000 на хост.
+    # Для продакшена с reverse proxy закомментируй `ports` и раскомментируй
+    # блок `networks` ниже.
+    ports:
+      - "3000:3000"
+    # networks:
+    #   - zqwy_reverse_proxy
 
-networks:
-  zqwy_reverse_proxy:
-    name: zqwy_reverse_proxy
-    external: true
+# networks:
+#   zqwy_reverse_proxy:
+#     name: zqwy_reverse_proxy
+#     external: true

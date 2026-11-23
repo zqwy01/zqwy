@@ -214,13 +214,43 @@ body.menu-is-open #menuButtonContainer .menu-trigger-row {
   padding: var(--page-top-padding) var(--menu-side-padding) 32px;
 }
 /* While the catalog is open the shared logo/search block lives inside this
-   overlay. The overlay/panel fade would take it to zero opacity, so keep them
-   opaque: only the backdrop fade and the panel slide remain as the animation. */
+   overlay. Fading the whole panel would fade that block too, so the panel
+   stays opaque and the catalog is revealed by a same-colour curtain instead.
+   The curtain is below the docked logo (its z-index is much higher), so the
+   logo stays visible while the catalog emerges from the background. */
 .site-menu-overlay,
 .site-menu-overlay.is-open,
 .site-menu-overlay.is-closing,
 .site-menu-overlay .site-menu {
   opacity: 1 !important;
+}
+.site-menu-overlay .site-menu::before {
+  content: "";
+  /* fixed (not absolute) so the curtain stays over the scrollport even when
+     the catalog was scrolled before closing */
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  background: var(--menu-background);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity var(--catalog-open-duration) var(--catalog-open-ease);
+}
+.site-menu-overlay.is-open .site-menu::before { opacity: 0; }
+.site-menu-overlay.is-closing .site-menu::before { opacity: 1; }
+
+/* The copied menu.css locks the page with `touch-action: none` while the
+   catalog is open. On touch devices that also blocks panning INSIDE the
+   overlay's own scroll container, so the catalog appears frozen. Keep the
+   background scroll-locked, but let gestures reach the scrollable panel. */
+body.menu-is-open {
+  touch-action: auto;
+  overscroll-behavior: none;
+}
+.site-menu {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 /* search input themed for both modes */
@@ -602,4 +632,6 @@ html.zqwy-motion .page-content.page-entering .music-track {
 @media (prefers-reduced-motion: reduce) {
   html.zqwy-motion .page-content.page-entering > :not(#menuButtonContainer),
   html.zqwy-motion.page-leaving .page-content > :not(#menuButtonContainer) { animation-duration: 0.2s; }
+  /* keep the reveal, but make it short instead of removing it entirely */
+  .site-menu-overlay .site-menu::before { transition-duration: 0.2s; }
 }

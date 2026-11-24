@@ -342,6 +342,27 @@ if (( total_before_lines > 0 )); then
     echo "  Процент уменьшения:    ${reduction_percent}%"
 fi
 
+# Корневой index.html для GitHub Pages (Deploy from branch, folder / root).
+# Пересобирается при каждой сборке, чтобы / вёл на актуальный dist/.
+echo
+echo "Генерация корневого index.html для GitHub Pages..."
+cat > "$PROJECT_DIR/index.html" << 'HTML'
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zqwy</title>
+  <meta http-equiv="refresh" content="0; url=./dist/">
+  <link rel="canonical" href="./dist/">
+  <script>location.replace("./dist/" + location.search + location.hash);</script>
+</head>
+<body>
+  <p>Redirecting to <a href="./dist/">./dist/</a>...</p>
+</body>
+</html>
+HTML
+
 echo
 echo "Готовый проект находится здесь:"
 echo "  $DIST_DIR"

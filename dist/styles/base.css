@@ -1,0 +1,821 @@
+:root {
+  /* pure black & white palette (dark = default) */
+  --bg: #000000;
+  --bg-elevated: #0b0b0b;
+  --bg-elevated-2: #141414;
+  --text: #ffffff;
+  --muted: #a3a3a3;
+  --accent: #ffffff;
+  --border: #2a2a2a;
+  --radius: 12px;
+  --max-width: 980px;
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+
+  /* vars expected by the copied menu styles */
+  --blue: transparent;
+  --page-padding: clamp(12px, 2vw, 24px);
+  /* same top inset for the page and for the catalog's scroll container, so the
+     docked logo/search block does not jump when the overlay opens */
+  --page-top-padding: 20px;
+  --element-radius: 8px;
+  --menu-text-color: var(--text);
+  --menu-background: #000000;
+  --menu-button-background: #111111;
+  --menu-button-background-hover: #1d1d1d;
+  --menu-logo-glow: rgba(255, 255, 255, 0.55);
+  --menu-search-bg: #141414;
+  --menu-search-text: #ffffff;
+  --menu-search-border: #3d3d3d;
+  --menu-search-placeholder: #9a9a9a;
+
+  /* Soft focus ring: visible for keyboard users, but not a stark white frame. */
+  --focus-border: rgba(255, 255, 255, 0.34);
+  /* The same opening motion the logo uses for the catalog overlay. */
+  --catalog-open-duration: 0.42s;
+  --catalog-open-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --catalog-open-offset: 24px;
+  --catalog-open-scale: 0.985;
+  /* Transparent by default so the theme switch can interpolate a soft halo
+     around the text. Zero blur/alpha means no visual change at rest. */
+  text-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+  /* `hidden` would create a scroll container and break the sticky logo row;
+     `clip` still prevents sideways overflow without capturing the scroll. */
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+/* Reserve the scrollbar space permanently. Otherwise opening the catalog sets
+   body overflow to hidden, the scrollbar disappears, and every centred element
+   — including the logo — shifts sideways by half its width. */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: var(--font);
+  line-height: 1.45;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* native controls (radio, checkbox, scrollbar, search cancel) follow the theme */
+:root { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+/* Text selection follows the active theme: light text on dark in dark mode,
+   dark text on light in light mode. */
+:root[data-theme="dark"] ::selection,
+:root:not([data-theme="light"]) ::selection {
+  background: #ffffff;
+  color: #000000;
+}
+:root[data-theme="light"] ::selection {
+  background: #000000;
+  color: #ffffff;
+}
+
+.page, .page-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.page-content {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  /* Logo/search bar sits in normal flow at the top of the page. */
+  padding: var(--page-top-padding) var(--page-padding) 40px;
+}
+.container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- top of the page: logo first, headings under it ---
+   The shared logo/search block lives on every page (home, links, music, game,
+   wiki). One rule for all of them: it is a normal in-flow element and scrolls
+   away with the document. It is never pinned to the viewport (no fixed/sticky,
+   no top/left offsets, no transform) and it deliberately has no background.
+   z-index only lifts it above the catalog overlay while the menu is open. */
+.menu-button-container,
+#menuButtonContainer,
+body.menu-is-open #menuButtonContainer {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  min-height: var(--menu-bar-height);
+  margin: 0;
+  padding: 12px var(--menu-side-padding);
+  background: transparent;
+  visibility: visible;
+  opacity: 1;
+}
+/* The open menu only needs to restore hit-testing on the row. Geometry stays
+   exactly the same as in the shared rule above. */
+body.menu-is-open #menuButtonContainer {
+  pointer-events: auto !important;
+}
+/* The open menu must not hide or shrink the shared row (copied menu.css has
+   its own collapsed-state rules). */
+body.menu-is-open #menuButtonContainer .menu-trigger-row,
+body.menu-is-open #menuButtonContainer .site-search,
+body.menu-is-open #menuButtonContainer .menu-open-button {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+body.menu-is-open #menuButtonContainer .menu-trigger-row {
+  width: 100%;
+  max-width: 760px;
+}
+.home-head {
+  padding: 12px 4px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.home-title {
+  margin: 0;
+  font-size: clamp(1.8rem, 3.2vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.home-heading {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  line-height: 1.2;
+}
+
+/* --- one permanent block: logo + search in the same row --- */
+/* The logo is pinned to the centre of the row. The search field is positioned
+   to its RIGHT instead of being a flex sibling: a growing flex sibling would
+   pull the whole pair to the left and move the logo while typing or while the
+   catalog opens. With this layout the logo keeps the exact same coordinates
+   in every mode (closed, opening, open, closing) and on every viewport. */
+.menu-trigger-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  min-width: 0;
+  margin: 0 auto;
+  gap: 0;
+  /* compact at rest; menu.js grows it to fit the typed text */
+  --search-width: 120px;
+}
+
+.menu-trigger-row .menu-open-button {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 2;
+  flex: 0 0 auto;
+  transform: none;
+}
+
+.site-search {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + var(--menu-logo-size) / 2 + var(--menu-row-gap));
+  z-index: 1;
+  display: flex;
+  width: var(--search-width, 120px);
+  min-width: 0;
+  /* only the space to the right of the centred logo may be used */
+  max-width: calc(50% - var(--menu-logo-size) / 2 - var(--menu-row-gap) - 8px);
+  transform: translateY(-50%);
+  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.site-search .menu-search-input {
+  width: 100%;
+  height: var(--menu-logo-size);
+}
+
+/* The header is empty: the permanent logo row stays in the page, above the
+   overlay, so the header must not reserve any space in the catalog. */
+.site-menu-header {
+  display: none;
+}
+/* Catalog content begins exactly where the unchanged logo row ends. The row
+   is no longer inserted into this scroll container, so its height has to be
+   reserved here instead. */
+.site-menu-content {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: calc(var(--page-top-padding) + var(--menu-bar-height)) var(--menu-side-padding) 32px;
+}
+/* Solid shelf behind the permanent logo row. The row itself is transparent,
+   so without this catalog items scrolling underneath would show through the
+   gap between the logo and the search field. */
+body.menu-is-open #menuButtonContainer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--menu-background);
+}
+/* The copied stylesheet fades the overlay and translates/scales the whole
+   panel. The fade was already neutralised, and the transform used to drag the
+   logo down and shrink it while opening. Both are dropped now: the catalog
+   unfolds from the logo with a circular clip instead, and the panel itself
+   never changes position or size. */
+.site-menu-overlay,
+.site-menu-overlay.is-open,
+.site-menu-overlay.is-closing,
+.site-menu-overlay .site-menu {
+  opacity: 1 !important;
+}
+.site-menu-overlay {
+  visibility: hidden !important;
+  transition: none !important;
+}
+.site-menu-overlay.is-open,
+.site-menu-overlay.is-closing {
+  visibility: visible !important;
+}
+.site-menu-overlay .site-menu {
+  transform: none !important;
+  clip-path: circle(0px at var(--menu-origin-x, 50%) var(--menu-origin-y, 88px));
+  transition: clip-path var(--catalog-open-duration) var(--catalog-open-ease);
+  will-change: clip-path;
+}
+.site-menu-overlay.is-open .site-menu {
+  clip-path: circle(200% at var(--menu-origin-x, 50%) var(--menu-origin-y, 88px));
+}
+.site-menu-overlay.is-closing .site-menu {
+  clip-path: circle(0px at var(--menu-origin-x, 50%) var(--menu-origin-y, 88px));
+  transition: clip-path var(--catalog-open-duration) var(--catalog-open-ease);
+}
+
+/* The copied menu.css locks the page with `touch-action: none` while the
+   catalog is open. On touch devices that also blocks panning INSIDE the
+   overlay's own scroll container, so the catalog appears frozen. Keep the
+   background scroll-locked, but let gestures reach the scrollable panel. */
+body.menu-is-open {
+  touch-action: auto;
+  overscroll-behavior: none;
+}
+.site-menu {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* search input themed for both modes */
+.menu-search-input {
+  border-color: var(--menu-search-border);
+  color: var(--menu-search-text);
+  background: var(--menu-search-bg);
+}
+.menu-search-input::placeholder {
+  color: var(--menu-search-placeholder);
+}
+.menu-search-input:focus {
+  border-color: #7a7a7a;
+  box-shadow: 0 0 0 2px rgba(128, 128, 128, 0.35);
+}
+
+/* --- search suggestions (prefix autocomplete) --- */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000002;
+  width: max(100%, 260px);
+  max-height: min(60vh, 340px);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.search-suggestions[hidden] { display: none; }
+:root[data-theme="light"] .search-suggestions { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }
+.search-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.search-suggestion:hover,
+.search-suggestion.is-active { background: var(--bg-elevated-2); }
+.search-suggestion-icon {
+  display: inline-flex;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-elevated-2);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.search-suggestion-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-suggestion-hint {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.menu-open-button {
+  border: 1px solid #3d3d3d;
+  background: var(--bg-elevated);
+}
+/* the logo is mostly white: invert it when the palette switches to light */
+:root[data-theme="light"] .menu-open-image {
+  filter: invert(1);
+}
+
+/* logo glow is theme-aware instead of hardcoded white.
+   The copied menu_logo.css translates the logo using --search-push; cancel it
+   so the logo and the search field keep their coordinates in every state. */
+.menu-button-container .menu-open-button:hover {
+  background-color: var(--menu-button-background-hover);
+  box-shadow:
+    0 0 6px var(--menu-logo-glow),
+    0 0 14px var(--menu-logo-glow),
+    0 0 28px var(--menu-logo-glow);
+  transform: none;
+}
+.menu-button-container .menu-open-button:active {
+  box-shadow:
+    0 0 5px var(--menu-logo-glow),
+    0 0 14px var(--menu-logo-glow);
+  transform: scale(0.96);
+}
+
+/* --- results area --- */
+.home-search-area {
+  padding: 22px 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.search-status {
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: .95rem;
+  /* Same horizontal anchor as the first paragraph in .home-head. */
+  text-align: center;
+}
+.search-results { display: grid; gap: 10px; }
+.search-result-item {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.search-result-item a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.search-result-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.search-result-icon {
+  display: inline-flex; flex: 0 0 22px; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-elevated-2); color: var(--text); font-size: .85rem; line-height: 1;
+}
+.search-result-item[data-type="track"] .search-result-icon,
+.search-result-item[data-type="album"] .search-result-icon { font-size: 1rem; }
+.search-result-meta { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+
+/* --- menu content --- */
+.site-menu-section { display: flex; flex-direction: column; gap: 8px; }
+.site-menu-section-title {
+  margin: 0 0 4px;
+  font-size: .95rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.site-menu-link { text-decoration: none; color: inherit; }
+/* catalog icons: a clear pictogram for every section instead of a grid cell */
+.site-menu-button-icon svg {
+  display: block; width: 18px; height: 18px;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.menu-catalog { display: flex; flex-direction: column; gap: 8px; }
+.catalog-hint { margin: 0 0 8px; color: var(--muted); font-size: .9rem; }
+.site-menu-item.nested .site-menu-button { padding: 10px 12px; font-size: .98rem; min-height: 46px; }
+
+/* Catalog items rise into place after the reveal passes over them (--i is set
+   by menu.js). On close they leave quietly towards the logo — no stagger, no
+   downward slide — so the catalog collapses back into the button it came from. */
+.site-menu-overlay .site-menu-item {
+  transform: translateY(12px);
+  transition: opacity 0.28s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.site-menu-overlay.is-open .site-menu-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+.site-menu-overlay.is-closing .site-menu-item {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.24s ease;
+  transition-delay: 0s !important;
+}
+.site-menu-overlay.is-open .menu-catalog > .site-menu-item {
+  transition-delay: calc(0.06s + var(--i, 0) * 0.06s);
+}
+
+/* chevron on collapsible catalog buttons */
+.menu-chevron {
+  display: inline-block;
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .28s ease;
+  opacity: .8;
+}
+.catalog-toggle[aria-expanded="true"] .menu-chevron {
+  transform: rotate(-135deg);
+}
+
+/* animated collapsible panels (catalog + settings) */
+.collapsible-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    max-height .34s cubic-bezier(.22, 1, .36, 1),
+    opacity .24s ease,
+    transform .34s cubic-bezier(.22, 1, .36, 1);
+}
+.collapsible-panel.is-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+.collapsible-inner {
+  padding: 10px 0 4px 12px;
+  border-left: 2px solid var(--border);
+  margin-left: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* settings form */
+.site-settings-form { display: flex; flex-direction: column; gap: 10px; }
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-group legend { color: var(--muted); font-size: .9rem; padding: 0 4px; }
+.settings-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.settings-group input[type="radio"],
+.settings-group input[type="checkbox"] { accent-color: var(--text); }
+.settings-actions { display: flex; gap: 8px; }
+.menu-action-btn {
+  border: 1px solid var(--border);
+  background: var(--menu-button-background);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+.menu-action-btn:hover { background: var(--menu-button-background-hover); }
+.menu-action-btn.secondary { background: transparent; }
+.settings-saved { margin: 0; color: var(--accent); font-size: .9rem; min-height: 1.2em; }
+.settings-build {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.settings-build-value {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* --- light theme: pure white / black --- */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-elevated: #f5f5f5;
+  --bg-elevated-2: #ececec;
+  --text: #000000;
+  --muted: #5c5c5c;
+  --accent: #000000;
+  --border: #d4d4d4;
+  --menu-text-color: #000000;
+  --menu-background: #ffffff;
+  --menu-button-background: #f2f2f2;
+  --menu-button-background-hover: #e6e6e6;
+  --menu-logo-glow: rgba(0, 0, 0, 0.45);
+  --menu-search-bg: #ffffff;
+  --menu-search-text: #000000;
+  --menu-search-border: #cfcfcf;
+  --menu-search-placeholder: #6b6b6b;
+  --focus-border: rgba(0, 0, 0, 0.28);
+}
+:root[data-theme="light"] .menu-open-button {
+  border-color: #cfcfcf;
+  background: #f2f2f2;
+}
+:root[data-theme="light"] .site-menu-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* --- animated theme switch ---
+   menu.js adds .zqwy-theme-changing only for an explicit change (theme radio,
+   reset, system preference), never for the first paint.
+
+   Background and text now interpolate together instead of the old halfway
+   jump. A plain crossfade would make white-on-black and black-on-white meet
+   as grey-on-grey, so during the switch text gets a soft dark halo and the
+   page gets a very light wash of the incoming background. The halo keeps
+   letterforms readable exactly at the crossover, then fades away; the result
+   reads as one smooth ink-and-paper transition rather than a flicker. */
+:root.zqwy-theme-changing,
+:root.zqwy-theme-changing *,
+:root.zqwy-theme-changing *::before,
+:root.zqwy-theme-changing *::after {
+  transition-property: color, background-color, border-color, box-shadow, fill, stroke, filter, opacity;
+  transition-duration: .48s;
+  transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+  transition-delay: 0s;
+}
+/* Text gets a neutral halo only around the crossover point, so black-on-white
+   and white-on-black stay legible while both colours are passing through grey. */
+:root.zqwy-theme-changing { animation: zqwy-theme-text .52s ease both; }
+@keyframes zqwy-theme-text {
+  0%, 100% { text-shadow: 0 0 0 transparent; }
+  45% { text-shadow: 0 0 1px rgba(128, 128, 128, .55), 0 0 10px rgba(128, 128, 128, .28); }
+}
+html.zqwy-theme-changing::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1000009;
+  pointer-events: none;
+  background: #000000;
+  animation: zqwy-theme-wash .48s ease both;
+}
+html.zqwy-theme-changing[data-theme-change-to="light"]::after { background: #ffffff; }
+@keyframes zqwy-theme-wash {
+  0% { opacity: 0; }
+  45% { opacity: .1; }
+  100% { opacity: 0; }
+}
+
+/* Brief highlight for the block containing the active search match. */
+.zqwy-search-hit {
+  border-radius: 4px;
+  background: rgba(128, 128, 128, .35);
+  box-shadow: 0 0 0 4px rgba(128, 128, 128, .35);
+  transition: background-color .2s ease, box-shadow .2s ease;
+}
+/* Every matching word stays marked until the next search; Enter moves the
+   stronger active style from one mark to the next. */
+.zqwy-search-word {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: rgba(255, 205, 60, .32);
+  color: inherit;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color .16s ease, box-shadow .16s ease;
+}
+.zqwy-search-word.is-active {
+  background: rgba(255, 145, 40, .62);
+  box-shadow: 0 0 0 2px rgba(255, 145, 40, .45);
+}
+
+/* --- animated language switch ---
+   The old wording fades out, is replaced while invisible, then fades in. */
+:root.zqwy-lang-changing [data-i18n],
+:root.zqwy-lang-changing [data-i18n-placeholder],
+:root.zqwy-lang-changing [data-i18n-title],
+:root.zqwy-lang-changing [data-i18n-aria-label],
+:root.zqwy-lang-changing [data-i18n-aria],
+:root.zqwy-lang-changing [data-i18n-html] {
+  transition: opacity .14s ease;
+}
+:root.zqwy-lang-changing .lang-out {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.zqwy-theme-changing,
+  :root.zqwy-theme-changing *,
+  :root.zqwy-theme-changing *::before,
+  :root.zqwy-theme-changing *::after {
+    transition-duration: 1ms;
+  }
+  :root.zqwy-theme-changing { animation-duration: 1ms; }
+  html.zqwy-theme-changing::after { animation-duration: 1ms; }
+  :root.zqwy-lang-changing [data-i18n],
+  :root.zqwy-lang-changing [data-i18n-placeholder],
+  :root.zqwy-lang-changing [data-i18n-title],
+  :root.zqwy-lang-changing [data-i18n-aria-label],
+  :root.zqwy-lang-changing [data-i18n-aria],
+  :root.zqwy-lang-changing [data-i18n-html] {
+    transition-duration: 1ms;
+  }
+}
+
+/* --- cursor-reactive hover glow for link and game cards ---
+   scripts/hover-glow.js sets --accent per card and --mx/--my from the pointer;
+   the radial fill and the 1px border highlight follow the cursor. The rest of
+   the site stays black/white — colour appears only while a card is hovered. */
+.link-card,
+.game-card {
+  position: relative;
+  isolation: isolate;
+  /* Replace the bright native focus outline with the softened border below. */
+  outline: none;
+  --accent: 255, 255, 255;
+  --mx: 50%;
+  --my: 50%;
+}
+.link-card::before,
+.link-card::after,
+.game-card::before,
+.game-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.link-card::before,
+.game-card::before {
+  background: radial-gradient(160px circle at var(--mx) var(--my), rgba(var(--accent), 0.2), transparent 68%);
+}
+.link-card::after,
+.game-card::after {
+  padding: 1px;
+  background: radial-gradient(150px circle at var(--mx) var(--my), rgba(var(--accent), 0.4), transparent 62%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.link-card:hover::before,
+.link-card:hover::after,
+.link-card:focus-visible::before,
+.link-card:focus-visible::after,
+.game-card:hover::before,
+.game-card:hover::after,
+.game-card:focus-visible::before,
+.game-card:focus-visible::after {
+  opacity: 1;
+}
+/* Keyboard focus keeps the cursor glow, but its 1px border is much calmer
+   than the hover state so it does not read as a white frame. */
+.link-card:focus-visible::after,
+.game-card:focus-visible::after {
+  background: radial-gradient(150px circle at var(--mx) var(--my), rgba(var(--accent), 0.24), transparent 62%);
+}
+.link-icon,
+.game-card-icon {
+  transition: color 0.22s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-name,
+.game-card-title,
+.game-card-open {
+  transition: color 0.22s ease;
+}
+.link-card:hover .link-icon,
+.link-card:focus-visible .link-icon,
+.game-card:hover .game-card-icon,
+.game-card:focus-visible .game-card-icon {
+  color: rgb(var(--accent));
+  transform: scale(1.16) rotate(-6deg);
+}
+.link-card:hover .link-name,
+.link-card:focus-visible .link-name,
+.game-card:hover .game-card-title,
+.game-card:focus-visible .game-card-title,
+.game-card:hover .game-card-open,
+.game-card:focus-visible .game-card-open {
+  color: rgb(var(--accent));
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-icon,
+  .game-card-icon,
+  .link-name,
+  .game-card-title,
+  .game-card-open { transition: none; }
+}
+
+/* --- transitions between pages of the catalog --- */
+/* Opacity-only fade: transforms on .page-content would create a containing
+   block for fixed descendants (e.g. the full-screen menu overlay), which made
+   the menu shift during SPA page transitions. */
+@keyframes page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes page-leave {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+/* Fade the page content, but never the shared logo/search block: it must stay
+   visible and in place for the whole transition, just like on a normal load. */
+html.zqwy-motion .page-content.page-entering > :not(#menuButtonContainer) {
+  animation: page-enter var(--catalog-open-duration) var(--catalog-open-ease) both;
+}
+/* Declared last so it wins over .page-entering when both are briefly present. */
+html.zqwy-motion.page-leaving .page-content > :not(#menuButtonContainer) {
+  animation: page-leave var(--catalog-open-duration) var(--catalog-open-ease) both;
+}
+/* One cohesive page motion: don't replay the per-item stagger underneath it. */
+html.zqwy-motion .page-content.page-entering .links-head,
+html.zqwy-motion .page-content.page-entering .links-nav a,
+html.zqwy-motion .page-content.page-entering .links-section-title,
+html.zqwy-motion .page-content.page-entering .links-grid li,
+html.zqwy-motion .page-content.page-entering .album-head,
+html.zqwy-motion .page-content.page-entering .album-item,
+html.zqwy-motion .page-content.page-entering .music-count,
+html.zqwy-motion .page-content.page-entering .music-filter,
+html.zqwy-motion .page-content.page-entering .music-track {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.zqwy-motion .page-content.page-entering > :not(#menuButtonContainer),
+  html.zqwy-motion.page-leaving .page-content > :not(#menuButtonContainer) { animation-duration: 0.2s; }
+  /* keep the reveal, but make it short instead of removing it entirely */
+  .site-menu-overlay .site-menu {
+    transition: clip-path 0.2s linear;
+  }
+  .site-menu-overlay .site-menu-item,
+  .site-menu-overlay.is-closing .site-menu-item {
+    transition: opacity 0.12s linear, transform 0.12s linear;
+    transform: none;
+  }
+}

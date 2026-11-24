@@ -1,0 +1,25 @@
+title: $:/plugins/felixhayashi/tiddlymap/graph/views/tracks/map
+type: text/vnd.tiddlywiki
+
+{
+ "3f530dca-624f-484d-9da6-2492f742d400": {
+  "x": -250,
+  "y": -300
+ },
+ "0053ac7a-63e2-411c-9777-3b117dc49d5f": {
+  "x": -250,
+  "y": -250
+ },
+ "ced8a403-ea2e-4242-b470-4bcc2e3a292f": {
+  "x": -800,
+  "y": -200
+ },
+ "36b8a813-5827-45bc-9250-bce081f0743f": {
+  "x": -500,
+  "y": -100
+ },
+ "4cf18f75-a523-418d-8e75-44e1cdadb4ee": {
+  "x": -500,
+  "y": -350
+ }
+}

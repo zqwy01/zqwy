@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0705">
+<meta name="description" content="КЕРН · ДЕВЯТЬ СНОВ — сюжетное приключение о последнем рогатом друиде внутри сна умирающего бога. Девять треков альбома the_remaining_one как девять дыханий.">
+<title>КЕРН · ДЕВЯТЬ СНОВ</title>
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="preload" href="assets/fonts/Tiny5.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="state-title">
+
+<div id="app">
+  <div id="stageWrap">
+    <canvas id="world" width="480" height="270" aria-label="Сцена сна"></canvas>
+
+    <div id="stageShade" aria-hidden="true"></div>
+    <div id="listenVeil" aria-hidden="true"></div>
+
+    <header id="hud" class="hidden" aria-label="Состояние сна">
+      <div class="hud-left">
+        <span id="hudNumeral" class="hud-numeral">I</span>
+        <div class="hud-titles">
+          <b id="hudTitle">БАРХАНЫ</b>
+          <span id="hudSub">сон о море</span>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div class="memory-block">
+          <span class="hud-label">ПАМЯТЬ</span>
+          <div id="memoryPips" class="memory-pips" aria-label="Память"></div>
+        </div>
+        <div id="breathLine" class="breath-line" aria-hidden="true"></div>
+      </div>
+
+      <div class="hud-right">
+        <button id="listenBtn" class="hud-btn listen-btn" type="button" aria-pressed="false" title="Слушать (L)">
+          <span class="listen-dot"></span><span class="listen-text">СЛУШАТЬ</span>
+        </button>
+        <button id="pauseBtn" class="hud-btn icon-btn" type="button" aria-label="Пауза" title="Пауза (P / Esc)">II</button>
+        <button id="muteBtn" class="hud-btn icon-btn" type="button" aria-label="Звук" title="Звук (M)">♪</button>
+      </div>
+    </header>
+
+    <div id="trackLine" class="track-line hidden" aria-hidden="true">
+      <span id="trackTitle">barchans</span>
+      <span class="dot">·</span>
+      <span id="trackMeta">80 BPM · G</span>
+      <span class="dot">·</span>
+      <span id="trackState">ЗВУЧИТ</span>
+    </div>
+
+    <div id="prompt" class="prompt hidden" aria-live="polite"></div>
+
+    <div id="touchBar" class="touch-bar hidden" aria-label="Сенсорное управление">
+      <div class="walk-pad">
+        <button id="walkLeft" class="touch-btn walk" type="button" aria-label="Идти влево">◀</button>
+        <button id="walkRight" class="touch-btn walk" type="button" aria-label="Идти вправо">▶</button>
+      </div>
+      <button id="actionBtn" class="touch-btn action" type="button">ДЕЙСТВИЕ</button>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  </div>
+
+  <!-- ───────────────────────────── title ───────────────────────────── -->
+  <section id="titleScreen" class="overlay title-screen">
+    <div class="title-art" aria-hidden="true"></div>
+    <div class="title-vignette" aria-hidden="true"></div>
+    <div class="title-inner">
+      <p class="title-kicker">АЛЬБОМ · ZQWY · THE REMAINING ONE</p>
+      <h1 class="game-title"><span>КЕРН</span><em>ДЕВЯТЬ СНОВ</em></h1>
+      <p class="title-tagline">Он не спасает мир.<br>Он его помнит.</p>
+      <p class="title-lead">Сюжетное приключение внутри сна умирающего бога. Девять дыханий, девять имён и один последний выбор.</p>
+
+      <div class="title-actions">
+        <button id="continueBtn" class="btn primary hidden" type="button">ПРОДОЛЖИТЬ</button>
+        <button id="newGameBtn" class="btn primary" type="button">ВОЙТИ В СОН</button>
+        <button id="titleAlbumBtn" class="btn" type="button">СЛУШАТЬ АЛЬБОМ</button>
+        <button id="titleCodexBtn" class="btn ghost" type="button">КОДЕКС</button>
+        <button id="titleSettingsBtn" class="btn ghost" type="button">НАСТРОЙКИ</button>
+      </div>
+
+      <p class="title-fine">ЛУЧШЕ В НАУШНИКАХ · НАЖМИ, ЧТОБЫ РАЗБУДИТЬ ЗВУК</p>
+      <p id="titleProgress" class="title-progress hidden"></p>
+    </div>
+    <div class="title-corner tl" aria-hidden="true"></div>
+    <div class="title-corner br" aria-hidden="true"></div>
+  </section>
+
+  <!-- ───────────────────────────── prologue ───────────────────────────── -->
+  <section id="prologueScreen" class="overlay prologue-screen hidden">
+    <div class="prologue-card">
+      <div class="prologue-art"><img src="assets/portrait.png" alt="Керн, рогатый друид"></div>
+      <div class="prologue-body">
+        <p id="prologueKicker" class="kicker"></p>
+        <p id="prologueText" class="story-text prologue-text"></p>
+        <div class="prologue-foot">
+          <span id="prologueDots" class="page-dots"></span>
+          <div class="prologue-actions">
+            <button id="prologueSkip" class="btn ghost small" type="button">ПРОПУСТИТЬ</button>
+            <button id="prologueNext" class="btn primary" type="button">ДАЛЬШЕ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── chapter card ───────────────────────────── -->
+  <section id="chapterScreen" class="overlay chapter-screen hidden">
+    <div class="chapter-card">
+      <p id="chapterKicker" class="kicker">УЗЕЛ I · СОН О МОРЕ</p>
+      <div class="chapter-number" id="chapterNumeral">I</div>
+      <h2 id="chapterTitle">БАРХАНЫ</h2>
+      <p id="chapterEpigraph" class="chapter-epigraph"></p>
+      <p id="chapterIntro" class="story-text chapter-intro"></p>
+      <div id="chapterTrack" class="chapter-track"></div>
+      <div class="chapter-actions">
+        <button id="chapterEnterBtn" class="btn primary" type="button">СЛУШАТЬ СОН</button>
+        <button id="chapterBackBtn" class="btn ghost small" type="button">НАЗАД</button>
+      </div>
+      <p class="fine">Сон можно покинуть в любой момент — прогресс сохраняется.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── path ───────────────────────────── -->
+  <section id="pathScreen" class="overlay path-screen hidden">
+    <div class="path-card">
+      <p class="kicker">ПУТЬ КЕРНА</p>
+      <h2>ДЕВЯТЬ УЗЛОВ</h2>
+      <p id="pathLine" class="path-line"></p>
+      <div id="pathSpiral" class="path-spiral" aria-label="Карта девяти снов"></div>
+      <div class="path-stats" id="pathStats"></div>
+      <div class="path-actions">
+        <button id="pathContinueBtn" class="btn primary" type="button">ИДТИ ДАЛЬШЕ</button>
+        <button id="pathCodexBtn" class="btn ghost" type="button">КОДЕКС</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── dialogue ───────────────────────────── -->
+  <section id="dialogScreen" class="overlay dialog-screen hidden" aria-live="polite">
+    <div class="dialog-card">
+      <div class="dialog-portrait">
+        <img id="dialogPortrait" src="assets/portrait.png" alt="Керн">
+        <span id="dialogRuneSlot" class="dialog-rune hidden"></span>
+      </div>
+      <div class="dialog-body">
+        <p id="dialogKicker" class="kicker"></p>
+        <h3 id="dialogTitle"></h3>
+        <div id="dialogText" class="story-text dialog-text"></div>
+        <div id="dialogActions" class="dialog-actions"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── puzzle ───────────────────────────── -->
+  <section id="puzzleScreen" class="overlay puzzle-screen hidden">
+    <div class="puzzle-card">
+      <div class="puzzle-head">
+        <p class="kicker">КАМЕНЬ ИМЁН</p>
+        <h2>СЛОЖИ ИМЯ</h2>
+        <p id="puzzleIntro" class="puzzle-intro story-text"></p>
+      </div>
+      <div class="puzzle-name-plate">
+        <span class="plate-label">ИМЯ СНА</span>
+        <span id="puzzleName" class="plate-name">???</span>
+      </div>
+      <div id="puzzleSlots" class="puzzle-slots" aria-label="Слоты имени"></div>
+      <div class="puzzle-divider"><span>ЭХА</span></div>
+      <div id="puzzleTiles" class="puzzle-tiles" aria-label="Руны"></div>
+      <p id="puzzleMessage" class="puzzle-message" role="status"></p>
+      <div id="puzzleHintText" class="puzzle-hint hidden"></div>
+      <div class="puzzle-actions">
+        <button id="puzzleHintBtn" class="btn small ghost" type="button">ПОДСКАЗКА</button>
+        <button id="puzzleConfirmBtn" class="btn primary" type="button">СЛОЖИТЬ ИМЯ</button>
+        <button id="puzzleCloseBtn" class="btn ghost small" type="button">ВЕРНУТЬСЯ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── pause ───────────────────────────── -->
+  <section id="pauseScreen" class="overlay pause-screen hidden">
+    <div class="pause-card">
+      <p class="kicker">СОН ПРИОСТАНОВЛЕН</p>
+      <h2>ПАУЗА</h2>
+      <p class="lead small">Бог замер. Музыка тоже.</p>
+      <div class="pause-stack">
+        <button id="resumeBtn" class="btn primary" type="button">ПРОДОЛЖИТЬ</button>
+        <button id="pauseCodexBtn" class="btn" type="button">КОДЕКС</button>
+        <button id="pauseAlbumBtn" class="btn ghost" type="button">СЛУШАТЬ АЛЬБОМ</button>
+        <button id="pauseSettingsBtn" class="btn ghost" type="button">НАСТРОЙКИ</button>
+        <button id="pauseRestartBtn" class="btn ghost" type="button">ПОВТОРИТЬ СОН</button>
+        <button id="pauseMenuBtn" class="btn ghost" type="button">В ГЛАВНОЕ МЕНЮ</button>
+      </div>
+      <p class="fine">P / ESC — ПРОДОЛЖИТЬ · M — ЗВУК · L — СЛУШАТЬ</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── codex ───────────────────────────── -->
+  <section id="codexScreen" class="overlay codex-screen hidden">
+    <div class="codex-card">
+      <div class="codex-head">
+        <div>
+          <p class="kicker">КОДЕКС КЕРНА</p>
+          <h2>ПАМЯТЬ СНА</h2>
+        </div>
+        <button id="codexCloseBtn" class="hud-btn icon-btn" type="button" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="codex-tabs" role="tablist">
+        <button class="codex-tab active" data-tab="dreams" type="button">СНЫ</button>
+        <button class="codex-tab" data-tab="runes" type="button">РУНЫ</button>
+        <button class="codex-tab" data-tab="lore" type="button">ЛОР</button>
+        <button class="codex-tab" data-tab="endings" type="button">КОНЦОВКИ</button>
+        <button class="codex-tab" data-tab="about" type="button">ОБ ИГРЕ</button>
+      </div>
+      <div id="codexBody" class="codex-body"></div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── album ───────────────────────────── -->
+  <section id="albumScreen" class="overlay album-screen hidden">
+    <div class="album-card">
+      <div class="album-head">
+        <div>
+          <p class="kicker">ZQWY · THE REMAINING ONE</p>
+          <h2>ДЕВЯТЬ ДЫХАНИЙ</h2>
+          <p class="album-sub">Оригинальные треки альбома. Игра читает их из <code>../src/tracks/</code> и не копирует.</p>
+        </div>
+        <button id="albumCloseBtn" class="hud-btn icon-btn" type="button" aria-label="Закрыть">✕</button>
+      </div>
+      <div id="albumList" class="album-list"></div>
+      <div class="album-foot">
+        <div id="albumNow" class="album-now">НИЧЕГО НЕ ИГРАЕТ</div>
+        <div class="album-controls">
+          <button id="albumPlayPause" class="btn small" type="button">ПАУЗА</button>
+          <button id="albumStop" class="btn small ghost" type="button">СТОП</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── settings ───────────────────────────── -->
+  <section id="settingsScreen" class="overlay settings-screen hidden">
+    <div class="settings-card">
+      <div class="settings-head">
+        <div>
+          <p class="kicker">НАСТРОЙКИ</p>
+          <h2>ТИШЕ · ГРОМЧЕ</h2>
+        </div>
+        <button id="settingsCloseBtn" class="hud-btn icon-btn" type="button" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="settings-list">
+        <label class="setting-row">
+          <span>ГРОМКОСТЬ</span>
+          <input id="volumeRange" type="range" min="0" max="100" step="1" value="78">
+          <b id="volumeVal">78</b>
+        </label>
+        <label class="setting-row">
+          <span>ЗВУК</span>
+          <button id="muteToggle" class="toggle" type="button" aria-pressed="false">ВКЛ</button>
+        </label>
+        <label class="setting-row">
+          <span>ЭФФЕКТЫ</span>
+          <button id="sfxToggle" class="toggle" type="button" aria-pressed="true">ВКЛ</button>
+        </label>
+        <div class="setting-row setting-block">
+          <span>РАЗМЕР ТЕКСТА</span>
+          <div class="segmented" id="textSizeSeg">
+            <button data-size="s" type="button">МЕЛКИЙ</button>
+            <button data-size="m" type="button" class="active">ОБЫЧНЫЙ</button>
+            <button data-size="l" type="button">КРУПНЫЙ</button>
+          </div>
+        </div>
+        <label class="setting-row">
+          <span>МЕНЬШЕ ДВИЖЕНИЯ</span>
+          <button id="motionToggle" class="toggle" type="button" aria-pressed="false">ВЫКЛ</button>
+        </label>
+      </div>
+      <div class="settings-foot">
+        <button id="resetBtn" class="btn ghost small danger" type="button">СБРОСИТЬ ПРОГРЕСС</button>
+        <button id="settingsDoneBtn" class="btn primary" type="button">ГОТОВО</button>
+      </div>
+      <p class="fine">Прогресс сохраняется в браузере. Настройки — отдельно.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── ending ───────────────────────────── -->
+  <section id="endingScreen" class="overlay ending-screen hidden">
+    <div class="ending-art" aria-hidden="true"></div>
+    <div class="ending-card">
+      <p id="endingKicker" class="kicker"></p>
+      <h2 id="endingTitle">РАССВЕТ</h2>
+      <div id="endingLines" class="story-text ending-lines"></div>
+      <div id="endingStats" class="ending-stats"></div>
+      <div class="ending-actions">
+        <button id="endingCodexBtn" class="btn" type="button">КОДЕКС</button>
+        <button id="endingAgainBtn" class="btn primary" type="button">СЫГРАТЬ СНОВА</button>
+        <button id="endingMenuBtn" class="btn ghost" type="button">В ГЛАВНОЕ МЕНЮ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── audio banner ───────────────────────────── -->
+  <div id="audioBanner" class="audio-banner hidden" role="alert">
+    <b>ЗВУК НЕ ОТКРЫЛСЯ</b>
+    <p id="audioBannerText">Браузер не смог прочитать Opus-трек. Игра продолжится без музыки.</p>
+    <div class="audio-banner-actions">
+      <button id="audioBannerRetry" class="btn small" type="button">ПОПРОБОВАТЬ СНОВА</button>
+      <button id="audioBannerClose" class="btn small ghost" type="button">ПРОДОЛЖИТЬ БЕЗ МУЗЫКИ</button>
+    </div>
+  </div>
+
+  <div id="rotateHint" class="rotate-hint hidden">ЛУЧШЕ В АЛЬБОМНОЙ ОРИЕНТАЦИИ</div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+/*
+ * Unified font + type-scale module for «К Востоку».
+ * Every UI surface should use these variables instead of ad-hoc pixel sizes.
+ */
+
+@font-face {
+  font-family: "Zqwy";
+  src: url("assets/east/zqwy.ttf") format("truetype");
+  font-display: swap;
+}
+
+:root {
+  /* Font families */
+  --font-display: "Zqwy", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-mono: "Zqwy", ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+
+  /* Unified type scale (minimum 9px for comfortable reading) */
+  --fs-3xs: 9px;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 22px;
+  --fs-3xl: 28px;
+
+  /* Line heights */
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-normal: 1.5;
+  --lh-loose: 1.65;
+
+  /* Letter spacing */
+  --ls-wide: 0.18em;
+  --ls-medium: 0.12em;
+  --ls-soft: 0.04em;
+}

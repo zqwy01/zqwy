@@ -1,0 +1,8 @@
+.git
+node_modules
+*.log
+.env
+.env.*
+!.env.example
+# The site is mounted at runtime by docker-compose.yaml, not copied into the image.
+dist/

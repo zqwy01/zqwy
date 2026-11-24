@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e0c0a">
+<meta name="description" content="БУР ДРУИДА — ритм-игра о друиде, который пробивает ход к соседнему кургану. 90 BPM, один трек, один забег.">
+<title>БУР ДРУИДА — ритуал соседнего кургана</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="state-loading">
+
+<div id="stage" aria-label="Круглый курган: игровое поле">
+  <canvas id="world" width="400" height="400" aria-label="Друид в круге кургана"></canvas>
+  <div class="stage-corner tl" aria-hidden="true"></div>
+  <div class="stage-corner tr" aria-hidden="true"></div>
+  <div class="stage-corner bl" aria-hidden="true"></div>
+  <div class="stage-corner br" aria-hidden="true"></div>
+</div>
+
+<div id="hud" aria-hidden="true">
+  <div class="hud-top">
+    <div class="hud-block hud-hp">
+      <span class="hud-label">ЖИЗНЬ</span>
+      <div id="hpPips" class="pips"></div>
+    </div>
+    <div class="hud-block hud-depth">
+      <span class="hud-label">ГЛУБИНА <b id="depthPct">0%</b></span>
+      <div class="meter"><i id="depthFill"></i><span class="goal-mark"></span></div>
+    </div>
+    <div class="hud-block hud-score">
+      <span class="hud-label">ОЧКИ</span>
+      <b id="scoreVal">000000</b>
+      <span id="comboVal" class="combo"></span>
+    </div>
+    <div class="hud-tools">
+      <button id="pauseBtn" class="tool" type="button" aria-label="Пауза" title="Пауза (P)">II</button>
+      <button id="muteBtn" class="tool" type="button" aria-label="Звук" title="Звук (M)">♪</button>
+    </div>
+  </div>
+  <div class="hud-meta">
+    <span id="sectionLabel">ТИШИНА КУРГАНА</span>
+    <span id="timeVal">0:00 / 2:35</span>
+  </div>
+</div>
+
+<div id="banner" aria-live="polite">
+  <div id="bannerNum" class="banner-num"></div>
+  <div id="bannerName" class="banner-name"></div>
+  <div id="bannerSub" class="banner-sub"></div>
+</div>
+
+<div id="judge" aria-live="polite"></div>
+<div id="toast" aria-live="polite"></div>
+
+<div id="overlay">
+  <section id="startScreen" class="screen start-screen">
+    <div class="sigil" aria-hidden="true">
+      <i></i><i></i><i></i>
+    </div>
+    <p class="kicker">КУРГАН СОСЕДА · 90 BPM · 2:35</p>
+    <h1 class="title">БУР<br><span>ДРУИДА</span></h1>
+    <p class="lead">Соседний курган молчит уже триста лет. Ты пробьёшь его изнутри — если удержишь ритм.</p>
+
+    <div class="how">
+      <div><b>ЦЕЛЬ</b><span>Доведи глубину до <em>65%</em> к концу трека.</span></div>
+      <div><b>РИТМ</b><span>Бей в такт. Удар крошит корни и камни рядом.</span></div>
+      <div><b>ЖИЗНЬ</b><span>5 ударов кургана. Комбо из 24 лечит.</span></div>
+    </div>
+
+    <button id="startBtn" class="btn primary" type="button">НАЧАТЬ РИТУАЛ</button>
+    <p id="loadStatus" class="fine">ПРОБУЖДЕНИЕ ТРЕКА…</p>
+    <p class="fine controls-line">WASD / СТРЕЛКИ — ДВИЖЕНИЕ · SPACE — УДАР · P — ПАУЗА · M — ЗВУК</p>
+    <p id="bestLine" class="fine best-line" hidden></p>
+  </section>
+
+  <section id="pauseScreen" class="screen pause-screen hidden" aria-hidden="true">
+    <p class="kicker">РИТУАЛ ПРИОСТАНОВЛЕН</p>
+    <h2>ПАУЗА</h2>
+    <p class="lead small">Курган замер. Музыка тоже.</p>
+    <div class="stack">
+      <button id="resumeBtn" class="btn primary" type="button">ПРОДОЛЖИТЬ</button>
+      <button id="restartBtn" class="btn" type="button">НАЧАТЬ СНАЧАЛА</button>
+      <button id="menuBtn" class="btn ghost" type="button">В МЕНЮ</button>
+    </div>
+    <p class="fine">P / ESC — ПРОДОЛЖИТЬ</p>
+  </section>
+
+  <section id="endScreen" class="screen end-screen hidden" aria-hidden="true">
+    <p id="endKicker" class="kicker"></p>
+    <h2 id="endTitle">ПРОХОД ПРОБИТ</h2>
+    <p id="endSub" class="lead small"></p>
+
+    <div class="result-depth">
+      <b id="endDepth">0%</b>
+      <span>ГЛУБИНА · НУЖНО 65%</span>
+    </div>
+
+    <div class="result-grid">
+      <div><span>ОЧКИ</span><b id="endScore">0</b></div>
+      <div><span>МАКС. КОМБО</span><b id="endCombo">0</b></div>
+      <div><span>ИДЕАЛЬНО</span><b id="endPerfect">0</b></div>
+      <div><span>ХОРОШО</span><b id="endGood">0</b></div>
+      <div><span>МИМО</span><b id="endMiss">0</b></div>
+      <div><span>ВРЕМЯ</span><b id="endTime">0:00</b></div>
+    </div>
+
+    <p id="endBest" class="fine best-line" hidden></p>
+    <div class="stack row">
+      <button id="retryBtn" class="btn primary" type="button">ЕЩЁ РАЗ</button>
+      <button id="endMenuBtn" class="btn ghost" type="button">В МЕНЮ</button>
+    </div>
+    <p class="fine">R — ЕЩЁ РАЗ · ESC — В МЕНЮ</p>
+  </section>
+</div>
+
+<div id="touchControls" aria-hidden="true">
+  <div id="stick" class="stick">
+    <div class="stick-ring"></div>
+    <div id="knob" class="knob"></div>
+  </div>
+  <button id="strikeBtn" class="strike" type="button">БУР</button>
+</div>
+
+<div id="rotateHint">ЛУЧШЕ В АЛЬБОМНОЙ ОРИЕНТАЦИИ</div>
+
+<script src="js/chart.js"></script>
+<script src="js/core.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

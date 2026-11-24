@@ -1,0 +1,966 @@
+/* --- music section: album catalog + universal player --- */
+
+.music-page {
+  padding-bottom: 56px;
+}
+.music-head { margin-top: 8px; }
+.music-head .home-title { font-size: clamp(1.7rem, 3vw, 2.3rem); }
+.music-head .home-heading { margin-top: 2px; }
+
+.music-layout {
+  display: grid;
+  /* The first column is measured from the longest release title in JS, so a
+     short catalog leaves the maximum width for the track list. */
+  grid-template-columns: var(--album-columns, 280px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 22px;
+  transition:
+    grid-template-columns var(--collapse-duration, 0.42s) var(--collapse-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    gap var(--collapse-duration, 0.42s) var(--collapse-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.music-layout.is-list { grid-template-columns: var(--album-columns, 280px) minmax(0, 1fr); }
+.music-layout.is-cards { grid-template-columns: var(--album-columns-cards, 320px) minmax(0, 1fr); }
+.music-layout.is-large { grid-template-columns: var(--album-columns-large, 420px) minmax(0, 1fr); }
+
+/* --- releases first, full screen (tracks appear after a release is chosen) --- */
+/* The tools come first; the release count sits on its own line underneath. */
+.music-tools-row { flex-wrap: wrap; }
+.album-tools-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; order: 1; }
+/* Collapse and full-screen releases are two states of one segmented control,
+   not two unrelated floating buttons. */
+.album-mode-group {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-elevated);
+}
+.album-mode-group .album-fullscreen-btn {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.album-mode-group .album-fullscreen-btn + .album-fullscreen-btn {
+  border-left: 1px solid var(--border);
+}
+.album-mode-group .album-fullscreen-btn[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--text);
+}
+.album-fullscreen-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+.album-fullscreen-btn svg { width: 17px; height: 17px; fill: currentColor; }
+.album-fullscreen-btn:hover,
+.album-fullscreen-btn:focus-visible { color: var(--text); border-color: var(--focus-border); }
+.album-fullscreen-btn[aria-pressed="true"] { color: var(--bg); border-color: var(--text); background: var(--text); }
+
+body.music-releases-fullscreen .music-head { display: none; }
+body.music-releases-fullscreen .music-layout,
+body.music-releases-fullscreen .music-layout.is-list,
+body.music-releases-fullscreen .music-layout.is-cards,
+body.music-releases-fullscreen .music-layout.is-large { display: block; margin-top: 12px; }
+body.music-releases-fullscreen .music-sidebar {
+  position: static;
+  width: 100%;
+  max-height: none;
+  animation: releases-expand 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes releases-expand {
+  from { opacity: 0.72; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+body.music-releases-fullscreen .music-filter { max-width: 520px; }
+body.music-releases-fullscreen .album-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  max-height: none;
+  overflow: visible;
+  margin-right: 0;
+  padding: 10px 0 40px;
+}
+/* The table/list view stays a table in full-screen mode instead of being
+   silently replaced by cover cards. */
+body.music-releases-fullscreen .album-list.is-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+}
+body.music-releases-fullscreen .album-list.is-list .album-item {
+  padding: 8px 12px;
+  border-color: var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+}
+body.music-releases-fullscreen .album-list.is-list .album-item-title { font-size: 0.95rem; }
+body.music-releases-fullscreen .album-list.is-list .album-item-count { font-size: 0.8rem; }
+body.music-releases-fullscreen .album-list.is-large {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+body.music-releases-fullscreen .album-card-item {
+  grid-template-columns: 60px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+}
+body.music-releases-fullscreen .album-card-cover { width: 60px; height: 60px; }
+body.music-releases-fullscreen .album-card-title { font-size: 0.98rem; white-space: normal; }
+body.music-releases-fullscreen .album-card-count { font-size: 0.78rem; }
+body.music-releases-fullscreen .album-list.is-large .album-card-item {
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 18px;
+}
+body.music-releases-fullscreen .album-list.is-large .album-card-cover {
+  width: 112px;
+  height: 112px;
+  border-radius: 14px;
+}
+body.music-releases-fullscreen .album-list.is-large .album-card-cover-letter { font-size: 3rem; }
+body.music-releases-fullscreen .album-list.is-large .album-card-title { font-size: 1.2rem; }
+body.music-releases-fullscreen .album-list.is-large .album-card-count { font-size: 0.88rem; }
+body.music-releases-fullscreen .album-list.is-large .album-card-open { font-size: 1.3rem; }
+body.music-releases-fullscreen .music-main { display: none; }
+body.music-releases-fullscreen .player-settings-block { display: none; }
+
+/* --- tracks-only mode: collapse the release list so tracks fill the page --- */
+/* Collapsing and expanding are the SAME animation played in reverse: height,
+   width, spacing and opacity all share one duration/easing. Nothing switches
+   to display:none, so the release list folds away gradually and comes back
+   just as smoothly. The two mode buttons stay as a toolbar you can click. */
+:root {
+  --collapse-duration: 0.42s;
+  --collapse-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.music-sidebar,
+.music-filter,
+.music-count,
+.player-settings-block,
+.album-view-toggle,
+.album-list {
+  /* A real starting value is required — `max-height: none` cannot be animated
+     to 0, which made the content disappear in one frame instead of folding. */
+  max-height: 1200px;
+  transition:
+    max-height var(--collapse-duration) var(--collapse-ease),
+    max-width var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.65) ease,
+    transform var(--collapse-duration) var(--collapse-ease),
+    margin var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    visibility 0s linear 0s;
+}
+body.music-releases-collapsed .music-layout,
+body.music-releases-collapsed .music-layout.is-list,
+body.music-releases-collapsed .music-layout.is-cards,
+body.music-releases-collapsed .music-layout.is-large {
+  grid-template-columns: minmax(0, 1fr);
+}
+body.music-releases-collapsed .music-sidebar {
+  position: static;
+  width: 100%;
+  max-height: 72px;
+}
+body.music-releases-collapsed .album-view-toggle {
+  max-width: 0;
+  border-width: 0;
+}
+body.music-releases-collapsed .music-filter,
+body.music-releases-collapsed .music-count,
+body.music-releases-collapsed .album-list,
+body.music-releases-collapsed .player-settings-block,
+body.music-releases-collapsed .album-view-toggle {
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    max-height var(--collapse-duration) var(--collapse-ease),
+    max-width var(--collapse-duration) var(--collapse-ease),
+    opacity calc(var(--collapse-duration) * 0.5) ease,
+    transform var(--collapse-duration) var(--collapse-ease),
+    margin var(--collapse-duration) var(--collapse-ease),
+    padding var(--collapse-duration) var(--collapse-ease),
+    visibility 0s linear var(--collapse-duration);
+}
+body.music-releases-collapsed .music-tools-row { justify-content: flex-start; min-height: 40px; }
+body.music-releases-collapsed .music-main { max-width: none; }
+body.music-releases-collapsed .album-expand-btn {
+  color: var(--bg);
+  background: var(--text);
+}
+
+/* --- album sidebar --- */
+.music-sidebar {
+  position: sticky;
+  /* The logo/search row is in the document flow now, so the sidebar only
+     needs a small gap from the viewport top when it sticks. */
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  max-height: calc(100vh - 24px);
+}
+
+.music-filter {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--menu-search-border);
+  border-radius: 10px;
+  background: var(--menu-search-bg);
+  color: var(--menu-search-text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+.music-filter::placeholder { color: var(--menu-search-placeholder); }
+.music-filter:focus {
+  outline: none;
+  border-color: #7a7a7a;
+  box-shadow: 0 0 0 2px rgba(128, 128, 128, 0.35);
+}
+
+.music-tools-row {
+  position: relative;
+  /* The release count is painted above the list. Without its own layer, the
+     FLIP transform on release buttons (switching list/cards/large) promotes
+     them to a composited layer that paints over this earlier sibling and
+     hides the "40 релизов · 296 треков" line. The background hides any
+     overlap instead of letting card corners show through the text. */
+  z-index: 2;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  background: var(--bg);
+}
+
+.music-count {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 100%;
+  order: 2;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.album-list {
+  position: relative;
+  /* Keep transformed/animated release buttons inside their own stacking
+     context so they can never cover the toolbar above the list. */
+  z-index: 1;
+  isolation: isolate;
+  display: flex;
+  /* Let the list shrink inside the sticky sidebar so overflow-y actually
+     works on wide screens too (flex items default to min-height: auto). */
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 2px;
+  /* Keep the scrollbar slightly away from the sidebar's right edge instead of
+     sitting exactly on top of the release cards' border. */
+  margin: 0 10px 0 0;
+  padding: 2px 2px 6px;
+  max-height: 1200px;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transition:
+    grid-template-columns 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    gap 0.24s ease,
+    padding 0.3s ease,
+    margin 0.3s ease,
+    max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0s;
+}
+
+.album-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  /* Height follows the text: no oversized tap target or empty padding around
+     a one-line release name. */
+  min-height: 0;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    padding 0.24s ease,
+    border-radius 0.24s ease,
+    font-size 0.24s ease;
+}
+.album-item:hover,
+.album-item:focus-visible {
+  border-color: var(--text);
+  background: var(--bg-elevated-2);
+}
+.album-item.is-active {
+  border-color: var(--text);
+  background: var(--bg-elevated-2);
+}
+.album-item.is-active .album-item-title { font-weight: 700; }
+.album-item-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-size 0.24s ease;
+}
+.album-item-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  transition: font-size 0.24s ease;
+}
+
+/* --- release view switch: compact rows or visual cards --- */
+.album-view-toggle {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+  /* Also collapses horizontally so no empty slot is left in the toolbar. */
+  max-width: 116px;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--bg-elevated);
+}
+/* One highlight slides between the three modes instead of three separate
+   backgrounds popping in and out. --view-index is set by music.js. */
+.album-view-toggle::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 34px;
+  border-radius: 7px;
+  background: var(--text);
+  transform: translateX(calc(var(--view-index, 0) * 37px));
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.album-view-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.album-view-btn svg { width: 17px; height: 17px; fill: currentColor; }
+.album-view-btn:hover,
+.album-view-btn:focus-visible { color: var(--text); }
+.album-view-btn[aria-pressed="true"] { color: var(--bg); }
+.album-view-btn.is-switching { animation: view-btn-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes view-btn-pop {
+  0% { transform: scale(0.82); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* Card view keeps the sidebar usable while giving each release a real cover. */
+.album-list.is-cards { gap: 6px; }
+.album-list.is-large { gap: 10px; }
+.album-card-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    grid-template-columns 0.24s ease,
+    gap 0.24s ease,
+    padding 0.24s ease,
+    border-radius 0.24s ease;
+}
+.album-card-item:hover,
+.album-card-item:focus-visible,
+.album-card-item.is-active {
+  border-color: var(--text);
+  background: var(--bg-elevated-2);
+}
+.album-card-cover {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  overflow: hidden;
+  transition:
+    width 0.24s ease,
+    height 0.24s ease,
+    border-radius 0.24s ease;
+}
+.album-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+.album-card-cover-letter {
+  color: var(--muted);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: font-size 0.24s ease;
+}
+.album-card-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.album-card-title {
+  overflow: hidden;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-size 0.24s ease;
+}
+.album-card-count {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  transition: font-size 0.24s ease;
+}
+.album-card-item.is-active .album-card-title { font-weight: 700; }
+.album-card-open { color: var(--muted); font-size: 0.8rem; transition: font-size 0.24s ease; }
+
+/* Large view gives each release a substantially bigger container and cover. */
+.album-list.is-large .album-card-item {
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+.album-list.is-large .album-card-cover {
+  width: 96px;
+  height: 96px;
+  border-radius: 10px;
+}
+.album-list.is-large .album-card-cover-letter { font-size: 2.4rem; }
+.album-list.is-large .album-card-title { font-size: 1.05rem; white-space: normal; }
+.album-list.is-large .album-card-count { font-size: 0.82rem; }
+.album-list.is-large .album-card-open { font-size: 1.1rem; }
+
+/* --- album panel --- */
+.music-main { min-width: 0; }
+
+.album-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.album-cover {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 112px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+/* Album covers are pixel art — do not smooth their pixels when scaling. */
+.album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+.album-cover-letter {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.album-meta { min-width: 0; flex: 1 1 auto; }
+/* The collapse button reuses .album-fullscreen-btn; only the icon changes. */
+.album-expand-btn .icon-expand { display: none; }
+body.music-releases-collapsed .album-expand-btn .icon-collapse { display: none; }
+body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
+.album-title {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.album-subtitle {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.music-empty {
+  margin: 18px 0;
+  color: var(--muted);
+}
+
+/* --- track list --- */
+.music-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: track;
+}
+
+/* The whole row is one hover surface: the two round buttons are inside it,
+   so hovering anywhere highlights the controls and the title together. */
+.music-track-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  border-radius: 12px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+.music-track:hover .music-track-row,
+.music-track:focus-within .music-track-row {
+  background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+/* Play/pause and "add to queue" are neighbours at the start of the row. */
+.music-track-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+
+/* Play/pause and queue are two identical round controls. */
+.music-track-button,
+.music-track-queue {
+  display: flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease;
+}
+.music-track:hover .music-track-button,
+.music-track:hover .music-track-queue,
+.music-track:focus-within .music-track-button,
+.music-track:focus-within .music-track-queue,
+.music-track-button:hover,
+.music-track-button:focus-visible,
+.music-track-queue:hover,
+.music-track-queue:focus-visible {
+  color: var(--text);
+  border-color: var(--focus-border);
+  background: var(--bg-elevated-2);
+}
+.music-track-queue svg { width: 14px; height: 14px; fill: currentColor; }
+.music-track-queue:active { transform: scale(0.92); }
+
+/* The title row has no frame of its own — only the two circles are outlined. */
+.music-track-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+/* The row supplies the highlight; the info button only needs a focus ring. */
+.music-track-info:focus-visible {
+  outline: 1px solid var(--focus-border);
+  outline-offset: -1px;
+}
+.music-track-number {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: inherit;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.music-track-index { transition: opacity 0.18s ease, transform 0.18s ease; }
+/* The icon layer replaces the number on the active track; the circle itself is
+   the button, so there is no second border inside it. */
+.music-track-toggle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.7);
+  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.music-track-toggle svg {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.music-track-toggle .icon-pause { opacity: 0; transform: scale(0.5) rotate(-30deg); }
+.music-track.is-active .music-track-index { opacity: 0; transform: scale(0.8); }
+.music-track.is-active .music-track-toggle { opacity: 1; transform: scale(1); }
+.music-track.is-playing .music-track-toggle .icon-play { opacity: 0; transform: scale(0.5) rotate(30deg); }
+.music-track.is-playing .music-track-toggle .icon-pause { opacity: 1; transform: none; }
+/* Play/pause feedback: a quick press pulse on the round button itself. */
+@keyframes track-toggle-pulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(0.84); }
+  100% { transform: scale(1); }
+}
+.music-track-button.is-toggling { animation: track-toggle-pulse 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.music-track-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.music-track-duration {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+}
+.music-track.is-queued .music-track-queue {
+  color: var(--bg);
+  border-color: var(--text);
+  background: var(--text);
+}
+.music-track.is-queued .music-track-duration { color: var(--text); }
+
+.music-track.is-active .music-track-button {
+  color: var(--bg);
+  border-color: var(--text);
+  background: var(--text);
+}
+.music-track.is-active .music-track-info { background: var(--bg-elevated-2); }
+.music-track.is-active .music-track-title { font-weight: 700; }
+
+/* Same cursor-reactive container highlight the links cards have. The pointer
+   coordinates are set by scripts/hover-glow.js; the gradient follows them. */
+.music-track {
+  position: relative;
+  isolation: isolate;
+  --accent: 255, 255, 255;
+  --mx: 50%;
+  --my: 50%;
+}
+.music-track::before,
+.music-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.music-track::before {
+  background: radial-gradient(160px circle at var(--mx) var(--my), rgba(var(--accent), 0.2), transparent 68%);
+}
+.music-track::after {
+  padding: 1px;
+  background: radial-gradient(150px circle at var(--mx) var(--my), rgba(var(--accent), 0.38), transparent 62%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.music-track:hover::before,
+.music-track:hover::after,
+.music-track:focus-within::before,
+.music-track:focus-within::after { opacity: 1; }
+
+/* --- staggered appearance of the catalog items --- */
+@keyframes music-item-in {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .album-item,
+  .music-track {
+    animation: music-item-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 22ms);
+  }
+  .album-head,
+  .music-count,
+  .music-filter {
+    animation: music-item-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+}
+
+/* --- fullscreen cover preview --- */
+.cover-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(20px, 5vw, 64px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.24s ease,
+    visibility 0s linear 0.24s;
+}
+.cover-lightbox.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 0.24s ease,
+    visibility 0s;
+}
+.cover-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  cursor: zoom-out;
+  transition: opacity 0.28s ease;
+}
+.cover-lightbox.is-open .cover-lightbox-backdrop { opacity: 1; }
+.cover-lightbox.is-closing .cover-lightbox-backdrop { opacity: 0; transition-duration: 0.22s; }
+:root[data-theme="light"] .cover-lightbox-backdrop { background: rgba(255, 255, 255, 0.94); }
+.cover-lightbox-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: min(86vw, 86vh);
+  opacity: 0;
+  transform: translateY(28px) scale(0.9);
+  transition:
+    opacity 0.3s ease,
+    transform 0.44s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cover-lightbox.is-open .cover-lightbox-frame { opacity: 1; transform: none; }
+.cover-lightbox.is-closing .cover-lightbox-frame {
+  opacity: 0;
+  transform: translateY(-14px) scale(0.94);
+  transition-duration: 0.22s;
+}
+.cover-lightbox.is-open .cover-lightbox-frame img:not([hidden]),
+.cover-lightbox.is-open .cover-lightbox-letter:not([hidden]) {
+  animation: cover-pop-in 0.44s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes cover-pop-in {
+  from { opacity: 0; transform: scale(0.86) rotate(-1deg); }
+  to { opacity: 1; transform: none; }
+}
+.cover-lightbox-frame img,
+.cover-lightbox-letter {
+  display: block;
+  width: min(78vw, 78vh, 720px);
+  height: min(78vw, 78vh, 720px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  object-fit: contain;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+.cover-lightbox-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: clamp(4rem, 16vw, 10rem);
+  font-weight: 700;
+}
+.cover-lightbox-frame img[hidden],
+.cover-lightbox-letter[hidden] { display: none; }
+.cover-lightbox-caption {
+  margin: 0;
+  max-width: min(78vw, 720px);
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cover-lightbox-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.cover-lightbox-close:hover,
+.cover-lightbox-close:focus-visible { border-color: var(--text); }
+body.cover-lightbox-open { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .music-layout,
+  .music-sidebar,
+  .music-filter,
+  .music-count,
+  .album-list,
+  .player-settings-block,
+  .album-view-toggle,
+  .music-track-row,
+  .music-track-button,
+  .music-track-queue,
+  .album-item,
+  .album-item-title,
+  .album-item-count,
+  .album-card-item,
+  .album-card-cover,
+  .album-card-cover-letter,
+  .album-card-title,
+  .album-card-count,
+  .album-card-open,
+  .cover-lightbox,
+  .cover-lightbox.is-open,
+  .cover-lightbox.is-closing,
+  .cover-lightbox-backdrop,
+  .cover-lightbox-frame { transition: none; }
+  .cover-lightbox.is-open .cover-lightbox-frame img:not([hidden]),
+  .cover-lightbox.is-open .cover-lightbox-letter:not([hidden]),
+  .music-track-button.is-toggling,
+  .album-view-btn.is-switching { animation: none; }
+  .album-view-toggle::before { transition: none; }
+  body.music-releases-fullscreen .music-sidebar { animation: none; }
+}
+
+/* Player styles live in player.css (shared by every page). */
+
+@media (max-width: 900px) {
+  .music-layout,
+  .music-layout.is-cards,
+  .music-layout.is-large { grid-template-columns: 1fr; }
+  .music-sidebar {
+    position: static;
+    max-height: none;
+  }
+  .album-list {
+    max-height: 240px;
+  }
+}
+
+@media (max-width: 520px) {
+  .album-head { gap: 12px; }
+  .album-cover { width: 84px; height: 84px; }
+  .music-track-info { padding: 8px 9px; }
+  .album-list { max-height: 210px; }
+  .album-list.is-large .album-card-item { grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; padding: 9px 10px; }
+  .album-list.is-large .album-card-cover { width: 72px; height: 72px; }
+}

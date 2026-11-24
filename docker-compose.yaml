@@ -1,0 +1,30 @@
+services:
+  zqwy_web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Rebuild the image on every `docker compose up` (no stale cached image).
+    pull_policy: build
+    container_name: zqwy_web
+    restart: always
+    environment:
+      - TZ=Europe/Moscow
+      - PORT=3000
+    # По умолчанию отдаётся dist, собранный внутри образа при каждом build
+    # (включая генерацию заметок из src/notes). Bind-mount ниже переопределяет
+    # содержимое образа хостовым ./dist, поэтому при его использовании свежесть
+    # заметок зависит от локальной сборки на хосте (`npm run build`).
+    # volumes:
+    #   - ./dist:/app/dist:ro
+    # Локальный тест: публикуем порт 3000 на хост.
+    # Для продакшена с reverse proxy закомментируй `ports` и раскомментируй
+    # блок `networks` ниже.
+    ports:
+      - "3000:3000"
+    # networks:
+    #   - zqwy_reverse_proxy
+
+# networks:
+#   zqwy_reverse_proxy:
+#     name: zqwy_reverse_proxy
+#     external: true

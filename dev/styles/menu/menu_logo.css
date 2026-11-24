@@ -1,0 +1,29 @@
+/* Theme-aware glow for the logo button. Layout/position is handled by base.css/menu.css. */
+.menu-button-container .menu-open-button {
+  animation: none;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.5s ease,
+    transform 0.25s ease;
+}
+
+.menu-button-container .menu-open-image {
+  display: block;
+  pointer-events: none;
+}
+
+.menu-button-container .menu-open-button:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 6px rgba(255, 255, 255, 1),
+    0 0 14px rgba(255, 255, 255, 1),
+    0 0 28px rgba(255, 255, 255, 0.95),
+    0 0 46px rgba(255, 255, 255, 0.8);
+}
+
+.menu-button-container .menu-open-button:active {
+  box-shadow:
+    0 0 5px rgba(255, 255, 255, 0.9),
+    0 0 14px rgba(255, 255, 255, 0.8);
+  transform: scale(0.96);
+}

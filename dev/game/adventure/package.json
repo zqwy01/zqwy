@@ -1,0 +1,15 @@
+{
+  "name": "to-east-browser-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Браузерный прототип «К Востоку»: Лабиринт сознаний, Скрижаль, рюкзак и терминал с canvas.",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

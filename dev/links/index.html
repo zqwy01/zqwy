@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>zqwy — ссылки</title>
+  <meta name="description" content="Все ссылки zqwy: музыка, социальные сети и стоки">
+  <link rel="icon" href="../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../styles/menu/menu.css">
+  <link rel="stylesheet" href="../styles/menu/menu_logo.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/links.css">
+  <link rel="stylesheet" href="../styles/player.css">
+  <script>
+    // apply stored theme before first paint (no flash)
+    (function () {
+      try {
+        var raw = localStorage.getItem("zqwy.site.settings.v1");
+        var s = raw ? JSON.parse(raw) : null;
+        var theme = s && s.theme ? s.theme : "dark";
+        if (theme === "system") {
+          theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        document.documentElement.lang = s && s.language === "en" ? "en" : "ru";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
+</head>
+<body>
+  <main class="page">
+    <div class="page-content links-page">
+
+      <!-- Same base element as every page: logo + search. There is no catalog
+           menu here, so the logo returns the user back (browser history when
+           they came from this site, otherwise the parent page). -->
+      <div class="container menu-button-container" id="menuButtonContainer">
+        <div class="menu-trigger-row">
+          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-i18n-aria-label="back" data-back>
+            <img class="menu-open-image" src="../assets/icons/favicon.ico" alt="" aria-hidden="true">
+          </a>
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск">
+            <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
+          </form>
+        </div>
+      </div>
+
+      <header class="home-head links-head">
+        <h1 class="home-title" data-i18n="homeLinks">links</h1>
+        <p class="home-heading" data-i18n="linksHeading">Все мои ссылки в одном месте.</p>
+      </header>
+
+      <nav class="links-nav" aria-label="Разделы ссылок" data-i18n-aria-label="linksNavSections">
+        <a href="#social" data-i18n="linksNavSocial">Соцсети и контент</a>
+        <a href="#music" data-i18n="linksNavMusic">Музыкальные площадки</a>
+        <a href="#stocks" data-i18n="linksNavStocks">Стоки</a>
+      </nav>
+
+      <section class="links-section" id="social" aria-labelledby="social-title">
+        <h2 class="links-section-title" id="social-title" data-i18n="linksSectionSocial">Соцсети и контент</h2>
+        <ul class="links-grid">
+          <li>
+            <a class="link-card" href="https://www.youtube.com/@zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#youtube"></use></svg></span>
+              <span class="link-name">YouTube</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.tiktok.com/@_zqwy_" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#tiktok"></use></svg></span>
+              <span class="link-name">My toks</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.tiktok.com/@zqwy.live" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#tiktok"></use></svg></span>
+              <span class="link-name">My toks live</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://t.me/z_q_w_y" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#telegram"></use></svg></span>
+              <span class="link-name">Text Blog, Notification and Chat</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://pinterest.com/z_q_w_y/my-paints/" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#pinterest"></use></svg></span>
+              <span class="link-name">My Paints</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://matrix.to/#/#zqwy:matrix.org" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#matrix"></use></svg></span>
+              <span class="link-name">Universal Chat</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://linktr.ee/zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#linktree"></use></svg></span>
+              <span class="link-name">linktree</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.instagram.com/zqwy_music?igsh=Y2o1c2YyMmJlcDhz" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#instagram"></use></svg></span>
+              <span class="link-name">Instagram</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.facebook.com/people/ZQWY-music/" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#facebook"></use></svg></span>
+              <span class="link-name">Facebook</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://mastodon.social/@zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#mastodon"></use></svg></span>
+              <span class="link-name">Mastodon</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://x.com/Z_Q_W_Y" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#x"></use></svg></span>
+              <span class="link-name">X</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://bsky.app/profile/z-q-w-y.bsky.social" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#bluesky"></use></svg></span>
+              <span class="link-name">BlueSky</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://vk.com/z_q_w_y" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#vk"></use></svg></span>
+              <span class="link-name">VK</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://substack.com/@zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#substack"></use></svg></span>
+              <span class="link-name">Substack</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.reddit.com/user/_zqwy_/" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#reddit"></use></svg></span>
+              <span class="link-name">Reddit</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://zqwy.itch.io" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#itchdotio"></use></svg></span>
+              <span class="link-name">itch.io</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.duolingo.com/profile/z_q_w_y" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#duolingo"></use></svg></span>
+              <span class="link-name">Duolingo</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="links-section" id="music" aria-labelledby="music-title">
+        <h2 class="links-section-title" id="music-title" data-i18n="linksSectionMusic">Музыкальные площадки</h2>
+        <ul class="links-grid">
+          <li>
+            <a class="link-card" href="https://audiomack.com/zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#audiomack"></use></svg></span>
+              <span class="link-name">audiomack</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://music.apple.com/ru/artist/zqwy/1524644220" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#applemusic"></use></svg></span>
+              <span class="link-name">apple_music</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://music.amazon.com/artists/B08FXPSYSW/zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#amazonmusic"></use></svg></span>
+              <span class="link-name">amazon_music</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://open.spotify.com/artist/2Efoy3CvUkMYDApH06FALw" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#spotify"></use></svg></span>
+              <span class="link-name">spotify</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.submithub.com/link/zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#submithub"></use></svg></span>
+              <span class="link-name">sumbit_hub</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.soundclick.com/zqwy" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#soundclick"></use></svg></span>
+              <span class="link-name">soundclick</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://soundcloud.com/zqwy-sc" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#soundcloud"></use></svg></span>
+              <span class="link-name">soundcloud</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://rapchat.com/profile/340DB690-9E23-11EB-8017-D314B4DFDD5D" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#rapchat"></use></svg></span>
+              <span class="link-name">rapchat</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://music.yandex.ru/artist/9811686" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#yandexmusic"></use></svg></span>
+              <span class="link-name">yandex_music</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://music.mts.ru/artist/9811686" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#mtsmusic"></use></svg></span>
+              <span class="link-name">mts_music</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://zvuk.com/artist/211125232" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#sberzvuk"></use></svg></span>
+              <span class="link-name">sber_zvuk</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.shazam.com/artist/zqwy/1524644220" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#shazam"></use></svg></span>
+              <span class="link-name">shazam</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.deezer.com/ru/artist/104037322" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#deezer"></use></svg></span>
+              <span class="link-name">deezer</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://zqwy.bandcamp.com/" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#bandcamp"></use></svg></span>
+              <span class="link-name">bandcamp</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.pandora.com/artist/zqwy/ARlndnxfh6fpnqg" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#pandora"></use></svg></span>
+              <span class="link-name">pandora</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.qobuz.com/us-en/interpreter/zqwy/13364978" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#qobuz"></use></svg></span>
+              <span class="link-name">qobuz</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://ok.ru/music/artist/122906744693434" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#odnoklassniki"></use></svg></span>
+              <span class="link-name">ok</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://tidal.com/browse/artist/20930958?u" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#tidal"></use></svg></span>
+              <span class="link-name">tidal</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://audius.co/_zqwy_" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#audius"></use></svg></span>
+              <span class="link-name">audius</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="https://www.music-flo.com/detail/artist/406541046" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#flo"></use></svg></span>
+              <span class="link-name">flo</span>
+            </a>
+          </li>
+          <li>
+            <a class="link-card" href="mailto:zqwymusic@gmail.com">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#gmail"></use></svg></span>
+              <span class="link-name">email</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="links-section" id="stocks" aria-labelledby="stocks-title">
+        <h2 class="links-section-title" id="stocks-title" data-i18n="linksSectionStocks">Стоки</h2>
+        <ul class="links-grid">
+          <li>
+            <a class="link-card" href="https://www.pond5.com/ru/artist/zqwy_music" target="_blank" rel="noopener noreferrer">
+              <span class="link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="../assets/icons/links.svg#pond5"></use></svg></span>
+              <span class="link-name">pond5</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+  <script src="../scripts/transition.js" defer></script>
+  <script src="../scripts/menu.js" defer></script>
+  <script src="../scripts/player.js" defer></script>
+  <script src="../scripts/hover-glow.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+/* --- links page (reuses the variables and themes from base.css) --- */
+.links-page {
+  padding-bottom: 56px;
+}
+
+/* the logo + search row is the shared base element (base.css); the page
+   heading simply follows it */
+.links-head {
+  margin-top: 8px;
+  /* Keep the subtitle clear of the navigation pills below it. */
+  margin-bottom: 10px;
+}
+.links-head .home-title { font-size: clamp(1.7rem, 3vw, 2.3rem); }
+.links-head .home-heading { margin-top: 2px; }
+
+.links-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 30px;
+}
+.links-nav a {
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-decoration: none;
+  outline: none;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.links-nav a:hover {
+  color: var(--text);
+  border-color: var(--focus-border);
+  background: var(--bg-elevated);
+}
+.links-nav a:focus-visible {
+  color: var(--text);
+  border-color: var(--focus-border);
+  background: var(--bg-elevated);
+}
+
+.links-section { margin-top: 28px; }
+.links-section-title {
+  margin: 0 0 12px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 54px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.link-card:hover,
+.link-card:focus-visible {
+  background: var(--bg-elevated-2);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.link-card:hover {
+  border-color: var(--focus-border);
+}
+.link-card:focus-visible {
+  border-color: var(--focus-border);
+}
+:root[data-theme="light"] .link-card:hover,
+:root[data-theme="light"] .link-card:focus-visible {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+.link-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-align: center;
+}
+.link-icon svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+.link-name {
+  min-width: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .links-grid { grid-template-columns: 1fr; }
+}
+
+/* --- staggered appearance of the links page elements --- */
+@keyframes links-item-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .links-head {
+    animation: links-item-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .links-nav a,
+  .links-section-title,
+  .links-grid li {
+    animation: links-item-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .links-nav a:nth-child(1) { animation-delay: 60ms; }
+  .links-nav a:nth-child(2) { animation-delay: 110ms; }
+  .links-nav a:nth-child(3) { animation-delay: 160ms; }
+  .links-nav a:nth-child(4) { animation-delay: 210ms; }
+  .links-nav a:nth-child(5) { animation-delay: 260ms; }
+  .links-section-title { animation-delay: 150ms; }
+  .links-grid li:nth-child(3n + 1) { animation-delay: 190ms; }
+  .links-grid li:nth-child(3n + 2) { animation-delay: 240ms; }
+  .links-grid li:nth-child(3n) { animation-delay: 290ms; }
+  .links-section:nth-of-type(2) .links-section-title { animation-delay: 330ms; }
+  .links-section:nth-of-type(2) .links-grid li:nth-child(3n + 1) { animation-delay: 370ms; }
+  .links-section:nth-of-type(2) .links-grid li:nth-child(3n + 2) { animation-delay: 420ms; }
+  .links-section:nth-of-type(2) .links-grid li:nth-child(3n) { animation-delay: 470ms; }
+  .links-section:nth-of-type(3) .links-section-title { animation-delay: 510ms; }
+  .links-section:nth-of-type(3) .links-grid li:nth-child(3n + 1) { animation-delay: 550ms; }
+  .links-section:nth-of-type(3) .links-grid li:nth-child(3n + 2) { animation-delay: 600ms; }
+  .links-section:nth-of-type(3) .links-grid li:nth-child(3n) { animation-delay: 650ms; }
+  .links-section:nth-of-type(4) .links-section-title { animation-delay: 690ms; }
+  .links-section:nth-of-type(4) .links-grid li:nth-child(3n + 1) { animation-delay: 730ms; }
+  .links-section:nth-of-type(4) .links-grid li:nth-child(3n + 2) { animation-delay: 780ms; }
+  .links-section:nth-of-type(4) .links-grid li:nth-child(3n) { animation-delay: 830ms; }
+  .links-section:nth-of-type(5) .links-section-title { animation-delay: 870ms; }
+  .links-section:nth-of-type(5) .links-grid li:nth-child(3n + 1) { animation-delay: 910ms; }
+  .links-section:nth-of-type(5) .links-grid li:nth-child(3n + 2) { animation-delay: 960ms; }
+  .links-section:nth-of-type(5) .links-grid li:nth-child(3n) { animation-delay: 1010ms; }
+}

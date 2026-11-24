@@ -1,0 +1,36 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20210901051048000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20210902060004000
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: 
+title: wavesurfer-player
+tmap.edges: {"98d1e610-48e4-4b45-8f56-de5744a9e0b4":{"to":"509922d1-4c5e-4885-b1a2-0c4e711e7e9e","type":"unknown"}}
+tmap.id: a8bc51a0-2c72-42f8-b22e-7e11f9f140c5
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 
+
+Этот [[плеер|$:/plugins/music_player/wavesurfer-player.js]] необходим для того чтобы обернуть [[wavesurfer.js |$:/plugins/music_player/wavesurfer.js]]в модуль с render.
+
+Хотя... Возможно, в будущем... это будет как единое целое в одном плагине. :)

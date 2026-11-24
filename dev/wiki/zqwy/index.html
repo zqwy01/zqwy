@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>zqwy — notes</title>
+  <meta name="description" content="Заметки zqwy в формате markdown">
+  <link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../../styles/menu/menu.css">
+  <link rel="stylesheet" href="../../styles/menu/menu_logo.css">
+  <link rel="stylesheet" href="../../styles/base.css">
+  <link rel="stylesheet" href="../../styles/notes.css">
+  <link rel="stylesheet" href="../../styles/player.css">
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem("zqwy.site.settings.v1");
+        var s = raw ? JSON.parse(raw) : null;
+        var theme = s && s.theme ? s.theme : "dark";
+        if (theme === "system") {
+          theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        document.documentElement.lang = s && s.language === "en" ? "en" : "ru";
+      } catch (e) { document.documentElement.dataset.theme = "dark"; }
+    })();
+  </script>
+</head>
+<body>
+  <main class="page">
+    <div class="page-content notes-page">
+      <div class="container menu-button-container" id="menuButtonContainer">
+        <div class="menu-trigger-row">
+          <a class="menu-open-button" id="menuOpenButton" href="../../" data-back aria-label="Назад" data-i18n-aria-label="back">
+            <img class="menu-open-image" src="../../assets/icons/favicon.ico" alt="" aria-hidden="true">
+          </a>
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск" data-i18n-aria-label="siteSearch">
+            <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
+          </form>
+        </div>
+      </div>
+      <header class="home-head notes-head">
+        <h1 class="home-title">zqwy notes</h1>
+        <p class="home-heading" data-i18n="notesHeading">Заметки в формате markdown, собранные из src/notes/.</p>
+        <p class="home-heading blog-hint" data-i18n="blogHeading">Блог · хронология</p>
+        <p class="home-heading blog-hint dim" data-i18n="blogHint">Записи расположены по датам — от новых к старым.</p>
+      </header>
+      <article class="notes-article">
+<nav class="notes-tree" aria-label="Заметки">
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">aesthics</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./aesthics-folk.html"><span class="note-tree-title">folk</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">aesthics/folk.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">genres</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./genres-folk.html"><span class="note-tree-title">folk</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">genres/folk.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">linux</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./linux-ubuntu-studio.html"><span class="note-tree-title">ubuntu_studio</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">linux/ubuntu_studio.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">messangers</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./messangers-deltachat.html"><span class="note-tree-title">deltachat</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">messangers/deltachat.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">music_albums</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./music-albums-death-to-capital.html"><span class="note-tree-title">Кризисы, резкие всплески, эмциональные выпады. Смерть капитала не единственный резонный случай для подобного, это может быть и Death To Social и так далее. Суть в том, что это приводит к зрению в утопичное будущее dystopian future</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">music_albums/death_to_capital.md</span></a>
+              <a class="note-tree-link" href="./music-albums-why-not.html"><span class="note-tree-title">Why Not</span><span class="note-tree-date">2025-08-07</span><span class="note-tree-path">music_albums/Why Not.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">phi</span></summary>
+            <div class="notes-folder-body">
+              <details class="notes-folder">
+                <summary><span class="notes-folder-name">music</span></summary>
+                <div class="notes-folder-body">
+                  <a class="note-tree-link" href="./phi-music-sound-but-text.html"><span class="note-tree-title">Звук как текст</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">phi/music/sound_but_text.md</span></a>
+                </div>
+              </details>
+              <a class="note-tree-link" href="./phi-author.html"><span class="note-tree-title">author</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">phi/author.md</span></a>
+              <a class="note-tree-link" href="./phi-factory.html"><span class="note-tree-title">factory</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">phi/factory.md</span></a>
+              <a class="note-tree-link" href="./phi-oncology-in-russia.html"><span class="note-tree-title">oncology_in_russia</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">phi/oncology_in_russia.md</span></a>
+              <a class="note-tree-link" href="./phi-soc.html"><span class="note-tree-title">soc</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">phi/soc.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">rhymes</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./rhymes-bedolapa.html"><span class="note-tree-title">bedolapa</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">rhymes/bedolapa.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">sound_design</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./sound-design-панорамирование.html"><span class="note-tree-title">Панорамирование</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">sound_design/Панорамирование.md</span></a>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">tiddly</span></summary>
+            <div class="notes-folder-body">
+              <details class="notes-folder">
+                <summary><span class="notes-folder-name">notes</span></summary>
+                <div class="notes-folder-body">
+                  <a class="note-tree-link" href="./tiddly-notes-open-source-music-instruments.html"><span class="note-tree-title">[Cardinal](https://github.com/DISTRHO/Cardinal)</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/open_source_music_instruments.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-akt-1-glava-2-pervaya-vstrecha.html"><span class="note-tree-title">Аксолотль попал в лабиринт</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/akt 1. Glava 2. Pervaya Vstrecha.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-kto-takoi-muzikant.html"><span class="note-tree-title">Какой я музыкант?</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Kto takoi muzikant_.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-dzhoker.html"><span class="note-tree-title">Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость.</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Dzhoker.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-kakie-suschestvuyut-os.html"><span class="note-tree-title">Почему Windows 11, стало быть и здорово, однако печально?</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Kakie suschestvuyut OS_.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze.html"><span class="note-tree-title">Предпосылки</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Koadaptatsiya zmei. Predposilki k gipoteze..md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-postgres.html"><span class="note-tree-title">Что эти характеристики означают?</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Postgres.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-aks.html"><span class="note-tree-title">aks</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/aks.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-aksolotl.html"><span class="note-tree-title">aksolotl</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/aksolotl.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-algiz.html"><span class="note-tree-title">algiz</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/algiz.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-bass-mitsva.html"><span class="note-tree-title">Bass Mitsva</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Bass Mitsva.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-bertol-d-auerbah.html"><span class="note-tree-title">Bertol'd auerbah</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Bertol'd auerbah.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-beskonechnii-kollaps.html"><span class="note-tree-title">Beskonechnii Kollaps</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Beskonechnii Kollaps.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-bezumie-na-vkuse.html"><span class="note-tree-title">Bezumie Na Vkuse</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Bezumie Na Vkuse.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-biela.html"><span class="note-tree-title">Biela</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Biela.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-droun-muzikal-nii-zhanr.html"><span class="note-tree-title">Droun - Muzikal'nii ZHanr</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Droun - Muzikal'nii ZHanr.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-embient-muzikal-nii-zhanr.html"><span class="note-tree-title">Embient - Muzikal'nii ZHanr</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Embient - Muzikal'nii ZHanr.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-folk-muzikal-nii-zhanr.html"><span class="note-tree-title">Folk - Muzikal'nii ZHanr</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Folk - Muzikal'nii ZHanr.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-glioma.html"><span class="note-tree-title">Glioma</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Glioma.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-iom-kippur.html"><span class="note-tree-title">Iom Kippur</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Iom Kippur.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-iz-svoego.html"><span class="note-tree-title">Iz Svoego</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Iz Svoego.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-kiber-logos.html"><span class="note-tree-title">Kiber logos</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Kiber logos.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-kuzya.html"><span class="note-tree-title">Kuzya</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Kuzya.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-manekeni.html"><span class="note-tree-title">Manekeni</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Manekeni.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-muzikal-nie-zhanri.html"><span class="note-tree-title">Muzikal'nie zhanri</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Muzikal'nie zhanri.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-nekto.html"><span class="note-tree-title">Nekto</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Nekto.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-novaya-skrizhal.html"><span class="note-tree-title">Novaya skrizhal'</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Novaya skrizhal'.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-pochemu-net.html"><span class="note-tree-title">Pochemu Net_</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Pochemu Net_.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-retsept-blyuda.html"><span class="note-tree-title">Retsept Blyuda</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Retsept Blyuda.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-skrizhal.html"><span class="note-tree-title">Skrizhal'</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Skrizhal'.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-utopicheskoe-buduschee.html"><span class="note-tree-title">Utopicheskoe buduschee</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/Utopicheskoe buduschee.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-v-lesu.html"><span class="note-tree-title">V lesu</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">tiddly/notes/V lesu.md</span></a>
+                  <a class="note-tree-link" href="./tiddly-notes-pishu-muziku.html"><span class="note-tree-title">Мультижанр, мультикультура, мультиязык, это слияние в безобразный вид. Жанры, культура и язык сковывают! Использую все инструменты что попадаются в руки и изобретать стремлюсь😀</span><span class="note-tree-date">2025-08-19</span><span class="note-tree-path">tiddly/notes/Pishu muziku.md</span></a>
+                </div>
+              </details>
+            </div>
+          </details>
+          <details class="notes-folder">
+            <summary><span class="notes-folder-name">zemic</span></summary>
+            <div class="notes-folder-body">
+              <a class="note-tree-link" href="./zemic-00-ветвь-лабиринта.html"><span class="note-tree-title">00. Ветвь Лабиринта</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">zemic/00. Ветвь Лабиринта.md</span></a>
+              <a class="note-tree-link" href="./zemic-01-1-пробуждение-у-скрижали.html"><span class="note-tree-title">01.1 Пробуждение у Скрижали</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">zemic/01.1 Пробуждение у Скрижали.md</span></a>
+              <a class="note-tree-link" href="./zemic-01-2-скрижаль.html"><span class="note-tree-title">01.2 Скрижаль</span><span class="note-tree-date">2026-11-23</span><span class="note-tree-path">zemic/01.2 Скрижаль.md</span></a>
+            </div>
+          </details>
+        </nav>
+        <section class="note-preview" id="note-aesthics-folk">
+          <p class="note-preview-section">aesthics</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>folk</h2>
+          <p>Эстетика: Инди-Фолк;<br>
+          Слушать: Леонарда Коэна;<br>
+          Читать: Унесённые Ветром;<br>
+          Спорить: Навсегда ли потеряна культура, на которой и была построена прекрасная, но и в чём-то ужасная современность</p>
+          <p>Для которых мылые случаи неприемлемы чем гигантские</p>
+          <p>Ведь действительно: зачем читать, к примеру, «Войну и мир», когда можно с лёгкостью объявить его «устаревшим».<br>
+          Жить в ностальгии — это вовсе не решение проблемы наследования; это лишь воспоминание о прошлом, словно ядовитая сладость, которая сообщает только одну мысль: то, что было раньше, уже не будет никогда. Однако с этим утверждением можно заявить о том, что одна повестка сменится другой. И проблема именно в том, что это как маятник, а не решение, которое выстраивает баланс, который и создаёт ту гармонию, когда каждый элемент занимает собственное место в соответствии с реальностью наследия, а не с ирреальностью через мнимую справедливость, которую почему-то реализуют за чью-то утрату. Ведь реальность в том, что жажда не мести, а именно правосудия.<br>
+          Вопрос в том, кто первым откажется от языка возмездия в пользу языка признания, — и это уже вопрос не эстетический, а политический, что делает его значительно медленнее, но тем не менее за этим гораздо познавательнее созидать и учиться.</p>
+          <p>И всё благодаря устройству, сети, инфраструктуре, которую придумали конкретные люди конкретной культуры, конкретного воспитания и конкретного происхождения. Это не значит, что отличные хуже или лучше: на то они и другие, что не способны понять, как это всё существует, и быть благодарными за это.</p>
+        </section>
+        <section class="note-preview" id="note-genres-folk">
+          <p class="note-preview-section">genres</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>folk</h2>
+          
+        </section>
+        <section class="note-preview" id="note-linux-ubuntu-studio">
+          <p class="note-preview-section">linux</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>ubuntu_studio</h2>
+          <h4>Ubuntu 26.10: стоит ли обновляться с LTS? Личный опыт и выводы</h4>
+          <p>Появление Ubuntu 26.10 («Stonking Stingray») всего через полгода после LTS-релиза 26.04 неизбежно вызывает вопрос: стоит ли переходить на промежуточную версию? Я протестировал её в работе и готов поделиться выводами.</p>
+          <p><strong>Что нового и почему это интересно</strong></p>
+          <p>Технически 26.10 — это заметный шаг вперёд. Под капотом — <a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">ядро Linux 7.3</a>, графический стек <a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">Mesa 26.2</a> и окружение <a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">GNOME 51</a>. На практике это даёт более плавные анимации рабочего стола и улучшенную поддержку нового оборудования, особенно ноутбуков на <a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">Snapdragon X Elite</a>. В некоторых бенчмарках прирост производительности действительно ощутим — в среднем около <a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">4–5% по сравнению с 26.04 LTS</a>.</p>
+          <p><strong>Главная проблема: стабильность на проде</strong></p>
+          <p>Однако для продакшн-среды или основной рабочей машины ключевым остаётся вопрос стабильности. К сожалению, здесь 26.10 подводит. В ходе взаимодействия с системой я столкнулся с рядом багов, которые в итоге приводят к крашам. Это не единичный случай: в <a href="https://bugs.launchpad.net/ubuntu" target="_blank" rel="noopener noreferrer">трекере ошибок Launchpad</a> зафиксированы многочисленные сообщения о том, что графическая сессия GNOME (Wayland) полностью зависает через 1–6 минут после входа, требуя принудительной перезагрузки. Другой распространённый сценарий — падение <code>gnome-shell</code> с сигналом SIGSEGV при вводе текста, особенно при использовании методов ввода вроде IBus. Также сообщается о <a href="https://bugs.launchpad.net/ubuntu" target="_blank" rel="noopener noreferrer">панике ядра 7.3.0-9-generic</a> примерно через минуту после загрузки на определённом оборудовании. Это подтверждает общий статус промежуточных релизов как потенциально нестабильных.</p>
+          <p><strong>Производительность против энергопотребления</strong></p>
+          <p>Да, 26.10 работает быстрее, чем 26.04 LTS. Однако за этот прирост приходится платить. В моих тестах энергопотребление оказалось выше, чем на LTS-версии. Справедливости ради стоит отметить, что результаты бенчмарков разнятся: на некоторых платформах (например, <a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">Intel Panther Lake</a>) энергопотребление 26.10 оказалось даже немного ниже — в среднем 21.8 Вт против 22.3 Вт у 26.04 LTS. В других случаях (<a href="https://www.phoronix.com/review/ubuntu-2610" target="_blank" rel="noopener noreferrer">Intel Arrow Lake</a>) уровень энергопотребления остался примерно одинаковым. Тем не менее, на моей конфигурации разница в пользу LTS была заметна, что может быть критично для автономности ноутбука.</p>
+          <p><strong>Вывод: обратно на LTS</strong></p>
+          <p>Взвесив все «за» и «против», я принял решение переподготовить систему обратно на LTS-ветку. Для задач, где важна предсказуемость и отсутствие сюрпризов в самый неподходящий момент, 26.04 LTS остаётся более разумным выбором. <a href="https://www.reddit.com/r/Ubuntu/comments/1o9x8y3/ubuntu_2610_released/" target="_blank" rel="noopener noreferrer">Мнение сообщества</a> это подтверждает: для продакшена рекомендуется оставаться на LTS, а 26.10 интересна скорее разработчикам, тестировщикам и энтузиастам. Новые фишки 26.10, безусловно, найдут своё место в будущих LTS-релизах, но в текущем виде эта версия — скорее для тестирования, чем для повседневной боевой работы.</p>
+        </section>
+        <section class="note-preview" id="note-messangers-deltachat">
+          <p class="note-preview-section">messangers</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>deltachat</h2>
+          <p>Delta Chat — это мессенджер, который работает поверх обычной электронной почты, превращая письма в чаты. Его главное преимущество в том, что для регистрации не нужен номер телефона, а переписка защищена сквозным шифрованием.</p>
+          <p>Вот пошаговая инструкция, как установить и настроить Delta Chat.</p>
+          <h4>📥 Шаг 1: Установка приложения</h4>
+          <p>Delta Chat доступен на всех основных платформах. Скачать его можно бесплатно из официальных магазинов приложений или с <a href="https://delta.chat/ru/download" target="_blank" rel="noopener noreferrer">сайта разработчика</a>.</p>
+          <ul><li><strong>iOS / iPhone</strong>: Через <a href="https://apps.apple.com/app/delta-chat/id1459523234" target="_blank" rel="noopener noreferrer">App Store</a>.</li><li><strong>Android</strong>: Через <a href="https://play.google.com/store/apps/details?id=chat.delta" target="_blank" rel="noopener noreferrer">Google Play</a> или <a href="https://f-droid.org/app/com.b44t.messenger" target="_blank" rel="noopener noreferrer">F-Droid</a>.</li><li><strong>Windows</strong>: Через <a href="https://apps.microsoft.com/detail/9pjtxx7hn3pk" target="_blank" rel="noopener noreferrer">Microsoft Store</a> или с помощью команды <code>winget install 9PJTXX7HN3PK</code>.</li><li><strong>macOS</strong>: Через <a href="https://formulae.brew.sh/cask/deltachat" target="_blank" rel="noopener noreferrer">Homebrew</a> (<code>brew install --cask deltachat</code>) или с <a href="https://delta.chat/ru/download" target="_blank" rel="noopener noreferrer">официального сайта</a>.</li><li><strong>Linux</strong>: Доступен в форматах <a href="https://flathub.org/apps/chat.delta.desktop" target="_blank" rel="noopener noreferrer">Flatpak</a> (<code>flatpak install flathub chat.delta.desktop</code>), AppImage, DEB, RPM и Snap.</li></ul>
+          <p>Полный список ссылок для скачивания можно найти на официальной странице Delta Chat: <a href="https://delta.chat/ru/download" target="_blank" rel="noopener noreferrer">https://delta.chat/ru/download</a>.</p>
+          <h4>⚙️ Шаг 2: Настройка аккаунта</h4>
+          <p>После установки у вас есть два основных пути для начала работы.</p>
+          <h5>Способ 1: Мгновенная настройка (рекомендуется)</h5>
+          <p>Это самый быстрый и простой способ, который не требует наличия существующей электронной почты.</p>
+          <p>1.  Откройте приложение и нажмите <strong>«Создать новый профиль»</strong>.<br>
+          2.  Введите имя или никнейм, который будут видеть ваши контакты.<br>
+          3.  Нажмите <strong>«Принять и создать профиль»</strong>.</p>
+          <p>Готово! Приложение автоматически создаст для вас случайный аккаунт на сервере Chatmail. Вам не нужно ничего настраивать, запоминать пароли или номера телефонов — все учетные данные будут надежно храниться на вашем устройстве. Подробнее о серверах Chatmail можно узнать на <a href="https://chatmail.at" target="_blank" rel="noopener noreferrer">официальном сайте проекта</a>.</p>
+          <h5>Способ 2: Использование существующей почты</h5>
+          <p>Если вы хотите использовать для Delta Chat свой текущий адрес электронной почты:</p>
+          <p>1.  Откройте приложение и выберите <strong>«Использовать другой сервер»</strong> или <strong>«Войти с помощью почты»</strong>.<br>
+          2.  Введите свой адрес электронной почты и пароль.<br>
+          3.  Приложение автоматически попытается определить настройки вашего почтового сервера (IMAP/SMTP).</p>
+          <p>&gt; <strong>Важный совет</strong>: Для некоторых почтовых провайдеров (например, Gmail) может потребоваться создать и использовать специальный <strong>«пароль приложения»</strong> вместо вашего обычного пароля от аккаунта. Инструкцию по созданию пароля приложения для Gmail можно найти на <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer">справочной странице Google</a>.</p>
+          <p>Разработчики также рекомендуют завести <strong>отдельный адрес электронной почты</strong> специально для Delta Chat, чтобы не смешивать обычную почту с мгновенными сообщениями.</p>
+          <h4>👥 Шаг 3: Добавление контактов</h4>
+          <p>После настройки вы можете начать общение несколькими способами:</p>
+          <ul><li><strong>Сканирование QR-кода</strong>: Самый безопасный метод. При личной встрече отсканируйте QR-коды друг друга, чтобы обменяться ключами шифрования.</li><li><strong>Ссылка-приглашение</strong>: Отправьте свою персональную ссылку-приглашение через любой другой канал (SMS, другой мессенджер, соцсети).</li><li><strong>По адресу электронной почты</strong>: Если вы знаете чей-то email, можете написать ему напрямую. Сообщение дойдет, даже если у получателя не установлен Delta Chat.</li></ul>
+          <p>Дополнительные сценарии использования и ответы на частые вопросы собраны в <a href="https://delta.chat/ru/help" target="_blank" rel="noopener noreferrer">официальной документации (FAQ) Delta Chat</a>.</p>
+          <h4>💻 Использование на нескольких устройствах</h4>
+          <p>Вы можете использовать один и тот же аккаунт Delta Chat на телефоне и на компьютере. Для этого:</p>
+          <p>1.  На новом устройстве выберите <strong>«Добавить как второе устройство»</strong>.<br>
+          2.  На устройстве, где аккаунт уже настроен, перейдите в <strong>Настройки → Добавить второе устройство</strong>.<br>
+          3.  Отсканируйте QR-код, который появится на экране, новым устройством. Ваши сообщения и контакты синхронизируются.</p>
+          <p>Если вам понадобится более подробное руководство, полная документация доступна на <a href="https://deltachat.wiki" target="_blank" rel="noopener noreferrer">официальном вики-сайте Delta Chat</a>.</p>
+        </section>
+        <section class="note-preview" id="note-music-albums-death-to-capital">
+          <p class="note-preview-section">music_albums</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Кризисы, резкие всплески, эмциональные выпады. Смерть капитала не единственный резонный случай для подобного, это может быть и Death To Social и так далее. Суть в том, что это приводит к зрению в утопичное будущее dystopian future</h2>
+          
+        </section>
+        <section class="note-preview" id="note-music-albums-why-not">
+          <p class="note-preview-section">music_albums</p>
+          <p class="note-preview-date">2025-08-07</p>
+          <h2>Why Not</h2>
+          <p>---<br>
+          title:<br>
+          description:<br>
+          icon: FasQuestion<br>
+          tags:</p>
+          <ul><li>cinematic</li><li>orchestral</li><li>ambient</li><li>neoclassical</li><li>someone</li><li>zqwy_music</li></ul>
+          <p>date: 2025-08-07<br>
+          cssclasses:<br>
+          aliases:<br>
+          author: ZQWY<br>
+          cover:<br>
+          genre:</p>
+          <ul><li>neoclassical</li></ul>
+          <p>instrument:</p>
+          <ul><li>organ</li><li>flute </li><li>piano</li></ul>
+          <p>epocha: 18st<br>
+          multi_url:<br>
+          upc:<br>
+          ISWC:<br>
+          size_album:<br>
+          daw:<br>
+          emotions:<br>
+          bpm:<br>
+          ---</p>
+          <p>Почему нет?<br>
+          Некто задаётся этим вопросом<br>
+          Множество исходов конца, но апокалипсис не случился<br>
+          Бесконечное повторение, цикл жизни и смерти<br>
+          Души переходили из одного мира в другой и в конечном счёте почему бы не создать новый мир? Почему нет?<br>
+          Ведь это не может существовать вечно, ведь когда-то этого не было</p>
+          <p>В разные эпохи, Некто видел гибели планеты и каждая из гибелей была невероятно близкой к триумфу</p>
+          <p>Journey Through Time: To East Unveils Hypnotic New Ambient Track &quot;Why Not&quot;<br>
+          Experience &quot;Why Not&quot;: A Melancholic Organ Ambient Masterpiece by ZQWY &amp; To East!</p>
+          <p>&quot;Why Not&quot; dives deep into a unique sonic landscape where ambient textures intertwine with the profound echoes of early medieval grandeur. At its heart, the track features the haunting resonance of a melancholic organ, crafting a soundscape that is both ancient and timeless. This isn't just music; it's a sprawling, expansive journey for the soul, imbued with a profound sense of melancholy and contemplative depth.</p>
+          <p>Imagine the solemnity of a forgotten cathedral, not just from a bygone era, but from a future that never fully arrived. Picture a desolate, burned earth, silenced by a cataclysmic reckoning, where the last vestiges of civilization crumble into dust. In this stark, post-apocalyptic landscape, a single, ancient organ stands as the sole monument. Its sustained, drawn-out notes are the only sound, filling the vast, empty space – a mournful echo of humanity's past, a lament for what was, and perhaps, a solitary prayer for a new, silent dawn.</p>
+          <p>ZQWY and To East masterfully capture this evocative atmosphere, creating an instrumental ambient piece that encourages introspection and deep listening. &quot;Why Not&quot; is perfect for focus, meditation, or simply losing yourself in a rich, immersive sound world. If you seek atmospheric instrumental music that transcends conventional genres, &quot;Why Not&quot; delivers an unforgettable experience that blends early medieval sounds with contemporary ambient drone, providing a soundtrack to a world reborn from ashes.</p>
+          <p>Don't just listen; <em>experience</em> To East's &quot;Why Not&quot; today. Find your solace in its captivating embrace.</p>
+          <p>Listen Why Not - right now on all platforms!</p>
+        </section>
+        <section class="note-preview" id="note-phi-music-sound-but-text">
+          <p class="note-preview-section">phi / music</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Звук как текст</h2>
+          <h3>В конкретно этой фразе действительно всё так. Однако моё определение более низкоуровневое, поскольку включает в себя элементы не лингвистической, а именно звуковой — пусть будет, фонетической — части. Хотя, в самом деле, фонетика не рассматривает весь аспект звука как уровень доязыка, который также является объектом, насыщенным информацией.</h3>
+          <h3>Так как человеческий звук возникает не только благодаря работе рта, но и, например, благодаря движению языка, его источником может быть практически любая часть тела. Человек может издавать звуки, часто моргая и хлопая глазами, или, например, благодаря работе сфинктера желудка. Именно поэтому изучение звука и, соответственно, музыки предполагает вполне нетривиальный уровень сложности.</h3>
+          <h3>Издавать звуки может что угодно, но их интерпретация — уже совсем другой вопрос. Исследование звука выходит за рамки любой структуры лингвистики, поскольку изучение языка как некой лимитированной формы ограничивает возможность познания всего спектра способов передачи собственной реакции.</h3>
+          <h3>Поэтому и существует музыкальная нотация. Однако звуковой агрегации до сих пор не существует вследствие крайней сложности анализа шума.</h3>
+          <h3>Но зачем вообще записывать звук в виде текста? Ведь звук на то и звук: его нужно слушать, а не читать. А теперь представь, что благодаря такой записи человек, который ничего не слышит, смог бы понять, что за звук перед ним. Или, например, тот, кто не может интерпретировать звук, потому что у него нет соответствующих знаний, получил бы возможность его понять.</h3>
+        </section>
+        <section class="note-preview" id="note-phi-author">
+          <p class="note-preview-section">phi</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>author</h2>
+          <p>Приватизация — это когда достижения конкретных людей, находящиеся во владении государства, воруют частные компании.</p>
+          <p>Национализация — это когда достижения конкретных людей, находящиеся во владении частной компании, ворует государство.</p>
+          <p>Социализация — это когда достижения конкретных людей, находящиеся в самостоятельном владении на основании их естественного права на авторское право, ворует общество и объявляет общественным достижением. При том что даже если автор не объявлял это общедоступным, коллективное всегда стремится обесценить уникальное, исходя из мнимой справедливости в равенстве.</p>
+          <p>В сумме определил гибридную форму дискриминации.<br>
+          Во всех трёх случаях авторское право человека стоит ровным счётом ничего и одновременно всё.</p>
+          <p>Это не значит, что я поддерживаю это. Напротив, я написал о реальности, а не сгладил её бесполезными фантазиями о красоте.</p>
+          <p>Потому что для любого трезвого человека важно не отказываться становиться частью систем:</p>
+          <ul><li>государств;</li><li>корпораций;</li><li>обществ.</li></ul>
+          <p>Следовательно: создал дилемму об определении такого человека, который искренне может быть частью системы, а не только исходя из того, что для него предопределено. Ведь он не может выбрать это не потому, что оно не совпадает с идеологическим интересом, а потому, что не совпадает с масштабным интересом человека.</p>
+          <p>Существует ли для этого понятия определённая позиция?</p>
+          <p>С учётом того, что к каждому человеку невозможно приставить собственного полицейского, но возможно приставить ИИ и заставить использовать как минимум телефон, а как максимум — отслеживать действия каждого человека со спутника, остаётся сделать крайний, но значимый вывод: данное рассуждение — это мост между идеологиями. Это практический центризм, в котором изобретается собственный исход.</p>
+          <p>Однако можно обнаружить в этом непоследовательность и лицемерие, но это и не призыв, а описание механизма</p>
+        </section>
+        <section class="note-preview" id="note-phi-factory">
+          <p class="note-preview-section">phi</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>factory</h2>
+          <p>ии производство</p>
+          <p>самое печальное что это увеличивает стоимость товара на каждом этапе производства, а вот качество остаётся таким же или даже хуже, поэтому конечный потребитель остаётся обманутым и поэтому тоже приходится уже изобретать инструмент для того чтобы это всё фильтровать</p>
+        </section>
+        <section class="note-preview" id="note-phi-oncology-in-russia">
+          <p class="note-preview-section">phi</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>oncology_in_russia</h2>
+          <p>Чтобы картина была честной.</p>
+          <p>Онкология лишилась целевых денег. 140 млрд руб. в год, которые были закреплены за онкопомощью законодательно, из бюджета исчезли — вместо них 3,9 млрд на оборудование. Замещение через ОМС — это обещание Минздрава без механизма, который гарантировал бы, что эти деньги дойдут именно до онкопациентов. Целевая статья давала такую гарантию, общий котёл — нет.<br>
+          Фильтрация получила рост. Расходы на АСБИ и блокировки удвоились: с ~32 млрд за 2027–2029 до ~60 млрд, плюс 2,27 млрд на ИИ-систему фильтрации трафика и 10,2 млрд на новые ТСПУ в 2026 году. Это прямое увеличение.<br>
+          Эти процессы происходят одновременно в одном бюджете. Сократить онкопроект на 141 млрд и увеличить фильтрацию на 28 млрд можно было только осознанным выбором приоритетов — бюджетный процесс это не делает сам собой.</p>
+        </section>
+        <section class="note-preview" id="note-phi-soc">
+          <p class="note-preview-section">phi</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>soc</h2>
+          <p>Социализация не тождественна коммуникативности.<br>
+          Термин «социализация» происходит из гражданско-правового и политического процесса.</p>
+          <p>Однако если пройти детский дом, детский сад, интернат, лагерь, школу, высшую школу, армию, тюрьму и так далее, этих кругов возможно определить в достаточном количестве; Иногда они являются институциональными и каждый из них можно включить в термин  《социализация》.</p>
+          <p>Реальность такова: человек не становится от этого способным к общению.<br>
+          Время проведённое в каждом из этих мест, делает представление о человеческом мире более узким и приземлённым. За время, проведённое в этих местах, человек не исправляется, ведь каждая минута вне воли — отравленная минута;</p>
+          <p>Тем более совсем не обязательно испытывать на себе все характерные особенности этих мест;</p>
+          <p>Возможность заявить что в процессе социализации достигаются конкретные полезности, но резонансно отметить, что эти полезности не обязательно соответствуют: эстетике, этике и культуре, в том числе теологической;</p>
+          <p>И вот самая важная часть этой фактологической формулировки: социализация не определяет моральную сторону субъекта. Мораль прививается опытом, а не испытанием в искусственной среде</p>
+          <p>Это не значит, что важен исключительный и единственный опыт, но формирование личности — не обязанность, а лишь одна из интерпретаций «свой/чужой»</p>
+          <p>Поэтому обмен опытом — это о том, как человек выстраивает коммуникацию</p>
+        </section>
+        <section class="note-preview" id="note-rhymes-bedolapa">
+          <p class="note-preview-section">rhymes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>bedolapa</h2>
+          <p>Не кормят бедолагу, а снизу надпись: «Стоит по воли»;<br>
+          Забирайте его — «Бедолапу», коли будет знать кого кусать!</p>
+        </section>
+        <section class="note-preview" id="note-sound-design-панорамирование">
+          <p class="note-preview-section">sound_design</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Панорамирование</h2>
+          <p>Панорамирование в музыке — это распределение звуков между левым и правым каналами стереозаписи. С его помощью инструменты можно расположить в разных точках звукового пространства: например, гитару — немного слева, клавишные — справа, а бас и ударные — ближе к центру. Это помогает каждому инструменту занять своё место в миксе и делает звучание более объёмным и разборчивым. Панорамирование не меняет сам звук инструмента, а определяет, откуда он воспринимается слушателем.</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-open-source-music-instruments">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>[Cardinal](https://github.com/DISTRHO/Cardinal)</h2>
+          <p>Phasex:<br>
+          Встречает пользователя минималистичный дизайн с небольшим количеством возможностей. С первого взгялда не супер-удобный, но в целом наполнение из четырёх осциляторов, лфо, и последовательно нескольких эффектов. Этого достаточно для создание сложных звуков. Помимо этого есть переключатели для разных режимов. Однозначный минусом является отсутсвие хоть какой-то визуализации происходящего.</p>
+          <p>Yoshimi<br>
+          Интересное устройство, по борту имеется синтезатор, channel rack, send посылы и fx и несколько пресетов.<br>
+          Синтезатор работает в трёх режимах - synth/bass/pad/<br>
+          Поддерживает посыла для создание эффетов</p>
+          <p>Использует достататочно, можно сказать - прилично памяти: ~300 мб. К примеру популярные DAW - Fl Studio 24 которая использует примерно 150-200 мб, но это объём памяти использует только DAW, а всё же Yoshimi уже может играть музыку</p>
+          <p>Hydrogen - драм-секвенсор с микшером и автоматизациями<br>
+          Минималистично</p>
+          <p>Bespoke Synth<br>
+          sunvox</p>
+          <h2><a href="https://archie3d.github.io/aeolus_plugin/" target="_blank" rel="noopener noreferrer">Aeolus</a></h2>
+          <h2>fx</h2>
+          <h3>distrotions</h3>
+          <h4><a href="https://github.com/eye-wave/bit-flipper-vst?tab=readme-ov-file" target="_blank" rel="noopener noreferrer">bit_flipper</a></h4>
+          <h4><a href="https://github.com/Chowdhury-DSP/BYOD" target="_blank" rel="noopener noreferrer">byod</a></h4>
+          <h3>reverbs</h3>
+          <h4>Эффект реверберации создаёт прострнаство.</h4>
+          <h4><a href="https://github.com/tiagolr/reevr" target="_blank" rel="noopener noreferrer">reev-r</a></h4>
+          <h3>delay</h3>
+          <h4><a href="https://github.com/tiagolr/time12" target="_blank" rel="noopener noreferrer">time-12</a></h4>
+          <h3>filters</h3>
+          <h4><a href="https://github.com/tiagolr/filtr" target="_blank" rel="noopener noreferrer">filt-r</a></h4>
+          <h3>other</h3>
+          <h4><a href="https://github.com/tiagolr/gate12" target="_blank" rel="noopener noreferrer">gate-12</a></h4>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-akt-1-glava-2-pervaya-vstrecha">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Аксолотль попал в лабиринт</h2>
+          <h5>Аксолотля окружает лабиринт. Оглядывается и всматривается в стенку, которая является поворотом ведущий вглубь лабиринта. Акс медленно разворачивается, проводит взглядом по мокрым стенам, на секунду замирает у поворота, ведущего всё глубже. Вода здесь темнее и тише — только капли где-то сверху и редкое шуршание песка под лапками аксолотля.</h5>
+          <h5>Он делает шаг — потом ещё один — и наконец замечает движение.</h5>
+          <p>У самого изгиба коридора, там, где пол уходит в неглубокую впадину, сидит нечто, похожее на маленькое существо. Оно напоминает детёныша: округлый силуэт, неровные “крылышки” по бокам, как будто из тонкой перепонки. Однако в отличие от обычных обитателей подземья оно не дышит привычно — вместо вдоха/выдоха воздух в водной толще вокруг него будто дрожит, как поверхность пруда, когда в неё бросают камешек.</p>
+          <h5>Аксолотль осторожно наклоняет голову. Существо отвечает — почти неуловимым шевелением. И когда оно поднимает взгляд, становится ясно, что “глаза” у него не совсем глаза: светятся два бледных пятна, будто маленькие лампочки, приклеенные к тьме.</h5>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-kto-takoi-muzikant">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Какой я музыкант?</h2>
+          <p>Мой долгий путь начался с изучение основ музыкальной теории и одновременной практики синтеза звука.<br>
+          Изучение заключается в том, какие существуют музыкальные инструменты и как их синтезировать.<br>
+          Вот осциллятор и его задача создавтаь волну с определённой формой, дальше фильтр, adsr, lfo, а также эффекты</p>
+          <p>Следующий и не менее важный этап, стало быть - изучение комбинации звуков и более сложное - микширование</p>
+          <p>После процесса создание звука, старутется создание аранжировки; то есть структура композиции.</p>
+          <p>Аранжировка и структура</p>
+          <p>Жанров, стилей и направлений в музыке существует столько, что это задача по-прежнему является не совсем уж и определенной. И чтоб для этого создать формулу и формализовать вывод в таблицу, чтобы вот прочесть и понять это количество в статичным виде. А дело то всё в том, что музыкальных характеристик кототорые описывают, что вообще происходит в этом звуке... Но сейчас не об этом. Так, вот... Структура создаётся с помощью последовательности звуков выраженных через ноты</p>
+          <p>Микширование это процесс адаптации балансировки инструментов с помощью микшерного пульта.</p>
+          <h2>Что такое направление?</h2>
+          <h2>Что такое жанр?</h2>
+          <h2>Мои произведение</h2>
+          <p>После этого описание моего виденье анализа музыкальных произведений. Также покажу собственные</p>
+          <ul><li>Некто</li><li>Данный альбом посвящён магическому существу. В лице Енота. Жанрвое происхождение-расхождение от оркестра до военного эмбиента с траурным этюдом.</li><li>Биела  </li></ul>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-dzhoker">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость.</h2>
+          <h5>Мрачный, наводящий ужас и жуткий трек с мощным нижним диапазоном и индустриальным сатурацией; грувовый phonk‑бит на 92 BPM делает его одновременно подпрыгивающим и драйвовым. Просторные darkwave‑пэды добавляют меланхоличную, медитативную и эфирную атмосферу, тогда как пост‑роковые гитарные акценты придают кинематографичный, эпический размах. Удары и элементы IDM создают хаотичные, гипнотические и напряжённые ритмические сдвиги, а виниловый шум и полевые сэмплы привносят зернистую, городскую текстуру. В итоге — драматичный, напряжённый и созерцательный трек, одновременно агрессивный и вдумчивый, идеально подходящий для ночных, дистопичных и атмосферных саундтреков.</h5>
+          <p>#### Эпоха возникнование мира непрырывно связана с эпохой исчезновение. Эпоха стремлений к распаду миранаступает для тех, кто на грани связанны со своей склонностью быть словно манекен, который способен примерить любую форму. Разница манекена и изменчивости связаны с непрерывностью существование, а не способом управление к которому приближается арбитр – некто.</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-kakie-suschestvuyut-os">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Почему Windows 11, стало быть и здорово, однако печально?</h2>
+          <p>Операционная система это такой набор программных утилит, что позволяет использовать устройство со всеми его компонентами и возможностями.</p>
+          <p>Существует не малое множество ОС (а сколько ядер, ох это уже совсем другой вопрос), и на данный момент опишу именно те, какие использовал!</p>
+          <ul><li>Microsoft Windows</li><li>11</li><li>10</li><li>8.1</li><li>8</li><li>XP</li><li>Linux</li><li>Debian</li><li>Ubuntu</li><li>CentOS</li><li>RHEL</li><li>Alpine </li><li>BSD</li><li>FreeBSD</li><li>GhostBSD</li></ul>
+          <p>Какие ОС использую и для чего?</p>
+          <p>Microsoft Windows – это де-факто корпоративный стандарт для потребительской аудитории. ОС это про то, чтобы всё было собрано и с довольным лицом, использовать систему на самом высшем уровне, из возможного. Я прошёл через следующие пользовательские версии и ревизии: XP, 7, 8, 8.1, 10, 11;<br>
+          а также серверные: 2017, 2019</p>
+          <p>И все целло могу заявить что это и удобно и неудобно, особенно в тех аспектах которые постоянно меняются.</p>
+          <p>Но всё же давайте по-порядку, от последней версии и до первой.</p>
+          <p>Внедрение llm, и всякие прибомбасы для использование нейросетей с легкостью – здорово, однако не в ущерб другим технологиям. Драйвера для работы с NPU это прекрасно, но они работают не так уж и часто, увы. Бережное отношение к электричеству, это важное решение для нейросетей, так как это именно та среда, после криптовалют, которая использует вычислительные мощности, не жалея столбы лэп... Однако это не проблема Microsoft, однако компания покупается на это и пытается продать. Хотя LLM это очень важный инструмент для нахождения и исправления критических уязвимостей.</p>
+          <p>linux – это песочница, в которой строится постепенно город. Ядро, контейнеры, процессы, ссылки<br>
+          mac os – не использую, это отчаянные события для меня, когда в руки попадает это...</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Предпосылки</h2>
+          <p>Змеям и незачем отдельный отдел для определения каждого организма, чтобы соответственно реагировать отдельно на человека/змею/некто.</p>
+          <p>А отдел, который хранит информацию о семье – оптимально, ведь здесь следует такое поведение: семью – не трогать (привязанность выражается в том, что змеи группируются по происхождению, особенно в период зимовки, то есть запоминают семью), а для остальных условие регулируется адаптивно, то есть змея встретила другого змея, это не значит, что будет реакция понимания, что они змеи друг для друга, напротив, будет реакция определить, что же перед ним за организм, враждебный, опасный, пища или семья.</p>
+          <p>(Это не значит, что это работает именно так, однако это наиболее эффективный алгоритм поведения змеи).</p>
+          <p>И то, что у змеи нет такой же реакции, как у человека (или других организмов), это не значит, что у человека есть реакция, как у змеи. (Собственно, как и то, что у одного человека такая же реакция, как и у другого человека).</p>
+          <p>Поэтому привязанность и так далее, связано с той реакцией, которая обладает змея при определённых условиях, а человек это уже конвертирует в собственную форму – – –.</p>
+          <p>Однако! тут стоит задать вопрос, а не змея (или другой организм, к примеру кошка, собака) ли приручает человека?</p>
+          <p>Ведь конечно можно объявить, что мозг не такой, как у экземплярного человека, но какая разница, если змея не равна человеку? Да это может быть не выгодно для человека, ведь он ожидает от змеи определённой реакции, однако есть другой человек, и он ожидал именно такой реакции, и этого будет достаточно, поэтому любое ожидание человека о равнозначной реакции является не наличием привязанности, а является наличием ожидания реакции.</p>
+          <p>И ещё не понял, что означает &lt;&lt;эмоциональная привязанность&gt;&gt;, а какое обратное значение этого может существовать? Или так задам вопрос, чем будет отличаться &lt;&lt;эмоциональная привязанность&gt;&gt; от &lt;&lt;привязанности&gt;&gt;? То и другое – предмет реакции, а вот какого характера эта привязанность, это уже необходимое описание, а то так это моделирование результата, а этого недостаточно.</p>
+          <p>Поэтому адаптация может быть в форме:</p>
+          <ul><li>приручение</li><li>укращение</li><li>методы, которые не стоит описывать, так как генетические эксперименты имеют неоднозначный характер восприятия.</li></ul>
+          <p>Тем не менее, всяческие цирки это используют для того, чтобы сделать из этого развлечение, вот так вот…</p>
+          <h2>Гипотезы</h2>
+          <p>Необходимо создать строгие определение следующих терминов: семья, ожидание;</p>
+          <p>Сделать эксперимент как матрицу контекстов (условия)</p>
+          <p>Пример минимальной схемы (две оси: кто/какие + что делает человек).<br>
+          Контекст	Что меняем у змеи	Что меняем у человека (манипуляция)	Что измеряем<br>
+          “Семья/свои” vs “прочие”	знакомство/родство/условия	нейтральный контакт или кормление по стандарту	толерантность, избегание, защитные реакции<br>
+          “Предсказуемый безопасный человек” vs “непредсказуемый”	повторяемость сигналов	один и тот же набор действий всегда → одинаковый исход, или смешанный	скорость успокоения, стресс-показатели<br>
+          “Смена человека” (перенос)	тест на перенастройку	исход оставляем тем же, но меняем человека	сохраняется ли эффект “ожидания”</p>
+          <p>Ключевой тест для твоей идеи: transfer test. Если при смене человека эффект исчезает — значит “индивидуальная идентичность” важнее. Если сохраняется — значит важнее контекст/сигналы (запах, ритуал действий, предсказуемость).</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-postgres">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Что эти характеристики означают?</h2>
+          <p>Существует не малое число баз данных, а точнее это множество постоянно - увеличивается, так как напрямую связано с хранением данных в масштабе.<br>
+          Но сейчас необходимо провести экскурс по реаляционной субд - postgres.</p>
+          <p>TRUNCATE TABLE - полная очистка таблицы;</p>
+          <p>например очистка попыток входа: TRUNCATE TABLE oc_bruteforce_attempts;</p>
+          <p>Изучить лимитные характеристики postgres, возможно с помощью следующих команд:</p>
+          <pre><code> - SHOW shared_buffers; 
+           - SHOW work_mem; 
+           - SHOW maintenance_work_mem;
+           - SHOW autovacuum_work_mem;
+           - SHOW effective_cache_size;
+           - SHOW max_connections;
+           - SHOW temp_file_limit; – если задан; 
+           - SHOW log_temp_files; – полезно для понимания spill-to-temp</code></pre>
+          <p>shared_buffers = 128MB<br>
+          Это фиксированная разделяемая память под буферы Postgres на весь кластер.</p>
+          <p>work_mem = 4MB<br>
+          Это лимит для каждой операции сортировки/хэш-таблицы. Важно: для сложного запроса может быть несколько сортировок/хэшей и/или параллельные воркеры — тогда суммарно может получиться “во много раз больше”, чем 4MB. Когда лимит операции превышается — она начинает писать во временные файлы (spill на диск), вместо “бесконечного роста”. postgresql.org</p>
+          <p>maintenance_work_mem = 64MB<br>
+          Это лимит для maintenance-операций (VACUUM/CREATE INDEX/…): в рамках одной maintenance-сессии.</p>
+          <p>autovacuum_work_mem = -1<br>
+          -1 означает: использовать maintenance_work_mem для каждого autovacuum worker’а. То есть автоваакум по памяти ограничен примерно тем же 64MB на воркер. postgresql.org</p>
+          <p>max_connections = 100<br>
+          Это не “память”, а верхняя грань числа бэкендов. Реальный расход work_mem зависит от того, сколько запросов реально делают sort/hash одновременно и есть ли parallel query.</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-aks">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>aks</h2>
+          <p>Изображён аксолотль в стилизованной, почти наивной манере: округлая широкая голова с мягкой «улыбкой», по бокам — яркие розовые перистые наружные жабры, от нижней части туловища идут короткие конечности и тонкий плавниковый хвост. Цветовая гамма — доминируют бирюзовые и синие тона фона и корпуса, контрастные розовые акценты на жабрах; мазки свободные, декоративные, создают ощущение подводной среды.</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-aksolotl">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>aksolotl</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>&lt;div class=&quot;wavesurfer-placeholder&quot; data-src=&quot;https://archive.org/download/zqwy_someone/8_zqwy_axolotol/8_zqwy_axolotol.mp3&quot;&gt;&lt;/div&gt;</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-algiz">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>algiz</h2>
+          <h4>Как возникла руна Алгиз?</h4>
+          <h5>Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольких форм влияний. Цикличность порождает рекурсивность, повторность. Это не позволяет сфокусироваться и инертно осмыслять. Души заключенные для связи между белой и темной ланью, защищены от перехвата и подходили для такой работы. Есть бедствие которое несёт белая лань, но помимо неё на гране прибывает - и другая лань. Которая связана с руной одал и также несёт бедствие, эта тёмная лань. Между ними есть защищённая связь для безопасной транспортировки душ. Однако тёмная лань не всегда способна сфокусироваться чтобы наладить связь и не прервать этот цикл передачи. Так, а что же делает тёмная лань по ту сторону? Его суть, подобрать подходящие места для новоприбывших. Пока цикл душ на этой гране, не завершится, его копыта пишут картину этой грани. Это он формирует пустоту, он превращает ничего в то, чем некогда раньше был занята белая лань. И только когда эта душа была отточенна, она возвращается обратно и тем самым насыщает белого, тем чего не хватает тёмному. Лань бежит, стучит копытам: &quot;цок-цок-цок&quot; и видит кот. И это не просто кот, а словно анекдот! Вот он - Кузя... Вот так вот…</h5>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-bass-mitsva">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Bass Mitsva</h2>
+          <h5>Пустыня. Песок. Только тишина, и больше ничего. Аксолотль лежит на спине, в небольшой луже воды. Вокруг сухой песок янтарного цвета, словно застывший свет древнего заката. В этот момент ему было уютно, хоть и выглядел так, будто бы умер. Небольшой клочок прохлады на его спине контрастировал с настойчивой теплотой солнечных лучей. Его перистые жабры вяло покачивались, были почти неподвижны. Аксолотль лежал с закрытыми глазами; у него были небольшие тёмные глаза с синеватой обводкой. Закрытый взгляд устремлён прямо в светлое бездонное небо. Для него этот мир сузился до этой капли жизни, окружённой тревогой. Аксолотль, этот удивительный обломок вечности, продолжал лежать на спине, маленький островок розовой жизни посреди янтарной пустыни, глядя в бесконечность. Вокруг пустыня, и данный момент – спокойный момент – идеальный момент – тишина. Единственный звук, нарушитель тишины, – нежный шелест ветра, перекатывающего крупинки песка, создавая крошечные, мимолётные барханы вокруг его временного убежища</h5>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-bertol-d-auerbah">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Bertol'd auerbah</h2>
+          <p>Жанр martial, warsong, neoclassical, drone</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-beskonechnii-kollaps">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Beskonechnii Kollaps</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>&lt;div class=&quot;wavesurfer-placeholder&quot; data-src=&quot;https://files.mastodon.social/media_attachments/files/116/810/667/407/507/952/original/d27aaa77bd31299c.mp3&quot;&gt;&lt;/div&gt;</p>
+          <p>***</p>
+          <h5>Вступительный трек альбома (он же первый трек). Эпичный кинематографичный неофолк с восточным оттенком и мистическим настроением. Начинается с гитары, напоминающей ситару. И постепенно магическая, почти заклинательная атмосфера: звучит как тьма, напряжение и лёгкая хаотичность; но при этом трек остаётся мощным, живым. Акустические ударные и электрогитара усиливают ощущение древнего ритуала, который превращается в яркое и странное музыкальное видение. Энергично и немного истерично... Жанр как: кинематография фолк, неофолк, оркестр и эпическое настроение. Используется электро гитара, акустические ударные, флейта, низкие духовые, струнные и вилончель.</h5>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-bezumie-na-vkuse">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Bezumie Na Vkuse</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>&lt;div class=&quot;wavesurfer-placeholder&quot; data-src=&quot;https://archive.org/download/zqwy_someone/6_zqwy_folish_on_delish/6_zqwy_folish_on_delish.mp3&quot;&gt;&lt;/div&gt;</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-biela">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Biela</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>&lt;$player-switcher src=&quot;https://files.mastodon.social/media_attachments/files/116/914/846/258/051/305/original/92b4aab9f81e645c.mp3&quot;/&gt;</p>
+          <h3>Саундтрек: загадочный, мистический, эзотерический оркестр.</h3>
+          <h5>Эпический скандинавский фольклёр. Мрачный эпос, таинственное фэнтези, эфирный фолк. Фолкотроника, эмбиент и страшный фонк. Сумеречный скрытный и запретный оккультизм. Слияние восточного и западного мотива. Воплощается мифологическая атмосфера и хтонический нигилизм. Ритм — синкопированный. Слияне магической энергии, арканическая ритуальность и спиритуальность.</h5>
+          <p>***</p>
+          <p>!<a href="https://files.mastodon.social/media_attachments/files/116/744/273/973/882/200/original/08b24cd31d79479e.webp" target="_blank" rel="noopener noreferrer">биела</a></p>
+          <p>***</p>
+          <h5>Изображение тёмное, на чёрном фоне показано светящееся скелетоподобное животное с длинными изогнутыми рогами — похоже это скелет оленя в стиле глитч/неон: видны череп, шейные и грудные позвонки, рёбра и частично передняя лапа. Цвета: холодные неоновые (голубой, белый, слегка пурпурный), изображение зернистое и искажённое.</h5>
+          <h5>Белая лань с помощью [[алгиз|руны]] осталась [[одной|одиночество]] из выживших. В отличие от тёмной лани, которая была связана с помощью другой руны и находилась [[по другую сторону | на_гране]] междумирья. Её суть — [[уничтожить всё | утопическое_будущее]], на собственном пути!</h5>
+          <p>***</p>
+          <h5>При создание использовались следующие музыкальные и не музыкальные инструменты: Флейта, тальхарпа, пианино, ковбел, акустические и синтезированные ударные, а также перкуссии, синтезатор</h5>
+          <p>***</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+          <p>&lt;nav class=&quot;bottom-logos&quot;&gt;</p>
+          <p>&lt;a href={{!!url_download_wav}} class=&quot;logo-link&quot; aria-label=&quot;Download Wav&quot;&gt;<br>
+          &lt;img src=&quot;./files/new_html/icons/download_wav.webp&quot; alt=&quot;download_wav&quot;&gt;<br>
+          &lt;/a&gt;</p>
+          <p>&lt;a href={{!!url_download_mp3}} class=&quot;logo-link&quot; aria-label=&quot;Download mp3&quot;&gt;<br>
+          &lt;img src=&quot;./files/new_html/icons/download_mp3.webp&quot; alt=&quot;download_mp3&quot;&gt;<br>
+          &lt;/a&gt;</p>
+          <p>&lt;/nav&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-droun-muzikal-nii-zhanr">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Droun - Muzikal'nii ZHanr</h2>
+          <h3>Дроун и дребезжание от постоянства и непрерывности происходящего. Человеческий слух, как динамик и микрофон, обладает АЧХ — амплитудно-частотной характеристикой. Это означает, что каждое ухо слышит частотный диапазон неравномерно и выступает неким фильтром. А так как наружных уха два, к тому же есть ещё и внутреннее ухо, то при сложении всей этой информации неизбежно возникают резонансы, которые напоминают нам о том, что всё дребезжит, так как ничто не идеально.</h3>
+          <h3>Ведь это всего лишь человеческий слух, который не обладает абсолютной точностью. Зрение и обоняние тоже ограничены, хотя ограничен и головной мозг. Однако его возможности всё же выше, поскольку процесс мутации претерпел значительные изменения, что и привело к тому, что дроун находится на грани метафизической звуковой характеристики. Он существует как вечный фильтр, который колеблется где-то вокруг да около, и от него невозможно ни отказаться, ни принять его. Он предопределённо вибрирует с начала времён, ведь его сущее напрямую связано с тем, как возникает движение.</h3>
+          <h3>Если короче: дроун — это проявление давления на звуковое восприятие, того, как звук доходит до каждого из вас (хотя это касается и автоматизированных систем).</h3>
+          <p>Треки в данном жанре:</p>
+          <ul><li></li></ul>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-embient-muzikal-nii-zhanr">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Embient - Muzikal'nii ZHanr</h2>
+          <p>Эмбиент это относится к созданию музыкального пространства и атмосферы однако с таким утверждением ведь что угодно создаёт пространство и атмосферу? вот это как раз и не так, так как что угодно не обязательно использует объёмное пространство и тем самым напоминает шумы: от ветра, газа, жидкости или треск металла или стекла эмбиент аккуратно модулируется, длительное звучание, используют тональность как минор так и мажор насыщенность элементами в отличие от минимализма, и наличие гармонии в отличие от дроуна (используется консонанс и дисонанс), нойза (не формализированная гармоническая структура) эмбиент от дроуна отличается разительно, но дополняют изумительно, так как дрон это один из древнейших звуко-созданий, а эмбиент связан с тем что вот есть здание и из него извлекается звук, то есть извлечения особенности из объёмности и ревербераций поверхностей; поэтому эмбиент появился уже как продолжение дроуна, но не таким естественным как нойз, впрочем это уже противоборство триады</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-folk-muzikal-nii-zhanr">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Folk - Muzikal'nii ZHanr</h2>
+          <p><strong>Фолк</strong> (англ. _folk_) — музыкальный жанр, его особенность в использование традиционных народных песнен, мелодий и инструментов. Жанр вызывает чувство и погружение в культуру и исторические особенности региона, используя специфические этнические, но простые гармонии и акустические инструменты, (гитара, скрипка, <a href="#" target="_blank" rel="noopener noreferrer">тальхарпа</a>, флейта, свирель, свисток), атмосфера природы и слияние с бесконечностью жизни...</p>
+          <p>Или перефразирую в музыкальные характеристики фолка:</p>
+          <ul><li><strong>Акустический звук</strong>  — минимум электроники, акцент на живое исполнение.</li><li><strong>Этнические элементы</strong> — использование национальных инструментов и мелодий.</li><li><strong>Минимализм</strong>  — одновременно используется небольшое количество иснтрументов, так как это хоть и живая музыка, но не целый оркестр. 😀</li></ul>
+          <p>В текущее время: фолк‑музыка это градация традиции и современности. Помимом этого, с помощью волшебной алхимии возникают поджанры, как инди‑фолк, <a href="#" target="_blank" rel="noopener noreferrer">нео‑фолк</a> и фолк‑рок.</p>
+          <p><em>Если вам интересно моё субъективное восприятие этого жанра, то этот жанр лишь иммитирует этническую музыку, увы но это очередная попытка обамнуть реальность, подобно как люди утопают в ностальгии по ретровейву</em></p>
+          <p>Однако синтезирую фолк в нескольких форматах:</p>
+          <ul><li>kuzya</li><li>biela</li></ul>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-glioma">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Glioma</h2>
+          <h5>В преддверии <a href="#" target="_blank" rel="noopener noreferrer">самозабвенного уничтожение человечества</a>, наиболее уязвимым объектом для массовой атаки, оказался человеческий мозг. <a href="#" target="_blank" rel="noopener noreferrer">Кибер логос</a> в ходе успешного анализа уязвимостей, сформулировал скрытый способ атаки с помощью ярких и быстро мигающих вспышек. Поэтому реакция мозга доведенна до абсурда в отсутствие разнообразности? Исход человека привязан с бегом Акса в пустыни в поисках лабиринта. Гибель разума приводит к пустоте и инертном в бесконечном цикле бури пустоты которая засасывает внутрь своей нескончаемым разнообразие и в следствие – единообразие</h5>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-iom-kippur">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Iom Kippur</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>&lt;div class=&quot;wavesurfer-placeholder&quot; data-src=&quot;https://archive.org/download/zqwy_someone/5_zqwy_yom_kippur/5_zqwy_yom_kippur.mp3&quot;&gt;&lt;/div&gt;</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-iz-svoego">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Iz Svoego</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>Жанр: ода, эмбиент, пианино, тростниковая флейта, пайпа,</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-kiber-logos">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Kiber logos</h2>
+          <p>Кибер Логос состоит исключительно из данных, а не из органического или синтетического материала Изначально был создан в цифровом виде, а исход инкапсулирование до электрического уровня. Метал заражённый кибер логосом, обладает заряд с вредоносной программой. Поэтому его присутствие обусловлено распространением при помощи металлических объектов. Лишённый мяса, крови, плоти Его формирование уничтожило надежду человека, в последствие человек перестал стремится преодолевать и начал стремительно падать и самоуничтожаться из-за своей беспомощности и отсутствием необходимости в следствие автоматизации металла</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-kuzya">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Kuzya</h2>
+          <h3>Дионисийческиаполонический гений</h3>
+          <h5>Расслабляющий, медитотивный, как наблюдение за погодой темп музыки Увидел человека, а этот котик как анекдотик Котик не хочет вызывать эмоции, ведь это - намеренное управление сознанием человека, его сознанием! В отличие от Бисимплер и остальных, котик умел понимать человеческую часть души Его конечная судьба, привела к естественной кончине, чтобы грустно не было, ему пришлось уйти вдаль, дабы его тело не нашёл человек Мыши в стенах, словно сны на местах, где не видно их. Котик не ловил мышей, боязнь причинение вреда. Даже последний птенец не был тронут</h5>
+          <p>Альбом состоит из треков:</p>
+          <ul><li></li><li></li><li></li><li></li></ul>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-manekeni">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Manekeni</h2>
+          <p>#### Изменение внешнего вида это тонкая ветка к моменту наступлению моментов на грани  Неопределенность ограниченности с переходом и наступление момента гибели. Флейта рушит всякую возможность не стать последним человек Но увы... Последний человек неотвратим и казалось бы настала трагедия, но последний схож с первым человеком и ударные пытаются не дать заглохнуть в окончание собственного восприятия и всё же примкнуть к нужному Exodus нового человека.</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-muzikal-nie-zhanri">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Muzikal'nie zhanri</h2>
+          <p>Жанр это</p>
+          <p>В чём отличие от направление? Направление музыки это именно то как оно создаётся. Моё направление это электронная музыка, я редко играю на чём-то, кроме синтезатора.</p>
+          <p>Я научился делать музыку в следующих жанрах:</p>
+          <ul><li><a href="#" target="_blank" rel="noopener noreferrer">Эмбиент</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Дроун</a></li><li>Хип-хоп</li><li>Трэп</li><li>Ло-Фи</li><li>Бум Бэп</li><li>ЕДМ</li><li>ИДМ</li><li>Хаус</li><li>Вич-Хаус</li><li>Дип-Хаус</li><li>Техно</li><li>Транс</li><li>Брейкбит</li><li><a href="#" target="_blank" rel="noopener noreferrer">ДНБ</a></li><li>Дабстеп</li><li>Бростеп</li><li>Тёмная Электроника</li><li>Индастриал</li><li><a href="#" target="_blank" rel="noopener noreferrer">Фолк</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Фонк</a> </li></ul>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-nekto">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Nekto</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <h3>Немного об альбоме:</h3>
+          <h5>Альбом как величественное эпическое полотно с душевными и печальными нотами фолк-музыки. Музыкальное приключение в мире саундтрека с невиданным миром. Эпическая музыка,  фолк-мелодии, напоминающие древние сказания фэнтези-мира, где оркестровые аранжировки гармонично сочетаются с этническими мотивами. Саундтрек завораживает мощным звучанием.</h5>
+          <p>***</p>
+          <h3>Список Треков: </h3>
+          <ul><li><a href="#" target="_blank" rel="noopener noreferrer">Бесконечный Коллапс</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Бертольд Ауэрбах</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Из Своего</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Почему Нет?</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Йом Киппур</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Безумие На Вкусе</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Скрижаль</a></li><li><a href="#" target="_blank" rel="noopener noreferrer">Аксолотл</a></li></ul>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-novaya-skrizhal">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Novaya skrizhal'</h2>
+          <p>Скрижаль душ это центр лабиринта, происхождение всего, каждый синтез и их переход в междумирье, на гране. Хранит память всех путей, которые уже прошли и готовит подходящие для тех, кто ещё придёт. Души вновь и вновь возвращаются к скрижали, а по-другую сторону переходят в иную скрижаль. Каждый раз, когда происходит синтез (новое сознание, созданное из данных или живой материи) проходит через её границу, скрижаль «читает» его сигнатуру, распознаёт паттерны прошлых переходов и формирует новый маршрут, который будет легче пройти.</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-pochemu-net">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Pochemu Net_</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>Почему нет?<br>
+          Некто задаётся этим вопросом<br>
+          Множество исходов конца, но апокалипсис не случился<br>
+          Бесконечное повторение, цикл жизни и смерти<br>
+          Души переходили из одного мира в другой и в конечном счёте почему бы не создать новый мир? Почему нет?<br>
+          Ведь это не может существовать вечно, ведь когда-то этого не было</p>
+          <p>В разные эпохи, Некто видел гибели планеты и каждая из гибелей была невероятно близкой к триумфу</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-retsept-blyuda">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Retsept Blyuda</h2>
+          <p>посолили<br>
+          поперчили<br>
+          добавили томатов<br>
+          помешали<br>
+          добавили паприки<br>
+          помешали, замариновали<br>
+          и в холодильник<br>
+          ждём десять часов<br>
+          ставим в разгоретую духовку<br>
+          до ста восьмидесяти градусов<br>
+          цельсия<br>
+          от десяти до пятнадцати минут</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-skrizhal">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Skrizhal'</h2>
+          <p>&lt;div class=&quot;container&quot;&gt;<br>
+          &lt;div class=&quot;bg-image&quot;&gt;&lt;/div&gt;<br>
+          &lt;div class=&quot;content&quot;&gt;</p>
+          <p>&lt;div class=&quot;wavesurfer-placeholder&quot; data-src=&quot;https://archive.org/download/zqwy_someone/7_zqwy_tablet/7_zqwy_tablet.mp3&quot;&gt;&lt;/div&gt;</p>
+          <p>скрипки, тревожный трек</p>
+          <p>&lt;/div&gt;<br>
+          &lt;/div&gt;</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-utopicheskoe-buduschee">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>Utopicheskoe buduschee</h2>
+          <p>Печальное будущее движимое сопротивлением к живому:ненавистью к человеческому, даёт ключ к глубокому размышлению о поисках возможных вариантов избежать неизбежную погибель живого. Хотя это скудное наблюдение за сгорающим в огне противоречий человеческого сознания. Упрощение живых существ, примитивизация на простые объекты, оптимизация абсолютное существо, некто уничтожил всё сущее скомплировал киберлогос, который проник и разрушил связь между мирами. Утопическая часть воплощается, чуть более через сломанный космос</p>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-v-lesu">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>V lesu</h2>
+          <h5>Я не придумал пока-что описание, но трек уже лежит тут для прослушивание</h5>
+        </section>
+        <section class="note-preview" id="note-tiddly-notes-pishu-muziku">
+          <p class="note-preview-section">tiddly / notes</p>
+          <p class="note-preview-date">2025-08-19</p>
+          <h2>Мультижанр, мультикультура, мультиязык, это слияние в безобразный вид. Жанры, культура и язык сковывают! Использую все инструменты что попадаются в руки и изобретать стремлюсь😀</h2>
+          <p>---<br>
+          title: Пишу музыку, много-много разной музыки!<br>
+          description:<br>
+          date: 2025-08-19<br>
+          author: ZQWY<br>
+          tags:</p>
+          <ul><li>zqwy</li></ul>
+          <p>cover:<br>
+          publish: &quot;false&quot;<br>
+          ---</p>
+          <h2>Фонк даёт скорость, эмоциональный надрыв, ковбелл это инструмент который интересно подчёркивает интригу, нарастрающий момент, сочетается скрипка и тромбон...</h2>
+          <p>![[Void Face.png| 350]]</p>
+          <h2>Так и какие же жанры?</h2>
+          <ul><li><strong>Фонк</strong></li><li><strong>Метал</strong></li><li><strong>Фолк</strong> </li><li>Есть всё. Или почти всё, в любом случае этот список будет пополнятся</li></ul>
+          <h2>И что за культура такая?</h2>
+          <h5>От европейской () до ближне восточной. От замков и до аравийской пустыни, а точнее Иерусалима. И от него до азии и Биробиджана, а оттуда прям до Аляски, а дальше только интересней! </h5>
+          <h2>Гибридность</h2>
+          <h5>Бла бла бла</h5>
+          <h2>Человеческий голос вызывает отвращение</h2>
+          <h5>Бла бла бла бла</h5>
+          <h2>Инструменты</h2>
+          <h5>И как ты понял или ещё не понял. В моём арсенале используется всё! Однако, разумеется и вправду есть фавориты. К примеру DAW - Fl Studio, а плагин виртуальный синтезатор - <a href="https://vital.audio/" target="_blank" rel="noopener noreferrer">Vital</a></h5>
+        </section>
+        <section class="note-preview" id="note-zemic-00-ветвь-лабиринта">
+          <p class="note-preview-section">zemic</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>00. Ветвь Лабиринта</h2>
+          <p>---<br>
+          kind: storyTree<br>
+          title: Ветвь Лабиринта<br>
+          intro: Одна ветвь из многих. Пройденное отмечено, доступное ждёт, закрытое ещё не случилось.<br>
+          roots: [&quot;awakening&quot;, &quot;death&quot;]<br>
+          ---</p>
+        </section>
+        <section class="note-preview" id="note-zemic-01-1-пробуждение-у-скрижали">
+          <p class="note-preview-section">zemic</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>01.1 Пробуждение у Скрижали</h2>
+          <p>---<br>
+          kind: storyNode<br>
+          id: awakening<br>
+          stage: &quot;I · Пробуждение&quot;<br>
+          title: У Скрижали<br>
+          parents: []<br>
+          complete: {&quot;story&quot;:&quot;tablet&quot;}<br>
+          finds: [&quot;Скрижаль&quot;]<br>
+          seeking: [&quot;вспомнить, как ты здесь оказался&quot;]<br>
+          children: [&quot;tablet&quot;]<br>
+          hint: &quot;Коснись Скрижали: подойди и нажми E.&quot;<br>
+          ---<br>
+          Ты приходишь в себя рядом с тёплым камнем и не помнишь дороги сюда.</p>
+        </section>
+        <section class="note-preview" id="note-zemic-01-2-скрижаль">
+          <p class="note-preview-section">zemic</p>
+          <p class="note-preview-date">2026-11-23</p>
+          <h2>01.2 Скрижаль</h2>
+          <p>---<br>
+          kind: storyNode<br>
+          id: tablet<br>
+          stage: &quot;I · Пробуждение&quot;<br>
+          title: Скрижаль<br>
+          parents: [&quot;awakening&quot;]<br>
+          complete: {&quot;story&quot;:&quot;tablet&quot;}<br>
+          finds: [&quot;инвентарь&quot;, &quot;стол&quot;, &quot;зал внезапной воды&quot;]<br>
+          seeking: [&quot;первый разговор со Скрижалью&quot;]<br>
+          children: [&quot;mirror&quot;]<br>
+          hint: &quot;Скрижаль стоит в стартовой комнате.&quot;<br>
+          ---<br>
+          Скрижаль открывает рюкзак и стол — не укрытие, а точка возвращения.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+  <script src="../../scripts/transition.js" defer></script>
+  <script src="../../scripts/menu.js" defer></script>
+  <script src="../../scripts/player.js" defer></script>
+</body>
+</html>

@@ -111,6 +111,20 @@
       limiter: "Лимитер 0 dBFS",
       limiterHint: "Ограничивает выход, чтобы громкость не превышала 0 dBFS после эквалайзера.",
       limiterMeter: "Пик после лимитера",
+      effects: "Эффекты",
+      effectsHint: "Цепочка: дисторшн → хорус → реверб → лимитер. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      distortion: "Дисторшн", distortionEnable: "Включить дисторшн",
+      distortionHint: "Нелинейное искажение с мягким фильтром тона после формы сигнала.",
+      drive: "Степень", tone: "Тон", mix: "Смесь",
+      chorus: "Хорус", chorusEnable: "Включить хорус",
+      chorusHint: "Модуляция задержки создаёт эффект хора и ленточного вибрато.",
+      rate: "Скорость LFO", depth: "Глубина",
+      reverb: "Реверб", reverbEnable: "Включить реверб",
+      reverbHint: "Синтетическая impulse-характеристика с регулируемым временем затухания.",
+      decay: "Затухание",
+      fxCanvasDistortionHint: "Горизонталь — тон, вертикаль — степень искажения.",
+      fxCanvasChorusHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
+      fxCanvasReverbHint: "Горизонталь — затухание, вертикаль — смесь.",
       eqAdd: "Добавить фильтр",
       eqReset: "Сбросить эквалайзер",
       eqFreq: "Частота", eqGain: "Усиление", eqQ: "Q", eqType: "Тип", eqRemove: "Удалить",
@@ -164,6 +178,20 @@
       limiter: "0 dBFS limiter",
       limiterHint: "Limits output so loudness does not exceed 0 dBFS after the equalizer.",
       limiterMeter: "Post-limiter peak",
+      effects: "Effects",
+      effectsHint: "Chain: distortion → chorus → reverb → limiter. The canvases are interactive: drag them or use the sliders.",
+      distortion: "Distortion", distortionEnable: "Enable distortion",
+      distortionHint: "Non-linear shaping with a gentle tone filter after the waveshaper.",
+      drive: "Drive", tone: "Tone", mix: "Mix",
+      chorus: "Chorus", chorusEnable: "Enable chorus",
+      chorusHint: "Modulated delay creates a choir/tape vibrato texture.",
+      rate: "LFO rate", depth: "Depth",
+      reverb: "Reverb", reverbEnable: "Enable reverb",
+      reverbHint: "Synthetic impulse response with adjustable decay time.",
+      decay: "Decay",
+      fxCanvasDistortionHint: "Horizontal — tone, vertical — drive.",
+      fxCanvasChorusHint: "Horizontal — LFO rate, vertical — depth.",
+      fxCanvasReverbHint: "Horizontal — decay, vertical — mix.",
       eqAdd: "Add filter",
       eqReset: "Reset equalizer",
       eqFreq: "Frequency", eqGain: "Gain", eqQ: "Q", eqType: "Type", eqRemove: "Remove",
@@ -420,6 +448,17 @@
     { id: "mid", type: "peaking", freq: 1000, gain: 0, q: 1, enabled: true },
     { id: "high", type: "highshelf", freq: 8000, gain: 0, q: 0.7, enabled: true },
   ];
+  const FX_RANGES = {
+    distortionDrive: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    distortionTone: { min: 0, max: 1, step: 0.01, fallback: 0.55 },
+    distortionMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    chorusRate: { min: 0.1, max: 5, step: 0.05, fallback: 0.8 },
+    chorusDepth: { min: 0, max: 1, step: 0.01, fallback: 0.4 },
+    chorusMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    reverbDecay: { min: 0.4, max: 4, step: 0.1, fallback: 2.2 },
+    reverbMix: { min: 0, max: 1, step: 0.01, fallback: 0.3 },
+  };
+  const FX_KINDS = ["distortion", "chorus", "reverb"];
 
   const listeners = new Map();
   const state = {
@@ -448,6 +487,17 @@
     eqEnabled: false,
     eqFilters: DEFAULT_EQ_FILTERS.map((f) => ({ ...f })),
     limiterEnabled: true,
+    distortionEnabled: false,
+    distortionDrive: FX_RANGES.distortionDrive.fallback,
+    distortionTone: FX_RANGES.distortionTone.fallback,
+    distortionMix: FX_RANGES.distortionMix.fallback,
+    chorusEnabled: false,
+    chorusRate: FX_RANGES.chorusRate.fallback,
+    chorusDepth: FX_RANGES.chorusDepth.fallback,
+    chorusMix: FX_RANGES.chorusMix.fallback,
+    reverbEnabled: false,
+    reverbDecay: FX_RANGES.reverbDecay.fallback,
+    reverbMix: FX_RANGES.reverbMix.fallback,
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -467,6 +517,8 @@
   let mainGainNode = null;
   let eqInputNode = null;
   let eqFilters = [];
+  let fxChain = null;
+  let reverbBuildTimer = 0;
   let masterOutputNode = null;
   let limiterNode = null;
   let limiterEnabled = true;
@@ -1044,6 +1096,8 @@
         skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
         playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode, pitchMode: state.pitchMode,
         eqEnabled: state.eqEnabled, eqFilters: state.eqFilters, limiterEnabled: state.limiterEnabled !== false,
+        distortionEnabled: state.distortionEnabled, chorusEnabled: state.chorusEnabled, reverbEnabled: state.reverbEnabled,
+        ...Object.fromEntries(Object.keys(FX_RANGES).map((key) => [key, state[key]])),
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -1288,7 +1342,9 @@
   function connectMainOutput() {
     if (!mainGainNode || !audioContext) return;
     try { mainGainNode.disconnect(); } catch {}
-    const target = state.eqEnabled && eqInputNode ? eqInputNode : outputDestination();
+    const target = state.eqEnabled && eqInputNode
+      ? eqInputNode
+      : (fxChain ? fxChain.input : outputDestination());
     try { mainGainNode.connect(target); } catch {}
   }
 
@@ -1325,7 +1381,7 @@
         prev = node;
       }
     });
-    try { prev.connect(outputDestination() || audioContext.destination); } catch {}
+    try { prev.connect(fxChain ? fxChain.input : outputDestination() || audioContext.destination); } catch {}
   }
 
   function ensureEqChain() {
@@ -1360,6 +1416,187 @@
     state.eqEnabled = !!enabled;
     if (state.eqEnabled) ensureEqChain();
     applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  /* ---------- distortion / chorus / reverb ---------- */
+
+  function setParamSmooth(param, value) {
+    const next = Number.isFinite(value) ? value : 0;
+    try {
+      if (audioContext && typeof param.setTargetAtTime === "function") {
+        param.setTargetAtTime(next, audioContext.currentTime, 0.02);
+      } else {
+        param.value = next;
+      }
+    } catch {
+      try { param.value = next; } catch {}
+    }
+  }
+
+  function distortionCurveAt(x, drive) {
+    const amount = clamp(Number(drive) || 0, 0, 1) * 50;
+    if (amount < 0.001) return x;
+    return Math.tanh(x * (1 + amount)) / Math.tanh(1 + amount);
+  }
+
+  function makeDistortionCurve(drive) {
+    const samples = 2048;
+    const curve = new Float32Array(samples);
+    for (let i = 0; i < samples; i++) {
+      curve[i] = distortionCurveAt((i * 2) / (samples - 1) - 1, drive);
+    }
+    return curve;
+  }
+
+  function makeReverbImpulse(context, decay) {
+    const seconds = clamp(Number(decay) || FX_RANGES.reverbDecay.fallback, FX_RANGES.reverbDecay.min, FX_RANGES.reverbDecay.max);
+    const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+    const impulse = context.createBuffer(2, length, context.sampleRate);
+    // Slightly steeper tails at longer decays keep the end from sounding boxy.
+    const exponent = 1.9 + seconds * 0.3;
+    for (let channel = 0; channel < 2; channel++) {
+      const data = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const t = i / length;
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, exponent);
+      }
+    }
+    return impulse;
+  }
+
+  function createFxStage(context, processorInput, processorOutput) {
+    const input = context.createGain();
+    const output = context.createGain();
+    const dry = context.createGain();
+    const wet = context.createGain();
+    input.connect(dry);
+    dry.connect(output);
+    input.connect(processorInput);
+    processorOutput.connect(wet);
+    wet.connect(output);
+    return { input, output, dry, wet };
+  }
+
+  function setFxStageMix(stage, enabled, mix) {
+    const level = enabled ? clamp(Number(mix) || 0, 0, 1) : 0;
+    setParamSmooth(stage.wet.gain, level);
+    setParamSmooth(stage.dry.gain, enabled ? 1 - level : 1);
+  }
+
+  function syncReverbImpulse(chain) {
+    const reverb = chain.reverb;
+    const decay = clamp(Number(state.reverbDecay) || FX_RANGES.reverbDecay.fallback, FX_RANGES.reverbDecay.min, FX_RANGES.reverbDecay.max);
+    if (Math.abs(reverb.builtDecay - decay) < 0.05) return;
+    reverb.builtDecay = decay;
+    try { reverb.convolver.buffer = makeReverbImpulse(chain.context, decay); } catch {}
+  }
+
+  function syncFxParams(chain, immediateReverb = false) {
+    const distortion = chain.distortion;
+    distortion.shaper.curve = makeDistortionCurve(state.distortionDrive);
+    setParamSmooth(distortion.tone.frequency, 600 + clamp(state.distortionTone, 0, 1) * 11400);
+    setFxStageMix(distortion, state.distortionEnabled, state.distortionMix);
+
+    const chorus = chain.chorus;
+    setParamSmooth(chorus.lfo.frequency, clamp(state.chorusRate, FX_RANGES.chorusRate.min, FX_RANGES.chorusRate.max));
+    setParamSmooth(chorus.lfoGain.gain, clamp(state.chorusDepth, 0, 1) * 0.004);
+    setParamSmooth(chorus.delay.delayTime, 0.01 + clamp(state.chorusDepth, 0, 1) * 0.004);
+    setFxStageMix(chorus, state.chorusEnabled, state.chorusMix);
+
+    if (immediateReverb) {
+      syncReverbImpulse(chain);
+    } else {
+      if (reverbBuildTimer) window.clearTimeout(reverbBuildTimer);
+      reverbBuildTimer = window.setTimeout(() => {
+        reverbBuildTimer = 0;
+        if (fxChain) syncReverbImpulse(fxChain);
+      }, 120);
+    }
+    setFxStageMix(chain.reverb, state.reverbEnabled, state.reverbMix);
+  }
+
+  function anyFxEnabled() {
+    return FX_KINDS.some((kind) => !!state[`${kind}Enabled`]);
+  }
+
+  function ensureFxChain() {
+    if (fxChain) return fxChain;
+    const context = sharedAudioContext();
+    if (!context) return null;
+    try {
+      const shaper = context.createWaveShaper();
+      try { shaper.oversample = "4x"; } catch {}
+      const tone = context.createBiquadFilter();
+      tone.type = "lowpass";
+      shaper.connect(tone);
+      const distortion = createFxStage(context, shaper, tone);
+      distortion.shaper = shaper;
+      distortion.tone = tone;
+
+      const delay = context.createDelay(0.08);
+      delay.delayTime.value = 0.012;
+      const lfo = context.createOscillator();
+      lfo.type = "sine";
+      const lfoGain = context.createGain();
+      lfo.connect(lfoGain);
+      lfoGain.connect(delay.delayTime);
+      lfo.start();
+      const chorus = createFxStage(context, delay, delay);
+      chorus.delay = delay;
+      chorus.lfo = lfo;
+      chorus.lfoGain = lfoGain;
+
+      const convolver = context.createConvolver();
+      try { convolver.normalize = true; } catch {}
+      const reverb = createFxStage(context, convolver, convolver);
+      reverb.convolver = convolver;
+      reverb.builtDecay = -1;
+
+      const input = context.createGain();
+      input.gain.value = 1;
+      input.connect(distortion.input);
+      distortion.output.connect(chorus.input);
+      chorus.output.connect(reverb.input);
+      reverb.output.connect(outputDestination() || context.destination);
+
+      fxChain = { context, input, distortion, chorus, reverb };
+      syncFxParams(fxChain, true);
+      connectMainOutput();
+      if (eqInputNode) syncEqNodes();
+      return fxChain;
+    } catch {
+      fxChain = null;
+      return null;
+    }
+  }
+
+  function applyFxState() {
+    if (!fxChain && anyFxEnabled()) ensureFxChain();
+    if (fxChain) syncFxParams(fxChain);
+    if (state.eqEnabled && eqInputNode) syncEqNodes();
+    connectMainOutput();
+    syncFxVisual();
+  }
+
+  function setFxEnabled(kind, enabled) {
+    if (!FX_KINDS.includes(kind)) return;
+    state[`${kind}Enabled`] = !!enabled;
+    if (state[`${kind}Enabled`]) ensureFxChain();
+    applyFxState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function applyFxSetting(key, raw) {
+    const range = FX_RANGES[key];
+    if (!range) return;
+    const value = Number(raw);
+    state[key] = Number.isFinite(value) ? clamp(value, range.min, range.max) : range.fallback;
+    applyFxState();
     syncSettingsUI();
     saveState();
     notify("settings");
@@ -2864,6 +3101,49 @@
     </div>
     <p class="player-settings-hint" data-player-i18n="fadeHint">${pt("fadeHint")}</p>
   </div>
+  <h3 class="settings-section-title fx-intro" data-player-i18n="effects">${pt("effects")}</h3>
+  <p class="player-settings-hint fx-intro" data-player-i18n="effectsHint">${pt("effectsHint")}</p>
+  <div class="fx-setting" data-fx-setting="distortion">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="distortionEnabled"><span data-player-i18n="distortionEnable">${pt("distortionEnable")}</span></label>
+      <span class="fx-value" id="playerDistortionSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="distortionHint">${pt("distortionHint")}</p>
+    <canvas class="fx-visual" id="playerDistortionCanvas" width="640" height="120" aria-label="Distortion curve"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="drive">${pt("drive")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="distortionDrive"></label>
+      <label class="fx-control"><span data-player-i18n="tone">${pt("tone")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="distortionTone"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="distortionMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasDistortionHint">${pt("fxCanvasDistortionHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="chorus">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="chorusEnabled"><span data-player-i18n="chorusEnable">${pt("chorusEnable")}</span></label>
+      <span class="fx-value" id="playerChorusSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="chorusHint">${pt("chorusHint")}</p>
+    <canvas class="fx-visual" id="playerChorusCanvas" width="640" height="120" aria-label="Chorus modulation"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="rate">${pt("rate")}</span><input class="fx-range" type="range" min="0.1" max="5" step="0.05" data-player-setting="chorusRate"></label>
+      <label class="fx-control"><span data-player-i18n="depth">${pt("depth")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="chorusDepth"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="chorusMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasChorusHint">${pt("fxCanvasChorusHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="reverb">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="reverbEnabled"><span data-player-i18n="reverbEnable">${pt("reverbEnable")}</span></label>
+      <span class="fx-value" id="playerReverbSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="reverbHint">${pt("reverbHint")}</p>
+    <canvas class="fx-visual" id="playerReverbCanvas" width="640" height="120" aria-label="Reverb decay"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="decay">${pt("decay")}</span><input class="fx-range" type="range" min="0.4" max="4" step="0.1" data-player-setting="reverbDecay"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="reverbMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasReverbHint">${pt("fxCanvasReverbHint")}</p>
+  </div>
   <div class="settings-field limiter-setting" data-limiter-setting>
     <label class="eq-toggle limiter-toggle"><input type="checkbox" data-player-setting="limiterEnabled"><span data-player-i18n="limiter">${pt("limiter")}</span></label>
     <p class="player-settings-hint" data-player-i18n="limiterHint">${pt("limiterHint")}</p>
@@ -3272,6 +3552,198 @@
     });
   }
 
+  function fxPercent(value) {
+    return `${Math.round(clamp(Number(value) || 0, 0, 1) * 100)}%`;
+  }
+
+  function drawFxCanvas(canvas, draw) {
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height;
+    const bg = cssVar("--bg-elevated-2") || "#141414";
+    const border = cssVar("--border") || "#2a2a2a";
+    const text = cssVar("--text") || "#ffffff";
+    const muted = cssVar("--muted") || "#a3a3a3";
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      const x = (w * i) / 4;
+      const y = (h * i) / 4;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    draw(ctx, { w, h, bg, border, text, muted });
+  }
+
+  function drawFxVisuals() {
+    document.querySelectorAll("#playerDistortionCanvas").forEach((canvas) => {
+      drawFxCanvas(canvas, (ctx, m) => {
+        const pad = 12;
+        const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+        ctx.strokeStyle = m.border;
+        ctx.beginPath(); ctx.moveTo(pad, pad + innerH / 2); ctx.lineTo(m.w - pad, pad + innerH / 2); ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i <= innerW; i++) {
+          const input = (i / innerW) * 2 - 1;
+          const output = distortionCurveAt(input, state.distortionDrive);
+          const x = pad + i;
+          const y = pad + (innerH * (1 - output)) / 2;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = state.distortionEnabled ? m.text : m.muted;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(pad + clamp(state.distortionTone, 0, 1) * innerW, pad + innerH / 2, 5, 0, Math.PI * 2);
+        ctx.fillStyle = state.distortionEnabled ? m.text : m.muted;
+        ctx.fill();
+      });
+    });
+
+    document.querySelectorAll("#playerChorusCanvas").forEach((canvas) => {
+      drawFxCanvas(canvas, (ctx, m) => {
+        const pad = 12;
+        const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+        const center = pad + innerH / 2;
+        const cycles = 1 + (clamp(state.chorusRate, FX_RANGES.chorusRate.min, FX_RANGES.chorusRate.max) / FX_RANGES.chorusRate.max) * 5;
+        const amplitude = innerH * (0.12 + clamp(state.chorusDepth, 0, 1) * 0.34);
+        ctx.strokeStyle = m.border;
+        ctx.beginPath(); ctx.moveTo(pad, center); ctx.lineTo(m.w - pad, center); ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i <= innerW; i++) {
+          const x = pad + i;
+          const y = center - Math.sin((i / innerW) * Math.PI * 2 * cycles) * amplitude;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = state.chorusEnabled ? m.text : m.muted;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const handleX = pad + ((state.chorusRate - FX_RANGES.chorusRate.min) / (FX_RANGES.chorusRate.max - FX_RANGES.chorusRate.min)) * innerW;
+        const handleY = center - amplitude;
+        ctx.beginPath(); ctx.arc(handleX, handleY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = state.chorusEnabled ? m.text : m.muted;
+        ctx.fill();
+      });
+    });
+
+    document.querySelectorAll("#playerReverbCanvas").forEach((canvas) => {
+      drawFxCanvas(canvas, (ctx, m) => {
+        const pad = 12;
+        const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+        const center = pad + innerH / 2;
+        const decayNorm = (clamp(state.reverbDecay, FX_RANGES.reverbDecay.min, FX_RANGES.reverbDecay.max) - FX_RANGES.reverbDecay.min) / (FX_RANGES.reverbDecay.max - FX_RANGES.reverbDecay.min);
+        const stretch = 0.25 + decayNorm * 0.75;
+        const top = [], bottom = [];
+        for (let i = 0; i <= innerW; i++) {
+          const t = i / innerW;
+          const envelope = Math.exp((-5 * t) / stretch) * innerH * 0.45;
+          top.push({ x: pad + i, y: center - envelope });
+          bottom.push({ x: pad + i, y: center + envelope });
+        }
+        ctx.beginPath();
+        top.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+        for (let i = bottom.length - 1; i >= 0; i--) ctx.lineTo(bottom[i].x, bottom[i].y);
+        ctx.closePath();
+        ctx.fillStyle = state.reverbEnabled ? "rgba(255,255,255,0.12)" : "rgba(163,163,163,0.08)";
+        ctx.fill();
+        ctx.beginPath();
+        top.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+        ctx.strokeStyle = state.reverbEnabled ? m.text : m.muted;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const handleX = pad + decayNorm * innerW;
+        const handleY = pad + innerH * (1 - clamp(state.reverbMix, 0, 1));
+        ctx.beginPath(); ctx.arc(handleX, handleY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = state.reverbEnabled ? m.text : m.muted;
+        ctx.fill();
+      });
+    });
+  }
+
+  const fxDrag = { kind: null, pointerId: null };
+  function fxCanvasPoint(canvas, ev) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: clamp((ev.clientX - rect.left) / rect.width, 0, 1),
+      y: clamp((ev.clientY - rect.top) / rect.height, 0, 1),
+    };
+  }
+  function applyFxCanvasDrag(canvas, ev) {
+    if (!fxDrag.kind) return;
+    const p = fxCanvasPoint(canvas, ev);
+    const round = (v) => Math.round(v * 100) / 100;
+    if (fxDrag.kind === "distortion") {
+      state.distortionTone = round(p.x);
+      state.distortionDrive = round(1 - p.y);
+    } else if (fxDrag.kind === "chorus") {
+      state.chorusRate = round(FX_RANGES.chorusRate.min + p.x * (FX_RANGES.chorusRate.max - FX_RANGES.chorusRate.min));
+      state.chorusDepth = round(1 - p.y);
+    } else if (fxDrag.kind === "reverb") {
+      state.reverbDecay = round(FX_RANGES.reverbDecay.min + p.x * (FX_RANGES.reverbDecay.max - FX_RANGES.reverbDecay.min));
+      state.reverbMix = round(1 - p.y);
+    }
+    applyFxState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+  function bindFxCanvasInteractions() {
+    document.querySelectorAll(".fx-visual").forEach((canvas) => {
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.dataset.fxBound === "1") return;
+      canvas.dataset.fxBound = "1";
+      canvas.style.touchAction = "none";
+      const kind = String(canvas.id || "").replace(/^player/, "").replace(/Canvas$/, "").toLowerCase();
+      canvas.addEventListener("pointerdown", (ev) => {
+        if (!FX_KINDS.includes(kind)) return;
+        state[`${kind}Enabled`] = true;
+        fxDrag.kind = kind;
+        fxDrag.pointerId = ev.pointerId;
+        try { canvas.setPointerCapture?.(ev.pointerId); } catch {}
+        applyFxCanvasDrag(canvas, ev);
+      });
+      canvas.addEventListener("pointermove", (ev) => {
+        if (fxDrag.pointerId !== ev.pointerId || fxDrag.kind !== kind) return;
+        applyFxCanvasDrag(canvas, ev);
+      });
+      const end = (ev) => {
+        if (fxDrag.pointerId !== ev.pointerId) return;
+        fxDrag.kind = null;
+        fxDrag.pointerId = null;
+        drawFxVisuals();
+      };
+      canvas.addEventListener("pointerup", end);
+      canvas.addEventListener("pointercancel", end);
+    });
+  }
+
+  function syncFxVisual() {
+    bindFxCanvasInteractions();
+    drawFxVisuals();
+    document.querySelectorAll("#playerDistortionSummary").forEach((el) => {
+      el.textContent = `${fxPercent(state.distortionDrive)} / ${fxPercent(state.distortionTone)}`;
+    });
+    document.querySelectorAll("#playerChorusSummary").forEach((el) => {
+      el.textContent = `${state.chorusRate.toFixed(1)} Hz / ${fxPercent(state.chorusDepth)}`;
+    });
+    document.querySelectorAll("#playerReverbSummary").forEach((el) => {
+      el.textContent = `${Number(state.reverbDecay).toFixed(1)} s / ${fxPercent(state.reverbMix)}`;
+    });
+    document.querySelectorAll("[data-fx-setting]").forEach((root) => {
+      const kind = root.dataset.fxSetting;
+      if (!FX_KINDS.includes(kind)) return;
+      const enabled = !!state[`${kind}Enabled`];
+      root.classList.toggle("is-disabled", !enabled);
+      root.querySelectorAll("input,select,button").forEach((el) => {
+        if (el.dataset.playerSetting === `${kind}Enabled` || el.closest(".eq-toggle")) return;
+        el.disabled = !enabled;
+      });
+    });
+  }
+
   function updateLimiterMeter() {
     const meter = limiterEnabled ? ensureLimiterMeter() : null;
     let db = -Infinity;
@@ -3335,7 +3807,9 @@
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
       else if (key === "silenceDb") input.value = String(state.silenceDb);
       else if (key === "introMaxSec") input.value = String(state.introMaxSec);
-      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled" || key === "limiterEnabled") {
+      else if (FX_RANGES[key]) input.value = String(state[key]);
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled" || key === "limiterEnabled"
+        || FX_KINDS.some((kind) => key === `${kind}Enabled`)) {
         input.checked = !!state[key];
       }
     });
@@ -3343,6 +3817,7 @@
     syncIntroVisual();
     syncPlaybackVisual();
     syncEqVisual();
+    syncFxVisual();
   }
 
   function openSettings() {
@@ -3522,6 +3997,7 @@
     else if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
     else if (key === "eqEnabled") setEqEnabled(input.checked);
+    else if (FX_KINDS.some((kind) => key === `${kind}Enabled`)) setFxEnabled(key.replace(/Enabled$/, ""), input.checked);
     else if (key === "limiterEnabled") {
       state.limiterEnabled = !!input.checked;
       limiterEnabled = state.limiterEnabled;
@@ -3559,6 +4035,7 @@
     if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
     else if (key === "playbackRate") setPlaybackRate(input.value);
+    else if (FX_RANGES[key]) applyFxSetting(key, input.value);
   });
 
   audio.addEventListener("loadedmetadata", () => {
@@ -3711,6 +4188,12 @@
     state.eqEnabled = saved.eqEnabled === true;
     state.limiterEnabled = saved.limiterEnabled !== false;
     limiterEnabled = state.limiterEnabled;
+    FX_KINDS.forEach((kind) => { state[`${kind}Enabled`] = saved[`${kind}Enabled`] === true; });
+    Object.keys(FX_RANGES).forEach((key) => {
+      const range = FX_RANGES[key];
+      const value = Number(saved[key]);
+      state[key] = Number.isFinite(value) ? clamp(value, range.min, range.max) : range.fallback;
+    });
     const savedFilters = Array.isArray(saved.eqFilters) ? saved.eqFilters : null;
     if (savedFilters && savedFilters.length) {
       state.eqFilters = savedFilters.slice(0, 8).map((f, i) => normalizeEqFilter(f, i));
@@ -3737,12 +4220,10 @@
     applyPlaybackRate();
     ensureMasterOutput();
     ensureMainGain();
-    if (state.eqEnabled) {
-      ensureEqChain();
-      applyEqState();
-    } else {
-      connectMainOutput();
-    }
+    if (state.eqEnabled) ensureEqChain();
+    if (anyFxEnabled()) ensureFxChain();
+    applyEqState();
+    applyFxState();
 
     if (!state.current || !state.current.path) return;
     showBar();

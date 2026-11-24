@@ -455,6 +455,7 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
 }
 #playerSettings .player-settings-body > .player-settings-hint { grid-column: 1 / -1; }
 #playerSettings .settings-field,
+#playerSettings .fx-setting,
 #playerSettings .settings-group {
   min-width: 0;
   margin: 0;
@@ -728,6 +729,35 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
 .eq-field .settings-select { width: 100%; min-width: 0; padding: 6px 8px; font-size: var(--fs-sm); }
 .eq-setting.is-disabled .eq-filters { opacity: 0.45; }
 
+/* Distortion / chorus / reverb */
+.fx-intro { grid-column: 1 / -1; }
+.settings-section-title {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 650;
+}
+.fx-setting { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fx-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fx-value { color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-visual {
+  display: block;
+  width: 100%;
+  height: clamp(88px, 10dvh, 140px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated-2);
+  cursor: crosshair;
+  touch-action: none;
+}
+.fx-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: 10px 14px; }
+.fx-control { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: var(--fs-sm); }
+.fx-range { width: 100%; height: 18px; margin: 0; accent-color: var(--text); cursor: pointer; }
+.fx-canvas-hint { font-size: var(--fs-xs); }
+.fx-setting.is-disabled .fx-visual,
+.fx-setting.is-disabled .fx-controls { opacity: 0.45; }
+.fx-setting.is-disabled .fx-visual { cursor: default; }
+.fx-setting.is-disabled .fx-control input { pointer-events: none; }
 
 /* Limiter meter */
 .limiter-toggle { margin-top: 8px; }

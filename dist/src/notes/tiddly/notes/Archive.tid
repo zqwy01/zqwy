@@ -1,0 +1,34 @@
+alias: 
+author: 
+caption: 
+cover: 
+created: 20211202233111000
+date: 
+distributor: 
+emoji: 
+epocha: 
+id: 
+instruments: 
+isrc: 
+modified: 20211101113025000
+pond5: 
+revision: 
+size_album: 
+size_release: 
+tags: 
+title: Archive
+tmap.edges: 
+tmap.id: 5d6644ae-fa6b-407d-bcf2-f11699368b53
+tmap.style: 
+track_bpm: 
+track_init_key: 
+track_number: 
+type: text/vnd.tiddlywiki
+type_content: 
+upc: 
+url_archive: 
+url_download_mp3: 
+url_download_wav: 
+version: 1 (create note) 2 (fix name note) 3 (add text)
+
+Сервис internet archive это доступный способ сохранить много, действительно очень много информации и тем самым организовать и использовать некий s3, на безвозмездной основе.

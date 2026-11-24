@@ -96,13 +96,14 @@
       fadeLabel: "Появление / затухание", fadeIn: "Появление", fadeOut: "Затухание",
       fadeHint: "Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.",
       playbackRate: "Скорость воспроизведения",
-      playbackRateHint: "Ползунок меняет темп. Режимы задают скорость и поведение высоты тона.",
+      playbackRateHint: "Ползунок меняет темп от 0.1x до 10x. Режим задаёт скорость и поведение высоты тона.",
       playbackMode: "Режим скорости",
-      preservePitch: "Сохранять высоту тона",
-      modeNormal: "Обычная", modeSlow: "Медленнее", modeFast: "Быстрее", modeNightcore: "Nightcore", modeSlowed: "Slowed", modeCustom: "Своя",
+      modeNormal: "Обычная (1x)", modeSlow025: "0.25x", modeSlow05: "0.5x", modeSlow075: "0.75x",
+      modeFast125: "1.25x", modeFast15: "1.5x", modeFast2: "2x", modeFast3: "3x",
+      modeNightcore: "Nightcore (1.25x, выше тон)", modeSlowed: "Slowed (0.85x, ниже тон)", modeDaycore: "Daycore (0.85x, тон сохранён)", modeCustom: "Своя",
       equalizer: "Параметрический эквалайзер",
       eqEnable: "Включить эквалайзер",
-      eqHint: "Добавляйте фильтры, меняйте тип, частоту, усиление и Q. Настройки сохраняются для всего сайта.",
+      eqHint: "Визуальная кривая показывает суммарный отклик. Добавляйте фильтры и меняйте тип, частоту, усиление и Q.",
       eqAdd: "Добавить фильтр",
       eqReset: "Сбросить эквалайзер",
       eqFreq: "Частота", eqGain: "Усиление", eqQ: "Q", eqType: "Тип", eqRemove: "Удалить",
@@ -141,13 +142,14 @@
       fadeLabel: "Fade in / fade out", fadeIn: "Fade in", fadeOut: "Fade out",
       fadeHint: "The new track fades in while the previous one fades out. Durations are independent; fading can be turned off.",
       playbackRate: "Playback speed",
-      playbackRateHint: "Use the slider for tempo. Modes set speed and pitch behavior.",
+      playbackRateHint: "Slider changes tempo from 0.1x to 10x. Mode sets speed and pitch behavior.",
       playbackMode: "Speed mode",
-      preservePitch: "Preserve pitch",
-      modeNormal: "Normal", modeSlow: "Slower", modeFast: "Faster", modeNightcore: "Nightcore", modeSlowed: "Slowed", modeCustom: "Custom",
+      modeNormal: "Normal (1x)", modeSlow025: "0.25x", modeSlow05: "0.5x", modeSlow075: "0.75x",
+      modeFast125: "1.25x", modeFast15: "1.5x", modeFast2: "2x", modeFast3: "3x",
+      modeNightcore: "Nightcore (1.25x, higher pitch)", modeSlowed: "Slowed (0.85x, lower pitch)", modeDaycore: "Daycore (0.85x, preserve pitch)", modeCustom: "Custom",
       equalizer: "Parametric equalizer",
       eqEnable: "Enable equalizer",
-      eqHint: "Add filters and adjust type, frequency, gain, and Q. Settings are saved site-wide.",
+      eqHint: "The curve shows the combined response. Add filters and adjust type, frequency, gain, and Q.",
       eqAdd: "Add filter",
       eqReset: "Reset equalizer",
       eqFreq: "Frequency", eqGain: "Gain", eqQ: "Q", eqType: "Type", eqRemove: "Remove",
@@ -369,15 +371,21 @@
   const queueToggle = $("playerQueueToggle");
   const engineUi = $("playerEngineUi");
 
-  const PLAYBACK_RATE_MIN = 0.5;
-  const PLAYBACK_RATE_MAX = 2;
+  const PLAYBACK_RATE_MIN = 0.1;
+  const PLAYBACK_RATE_MAX = 10;
   const PLAYBACK_RATE_STEP = 0.05;
   const PLAYBACK_RATE_MODES = [
     { id: "normal", rate: 1, preservePitch: true },
-    { id: "slow", rate: 0.75, preservePitch: true },
-    { id: "fast", rate: 1.25, preservePitch: true },
+    { id: "slow025", rate: 0.25, preservePitch: true },
+    { id: "slow05", rate: 0.5, preservePitch: true },
+    { id: "slow075", rate: 0.75, preservePitch: true },
+    { id: "fast125", rate: 1.25, preservePitch: true },
+    { id: "fast15", rate: 1.5, preservePitch: true },
+    { id: "fast2", rate: 2, preservePitch: true },
+    { id: "fast3", rate: 3, preservePitch: true },
     { id: "nightcore", rate: 1.25, preservePitch: false },
     { id: "slowed", rate: 0.85, preservePitch: false },
+    { id: "daycore", rate: 0.85, preservePitch: true },
   ];
   const EQ_MIN_GAIN = -12;
   const EQ_MAX_GAIN = 12;
@@ -2669,13 +2677,18 @@
     <label class="settings-label" for="playerPlaybackMode" data-player-i18n="playbackMode">${pt("playbackMode")}</label>
     <select class="settings-select" id="playerPlaybackMode" data-player-setting="playbackMode">
       <option value="normal">${pt("modeNormal")}</option>
-      <option value="slow">${pt("modeSlow")}</option>
-      <option value="fast">${pt("modeFast")}</option>
+      <option value="slow025">${pt("modeSlow025")}</option>
+      <option value="slow05">${pt("modeSlow05")}</option>
+      <option value="slow075">${pt("modeSlow075")}</option>
+      <option value="fast125">${pt("modeFast125")}</option>
+      <option value="fast15">${pt("modeFast15")}</option>
+      <option value="fast2">${pt("modeFast2")}</option>
+      <option value="fast3">${pt("modeFast3")}</option>
       <option value="nightcore">${pt("modeNightcore")}</option>
       <option value="slowed">${pt("modeSlowed")}</option>
+      <option value="daycore">${pt("modeDaycore")}</option>
       <option value="custom">${pt("modeCustom")}</option>
     </select>
-    <label><input type="checkbox" data-player-setting="preservePitch"><span data-player-i18n="preservePitch">${pt("preservePitch")}</span></label>
     <p class="player-settings-hint" data-player-i18n="playbackRateHint">${pt("playbackRateHint")}</p>
   </div>
   <div class="settings-field eq-setting" data-eq-setting>
@@ -2687,6 +2700,9 @@
       </div>
     </div>
     <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
+    <div class="eq-visual-wrap">
+      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-hidden="true"></canvas>
+    </div>
     <div class="eq-filters" id="playerEqFilters"></div>
   </div>
   <div class="settings-field intro-setting" data-intro-setting>
@@ -2804,6 +2820,123 @@
     });
   }
 
+  function eqResponseAt(freq, cfg) {
+    const f = clamp(freq, EQ_MIN_FREQ, EQ_MAX_FREQ);
+    const f0 = clamp(cfg.freq, EQ_MIN_FREQ, EQ_MAX_FREQ);
+    const Q = clamp(cfg.q || 1, EQ_MIN_Q, EQ_MAX_Q);
+    const gain = clamp(cfg.gain || 0, EQ_MIN_GAIN, EQ_MAX_GAIN);
+    const w0 = f / f0;
+    switch (cfg.type) {
+      case "lowshelf": {
+        const g = Math.pow(10, gain / 40);
+        const x = Math.log2(Math.max(w0, 0.001));
+        const k = 1 / (1 + Math.exp(x * 4));
+        return 20 * Math.log10(1 + (g - 1) * k);
+      }
+      case "highshelf": {
+        const g = Math.pow(10, gain / 40);
+        const x = Math.log2(Math.max(w0, 0.001));
+        const k = 1 / (1 + Math.exp(-x * 4));
+        return 20 * Math.log10(1 + (g - 1) * k);
+      }
+      case "lowpass": {
+        const d = Math.pow(w0, 2) - 1;
+        const b = w0 / Q;
+        return 20 * Math.log10(1 / Math.sqrt(d * d + b * b));
+      }
+      case "highpass": {
+        const d = 1 - Math.pow(w0, 2);
+        const b = w0 / Q;
+        return 20 * Math.log10((w0 * w0) / Math.sqrt(d * d + b * b));
+      }
+      case "notch": {
+        const d = 1 - Math.pow(w0, 2);
+        const b = w0 / Q;
+        return 20 * Math.log10(Math.abs(d) / Math.sqrt(d * d + b * b));
+      }
+      default: { // peaking
+        const A = Math.pow(10, gain / 40);
+        const d = 1 - Math.pow(w0, 2);
+        const b = w0 / Q;
+        const num = Math.sqrt(Math.pow(d, 2) + Math.pow(A * b, 2));
+        const den = Math.sqrt(Math.pow(d, 2) + Math.pow(b / A, 2));
+        return 20 * Math.log10(num / den);
+      }
+    }
+  }
+
+  function drawEqCurve() {
+    document.querySelectorAll("#playerEqCanvas").forEach((canvas) => {
+      if (!(canvas instanceof HTMLCanvasElement)) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const w = canvas.width, h = canvas.height;
+      const padX = 28, padY = 14;
+      const innerW = w - padX * 2, innerH = h - padY * 2;
+      ctx.clearRect(0, 0, w, h);
+      const bg = cssVar("--bg-elevated-2") || "#141414";
+      const border = cssVar("--border") || "#2a2a2a";
+      const text = cssVar("--text") || "#ffffff";
+      const muted = cssVar("--muted") || "#a3a3a3";
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      const dbToY = (db) => padY + innerH * (1 - (db - EQ_MIN_GAIN) / (EQ_MAX_GAIN - EQ_MIN_GAIN));
+      const freqToX = (f) => padX + innerW * (Math.log10(f / EQ_MIN_FREQ) / Math.log10(EQ_MAX_FREQ / EQ_MIN_FREQ));
+
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
+      [ -12, -6, 0, 6, 12 ].forEach((db) => {
+        const y = dbToY(db);
+        ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(w - padX, y); ctx.stroke();
+      });
+      [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000].forEach((f) => {
+        const x = freqToX(f);
+        ctx.beginPath(); ctx.moveTo(x, padY); ctx.lineTo(x, h - padY); ctx.stroke();
+      });
+
+      ctx.fillStyle = muted;
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.textAlign = "right";
+      [12, 0, -12].forEach((db) => ctx.fillText(`${db}`, padX - 4, dbToY(db) + 3));
+
+      const filters = (state.eqFilters || []).filter((f) => f && f.enabled);
+      const points = [];
+      for (let i = 0; i <= innerW; i++) {
+        const f = EQ_MIN_FREQ * Math.pow(EQ_MAX_FREQ / EQ_MIN_FREQ, i / innerW);
+        let db = 0;
+        for (const cfg of filters) db += eqResponseAt(f, cfg);
+        db = clamp(db, EQ_MIN_GAIN - 6, EQ_MAX_GAIN + 6);
+        points.push({ x: padX + i, y: dbToY(db) });
+      }
+
+      ctx.beginPath();
+      points.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+      ctx.strokeStyle = state.eqEnabled ? text : muted;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const zeroY = dbToY(0);
+      ctx.lineTo(w - padX, zeroY);
+      ctx.lineTo(padX, zeroY);
+      ctx.closePath();
+      ctx.fillStyle = state.eqEnabled ? "rgba(255,255,255,0.08)" : "rgba(163,163,163,0.06)";
+      ctx.fill();
+
+      // Filter handles
+      filters.forEach((cfg) => {
+        let db = 0;
+        for (const c of filters) db += eqResponseAt(cfg.freq, c);
+        const x = freqToX(cfg.freq);
+        const y = dbToY(clamp(db, EQ_MIN_GAIN - 6, EQ_MAX_GAIN + 6));
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = state.eqEnabled ? text : muted;
+        ctx.fill();
+      });
+    });
+  }
+
   function renderEqFilters() {
     document.querySelectorAll("#playerEqFilters").forEach((container) => {
       container.replaceChildren();
@@ -2833,6 +2966,7 @@
 
   function syncEqVisual() {
     renderEqFilters();
+    drawEqCurve();
     document.querySelectorAll("[data-eq-setting]").forEach((root) => {
       root.classList.toggle("is-disabled", !state.eqEnabled);
       root.querySelectorAll("input,select,button").forEach((el) => {
@@ -2855,7 +2989,7 @@
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
       else if (key === "silenceDb") input.value = String(state.silenceDb);
       else if (key === "introMaxSec") input.value = String(state.introMaxSec);
-      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled" || key === "preservePitch") {
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled") {
         input.checked = !!state[key];
       }
     });
@@ -3034,7 +3168,6 @@
     else if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
     else if (key === "eqEnabled") setEqEnabled(input.checked);
-    else if (key === "preservePitch") setPreservePitch(input.checked);
     else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
@@ -3115,6 +3248,7 @@
 
   window.addEventListener("zqwy:themechange", () => {
     const colors = waveformColors();
+    drawEqCurve();
     if (waveSurfer && typeof waveSurfer.setOptions === "function") {
       try {
         waveSurfer.setOptions({

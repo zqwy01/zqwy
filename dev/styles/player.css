@@ -630,6 +630,14 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
 /* Playback speed + parametric equalizer settings */
 .speed-setting .fade-range { margin-bottom: 10px; }
 .speed-setting .settings-select { margin-bottom: 8px; }
+.eq-visual-wrap {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated-2);
+  overflow: hidden;
+}
+.eq-visual { display: block; width: 100%; height: 140px; }
 .eq-setting-head {
   display: flex;
   align-items: center;

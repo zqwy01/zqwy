@@ -340,9 +340,9 @@
     </div>
   </div>
 
-  <div class="player-settings" id="playerSettings" hidden>
+  <div class="player-settings" id="playerSettings" role="dialog" aria-labelledby="playerSettingsTitle" hidden>
     <div class="player-settings-head">
-      <strong data-player-i18n="settings">${pt("settings")}</strong>
+      <strong id="playerSettingsTitle" data-player-i18n="settings">${pt("settings")}</strong>
       <button class="player-btn player-settings-close" id="playerSettingsClose" type="button" aria-label="${pt("closeSettings")}" data-player-i18n-aria-label="closeSettings">×</button>
     </div>
     <div class="player-settings-mount" data-player-settings-mount></div>
@@ -380,6 +380,12 @@
   const waveform = $("playerWaveform");
   const volume = $("playerVolume");
   const settingsPanel = $("playerSettings");
+  // The settings dialog is a full-screen page. It cannot stay inside the
+  // player bar: `will-change: transform` on the bar would make `position: fixed`
+  // resolve against the bar instead of the viewport.
+  if (settingsPanel && settingsPanel.parentElement !== document.body) {
+    document.body.appendChild(settingsPanel);
+  }
   const settingsToggle = $("playerSettingsToggle");
   const queuePanel = $("playerQueuePanel");
   const queueToggle = $("playerQueueToggle");
@@ -3343,6 +3349,7 @@
     if (settingsTimer) { window.clearTimeout(settingsTimer); settingsTimer = 0; }
     if (queuePanel && !queuePanel.hidden) closeQueue();
     settingsPanel.hidden = false;
+    document.body.classList.add("player-settings-open");
     settingsToggle.setAttribute("aria-expanded", "true");
     mountSettings();
     // Restart the transition even if the panel was still closing.
@@ -3361,7 +3368,10 @@
     stopLimiterMeter();
     // Keep the panel in the DOM until its fade/slide-out has finished.
     settingsTimer = window.setTimeout(() => {
-      if (!settingsPanel.classList.contains("is-open")) settingsPanel.hidden = true;
+      if (!settingsPanel.classList.contains("is-open")) {
+        settingsPanel.hidden = true;
+        document.body.classList.remove("player-settings-open");
+      }
       settingsTimer = 0;
     }, 260);
   }
@@ -3446,7 +3456,8 @@
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key !== "Escape") return;
-    if (queuePanel && !queuePanel.hidden) closeQueue();
+    if (settingsPanel && !settingsPanel.hidden) closeSettings();
+    else if (queuePanel && !queuePanel.hidden) closeQueue();
   });
 
   document.addEventListener("click", (ev) => {

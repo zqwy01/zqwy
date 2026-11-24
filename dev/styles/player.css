@@ -476,7 +476,8 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
 /* --- fade in / fade out controls --- */
 .fade-setting { display: flex; flex-direction: column; gap: 10px; }
 .fade-setting.is-disabled { opacity: 0.45; }
-.fade-setting.is-disabled .fade-range { pointer-events: none; }
+.fade-setting.is-disabled .fade-range,
+.fade-setting.is-disabled .fade-envelope-canvas { pointer-events: none; cursor: default; }
 .fade-setting-head {
   display: flex;
   align-items: baseline;
@@ -496,7 +497,7 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
   background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
 }
 :root[data-theme="light"] .fade-visual-wrap { background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent); }
-.fade-envelope-canvas { display: block; width: 100%; height: 120px; cursor: ew-resize; }
+.fade-envelope-canvas { display: block; width: 100%; height: 108px; cursor: ew-resize; }
 .fade-visual-labels {
   display: flex;
   justify-content: space-between;
@@ -506,12 +507,17 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.fade-control { display: flex; flex-direction: column; gap: 4px; cursor: default; }
+.fade-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+.fade-control { display: flex; flex-direction: column; gap: 4px; cursor: default; min-width: 0; }
 .fade-control-row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
 .fade-control-value {
   color: var(--muted);
@@ -519,12 +525,15 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
 }
 .fade-range {
   width: 100%;
-  height: 4px;
-  margin: 2px 0;
-  border-radius: 999px;
-  background: var(--border);
+  max-width: 220px;
+  height: 18px;
+  margin: 0;
   accent-color: var(--text);
   cursor: pointer;
+}
+@media (max-width: 520px) {
+  .fade-controls { grid-template-columns: 1fr; }
+  .fade-range { max-width: none; }
 }
 
 /* --- engine-owned controls mounted inside the player row --- */

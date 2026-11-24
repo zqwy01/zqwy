@@ -496,11 +496,13 @@ body.menu-is-open {
   fill: none; stroke: currentColor; stroke-width: 1.7;
   stroke-linecap: round; stroke-linejoin: round;
 }
+/* One catalog item per row. Every button stretches to the full menu width,
+   including on 16:9, instead of collapsing into a narrow grid of tiles. */
 .menu-catalog {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  display: flex;
+  flex-direction: column;
   gap: clamp(8px, 1.1vw, 16px);
-  align-items: start;
+  align-items: stretch;
 }
 .catalog-hint { margin: 0 0 8px; color: var(--muted); font-size: var(--fs-sm); }
 .site-menu-item.nested .site-menu-button {

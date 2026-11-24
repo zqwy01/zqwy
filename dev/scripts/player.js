@@ -2810,6 +2810,13 @@
       </div>
     </div>
     <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
+    <div class="eq-visual-wrap">
+      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
+      <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
+    </div>
+    <div class="eq-filters" id="playerEqFilters"></div>
+  </div>
+  <div class="settings-field limiter-setting" data-limiter-setting>
     <label class="eq-toggle limiter-toggle"><input type="checkbox" data-player-setting="limiterEnabled"><span data-player-i18n="limiter">${pt("limiter")}</span></label>
     <p class="player-settings-hint" data-player-i18n="limiterHint">${pt("limiterHint")}</p>
     <div class="limiter-meter" data-limiter-meter>
@@ -2823,11 +2830,6 @@
         <div class="limiter-meter-mark"></div>
       </div>
     </div>
-    <div class="eq-visual-wrap">
-      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
-      <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
-    </div>
-    <div class="eq-filters" id="playerEqFilters"></div>
   </div>
   <div class="settings-field intro-setting" data-intro-setting>
     <label class="intro-control" for="playerSilenceDb">

@@ -96,14 +96,18 @@
       fadeLabel: "Появление / затухание", fadeIn: "Появление", fadeOut: "Затухание",
       fadeHint: "Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.",
       playbackRate: "Скорость воспроизведения",
-      playbackRateHint: "Ползунок меняет темп от 0.1x до 10x. Режим задаёт скорость и поведение высоты тона.",
+      playbackRateHint: "Ползунок меняет темп от 0.1x до 10x. Режим скорости задаёт пресет темпа, режим изменения тона — стиль воспроизведения.",
       playbackMode: "Режим скорости",
+      pitchMode: "Режим изменения тона",
       modeNormal: "Обычная (1x)", modeSlow025: "0.25x", modeSlow05: "0.5x", modeSlow075: "0.75x",
-      modeFast125: "1.25x", modeFast15: "1.5x", modeFast2: "2x", modeFast3: "3x",
-      modeNightcore: "Nightcore (1.25x, выше тон)", modeSlowed: "Slowed (0.85x, ниже тон)", modeDaycore: "Daycore (0.85x, тон сохранён)", modeCustom: "Своя",
+      modeFast125: "1.25x", modeFast15: "1.5x", modeFast2: "2x", modeFast3: "3x", modeCustom: "Своя",
+      pitchPreserve: "Сохранять тон",
+      pitchVinyl: "Винил/лента (тон меняется)",
+      pitchTape: "Тональный (стабильный тон)",
       equalizer: "Параметрический эквалайзер",
       eqEnable: "Включить эквалайзер",
       eqHint: "Визуальная кривая показывает суммарный отклик. Добавляйте фильтры и меняйте тип, частоту, усиление и Q.",
+      eqCanvasHint: "Перетаскивайте точки на кривой: по горизонтали — частота, по вертикали — усиление.",
       eqAdd: "Добавить фильтр",
       eqReset: "Сбросить эквалайзер",
       eqFreq: "Частота", eqGain: "Усиление", eqQ: "Q", eqType: "Тип", eqRemove: "Удалить",
@@ -142,14 +146,18 @@
       fadeLabel: "Fade in / fade out", fadeIn: "Fade in", fadeOut: "Fade out",
       fadeHint: "The new track fades in while the previous one fades out. Durations are independent; fading can be turned off.",
       playbackRate: "Playback speed",
-      playbackRateHint: "Slider changes tempo from 0.1x to 10x. Mode sets speed and pitch behavior.",
+      playbackRateHint: "Slider changes tempo from 0.1x to 10x. Speed mode sets tempo preset; pitch mode sets playback style.",
       playbackMode: "Speed mode",
+      pitchMode: "Pitch mode",
       modeNormal: "Normal (1x)", modeSlow025: "0.25x", modeSlow05: "0.5x", modeSlow075: "0.75x",
-      modeFast125: "1.25x", modeFast15: "1.5x", modeFast2: "2x", modeFast3: "3x",
-      modeNightcore: "Nightcore (1.25x, higher pitch)", modeSlowed: "Slowed (0.85x, lower pitch)", modeDaycore: "Daycore (0.85x, preserve pitch)", modeCustom: "Custom",
+      modeFast125: "1.25x", modeFast15: "1.5x", modeFast2: "2x", modeFast3: "3x", modeCustom: "Custom",
+      pitchPreserve: "Preserve pitch",
+      pitchVinyl: "Vinyl/tape (pitch changes)",
+      pitchTape: "Tonal (stable pitch)",
       equalizer: "Parametric equalizer",
       eqEnable: "Enable equalizer",
       eqHint: "The curve shows the combined response. Add filters and adjust type, frequency, gain, and Q.",
+      eqCanvasHint: "Drag points on the curve: horizontal is frequency, vertical is gain.",
       eqAdd: "Add filter",
       eqReset: "Reset equalizer",
       eqFreq: "Frequency", eqGain: "Gain", eqQ: "Q", eqType: "Type", eqRemove: "Remove",
@@ -383,9 +391,11 @@
     { id: "fast15", rate: 1.5, preservePitch: true },
     { id: "fast2", rate: 2, preservePitch: true },
     { id: "fast3", rate: 3, preservePitch: true },
-    { id: "nightcore", rate: 1.25, preservePitch: false },
-    { id: "slowed", rate: 0.85, preservePitch: false },
-    { id: "daycore", rate: 0.85, preservePitch: true },
+  ];
+  const PLAYBACK_PITCH_MODES = [
+    { id: "preserve", preservePitch: true, labelKey: "pitchPreserve" },
+    { id: "vinyl", preservePitch: false, labelKey: "pitchVinyl" },
+    { id: "tape", preservePitch: true, labelKey: "pitchTape" }, // UI mode; browser fallback uses preservePitch
   ];
   const EQ_MIN_GAIN = -12;
   const EQ_MAX_GAIN = 12;
@@ -422,6 +432,7 @@
     playbackRate: 1,
     preservePitch: true,
     playbackMode: "normal",
+    pitchMode: "preserve",
     eqEnabled: false,
     eqFilters: DEFAULT_EQ_FILTERS.map((f) => ({ ...f })),
     queue: [],   // upcoming tracks added from the music catalog
@@ -1010,7 +1021,7 @@
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
         skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
-        playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode,
+        playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode, pitchMode: state.pitchMode,
         eqEnabled: state.eqEnabled, eqFilters: state.eqFilters,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
@@ -1317,24 +1328,27 @@
     return clamp(Math.round(n / PLAYBACK_RATE_STEP) * PLAYBACK_RATE_STEP, PLAYBACK_RATE_MIN, PLAYBACK_RATE_MAX);
   }
 
+  function normalizePitchMode(id) {
+    return PLAYBACK_PITCH_MODES.some((m) => m.id === id) ? id : "preserve";
+  }
+
   function applyPlaybackRate() {
     const rate = clampPlaybackRate(state.playbackRate);
     state.playbackRate = rate;
+    state.pitchMode = normalizePitchMode(state.pitchMode);
+    const preserve = state.pitchMode !== "vinyl"; // tape/preserve keep stable pitch; vinyl shifts pitch with rate
+    state.preservePitch = preserve;
     try { audio.playbackRate = rate; } catch {}
     try { audio.defaultPlaybackRate = rate; } catch {}
-    const preserve = !!state.preservePitch;
     if (audio.preservesPitch !== undefined) audio.preservesPitch = preserve;
     if (audio.mozPreservesPitch !== undefined) audio.mozPreservesPitch = preserve;
     if (audio.webkitPreservesPitch !== undefined) audio.webkitPreservesPitch = preserve;
   }
 
-  function setPlaybackRate(rate, mode) {
+  function setPlaybackRate(rate) {
     state.playbackRate = clampPlaybackRate(rate);
-    if (mode) state.playbackMode = mode;
-    else {
-      const match = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate && m.preservePitch === state.preservePitch);
-      state.playbackMode = match ? match.id : "custom";
-    }
+    const match = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate);
+    state.playbackMode = match ? match.id : "custom";
     applyPlaybackRate();
     syncSettingsUI();
     saveState();
@@ -1343,20 +1357,17 @@
 
   function setPlaybackMode(modeId) {
     const mode = PLAYBACK_RATE_MODES.find((m) => m.id === modeId);
-    if (!mode) return;
+    if (!mode) { state.playbackMode = "custom"; syncSettingsUI(); saveState(); notify("settings"); return; }
     state.playbackMode = mode.id;
     state.playbackRate = mode.rate;
-    state.preservePitch = !!mode.preservePitch;
     applyPlaybackRate();
     syncSettingsUI();
     saveState();
     notify("settings");
   }
 
-  function setPreservePitch(value) {
-    state.preservePitch = !!value;
-    const match = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate && m.preservePitch === state.preservePitch);
-    state.playbackMode = match ? match.id : "custom";
+  function setPitchMode(modeId) {
+    state.pitchMode = normalizePitchMode(modeId);
     applyPlaybackRate();
     syncSettingsUI();
     saveState();
@@ -2684,10 +2695,13 @@
       <option value="fast15">${pt("modeFast15")}</option>
       <option value="fast2">${pt("modeFast2")}</option>
       <option value="fast3">${pt("modeFast3")}</option>
-      <option value="nightcore">${pt("modeNightcore")}</option>
-      <option value="slowed">${pt("modeSlowed")}</option>
-      <option value="daycore">${pt("modeDaycore")}</option>
       <option value="custom">${pt("modeCustom")}</option>
+    </select>
+    <label class="settings-label" for="playerPitchMode" data-player-i18n="pitchMode">${pt("pitchMode")}</label>
+    <select class="settings-select" id="playerPitchMode" data-player-setting="pitchMode">
+      <option value="preserve">${pt("pitchPreserve")}</option>
+      <option value="vinyl">${pt("pitchVinyl")}</option>
+      <option value="tape">${pt("pitchTape")}</option>
     </select>
     <p class="player-settings-hint" data-player-i18n="playbackRateHint">${pt("playbackRateHint")}</p>
   </div>
@@ -2701,7 +2715,8 @@
     </div>
     <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
     <div class="eq-visual-wrap">
-      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-hidden="true"></canvas>
+      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
+      <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
     </div>
     <div class="eq-filters" id="playerEqFilters"></div>
   </div>
@@ -2865,14 +2880,24 @@
     }
   }
 
+  function eqCanvasMetrics(canvas) {
+    const w = canvas.width, h = canvas.height;
+    const padX = 28, padY = 14;
+    const innerW = w - padX * 2, innerH = h - padY * 2;
+    const dbToY = (db) => padY + innerH * (1 - (db - EQ_MIN_GAIN) / (EQ_MAX_GAIN - EQ_MIN_GAIN));
+    const yToDb = (y) => EQ_MIN_GAIN + (1 - (clamp(y, padY, h - padY) - padY) / innerH) * (EQ_MAX_GAIN - EQ_MIN_GAIN);
+    const freqToX = (f) => padX + innerW * (Math.log10(clamp(f, EQ_MIN_FREQ, EQ_MAX_FREQ) / EQ_MIN_FREQ) / Math.log10(EQ_MAX_FREQ / EQ_MIN_FREQ));
+    const xToFreq = (x) => EQ_MIN_FREQ * Math.pow(EQ_MAX_FREQ / EQ_MIN_FREQ, clamp(x - padX, 0, innerW) / innerW);
+    return { w, h, padX, padY, innerW, innerH, dbToY, yToDb, freqToX, xToFreq };
+  }
+
   function drawEqCurve() {
     document.querySelectorAll("#playerEqCanvas").forEach((canvas) => {
       if (!(canvas instanceof HTMLCanvasElement)) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      const w = canvas.width, h = canvas.height;
-      const padX = 28, padY = 14;
-      const innerW = w - padX * 2, innerH = h - padY * 2;
+      const m = eqCanvasMetrics(canvas);
+      const { w, h, padX, padY, dbToY, freqToX } = m;
       ctx.clearRect(0, 0, w, h);
       const bg = cssVar("--bg-elevated-2") || "#141414";
       const border = cssVar("--border") || "#2a2a2a";
@@ -2881,12 +2906,9 @@
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
 
-      const dbToY = (db) => padY + innerH * (1 - (db - EQ_MIN_GAIN) / (EQ_MAX_GAIN - EQ_MIN_GAIN));
-      const freqToX = (f) => padX + innerW * (Math.log10(f / EQ_MIN_FREQ) / Math.log10(EQ_MAX_FREQ / EQ_MIN_FREQ));
-
       ctx.strokeStyle = border;
       ctx.lineWidth = 1;
-      [ -12, -6, 0, 6, 12 ].forEach((db) => {
+      [-12, -6, 0, 6, 12].forEach((db) => {
         const y = dbToY(db);
         ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(w - padX, y); ctx.stroke();
       });
@@ -2894,7 +2916,6 @@
         const x = freqToX(f);
         ctx.beginPath(); ctx.moveTo(x, padY); ctx.lineTo(x, h - padY); ctx.stroke();
       });
-
       ctx.fillStyle = muted;
       ctx.font = "10px system-ui, sans-serif";
       ctx.textAlign = "right";
@@ -2902,8 +2923,8 @@
 
       const filters = (state.eqFilters || []).filter((f) => f && f.enabled);
       const points = [];
-      for (let i = 0; i <= innerW; i++) {
-        const f = EQ_MIN_FREQ * Math.pow(EQ_MAX_FREQ / EQ_MIN_FREQ, i / innerW);
+      for (let i = 0; i <= m.innerW; i++) {
+        const f = EQ_MIN_FREQ * Math.pow(EQ_MAX_FREQ / EQ_MIN_FREQ, i / m.innerW);
         let db = 0;
         for (const cfg of filters) db += eqResponseAt(f, cfg);
         db = clamp(db, EQ_MIN_GAIN - 6, EQ_MAX_GAIN + 6);
@@ -2915,25 +2936,91 @@
       ctx.strokeStyle = state.eqEnabled ? text : muted;
       ctx.lineWidth = 2;
       ctx.stroke();
-
       const zeroY = dbToY(0);
-      ctx.lineTo(w - padX, zeroY);
-      ctx.lineTo(padX, zeroY);
-      ctx.closePath();
+      ctx.lineTo(w - padX, zeroY); ctx.lineTo(padX, zeroY); ctx.closePath();
       ctx.fillStyle = state.eqEnabled ? "rgba(255,255,255,0.08)" : "rgba(163,163,163,0.06)";
       ctx.fill();
 
-      // Filter handles
-      filters.forEach((cfg) => {
+      (state.eqFilters || []).forEach((cfg, index) => {
         let db = 0;
         for (const c of filters) db += eqResponseAt(cfg.freq, c);
         const x = freqToX(cfg.freq);
         const y = dbToY(clamp(db, EQ_MIN_GAIN - 6, EQ_MAX_GAIN + 6));
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = state.eqEnabled ? text : muted;
+        ctx.arc(x, y, eqDrag.index === index ? 6 : 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = !state.eqEnabled || !cfg.enabled ? muted : text;
         ctx.fill();
+        ctx.strokeStyle = bg;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       });
+    });
+  }
+
+  const eqDrag = { index: -1, pointerId: null };
+  function eqCanvasPoint(canvas, ev) {
+    const rect = canvas.getBoundingClientRect();
+    const x = ((ev.clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((ev.clientY - rect.top) / rect.height) * canvas.height;
+    return { x, y };
+  }
+  function eqHitTest(canvas, ev) {
+    const p = eqCanvasPoint(canvas, ev);
+    const m = eqCanvasMetrics(canvas);
+    let best = -1, bestDist = Infinity;
+    (state.eqFilters || []).forEach((cfg, index) => {
+      const filters = (state.eqFilters || []).filter((f) => f && f.enabled);
+      let db = 0;
+      for (const c of filters) db += eqResponseAt(cfg.freq, c);
+      const x = m.freqToX(cfg.freq);
+      const y = m.dbToY(clamp(db, EQ_MIN_GAIN - 6, EQ_MAX_GAIN + 6));
+      const dist = Math.hypot(p.x - x, p.y - y);
+      if (dist < 14 && dist < bestDist) { best = index; bestDist = dist; }
+    });
+    return best;
+  }
+  function applyEqCanvasDrag(canvas, ev) {
+    if (eqDrag.index < 0) return;
+    const cfg = state.eqFilters[eqDrag.index];
+    if (!cfg) return;
+    const p = eqCanvasPoint(canvas, ev);
+    const m = eqCanvasMetrics(canvas);
+    const freq = clamp(Math.round(m.xToFreq(p.x)), EQ_MIN_FREQ, EQ_MAX_FREQ);
+    const gain = clamp(Math.round(m.yToDb(p.y)), EQ_MIN_GAIN, EQ_MAX_GAIN);
+    cfg.freq = freq;
+    if (cfg.type !== "lowpass" && cfg.type !== "highpass" && cfg.type !== "notch") cfg.gain = gain;
+    state.eqFilters[eqDrag.index] = normalizeEqFilter(cfg, eqDrag.index);
+    if (state.eqEnabled) ensureEqChain();
+    applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function bindEqCanvasInteractions() {
+    document.querySelectorAll("#playerEqCanvas").forEach((canvas) => {
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.dataset.eqBound === "1") return;
+      canvas.dataset.eqBound = "1";
+      canvas.style.touchAction = "none";
+      canvas.addEventListener("pointerdown", (ev) => {
+        if (!state.eqEnabled) return;
+        const idx = eqHitTest(canvas, ev);
+        if (idx < 0) return;
+        eqDrag.index = idx; eqDrag.pointerId = ev.pointerId;
+        canvas.setPointerCapture?.(ev.pointerId);
+        applyEqCanvasDrag(canvas, ev);
+      });
+      canvas.addEventListener("pointermove", (ev) => {
+        if (eqDrag.pointerId !== ev.pointerId || eqDrag.index < 0) return;
+        applyEqCanvasDrag(canvas, ev);
+      });
+      const end = (ev) => {
+        if (eqDrag.pointerId !== ev.pointerId) return;
+        eqDrag.index = -1; eqDrag.pointerId = null;
+        drawEqCurve();
+      };
+      canvas.addEventListener("pointerup", end);
+      canvas.addEventListener("pointercancel", end);
     });
   }
 
@@ -2966,6 +3053,7 @@
 
   function syncEqVisual() {
     renderEqFilters();
+    bindEqCanvasInteractions();
     drawEqCurve();
     document.querySelectorAll("[data-eq-setting]").forEach((root) => {
       root.classList.toggle("is-disabled", !state.eqEnabled);
@@ -2980,7 +3068,7 @@
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
-      if (key === "engine" || key === "format" || key === "playbackMode") {
+      if (key === "engine" || key === "format" || key === "playbackMode" || key === "pitchMode") {
         if (input instanceof HTMLSelectElement) input.value = String(state[key]);
         else input.checked = String(input.value) === String(state[key]);
       }
@@ -3165,6 +3253,7 @@
     else if (key === "format") setFormat(input.value);
     else if (key === "playbackRate") setPlaybackRate(input.value);
     else if (key === "playbackMode") setPlaybackMode(input.value);
+    else if (key === "pitchMode") setPitchMode(input.value);
     else if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
     else if (key === "eqEnabled") setEqEnabled(input.checked);
@@ -3336,12 +3425,12 @@
     state.silenceDb = clampDb(saved.silenceDb, DEFAULT_SILENCE_DB);
     state.introMaxSec = clampIntroMax(saved.introMaxSec, DEFAULT_INTRO_MAX_SEC);
     state.playbackRate = clampPlaybackRate(saved.playbackRate);
-    state.preservePitch = saved.preservePitch !== false;
+    state.pitchMode = normalizePitchMode(saved.pitchMode || (saved.preservePitch === false ? "vinyl" : "preserve"));
     const modeIds = new Set(PLAYBACK_RATE_MODES.map((m) => m.id).concat(["custom"]));
-    state.playbackMode = modeIds.has(saved.playbackMode) ? saved.playbackMode : "normal";
-    const matchMode = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate && m.preservePitch === state.preservePitch);
-    if (!matchMode && state.playbackMode !== "custom") state.playbackMode = "custom";
-    if (matchMode && state.playbackMode === "normal" && !(state.playbackRate === 1 && state.preservePitch)) state.playbackMode = matchMode.id;
+    state.playbackMode = modeIds.has(saved.playbackMode) ? saved.playbackMode : "custom";
+    const matchMode = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate);
+    if (matchMode && state.playbackMode === "custom") state.playbackMode = matchMode.id;
+    state.preservePitch = state.pitchMode !== "vinyl";
 
     state.eqEnabled = saved.eqEnabled === true;
     const savedFilters = Array.isArray(saved.eqFilters) ? saved.eqFilters : null;

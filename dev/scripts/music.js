@@ -588,9 +588,9 @@
     }
   }
 
-  function playTrack(index) {
+  function playTrack(index, options = {}) {
     if (!state.album || !state.album.tracks[index]) return;
-    player()?.playTrack(state.album, index);
+    player()?.playTrack(state.album, index, options);
     markActiveTrack();
   }
 
@@ -784,7 +784,10 @@
     if (albumParam && trackParam !== null) {
       const index = Number(trackParam);
       if (Number.isInteger(index) && album.tracks[index]) {
-        playTrack(index);
+        // Shared links carry the exact position as ?t=<seconds>.
+        const rawTime = Number(params.get("t"));
+        const startTime = Number.isFinite(rawTime) && rawTime >= 0 ? rawTime : 0;
+        playTrack(index, { startTime });
       }
       // Consume the deep-link query so re-entering the page (or a bfcache
       // restore) does not replay the track; keep the album in the hash.

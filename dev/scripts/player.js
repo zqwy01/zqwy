@@ -35,6 +35,11 @@
   const STORAGE_STATE = "zqwy.player.state.v1";
   const STORAGE_SETTINGS = "zqwy.player.settings.v1";
   const STORAGE_ALBUM = "zqwy.player.album.v1";
+  // A settings link carries compact JSON in ?player=<base64url>. Only the keys
+  // listed below are accepted: playback position, queue and the current track
+  // are intentionally personal and are never shared.
+  const SHARE_PARAM = "player";
+  const TIME_PARAM = "t";
   const ENGINES = [
     "html5", "wavesurfer", "peaks", "howler", "waviz",
     "mediaelement", "amplitude", "aplayer", "jplayer",
@@ -73,6 +78,10 @@
       repeatOff: "Повтор: выключен", repeatAll: "Повтор: весь релиз", repeatOne: "Повтор: один трек",
       muteOn: "Включить звук", muteOff: "Выключить звук",
       settings: "Настройки плеера", closeSettings: "Закрыть настройки",
+      share: "Поделиться настройками",
+      shareHint: "Ссылка откроет плеер с вашими настройками: движок, формат, скорость, эквалайзер и эффекты.",
+      shareCopy: "Скопировать ссылку", shareCopied: "Ссылка скопирована",
+      shareManual: "Ссылка готова — скопируйте её из поля",
       close: "Остановить и закрыть плеер", loading: "Загрузка трека",
       position: "Позиция трека", volume: "Громкость", engineUi: "Позиция (AmplitudeJS)",
       playPause: "Воспроизвести/пауза", amplitudeVolume: "Громкость (AmplitudeJS)",
@@ -140,6 +149,10 @@
       repeatOff: "Repeat: off", repeatAll: "Repeat: album", repeatOne: "Repeat: one track",
       muteOn: "Unmute", muteOff: "Mute",
       settings: "Player settings", closeSettings: "Close settings",
+      share: "Share settings",
+      shareHint: "The link opens the player with your settings: engine, format, speed, equalizer and effects.",
+      shareCopy: "Copy link", shareCopied: "Link copied",
+      shareManual: "Link ready — copy it from the field",
       close: "Stop and close the player", loading: "Loading track",
       position: "Track position", volume: "Volume", engineUi: "Position (AmplitudeJS)",
       playPause: "Play/pause", amplitudeVolume: "Volume (AmplitudeJS)",
@@ -459,6 +472,14 @@
     reverbMix: { min: 0, max: 1, step: 0.01, fallback: 0.3 },
   };
   const FX_KINDS = ["distortion", "chorus", "reverb"];
+  const SHARE_KEYS = [
+    "engine", "format", "autoNext", "rememberPosition", "crossfade",
+    "fadeOutMs", "fadeInMs", "skipIntro", "silenceDb", "introMaxSec",
+    "playbackRate", "playbackMode", "pitchMode",
+    "eqEnabled", "eqFilters", "limiterEnabled",
+    ...FX_KINDS.map((kind) => `${kind}Enabled`),
+    ...Object.keys(FX_RANGES),
+  ];
 
   const listeners = new Map();
   const state = {
@@ -1106,6 +1127,125 @@
   function saveStateSoon() {
     if (saveTimer) return;
     saveTimer = window.setTimeout(() => { saveTimer = 0; saveState(); }, 1500);
+  }
+
+  /* ---------- shareable settings links ---------- */
+
+  function encodeShareToken(payload) {
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let binary = "";
+    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+
+  function decodeShareToken(token) {
+    const base64 = String(token).replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function readSharedSettings() {
+    try {
+      const token = new URLSearchParams(window.location.search).get(SHARE_PARAM);
+      if (!token) return null;
+      const raw = decodeShareToken(token);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+      const shared = {};
+      SHARE_KEYS.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(raw, key)) shared[key] = raw[key];
+      });
+      if (Object.prototype.hasOwnProperty.call(shared, "engine")) {
+        if (!ENGINES.includes(shared.engine)) delete shared.engine;
+        else shared.engineExplicit = true; // a shared engine must beat auto-detection
+      }
+      if (Object.prototype.hasOwnProperty.call(shared, "format") && !FORMATS.includes(shared.format)) delete shared.format;
+      return Object.keys(shared).length ? shared : null;
+    } catch { return null; }
+  }
+
+  function clearShareParam() {
+    try {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has(SHARE_PARAM)) return;
+      url.searchParams.delete(SHARE_PARAM);
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    } catch {}
+  }
+
+  function readTimeParam() {
+    try {
+      const raw = new URLSearchParams(window.location.search).get(TIME_PARAM);
+      if (raw === null) return null;
+      const value = Number(raw);
+      return Number.isFinite(value) && value >= 0 ? value : null;
+    } catch { return null; }
+  }
+
+  function buildShareUrl() {
+    const payload = {};
+    SHARE_KEYS.forEach((key) => { payload[key] = state[key]; });
+    // Always point at the music page: it is the only page that can select the
+    // album/track from the catalog before handing the timecode to the player.
+    const url = SITE_ROOT ? new URL("music/", SITE_ROOT) : new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    const albumId = state.context?.albumId;
+    if (albumId) url.searchParams.set("album", albumId);
+    if (state.current && Number.isInteger(state.current.index)) {
+      url.searchParams.set("track", String(state.current.index));
+    }
+    const time = state.current ? Math.round((audio.currentTime || state.time || 0) * 100) / 100 : 0;
+    if (time > 0) url.searchParams.set(TIME_PARAM, String(time));
+    url.searchParams.set(SHARE_PARAM, encodeShareToken(payload));
+    if (albumId) url.hash = encodeURIComponent(albumId);
+    return url.href;
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+    return new Promise((resolve, reject) => {
+      const input = document.createElement("textarea");
+      input.value = text;
+      input.setAttribute("readonly", "");
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      let copied = false;
+      try { copied = document.execCommand("copy"); } catch {}
+      input.remove();
+      if (copied) resolve();
+      else reject(new Error("copy failed"));
+    });
+  }
+
+  const shareStatusTimers = new WeakMap();
+
+  function showShareStatus(button, message, url) {
+    const field = button.closest(".share-setting");
+    const status = field?.querySelector("[data-share-status]");
+    const input = field?.querySelector("[data-share-url]");
+    if (status) status.textContent = message;
+    if (input) {
+      input.hidden = !url;
+      if (url) { input.value = url; input.focus(); input.select(); }
+    }
+    const previous = shareStatusTimers.get(button);
+    if (previous) window.clearTimeout(previous);
+    shareStatusTimers.set(button, window.setTimeout(() => {
+      if (status) status.textContent = "";
+      if (input) input.hidden = true;
+      shareStatusTimers.delete(button);
+    }, 4000));
+  }
+
+  function shareSettings(button) {
+    let url;
+    try { url = buildShareUrl(); } catch { return; }
+    copyText(url)
+      .then(() => showShareStatus(button, pt("shareCopied")))
+      .catch(() => showShareStatus(button, pt("shareManual"), url));
   }
 
   /* ---------- engine: WaveSurfer ---------- */
@@ -2986,6 +3126,15 @@
     return `
 <div class="player-settings-body">
   <p class="player-settings-hint" data-player-i18n="settingsHint">${pt("settingsHint")}</p>
+  <div class="settings-field share-setting">
+    <span class="settings-label" data-player-i18n="share">${pt("share")}</span>
+    <p class="player-settings-hint" data-player-i18n="shareHint">${pt("shareHint")}</p>
+    <div class="share-actions">
+      <button class="player-share-btn" type="button" data-player-share data-player-i18n="shareCopy">${pt("shareCopy")}</button>
+      <span class="player-share-status" data-share-status role="status" aria-live="polite"></span>
+    </div>
+    <input class="share-url-input" data-share-url type="text" readonly hidden aria-label="${pt("share")}" data-player-i18n-aria-label="share">
+  </div>
   <div class="settings-field">
     <label class="settings-label" for="playerEngineSelect" data-player-i18n="engine">${pt("engine")}</label>
     <select class="settings-select" id="playerEngineSelect" data-player-setting="engine">
@@ -3938,6 +4087,8 @@
   document.addEventListener("click", (ev) => {
     const target = ev.target instanceof Element ? ev.target : null;
     if (!target) return;
+    const share = target.closest("[data-player-share]");
+    if (share) { shareSettings(share); return; }
     if (target.closest("#playerEqReset")) resetEq();
   });
 
@@ -4115,7 +4266,11 @@
     }
   });
 
-  window.addEventListener("zqwy:pagechange", () => { mountSettings(); updateTime(); });
+  window.addEventListener("zqwy:pagechange", () => {
+    applySharedSettings();
+    mountSettings();
+    updateTime();
+  });
 
   window.addEventListener("pagehide", saveState);
   document.addEventListener("visibilitychange", () => { if (document.hidden) saveState(); });
@@ -4137,11 +4292,7 @@
 
   /* ---------- init ---------- */
 
-  function restore() {
-    const saved = loadSaved();
-    state.context = saved.context || null;
-    state.current = saved.current || null;
-    state.time = typeof saved.time === "number" ? saved.time : 0;
+  function applySettingsFrom(saved) {
     state.volume = typeof saved.volume === "number" ? Math.min(1, Math.max(0, saved.volume)) : 1;
     state.muted = saved.muted === true;
     state.shuffle = saved.shuffle === true;
@@ -4224,11 +4375,58 @@
     if (anyFxEnabled()) ensureFxChain();
     applyEqState();
     applyFxState();
+  }
 
+  function restore() {
+    const shared = readSharedSettings();
+    const timeParam = readTimeParam();
+    const saved = shared ? { ...loadSaved(), ...shared } : loadSaved();
+    state.context = saved.context || null;
+    state.current = saved.current || null;
+    state.time = typeof saved.time === "number" ? saved.time : 0;
+    // A link's timecode wins over the locally remembered position. The music
+    // page will later select the shared album/track and apply it there too.
+    if (timeParam !== null) state.time = timeParam;
+    applySettingsFrom(saved);
+    if (shared) {
+      saveState();
+      clearShareParam();
+      notify("settings");
+    }
     if (!state.current || !state.current.path) return;
     showBar();
     renderMetadata();
-    loadCurrent({ autoplay: false, startTime: state.rememberPosition ? state.time : 0 });
+    loadCurrent({ autoplay: false, startTime: timeParam !== null ? timeParam : (state.rememberPosition ? state.time : 0) });
+  }
+
+  // Shared links can also be opened through the site's SPA navigation, where
+  // player.js is not re-executed. Apply the same settings without reloading
+  // the page (and without touching the track that is currently playing).
+  function applySharedSettings() {
+    const shared = readSharedSettings();
+    if (!shared) return false;
+    // Engine/format changes must also re-init the active track, exactly as
+    // they do when the visitor changes the selects in the settings form.
+    if (shared.engine && shared.engine !== state.engine) setEngine(shared.engine);
+    if (shared.format && shared.format !== state.format) setFormat(shared.format);
+    const current = {
+      ...loadSaved(),
+      ...Object.fromEntries(SHARE_KEYS.map((key) => [key, state[key]])),
+      context: state.context,
+      current: state.current,
+      time: state.time,
+      queue: getQueue(),
+      volume: state.volume,
+      muted: state.muted,
+      shuffle: state.shuffle,
+      repeat: state.repeat,
+      ...shared,
+    };
+    applySettingsFrom(current);
+    saveState();
+    clearShareParam();
+    notify("settings");
+    return true;
   }
 
   window.zqwyPlayer = {

@@ -1,5 +1,8 @@
 node_modules/
 dev/
+# Локальные заметки bio/job и их копия в сборке
+src/notes/bio/job/
+dist/src/notes/bio/job/
 *.log
 .env
 .env.*

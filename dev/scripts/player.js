@@ -461,6 +461,7 @@
   let mainGainNode = null;
   let eqInputNode = null;
   let eqFilters = [];
+  let masterOutputNode = null;
   let limiterNode = null;
   let limiterEnabled = true;
   let limiterMeterNode = null;
@@ -1212,7 +1213,6 @@
       comp.ratio.value = 20;
       comp.attack.value = 0.003;
       comp.release.value = 0.25;
-      comp.connect(context.destination);
       limiterNode = comp;
     } catch {
       limiterNode = null;
@@ -1235,18 +1235,48 @@
     return limiterMeterNode;
   }
 
+  function ensureMasterOutput() {
+    const context = sharedAudioContext();
+    if (!context) return null;
+    if (masterOutputNode) {
+      wireMasterOutput();
+      return masterOutputNode;
+    }
+    try {
+      masterOutputNode = context.createGain();
+      masterOutputNode.gain.value = 1;
+      wireMasterOutput();
+    } catch {
+      masterOutputNode = null;
+    }
+    return masterOutputNode;
+  }
+
+  function wireMasterOutput() {
+    if (!masterOutputNode || !audioContext) return;
+    try { masterOutputNode.disconnect(); } catch {}
+    const meter = ensureLimiterMeter();
+    if (limiterEnabled) {
+      const limiter = ensureLimiter();
+      if (limiter) {
+        try { limiter.disconnect(); } catch {}
+        try { masterOutputNode.connect(limiter); } catch {}
+        if (meter) {
+          try { limiter.connect(meter); } catch {}
+        }
+        try { limiter.connect(audioContext.destination); } catch {}
+        return;
+      }
+    }
+    if (meter) {
+      try { masterOutputNode.connect(meter); } catch {}
+    }
+    try { masterOutputNode.connect(audioContext.destination); } catch {}
+  }
+
   function outputDestination() {
     if (!audioContext) return null;
-    const limiter = limiterEnabled ? ensureLimiter() : null;
-    if (limiter) {
-      const meter = ensureLimiterMeter();
-      if (meter) {
-        try { limiter.disconnect(meter); } catch {}
-        try { limiter.connect(meter); } catch {}
-      }
-      return limiter;
-    }
-    return audioContext.destination;
+    return ensureMasterOutput() || audioContext.destination;
   }
 
   function connectMainOutput() {
@@ -3392,9 +3422,9 @@
     else if (key === "limiterEnabled") {
       state.limiterEnabled = !!input.checked;
       limiterEnabled = state.limiterEnabled;
-      ensureMainGain();
-      if (state.eqEnabled) ensureEqChain();
-      applyEqState();
+      ensureMasterOutput();
+      wireMasterOutput();
+      connectMainOutput();
       syncSettingsUI();
       saveState();
       notify("settings");
@@ -3601,6 +3631,7 @@
     renderQueue();
     mountSettings();
     applyPlaybackRate();
+    ensureMasterOutput();
     ensureMainGain();
     if (state.eqEnabled) {
       ensureEqChain();

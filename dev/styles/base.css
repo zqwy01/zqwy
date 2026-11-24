@@ -71,6 +71,18 @@ body {
 :root { color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
 
+/* Text selection follows the active theme: light text on dark in dark mode,
+   dark text on light in light mode. */
+:root[data-theme="dark"] ::selection,
+:root:not([data-theme="light"]) ::selection {
+  background: #ffffff;
+  color: #000000;
+}
+:root[data-theme="light"] ::selection {
+  background: #000000;
+  color: #ffffff;
+}
+
 .page, .page-content {
   width: 100%;
   max-width: 100%;

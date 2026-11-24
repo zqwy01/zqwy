@@ -95,6 +95,17 @@
       introMaxHint: "Дальше этого времени интро не ищется, чтобы не перескочить в начало музыки.",
       fadeLabel: "Появление / затухание", fadeIn: "Появление", fadeOut: "Затухание",
       fadeHint: "Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.",
+      playbackRate: "Скорость воспроизведения",
+      playbackRateHint: "Ползунок меняет темп. Режимы задают скорость и поведение высоты тона.",
+      playbackMode: "Режим скорости",
+      preservePitch: "Сохранять высоту тона",
+      modeNormal: "Обычная", modeSlow: "Медленнее", modeFast: "Быстрее", modeNightcore: "Nightcore", modeSlowed: "Slowed", modeCustom: "Своя",
+      equalizer: "Параметрический эквалайзер",
+      eqEnable: "Включить эквалайзер",
+      eqHint: "Добавляйте фильтры, меняйте тип, частоту, усиление и Q. Настройки сохраняются для всего сайта.",
+      eqAdd: "Добавить фильтр",
+      eqReset: "Сбросить эквалайзер",
+      eqFreq: "Частота", eqGain: "Усиление", eqQ: "Q", eqType: "Тип", eqRemove: "Удалить",
       off: "выкл", ms: "мс", s: "с", db: "дБ",
       playNext: "Играть следующим: {title}", removeQueue: "Убрать из очереди: {title}",
     },
@@ -129,6 +140,17 @@
       introMaxHint: "The intro search stops here so the music itself is never skipped.",
       fadeLabel: "Fade in / fade out", fadeIn: "Fade in", fadeOut: "Fade out",
       fadeHint: "The new track fades in while the previous one fades out. Durations are independent; fading can be turned off.",
+      playbackRate: "Playback speed",
+      playbackRateHint: "Use the slider for tempo. Modes set speed and pitch behavior.",
+      playbackMode: "Speed mode",
+      preservePitch: "Preserve pitch",
+      modeNormal: "Normal", modeSlow: "Slower", modeFast: "Faster", modeNightcore: "Nightcore", modeSlowed: "Slowed", modeCustom: "Custom",
+      equalizer: "Parametric equalizer",
+      eqEnable: "Enable equalizer",
+      eqHint: "Add filters and adjust type, frequency, gain, and Q. Settings are saved site-wide.",
+      eqAdd: "Add filter",
+      eqReset: "Reset equalizer",
+      eqFreq: "Frequency", eqGain: "Gain", eqQ: "Q", eqType: "Type", eqRemove: "Remove",
       off: "off", ms: "ms", s: "s", db: "dB",
       playNext: "Play next: {title}", removeQueue: "Remove from queue: {title}",
     },
@@ -347,6 +369,28 @@
   const queueToggle = $("playerQueueToggle");
   const engineUi = $("playerEngineUi");
 
+  const PLAYBACK_RATE_MIN = 0.5;
+  const PLAYBACK_RATE_MAX = 2;
+  const PLAYBACK_RATE_STEP = 0.05;
+  const PLAYBACK_RATE_MODES = [
+    { id: "normal", rate: 1, preservePitch: true },
+    { id: "slow", rate: 0.75, preservePitch: true },
+    { id: "fast", rate: 1.25, preservePitch: true },
+    { id: "nightcore", rate: 1.25, preservePitch: false },
+    { id: "slowed", rate: 0.85, preservePitch: false },
+  ];
+  const EQ_MIN_GAIN = -12;
+  const EQ_MAX_GAIN = 12;
+  const EQ_MIN_FREQ = 31;
+  const EQ_MAX_FREQ = 16000;
+  const EQ_MIN_Q = 0.4;
+  const EQ_MAX_Q = 18;
+  const DEFAULT_EQ_FILTERS = [
+    { id: "low", type: "lowshelf", freq: 120, gain: 0, q: 0.7, enabled: true },
+    { id: "mid", type: "peaking", freq: 1000, gain: 0, q: 1, enabled: true },
+    { id: "high", type: "highshelf", freq: 8000, gain: 0, q: 0.7, enabled: true },
+  ];
+
   const listeners = new Map();
   const state = {
     context: null,   // { albumId, title, cover, tracks: [{ title, path }] }
@@ -367,6 +411,11 @@
     skipIntro: false,         // skip detected initial silence on a fresh track
     silenceDb: DEFAULT_SILENCE_DB,
     introMaxSec: DEFAULT_INTRO_MAX_SEC,
+    playbackRate: 1,
+    preservePitch: true,
+    playbackMode: "normal",
+    eqEnabled: false,
+    eqFilters: DEFAULT_EQ_FILTERS.map((f) => ({ ...f })),
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -384,6 +433,8 @@
   let audioContext = null;
   let mediaSourceNode = null;
   let mainGainNode = null;
+  let eqInputNode = null;
+  let eqFilters = [];
   let pendingStart = null;
   let pendingAutoplay = false;
   // Intro analysis is cached per URL + threshold so scrubbing back and
@@ -951,6 +1002,8 @@
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
         skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
+        playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode,
+        eqEnabled: state.eqEnabled, eqFilters: state.eqFilters,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -1114,6 +1167,194 @@
     return audioContext;
   }
 
+  function connectMainOutput() {
+    if (!mainGainNode || !audioContext) return;
+    try { mainGainNode.disconnect(); } catch {}
+    const target = state.eqEnabled && eqInputNode ? eqInputNode : audioContext.destination;
+    try { mainGainNode.connect(target); } catch {}
+  }
+
+  function clamp(n, min, max) { return Math.min(max, Math.max(min, n)); }
+
+  function normalizeEqFilter(filter, index) {
+    const fallback = DEFAULT_EQ_FILTERS[Math.min(index, DEFAULT_EQ_FILTERS.length - 1)] || DEFAULT_EQ_FILTERS[0];
+    const type = ["peaking", "lowshelf", "highshelf", "lowpass", "highpass", "notch"].includes(filter?.type) ? filter.type : fallback.type;
+    return {
+      id: typeof filter?.id === "string" ? filter.id : `f${Date.now()}_${index}`,
+      type,
+      freq: clamp(Math.round(Number(filter?.freq) || fallback.freq), EQ_MIN_FREQ, EQ_MAX_FREQ),
+      gain: clamp(Math.round(Number(filter?.gain) || 0), EQ_MIN_GAIN, EQ_MAX_GAIN),
+      q: clamp(Number(filter?.q) || fallback.q, EQ_MIN_Q, EQ_MAX_Q),
+      enabled: filter?.enabled !== false,
+    };
+  }
+
+  function syncEqNodes() {
+    if (!eqInputNode || !audioContext) return;
+    try { eqInputNode.disconnect(); } catch {}
+    eqFilters.forEach((f) => { try { f.node.disconnect(); } catch {} });
+
+    let prev = eqInputNode;
+    eqFilters.forEach((entry) => {
+      const cfg = entry.cfg;
+      const node = entry.node;
+      node.type = cfg.type;
+      node.frequency.value = cfg.freq;
+      node.Q.value = cfg.q;
+      node.gain.value = cfg.type === "lowpass" || cfg.type === "highpass" || cfg.type === "notch" ? 0 : cfg.gain;
+      if (state.eqEnabled && cfg.enabled) {
+        try { prev.connect(node); } catch {}
+        prev = node;
+      }
+    });
+    try { prev.connect(audioContext.destination); } catch {}
+  }
+
+  function ensureEqChain() {
+    const main = ensureMainGain();
+    if (!main) return null;
+    if (eqFilters.length) return { context: main.context, filters: eqFilters };
+    try {
+      eqInputNode = main.context.createGain();
+      eqInputNode.gain.value = 1;
+      eqFilters = state.eqFilters.map((cfg, index) => {
+        const normalized = normalizeEqFilter(cfg, index);
+        state.eqFilters[index] = normalized;
+        return { cfg: normalized, node: main.context.createBiquadFilter() };
+      });
+      syncEqNodes();
+      connectMainOutput();
+    } catch {
+      eqFilters = [];
+      eqInputNode = null;
+    }
+    return { context: main.context, filters: eqFilters };
+  }
+
+  function applyEqState() {
+    if (state.eqEnabled) ensureEqChain();
+    if (eqInputNode) syncEqNodes();
+    connectMainOutput();
+  }
+
+  function setEqEnabled(enabled) {
+    state.eqEnabled = !!enabled;
+    if (state.eqEnabled) ensureEqChain();
+    applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function setEqParam(index, key, value) {
+    const cfg = state.eqFilters[index];
+    if (!cfg) return;
+    if (key === "type") cfg.type = value;
+    if (key === "freq") cfg.freq = clamp(Math.round(Number(value) || cfg.freq), EQ_MIN_FREQ, EQ_MAX_FREQ);
+    if (key === "gain") cfg.gain = clamp(Math.round(Number(value) || 0), EQ_MIN_GAIN, EQ_MAX_GAIN);
+    if (key === "q") cfg.q = clamp(Number(value) || cfg.q, EQ_MIN_Q, EQ_MAX_Q);
+    if (key === "enabled") cfg.enabled = !!value;
+    state.eqFilters[index] = normalizeEqFilter(cfg, index);
+    if (state.eqEnabled) ensureEqChain();
+    applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function addEqFilter() {
+    const idx = state.eqFilters.length;
+    const base = DEFAULT_EQ_FILTERS[idx % DEFAULT_EQ_FILTERS.length] || DEFAULT_EQ_FILTERS[1];
+    state.eqFilters.push(normalizeEqFilter({ ...base, id: `f${Date.now()}_${idx}`, freq: base.freq, gain: 0 }, idx));
+    if (eqFilters.length) { // rebuild chain cleanly
+      eqFilters.forEach((f) => { try { f.node.disconnect(); } catch {} });
+      eqFilters = [];
+      eqInputNode = null;
+    }
+    if (state.eqEnabled) ensureEqChain();
+    applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function removeEqFilter(index) {
+    if (!state.eqFilters[index] || state.eqFilters.length <= 1) return;
+    state.eqFilters.splice(index, 1);
+    eqFilters.forEach((f) => { try { f.node.disconnect(); } catch {} });
+    eqFilters = [];
+    eqInputNode = null;
+    if (state.eqEnabled) ensureEqChain();
+    applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function resetEq() {
+    state.eqFilters = DEFAULT_EQ_FILTERS.map((f) => ({ ...f }));
+    eqFilters.forEach((f) => { try { f.node.disconnect(); } catch {} });
+    eqFilters = [];
+    eqInputNode = null;
+    if (state.eqEnabled) ensureEqChain();
+    applyEqState();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function clampPlaybackRate(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 1;
+    return clamp(Math.round(n / PLAYBACK_RATE_STEP) * PLAYBACK_RATE_STEP, PLAYBACK_RATE_MIN, PLAYBACK_RATE_MAX);
+  }
+
+  function applyPlaybackRate() {
+    const rate = clampPlaybackRate(state.playbackRate);
+    state.playbackRate = rate;
+    try { audio.playbackRate = rate; } catch {}
+    try { audio.defaultPlaybackRate = rate; } catch {}
+    const preserve = !!state.preservePitch;
+    if (audio.preservesPitch !== undefined) audio.preservesPitch = preserve;
+    if (audio.mozPreservesPitch !== undefined) audio.mozPreservesPitch = preserve;
+    if (audio.webkitPreservesPitch !== undefined) audio.webkitPreservesPitch = preserve;
+  }
+
+  function setPlaybackRate(rate, mode) {
+    state.playbackRate = clampPlaybackRate(rate);
+    if (mode) state.playbackMode = mode;
+    else {
+      const match = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate && m.preservePitch === state.preservePitch);
+      state.playbackMode = match ? match.id : "custom";
+    }
+    applyPlaybackRate();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function setPlaybackMode(modeId) {
+    const mode = PLAYBACK_RATE_MODES.find((m) => m.id === modeId);
+    if (!mode) return;
+    state.playbackMode = mode.id;
+    state.playbackRate = mode.rate;
+    state.preservePitch = !!mode.preservePitch;
+    applyPlaybackRate();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
+  function setPreservePitch(value) {
+    state.preservePitch = !!value;
+    const match = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate && m.preservePitch === state.preservePitch);
+    state.playbackMode = match ? match.id : "custom";
+    applyPlaybackRate();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
   // Route the shared <audio> through a GainNode so fades are sample-accurate
   // (no zipper noise from stepping audio.volume). User volume stays on
   // audio.volume; this gain is only for transition envelopes.
@@ -1134,7 +1375,7 @@
       mainGainNode = context.createGain();
       mainGainNode.gain.value = 1;
       mediaSourceNode.connect(mainGainNode);
-      mainGainNode.connect(context.destination);
+      connectMainOutput();
     } catch {
       mainGainNode = null;
       return null;
@@ -2119,6 +2360,7 @@
       introUserSeeked = false;
     }
     loadEngine(url, pendingStart, pendingAutoplay);
+    applyPlaybackRate();
     // Warm the next file while the current one starts, so switching tracks
     // doesn't feel like waiting for a fresh network request.
     schedulePreload();
@@ -2138,14 +2380,17 @@
   function renderMetadata() {
     if (!state.current) return;
     const title = state.current.title || "";
-    // Size the text block to the actual name length so the player has as
-    // little empty space as possible next to the centred controls.
+    const albumTitle = state.context?.title || "";
+    // Size the text block to the visible name length so the player has as
+    // little empty space as possible next to the centred controls, while still
+    // giving long album names room before truncating.
     const textEl = $("playerTitle").parentElement;
     if (textEl) {
-      textEl.style.setProperty("--title-chars", String(Math.min(64, Math.max(8, title.length))));
+      const chars = Math.max(title.length, albumTitle.length);
+      textEl.style.setProperty("--title-chars", String(Math.min(72, Math.max(10, chars))));
     }
     $("playerTitle").textContent = title;
-    $("playerAlbum").textContent = state.context?.title || "";
+    $("playerAlbum").textContent = albumTitle;
 
     const image = $("playerCover");
     const letter = $("playerCoverLetter");
@@ -2415,6 +2660,35 @@
     <label><input type="checkbox" data-player-setting="crossfade"><span data-player-i18n="crossfade">${pt("crossfade")}</span></label>
     <label><input type="checkbox" data-player-setting="skipIntro"><span data-player-i18n="skipIntroAuto">${pt("skipIntroAuto")}</span></label>
   </fieldset>
+  <div class="settings-field speed-setting" data-speed-setting>
+    <div class="fade-setting-head">
+      <label class="settings-label" for="playerPlaybackRate" data-player-i18n="playbackRate">${pt("playbackRate")}</label>
+      <span class="fade-setting-value" id="playerPlaybackRateValue">1x</span>
+    </div>
+    <input class="fade-range" id="playerPlaybackRate" type="range" min="${PLAYBACK_RATE_MIN}" max="${PLAYBACK_RATE_MAX}" step="${PLAYBACK_RATE_STEP}" value="1" data-player-setting="playbackRate">
+    <label class="settings-label" for="playerPlaybackMode" data-player-i18n="playbackMode">${pt("playbackMode")}</label>
+    <select class="settings-select" id="playerPlaybackMode" data-player-setting="playbackMode">
+      <option value="normal">${pt("modeNormal")}</option>
+      <option value="slow">${pt("modeSlow")}</option>
+      <option value="fast">${pt("modeFast")}</option>
+      <option value="nightcore">${pt("modeNightcore")}</option>
+      <option value="slowed">${pt("modeSlowed")}</option>
+      <option value="custom">${pt("modeCustom")}</option>
+    </select>
+    <label><input type="checkbox" data-player-setting="preservePitch"><span data-player-i18n="preservePitch">${pt("preservePitch")}</span></label>
+    <p class="player-settings-hint" data-player-i18n="playbackRateHint">${pt("playbackRateHint")}</p>
+  </div>
+  <div class="settings-field eq-setting" data-eq-setting>
+    <div class="eq-setting-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="eqEnabled"><span data-player-i18n="eqEnable">${pt("eqEnable")}</span></label>
+      <div class="eq-head-actions">
+        <button type="button" class="player-queue-text-btn" id="playerEqAdd" data-player-i18n="eqAdd">${pt("eqAdd")}</button>
+        <button type="button" class="player-queue-text-btn eq-reset-btn" id="playerEqReset" data-player-i18n="eqReset">${pt("eqReset")}</button>
+      </div>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
+    <div class="eq-filters" id="playerEqFilters"></div>
+  </div>
   <div class="settings-field intro-setting" data-intro-setting>
     <label class="intro-control" for="playerSilenceDb">
       <span class="intro-control-row">
@@ -2523,23 +2797,72 @@
     });
   }
 
+  function syncPlaybackVisual() {
+    document.querySelectorAll("#playerPlaybackRateValue").forEach((el) => {
+      const v = clampPlaybackRate(state.playbackRate);
+      el.textContent = `${Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}x`;
+    });
+  }
+
+  function renderEqFilters() {
+    document.querySelectorAll("#playerEqFilters").forEach((container) => {
+      container.replaceChildren();
+      state.eqFilters.forEach((cfg, index) => {
+        const row = document.createElement("div");
+        row.className = "eq-filter";
+        row.dataset.eqIndex = String(index);
+        row.innerHTML = `
+          <div class="eq-filter-head">
+            <label class="eq-toggle"><input type="checkbox" data-eq-field="enabled" ${cfg.enabled ? "checked" : ""}><span>${cfg.type} #${index + 1}</span></label>
+            <button type="button" class="player-queue-text-btn" data-eq-remove="${index}">${pt("eqRemove")}</button>
+          </div>
+          <div class="eq-filter-grid">
+            <label class="eq-field"><span>${pt("eqType")}</span>
+              <select class="settings-select" data-eq-field="type">
+                ${["peaking","lowshelf","highshelf","lowpass","highpass","notch"].map((t) => `<option value="${t}" ${cfg.type===t?"selected":""}>${t}</option>`).join("")}
+              </select>
+            </label>
+            <label class="eq-field"><span>${pt("eqFreq")}</span><input class="settings-select" type="number" min="${EQ_MIN_FREQ}" max="${EQ_MAX_FREQ}" step="1" value="${cfg.freq}" data-eq-field="freq"></label>
+            <label class="eq-field"><span>${pt("eqGain")}</span><input class="settings-select" type="number" min="${EQ_MIN_GAIN}" max="${EQ_MAX_GAIN}" step="1" value="${cfg.gain}" data-eq-field="gain"></label>
+            <label class="eq-field"><span>${pt("eqQ")}</span><input class="settings-select" type="number" min="${EQ_MIN_Q}" max="${EQ_MAX_Q}" step="0.1" value="${cfg.q}" data-eq-field="q"></label>
+          </div>`;
+        container.appendChild(row);
+      });
+    });
+  }
+
+  function syncEqVisual() {
+    renderEqFilters();
+    document.querySelectorAll("[data-eq-setting]").forEach((root) => {
+      root.classList.toggle("is-disabled", !state.eqEnabled);
+      root.querySelectorAll("input,select,button").forEach((el) => {
+        if (el.id === "playerEqAdd" || el.id === "playerEqReset" || el.closest(".eq-toggle")) return;
+        if (el.dataset.playerSetting === "eqEnabled") return;
+        el.disabled = !state.eqEnabled;
+      });
+    });
+  }
+
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
-      if (key === "engine" || key === "format") {
-        if (input instanceof HTMLSelectElement) input.value = state[key];
-        else input.checked = input.value === state[key];
+      if (key === "engine" || key === "format" || key === "playbackMode") {
+        if (input instanceof HTMLSelectElement) input.value = String(state[key]);
+        else input.checked = String(input.value) === String(state[key]);
       }
+      else if (key === "playbackRate") input.value = String(clampPlaybackRate(state.playbackRate));
       else if (key === "fadeOutMs") input.value = String(state.fadeOutMs);
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
       else if (key === "silenceDb") input.value = String(state.silenceDb);
       else if (key === "introMaxSec") input.value = String(state.introMaxSec);
-      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled" || key === "preservePitch") {
         input.checked = !!state[key];
       }
     });
     syncFadeVisual();
     syncIntroVisual();
+    syncPlaybackVisual();
+    syncEqVisual();
   }
 
   function openSettings() {
@@ -2650,6 +2973,12 @@
     if (queuePanel && !queuePanel.hidden) closeQueue();
   });
 
+  document.addEventListener("click", (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+    if (!target) return;
+    if (target.closest("#playerEqReset")) resetEq();
+  });
+
   function applyFadeSetting(key, rawValue) {
     const clampFade = (value, fallback) => {
       const n = Number(value);
@@ -2678,16 +3007,35 @@
   }
 
   document.addEventListener("change", (ev) => {
-    const input = ev.target instanceof Element ? ev.target.closest("[data-player-setting]") : null;
+    const target = ev.target instanceof Element ? ev.target : null;
+    if (!target) return;
+    if (target.id === "playerEqReset") { resetEq(); return; }
+    if (target.id === "playerEqAdd") { addEqFilter(); return; }
+    const eqRemove = target.closest("[data-eq-remove]");
+    if (eqRemove) { removeEqFilter(Number(eqRemove.dataset.eqRemove)); return; }
+
+    const eqField = target.closest("[data-eq-field]");
+    if (eqField) {
+      const row = target.closest("[data-eq-index]");
+      const index = Number(row?.dataset.eqIndex);
+      const field = eqField.dataset.eqField;
+      const value = eqField.type === "checkbox" ? eqField.checked : eqField.value;
+      if (Number.isInteger(index) && field) setEqParam(index, field, value);
+      return;
+    }
+
+    const input = target.closest("[data-player-setting]");
     if (!input) return;
     const key = input.dataset.playerSetting;
     if (key === "engine") setEngine(input.value);
     else if (key === "format") setFormat(input.value);
-    else if (key === "fadeOutMs" || key === "fadeInMs") {
-      applyFadeSetting(key, input.value);
-    } else if (key === "silenceDb" || key === "introMaxSec") {
-      applyIntroSetting(key, input.value);
-    } else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
+    else if (key === "playbackRate") setPlaybackRate(input.value);
+    else if (key === "playbackMode") setPlaybackMode(input.value);
+    else if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
+    else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
+    else if (key === "eqEnabled") setEqEnabled(input.checked);
+    else if (key === "preservePitch") setPreservePitch(input.checked);
+    else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
       syncSettingsUI();
@@ -2697,11 +3045,23 @@
   });
 
   document.addEventListener("input", (ev) => {
-    const input = ev.target instanceof Element ? ev.target.closest("[data-player-setting]") : null;
+    const target = ev.target instanceof Element ? ev.target : null;
+    if (!target) return;
+    const eqField = target.closest("[data-eq-field]");
+    if (eqField) {
+      const row = target.closest("[data-eq-index]");
+      const index = Number(row?.dataset.eqIndex);
+      const field = eqField.dataset.eqField;
+      const value = eqField.type === "checkbox" ? eqField.checked : eqField.value;
+      if (Number.isInteger(index) && field) setEqParam(index, field, value);
+      return;
+    }
+    const input = target.closest("[data-player-setting]");
     if (!input) return;
     const key = input.dataset.playerSetting;
     if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
+    else if (key === "playbackRate") setPlaybackRate(input.value);
   });
 
   audio.addEventListener("loadedmetadata", () => {
@@ -2841,6 +3201,25 @@
     };
     state.silenceDb = clampDb(saved.silenceDb, DEFAULT_SILENCE_DB);
     state.introMaxSec = clampIntroMax(saved.introMaxSec, DEFAULT_INTRO_MAX_SEC);
+    state.playbackRate = clampPlaybackRate(saved.playbackRate);
+    state.preservePitch = saved.preservePitch !== false;
+    const modeIds = new Set(PLAYBACK_RATE_MODES.map((m) => m.id).concat(["custom"]));
+    state.playbackMode = modeIds.has(saved.playbackMode) ? saved.playbackMode : "normal";
+    const matchMode = PLAYBACK_RATE_MODES.find((m) => m.rate === state.playbackRate && m.preservePitch === state.preservePitch);
+    if (!matchMode && state.playbackMode !== "custom") state.playbackMode = "custom";
+    if (matchMode && state.playbackMode === "normal" && !(state.playbackRate === 1 && state.preservePitch)) state.playbackMode = matchMode.id;
+
+    state.eqEnabled = saved.eqEnabled === true;
+    const savedFilters = Array.isArray(saved.eqFilters) ? saved.eqFilters : null;
+    if (savedFilters && savedFilters.length) {
+      state.eqFilters = savedFilters.slice(0, 8).map((f, i) => normalizeEqFilter(f, i));
+    } else {
+      const savedGains = saved.eqGains && typeof saved.eqGains === "object" ? saved.eqGains : {};
+      const migrated = [60,170,310,600,1000,3000,6000,12000,14000,16000]
+        .map((freq, i) => ({ id: `m${freq}`, type: "peaking", freq, gain: Number(savedGains[String(freq)]) || 0, q: 1.1, enabled: true }))
+        .filter((f) => f.gain !== 0);
+      state.eqFilters = migrated.length ? migrated : DEFAULT_EQ_FILTERS.map((f) => ({ ...f }));
+    }
     state.queue = Array.isArray(saved.queue)
       ? saved.queue.filter((item) => item && item.path && Array.isArray(item.tracks)).slice(0, 100)
       : [];
@@ -2854,6 +3233,11 @@
     updateMuteState();
     renderQueue();
     mountSettings();
+    applyPlaybackRate();
+    if (state.eqEnabled) {
+      ensureEqChain();
+      applyEqState();
+    }
 
     if (!state.current || !state.current.path) return;
     showBar();

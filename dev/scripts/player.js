@@ -110,6 +110,7 @@
       eqCanvasHint: "Перетаскивайте точки на кривой: по горизонтали — частота, по вертикали — усиление.",
       limiter: "Лимитер 0 dBFS",
       limiterHint: "Ограничивает выход, чтобы громкость не превышала 0 dBFS после эквалайзера.",
+      limiterMeter: "Пик после лимитера",
       eqAdd: "Добавить фильтр",
       eqReset: "Сбросить эквалайзер",
       eqFreq: "Частота", eqGain: "Усиление", eqQ: "Q", eqType: "Тип", eqRemove: "Удалить",
@@ -162,6 +163,7 @@
       eqCanvasHint: "Drag points on the curve: horizontal is frequency, vertical is gain.",
       limiter: "0 dBFS limiter",
       limiterHint: "Limits output so loudness does not exceed 0 dBFS after the equalizer.",
+      limiterMeter: "Post-limiter peak",
       eqAdd: "Add filter",
       eqReset: "Reset equalizer",
       eqFreq: "Frequency", eqGain: "Gain", eqQ: "Q", eqType: "Type", eqRemove: "Remove",
@@ -461,6 +463,11 @@
   let eqFilters = [];
   let limiterNode = null;
   let limiterEnabled = true;
+  let limiterMeterNode = null;
+  let limiterMeterRaf = 0;
+  let limiterPeak = 0;
+  let limiterPeakHold = 0;
+  let limiterPeakHoldAt = 0;
   let pendingStart = null;
   let pendingAutoplay = false;
   // Intro analysis is cached per URL + threshold so scrubbing back and
@@ -1213,10 +1220,33 @@
     return limiterNode;
   }
 
+  function ensureLimiterMeter() {
+    const context = sharedAudioContext();
+    if (!context) return null;
+    if (limiterMeterNode) return limiterMeterNode;
+    try {
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.6;
+      limiterMeterNode = analyser;
+    } catch {
+      limiterMeterNode = null;
+    }
+    return limiterMeterNode;
+  }
+
   function outputDestination() {
     if (!audioContext) return null;
     const limiter = limiterEnabled ? ensureLimiter() : null;
-    return limiter || audioContext.destination;
+    if (limiter) {
+      const meter = ensureLimiterMeter();
+      if (meter) {
+        try { limiter.disconnect(meter); } catch {}
+        try { limiter.connect(meter); } catch {}
+      }
+      return limiter;
+    }
+    return audioContext.destination;
   }
 
   function connectMainOutput() {
@@ -2752,6 +2782,17 @@
     <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
     <label class="eq-toggle limiter-toggle"><input type="checkbox" data-player-setting="limiterEnabled"><span data-player-i18n="limiter">${pt("limiter")}</span></label>
     <p class="player-settings-hint" data-player-i18n="limiterHint">${pt("limiterHint")}</p>
+    <div class="limiter-meter" data-limiter-meter>
+      <div class="limiter-meter-head">
+        <span class="settings-label" data-player-i18n="limiterMeter">${pt("limiterMeter")}</span>
+        <span class="limiter-meter-value" id="playerLimiterValue">-∞ dBFS</span>
+      </div>
+      <div class="limiter-meter-track" aria-hidden="true">
+        <div class="limiter-meter-fill" id="playerLimiterFill"></div>
+        <div class="limiter-meter-hold" id="playerLimiterHold"></div>
+        <div class="limiter-meter-mark"></div>
+      </div>
+    </div>
     <div class="eq-visual-wrap">
       <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
       <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
@@ -3103,6 +3144,57 @@
     });
   }
 
+  function updateLimiterMeter() {
+    const meter = limiterEnabled ? ensureLimiterMeter() : null;
+    let db = -Infinity;
+    if (meter) {
+      const buf = new Uint8Array(meter.fftSize);
+      meter.getByteTimeDomainData(buf);
+      let peak = 0;
+      for (let i = 0; i < buf.length; i++) {
+        const s = Math.abs((buf[i] - 128) / 128);
+        if (s > peak) peak = s;
+      }
+      limiterPeak = peak;
+      db = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
+      const now = performance.now();
+      if (db >= limiterPeakHold || now - limiterPeakHoldAt > 1200) {
+        limiterPeakHold = db;
+        limiterPeakHoldAt = now;
+      }
+    } else {
+      limiterPeak = 0;
+      limiterPeakHold = -Infinity;
+    }
+
+    const pct = (value) => {
+      if (!Number.isFinite(value)) return 0;
+      return clamp(((value + 60) / 60) * 100, 0, 100);
+    };
+    const dbText = Number.isFinite(db) ? `${db.toFixed(1)} dBFS` : "-∞ dBFS";
+    document.querySelectorAll("#playerLimiterValue").forEach((el) => { el.textContent = dbText; });
+    document.querySelectorAll("#playerLimiterFill").forEach((el) => { el.style.width = `${pct(db)}%`; });
+    document.querySelectorAll("#playerLimiterHold").forEach((el) => { el.style.left = `${pct(limiterPeakHold)}%`; });
+
+    if (!settingsPanel || settingsPanel.hidden) {
+      limiterMeterRaf = 0;
+      return;
+    }
+    limiterMeterRaf = window.requestAnimationFrame(updateLimiterMeter);
+  }
+
+  function startLimiterMeter() {
+    if (limiterMeterRaf) return;
+    limiterMeterRaf = window.requestAnimationFrame(updateLimiterMeter);
+  }
+
+  function stopLimiterMeter() {
+    if (limiterMeterRaf) {
+      window.cancelAnimationFrame(limiterMeterRaf);
+      limiterMeterRaf = 0;
+    }
+  }
+
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
@@ -3134,6 +3226,7 @@
     // Restart the transition even if the panel was still closing.
     void settingsPanel.offsetWidth;
     settingsPanel.classList.add("is-open");
+    startLimiterMeter();
     const first = settingsPanel.querySelector("select, input");
     if (first) first.focus({ preventScroll: true });
   }
@@ -3143,6 +3236,7 @@
     settingsToggle.setAttribute("aria-expanded", "false");
     settingsPanel.classList.remove("is-open");
     if (settingsTimer) window.clearTimeout(settingsTimer);
+    stopLimiterMeter();
     // Keep the panel in the DOM until its fade/slide-out has finished.
     settingsTimer = window.setTimeout(() => {
       if (!settingsPanel.classList.contains("is-open")) settingsPanel.hidden = true;

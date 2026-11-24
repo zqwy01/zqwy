@@ -617,12 +617,27 @@ html.zqwy-theme-changing[data-theme-change-to="light"]::after { background: #fff
   100% { opacity: 0; }
 }
 
-/* Brief highlight for text found by the site search on the current page. */
+/* Brief highlight for the block containing the active search match. */
 .zqwy-search-hit {
   border-radius: 4px;
   background: rgba(128, 128, 128, .35);
   box-shadow: 0 0 0 4px rgba(128, 128, 128, .35);
   transition: background-color .2s ease, box-shadow .2s ease;
+}
+/* Every matching word stays marked until the next search; Enter moves the
+   stronger active style from one mark to the next. */
+.zqwy-search-word {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: rgba(255, 205, 60, .32);
+  color: inherit;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color .16s ease, box-shadow .16s ease;
+}
+.zqwy-search-word.is-active {
+  background: rgba(255, 145, 40, .62);
+  box-shadow: 0 0 0 2px rgba(255, 145, 40, .45);
 }
 
 /* --- animated language switch ---

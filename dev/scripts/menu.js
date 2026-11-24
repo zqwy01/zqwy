@@ -55,6 +55,8 @@
       language: "Язык", languageRu: "Русский", languageEn: "English",
       reset: "Сбросить", save: "Сохранить",
       searching: "Поиск: «{query}»…", found: "Найдено: {count}",
+      matchProgress: "Совпадение {current} из {total} · Enter — дальше",
+      enterNext: "Enter — перейти к совпадениям",
       noResults: "Ничего не найдено. Попробуйте слово на другом языке.",
       onPage: "На странице",
       indexUnavailable: "Индекс поиска недоступен (data/search-index.json).",
@@ -93,6 +95,8 @@
       language: "Language", languageRu: "Russian", languageEn: "English",
       reset: "Reset", save: "Save",
       searching: "Searching: “{query}”…", found: "Found: {count}",
+      matchProgress: "Match {current} of {total} · Enter — next",
+      enterNext: "Enter — jump to matches",
       noResults: "Nothing found. Try a word in another language.",
       onPage: "On this page",
       indexUnavailable: "Search index unavailable (data/search-index.json).",
@@ -179,8 +183,21 @@
   let suggestionSeq = 0;
   let suggestionBlurTimer = 0;
   let pageMatches = [];
+  // Word-level marks survive until the next search so Enter can walk through
+  // every match instead of re-running the same query.
+  let wordHighlights = [];
+  let activeWordIndex = -1;
+  let lastSearchQuery = "";
+  let lastResultCount = 0;
+  let lastIndexError = false;
+  let blockGlowTimer = 0;
+  let activeGlowTimer = 0;
+  const MAX_WORD_HIGHLIGHTS = 200;
 
   function refresh() {
+    // A SPA page swap throws away the old DOM; drop marks and counters that
+    // belonged to it before wiring the fresh elements.
+    clearWordHighlights();
     const container = document.querySelector("#menuButtonContainer");
     const menu = document.querySelector("#siteMenu");
 
@@ -477,7 +494,7 @@
   function findPageMatches(query, index) {
     const scope = document.querySelector(".page-content") || document.querySelector("main") || document.body;
     if (!scope || !scope.querySelectorAll) return [];
-    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .player-bar, .player-settings, .player-queue, .menu-open-button";
+    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .home-search-area, #search-status, .player-bar, .player-settings, .player-queue, .menu-open-button";
     const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
@@ -518,15 +535,225 @@
      can see all the similar words the search picked up. */
   function highlightPageHits(matches) {
     const nodes = (matches || [])
-      .map((item) => item._node?.parentElement)
+      .map((item) => {
+        const direct = item._node?.parentElement;
+        if (direct && document.contains(direct)) return direct;
+        // The original text node is replaced by <mark> elements, so fall back
+        // to the mark created from it.
+        return wordHighlights.find((mark) => mark._sourceNode === item._node)?.parentElement || null;
+      })
       .filter((el) => el && document.contains(el));
     nodes.forEach((el) => el.classList.add("zqwy-search-hit"));
+    if (blockGlowTimer) window.clearTimeout(blockGlowTimer);
     if (nodes.length) {
-      window.setTimeout(() => {
+      blockGlowTimer = window.setTimeout(() => {
         nodes.forEach((el) => el.classList.remove("zqwy-search-hit"));
+        blockGlowTimer = 0;
       }, 3200);
     }
     return nodes;
+  }
+
+  /* Same normalisation as normalize(), but keeps a map back to the original
+     text offsets so each found word can be wrapped in <mark> precisely. */
+  function normalizeWithMap(value) {
+    const src = String(value || "");
+    let text = "";
+    const map = [];
+    let pendingSpace = -1;
+    for (let i = 0; i < src.length; i++) {
+      let ch = src[i].toLowerCase();
+      if (ch === "ё") ch = "е";
+      if (/[a-zа-я0-9]/.test(ch)) {
+        if (pendingSpace >= 0) { text += " "; map.push(pendingSpace); pendingSpace = -1; }
+        text += ch;
+        map.push(i);
+      } else if (pendingSpace < 0) {
+        // '_' and '-' act like spaces; runs of separators collapse to one.
+        pendingSpace = i;
+      }
+    }
+    return { text, map };
+  }
+
+  function wordTokens(text) {
+    const tokens = [];
+    const re = /[a-zа-я0-9]+/gi;
+    let match;
+    while ((match = re.exec(text))) {
+      tokens.push({ word: match[0], start: match.index, end: match.index + match[0].length });
+    }
+    return tokens;
+  }
+
+  /* All spellings the visitor might accept for the query, including two hops
+     through the synonym groups (RU → EN → alternate spelling). */
+  function buildSearchVariants(index, query) {
+    const data = index || {};
+    const map = synonymMap(data.synonyms || data.synonymGroups || []);
+    const phrases = new Set();
+    const words = new Set();
+    const base = normalize(query);
+    if (base) {
+      phrases.add(base);
+      base.split(" ").forEach((word) => words.add(word));
+    }
+    for (const phrase of phraseQueries(data, query)) {
+      const normalized = normalize(phrase);
+      if (!normalized) continue;
+      phrases.add(normalized);
+      normalized.split(" ").forEach((word) => words.add(word));
+    }
+    for (let hop = 0; hop < 2; hop++) {
+      for (const word of [...words]) {
+        map.get(word)?.forEach((item) => words.add(item));
+        for (const [key, forms] of map) {
+          if (key.split(" ").includes(word)) forms.forEach((item) => words.add(item));
+        }
+      }
+    }
+    return { phrases: [...phrases].filter(Boolean), words: [...words].filter(Boolean) };
+  }
+
+  function textMatchRanges(text, variants) {
+    const ranges = [];
+    const isWordChar = (ch) => !!ch && /[a-zа-я0-9]/i.test(ch);
+    for (const phrase of variants.phrases) {
+      if (phrase.length < 2) continue;
+      let from = 0;
+      while (from <= text.length - phrase.length) {
+        const at = text.indexOf(phrase, from);
+        if (at < 0) break;
+        const before = at > 0 ? text[at - 1] : "";
+        const after = text[at + phrase.length] || "";
+        if (!isWordChar(before) && !isWordChar(after)) {
+          ranges.push({ start: at, end: at + phrase.length, len: phrase.length });
+        }
+        from = at + Math.max(1, phrase.length);
+      }
+    }
+    for (const token of wordTokens(text)) {
+      if (variants.words.some((word) => hayWordMatches(token.word, word))) {
+        ranges.push({ start: token.start, end: token.end, len: token.end - token.start });
+      }
+    }
+    // A recognised phrase and its individual words overlap; keep the longest
+    // span so the whole phrase is highlighted once.
+    ranges.sort((a, b) => b.len - a.len || a.start - b.start);
+    const chosen = [];
+    for (const range of ranges) {
+      if (chosen.some((c) => range.start < c.end && c.start < range.end)) continue;
+      chosen.push(range);
+    }
+    return chosen.sort((a, b) => a.start - b.start);
+  }
+
+  function clearWordHighlights() {
+    for (const mark of wordHighlights) {
+      if (!mark.isConnected || !mark.parentNode) continue;
+      const parent = mark.parentNode;
+      parent.replaceChild(document.createTextNode(mark.textContent), mark);
+      parent.normalize();
+    }
+    wordHighlights = [];
+    activeWordIndex = -1;
+    if (blockGlowTimer) { window.clearTimeout(blockGlowTimer); blockGlowTimer = 0; }
+    if (activeGlowTimer) { window.clearTimeout(activeGlowTimer); activeGlowTimer = 0; }
+    document.querySelectorAll(".zqwy-search-hit").forEach((el) => el.classList.remove("zqwy-search-hit"));
+  }
+
+  /* Wrap every matching word on the open page in a persistent <mark>. Unlike
+     the block glow these marks stay until the next search, so Enter has a
+     stable list of positions to walk through. */
+  function markTextMatches(query, index) {
+    clearWordHighlights();
+    const variants = buildSearchVariants(index, query);
+    if (!variants.phrases.length && !variants.words.length) return 0;
+    const scope = document.querySelector(".page-content") || document.querySelector("main") || document.body;
+    if (!scope?.querySelectorAll) return 0;
+    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .home-search-area, #search-status, .player-bar, .player-settings, .player-queue, .menu-open-button, mark.zqwy-search-word";
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        const parent = node.parentElement;
+        if (!parent || parent.closest(excluded)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) nodes.push(node);
+
+    for (const source of nodes) {
+      if (wordHighlights.length >= MAX_WORD_HIGHLIGHTS) break;
+      if (!source.isConnected || !source.parentNode) continue;
+      const original = source.nodeValue;
+      const { text, map } = normalizeWithMap(original);
+      if (!text) continue;
+      const ranges = textMatchRanges(text, variants);
+      if (!ranges.length) continue;
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+      for (const range of ranges) {
+        if (wordHighlights.length >= MAX_WORD_HIGHLIGHTS) break;
+        const start = map[range.start];
+        const end = (map[range.end - 1] ?? (range.end - 1)) + 1;
+        if (start == null || end <= start || start < cursor) continue;
+        if (start > cursor) frag.appendChild(document.createTextNode(original.slice(cursor, start)));
+        const mark = document.createElement("mark");
+        mark.className = "zqwy-search-word";
+        mark.textContent = original.slice(start, end);
+        mark._sourceNode = source;
+        frag.appendChild(mark);
+        wordHighlights.push(mark);
+        cursor = end;
+      }
+      if (cursor > 0) {
+        if (cursor < original.length) frag.appendChild(document.createTextNode(original.slice(cursor)));
+        source.parentNode.replaceChild(frag, source);
+      }
+    }
+    return wordHighlights.length;
+  }
+
+  function updateSearchStatus() {
+    if (!els.status) return;
+    if (!lastSearchQuery) { els.status.textContent = ""; return; }
+    if (wordHighlights.length && activeWordIndex >= 0) {
+      els.status.textContent = t("matchProgress", {
+        current: activeWordIndex + 1,
+        total: wordHighlights.length,
+      });
+    } else if (lastResultCount) {
+      els.status.textContent = `${t("found", { count: lastResultCount })}${wordHighlights.length ? ` · ${t("enterNext")}` : ""}`;
+    } else {
+      els.status.textContent = lastIndexError ? t("indexUnavailable") : t("noResults");
+    }
+  }
+
+  /* Move the active mark (Shift+Enter walks backwards) and keep the counter
+     in the search status in sync with the visible position. */
+  function activateWordHighlight(index, scroll = true) {
+    if (!wordHighlights.length) return false;
+    if (activeWordIndex >= 0) wordHighlights[activeWordIndex]?.classList.remove("is-active");
+    activeWordIndex = ((index % wordHighlights.length) + wordHighlights.length) % wordHighlights.length;
+    const mark = wordHighlights[activeWordIndex];
+    mark.classList.add("is-active");
+    if (scroll) {
+      mark.scrollIntoView({ behavior: "smooth", block: "center" });
+      const block = mark.closest("p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th") || mark.parentElement;
+      if (block) {
+        document.querySelectorAll(".zqwy-search-hit").forEach((el) => el.classList.remove("zqwy-search-hit"));
+        block.classList.add("zqwy-search-hit");
+        if (activeGlowTimer) window.clearTimeout(activeGlowTimer);
+        activeGlowTimer = window.setTimeout(() => {
+          block.classList.remove("zqwy-search-hit");
+          activeGlowTimer = 0;
+        }, 2200);
+      }
+    }
+    updateSearchStatus();
+    return true;
   }
 
   /* ---------- suggestions for the search field ----------
@@ -701,6 +928,10 @@
       if (item._node) {
         link.addEventListener("click", (ev) => {
           ev.preventDefault();
+          // The text node was split into marks; jump to the first mark that
+          // came from it so the click and Enter use the same positions.
+          const markIndex = wordHighlights.findIndex((mark) => mark._sourceNode === item._node);
+          if (markIndex >= 0) { activateWordHighlight(markIndex); return; }
           const target = item._node.parentElement;
           if (!target || !document.contains(target)) return;
           highlightPageHits(items);
@@ -749,6 +980,10 @@
     els.results.replaceChildren();
     if (!query) {
       // An empty submit is a deliberate "show me the catalog" action.
+      clearWordHighlights();
+      lastSearchQuery = "";
+      lastResultCount = 0;
+      lastIndexError = false;
       els.status.textContent = "";
       openMenu();
       return;
@@ -767,14 +1002,23 @@
     // Page hits come first: they point at text the visitor is looking at right
     // now, while index results remain the broader site-wide fallback.
     const matches = [...pageMatches, ...indexMatches].slice(0, 50);
+    lastSearchQuery = query;
+    lastResultCount = matches.length;
+    lastIndexError = indexError && !matches.length;
+    // Persistent word marks are what Enter walks through; the block glow is
+    // only a short hint and is applied after the marks are created.
+    markTextMatches(query, index);
     renderResults(els.results, matches);
     highlightPageHits(pageMatches);
-    if (matches.length) {
-      els.status.textContent = t("found", { count: matches.length });
-    } else {
-      els.status.textContent = indexError ? t("indexUnavailable") : t("noResults");
+    updateSearchStatus();
+    if (els.hasMenu && els.menu.classList.contains("is-open")) {
+      // Keep the caret in the search field: closing the menu focuses the logo
+      // by default, which would swallow the next Enter instead of moving to
+      // the next highlighted word.
+      lastFocus = els.input;
+      closeMenu();
     }
-    if (els.hasMenu && els.menu.classList.contains("is-open")) closeMenu();
+    els.input?.focus({ preventScroll: true });
     els.resultsArea?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -982,7 +1226,7 @@
     }, 140);
   });
 
-  document.addEventListener("submit", (ev) => {
+  document.addEventListener("submit", async (ev) => {
     if (ev.target === els.settingsForm) {
       ev.preventDefault();
       saveSettings();
@@ -993,16 +1237,27 @@
     if (ev.target !== els.form) return;
     ev.preventDefault();
     const query = (els.input?.value || "").trim();
+    if (!query) {
+      clearWordHighlights();
+      lastSearchQuery = "";
+      lastResultCount = 0;
+      lastIndexError = false;
+    }
     if (els.status && els.results) {
       performSearch(query);
       return;
     }
-    // No results area on this page: first look right here. Highlight every
-    // match and jump to the first one instead of leaving the page.
-    const localMatches = findPageMatches(query, null);
+    // No results area on this page: first look right here. Mark every matching
+    // word and jump to the first one instead of leaving the page.
+    let localIndex = null;
+    try { localIndex = await loadIndex(); } catch { /* page search still works */ }
+    const localMatches = findPageMatches(query, localIndex);
     if (localMatches.length) {
-      const localHits = highlightPageHits(localMatches);
-      localHits[0]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      lastSearchQuery = query;
+      lastResultCount = localMatches.length;
+      lastIndexError = false;
+      markTextMatches(query, localIndex);
+      activateWordHighlight(0);
       els.input?.blur();
       return;
     }
@@ -1038,6 +1293,16 @@
         hideSuggestions();
         return;
       }
+    }
+
+    // Enter on an unchanged query walks through every highlighted word.
+    // A changed query falls through to the normal form submit (new search).
+    if (ev.key === "Enter" && els.input && ev.target === els.input &&
+        lastSearchQuery && normalize(els.input.value) === normalize(lastSearchQuery) &&
+        wordHighlights.length) {
+      ev.preventDefault();
+      activateWordHighlight(activeWordIndex + (ev.shiftKey ? -1 : 1));
+      return;
     }
 
     // Ctrl/Cmd+F focuses the site's own search instead of the browser's find.

@@ -2,6 +2,22 @@
 
 .notes-page { padding-bottom: 60px; }
 .notes-head { margin-top: 12px; }
+.notes-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+}
+.notes-back:hover,
+.notes-back:focus-visible { border-color: var(--focus-border); background: var(--bg-elevated-2); transform: translateX(-2px); }
 .notes-head .blog-hint { margin-top: 4px; }
 .notes-head .blog-hint.dim { color: var(--muted); font-size: 0.9rem; }
 .notes-tree { display: flex; flex-direction: column; gap: 8px; margin: 0 0 22px; }

@@ -48,7 +48,141 @@
   const CROSSFADE_MAX_MS = 3000;
   const DEFAULT_FADE_OUT_MS = 700;
   const DEFAULT_FADE_IN_MS = 500;
-  const DEFAULT_SKIP_INTRO_SEC = 12;
+  // Intro detection replaces the old fixed "skip the first 12 seconds" hack.
+  // These are safety limits, not the offset we always jump to: the real skip
+  // point is the first sustained sound after the initial quiet run.
+  const MANUAL_SKIP_FALLBACK_SEC = 8;
+  const INTRO_SCAN_MAX_SEC = 90;
+  const INTRO_WINDOW_SEC = 0.02;
+  const INTRO_MIN_QUIET_SEC = 1;
+  const INTRO_MIN_SOUND_SEC = 0.24;
+  const INTRO_LEAD_SEC = 0.1;
+  // Conservative defaults: quiet music should not be mistaken for silence.
+  const DEFAULT_SILENCE_DB = -38;
+  const DEFAULT_INTRO_MAX_SEC = 45;
+
+  /* The player used to be the only untranslated part of the site. Keep its
+     wording here (and mirror the site's RU/EN switch) instead of baking one
+     language into the injected markup. */
+  const PLAYER_I18N = {
+    ru: {
+      nothingPlaying: "Ничего не играет",
+      prev: "Предыдущий трек", play: "Воспроизвести", pause: "Пауза", next: "Следующий трек",
+      queue: "Очередь треков", clearQueue: "Очистить", closeQueue: "Закрыть очередь",
+      queueEmpty: "Очередь пуста. Добавьте треки кнопкой «+» в каталоге.",
+      shuffleOn: "Перемешивание включено", shuffleOff: "Перемешивание выключено",
+      repeatOff: "Повтор: выключен", repeatAll: "Повтор: весь релиз", repeatOne: "Повтор: один трек",
+      muteOn: "Включить звук", muteOff: "Выключить звук",
+      settings: "Настройки плеера", closeSettings: "Закрыть настройки",
+      close: "Остановить и закрыть плеер", loading: "Загрузка трека",
+      position: "Позиция трека", volume: "Громкость", engineUi: "Позиция (AmplitudeJS)",
+      playPause: "Воспроизвести/пауза", amplitudeVolume: "Громкость (AmplitudeJS)",
+      skipIntro: "Пропустить интро", skipIntroShort: "Интро",
+      skipIntroHint: "Перейти к первому звуку после начальной тишины",
+      introDone: "Интро пропущено", introNone: "Начальной тишины не найдено",
+      settingsHint: "Плеер универсальный: движок и поведение выбираются здесь и сохраняются для всего сайта.",
+      engine: "Движок воспроизведения",
+      engineHtml5: "HTML5 (встроенный в браузер)", engineWavesurfer: "WaveSurfer.js (форма волны)",
+      enginePeaks: "Peaks.js (форма волны)", engineHowler: "Howler.js (аудио + живой сигнал)",
+      engineWaviz: "Waviz (визуализация)", engineMediaelement: "MediaElement.js (интерфейс)",
+      engineAmplitude: "AmplitudeJS (интерфейс)", engineAplayer: "APlayer (интерфейс)",
+      engineJplayer: "jPlayer (интерфейс)",
+      engineDefaultHint: "По умолчанию используется WaveSurfer.js: JavaScript и нужные браузерные API определяются автоматически, при ошибке загрузки включается HTML5. Выбранный здесь движок сохраняется как явный выбор.",
+      engineUiHint: "Интерфейс выбранной библиотеки отображается прямо в строке плеера — отдельного окна больше нет.",
+      format: "Формат аудиофайла", behavior: "Поведение",
+      autoNext: "Играть следующий трек автоматически",
+      rememberPosition: "Запоминать позицию трека",
+      crossfade: "Плавный переход между треками",
+      skipIntroAuto: "Пропускать начальную тишину автоматически",
+      silenceThreshold: "Порог тишины", introMax: "Максимум интро",
+      thresholdHint: "Тише этого уровня считается тишиной. Чем ниже число, тем меньше вы пропускаете.",
+      introMaxHint: "Дальше этого времени интро не ищется, чтобы не перескочить в начало музыки.",
+      fadeLabel: "Появление / затухание", fadeIn: "Появление", fadeOut: "Затухание",
+      fadeHint: "Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.",
+      off: "выкл", ms: "мс", s: "с", db: "дБ",
+      playNext: "Играть следующим: {title}", removeQueue: "Убрать из очереди: {title}",
+    },
+    en: {
+      nothingPlaying: "Nothing is playing",
+      prev: "Previous track", play: "Play", pause: "Pause", next: "Next track",
+      queue: "Track queue", clearQueue: "Clear", closeQueue: "Close queue",
+      queueEmpty: "The queue is empty. Add tracks with the “+” button in the catalog.",
+      shuffleOn: "Shuffle on", shuffleOff: "Shuffle off",
+      repeatOff: "Repeat: off", repeatAll: "Repeat: album", repeatOne: "Repeat: one track",
+      muteOn: "Unmute", muteOff: "Mute",
+      settings: "Player settings", closeSettings: "Close settings",
+      close: "Stop and close the player", loading: "Loading track",
+      position: "Track position", volume: "Volume", engineUi: "Position (AmplitudeJS)",
+      playPause: "Play/pause", amplitudeVolume: "Volume (AmplitudeJS)",
+      skipIntro: "Skip intro", skipIntroShort: "Intro",
+      skipIntroHint: "Jump to the first sustained sound after the initial silence",
+      introDone: "Intro skipped", introNone: "No initial silence found",
+      settingsHint: "The player is universal: pick an engine and behaviour here; settings are saved site-wide.",
+      engine: "Playback engine",
+      engineHtml5: "HTML5 (built into the browser)", engineWavesurfer: "WaveSurfer.js (waveform)",
+      enginePeaks: "Peaks.js (waveform)", engineHowler: "Howler.js (audio + live signal)",
+      engineWaviz: "Waviz (visualisation)", engineMediaelement: "MediaElement.js (interface)",
+      engineAmplitude: "AmplitudeJS (interface)", engineAplayer: "APlayer (interface)",
+      engineJplayer: "jPlayer (interface)",
+      engineDefaultHint: "WaveSurfer.js is the default when JavaScript and the required browser APIs are available; if loading fails, HTML5 takes over. An explicit choice here is remembered.",
+      engineUiHint: "The selected library's controls are shown right in the player row — there is no separate window.",
+      format: "Audio format", behavior: "Behaviour",
+      autoNext: "Play the next track automatically",
+      rememberPosition: "Remember track position",
+      crossfade: "Smooth transition between tracks",
+      skipIntroAuto: "Skip initial silence automatically",
+      silenceThreshold: "Silence threshold", introMax: "Intro limit",
+      thresholdHint: "Anything quieter than this counts as silence. Lower values skip less.",
+      introMaxHint: "The intro search stops here so the music itself is never skipped.",
+      fadeLabel: "Fade in / fade out", fadeIn: "Fade in", fadeOut: "Fade out",
+      fadeHint: "The new track fades in while the previous one fades out. Durations are independent; fading can be turned off.",
+      off: "off", ms: "ms", s: "s", db: "dB",
+      playNext: "Play next: {title}", removeQueue: "Remove from queue: {title}",
+    },
+  };
+  let playerLanguage = document.documentElement.lang === "en" ? "en" : "ru";
+
+  function pt(key, vars) {
+    const value = PLAYER_I18N[playerLanguage]?.[key] ?? PLAYER_I18N.ru[key] ?? key;
+    if (!vars) return value;
+    return value.replace(/\{(\w+)\}/g, (match, name) =>
+      Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : match);
+  }
+
+  // menu.js owns the site-wide RU/EN switch and announces it with this event.
+  // The player is injected outside [data-i18n] markup, so it translates itself.
+  function setPlayerLanguage(language) {
+    const next = language === "en" ? "en" : "ru";
+    if (next !== playerLanguage) playerLanguage = next;
+    applyPlayerLanguage();
+  }
+
+  function applyPlayerLanguage() {
+    document.querySelectorAll("[data-player-i18n]").forEach((el) => {
+      el.textContent = pt(el.dataset.playerI18n);
+    });
+    document.querySelectorAll("[data-player-i18n-aria-label]").forEach((el) => {
+      el.setAttribute("aria-label", pt(el.dataset.playerI18nAriaLabel));
+    });
+    document.querySelectorAll("[data-player-i18n-title]").forEach((el) => {
+      el.setAttribute("title", pt(el.dataset.playerI18nTitle));
+    });
+    // The settings form contains many static strings, so the simplest reliable
+    // approach is to rebuild it from the current dictionary and re-sync values.
+    document.querySelectorAll("[data-player-settings-mount]").forEach((mount) => {
+      mount.innerHTML = settingsFormHtml();
+    });
+    updateSkipIntroButton();
+    syncSettingsUI();
+    applyShuffle();
+    applyRepeat();
+    updateMuteState();
+    renderQueue();
+    if (state.current) renderMetadata();
+    else $("playerTitle").textContent = pt("nothingPlaying");
+    const loadingText = document.querySelector(".player-loading-text");
+    if (loadingText) loadingText.textContent = pt("loading");
+  }
 
   const BAR_HTML = `
 <div class="player-bar" id="playerBar" hidden>
@@ -59,27 +193,27 @@
         <span class="player-cover-letter" id="playerCoverLetter" aria-hidden="true">♪</span>
       </div>
       <div class="player-text">
-        <span class="player-title" id="playerTitle">Ничего не играет</span>
+        <span class="player-title" id="playerTitle">${pt("nothingPlaying")}</span>
         <span class="player-album" id="playerAlbum"></span>
       </div>
     </div>
 
     <div class="player-controls">
-      <button class="player-btn player-prev" id="playerPrev" type="button" aria-label="Предыдущий трек">
+      <button class="player-btn player-prev" id="playerPrev" type="button" aria-label="${pt("prev")}" data-player-i18n-aria-label="prev">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
       </button>
-      <button class="player-btn player-play" id="playerPlay" type="button" aria-label="Воспроизвести">
+      <button class="player-btn player-play" id="playerPlay" type="button" aria-label="${pt("play")}" data-player-i18n-aria-label="play">
         <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
         <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
       </button>
-      <button class="player-btn player-next" id="playerNext" type="button" aria-label="Следующий трек">
+      <button class="player-btn player-next" id="playerNext" type="button" aria-label="${pt("next")}" data-player-i18n-aria-label="next">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
       </button>
     </div>
 
     <div class="player-seek">
       <span class="player-time" id="playerCurrent">0:00</span>
-      <input class="player-range player-progress" id="playerSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="Позиция трека">
+      <input class="player-range player-progress" id="playerSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="${pt("position")}" data-player-i18n-aria-label="position">
       <div class="player-waveform" id="playerWaveform" hidden></div>
       <!-- Libraries that draw their own controls live directly in this row,
            next to the native seek bar / waveform — never in a panel above it. -->
@@ -98,12 +232,12 @@
               <span class="lab-amplitude-title" data-amplitude-song-info="name">—</span>
               <span class="lab-amplitude-artist" data-amplitude-song-info="artist">zqwy · AmplitudeJS</span>
             </div>
-            <input class="amplitude-song-slider" type="range" min="0" max="100" value="0" aria-label="Позиция (AmplitudeJS)">
-            <button class="amplitude-play-pause lab-amplitude-play" type="button" aria-label="Воспроизвести/пауза">▶</button>
+            <input class="amplitude-song-slider" type="range" min="0" max="100" value="0" aria-label="${pt("engineUi")}" data-player-i18n-aria-label="engineUi">
+            <button class="amplitude-play-pause lab-amplitude-play" type="button" aria-label="${pt("playPause")}" data-player-i18n-aria-label="playPause">▶</button>
             <span class="amplitude-current-time">0:00</span>
             <span class="lab-amplitude-sep">/</span>
             <span class="amplitude-duration-time">0:00</span>
-            <input class="amplitude-volume-slider" type="range" min="0" max="100" value="100" aria-label="Громкость (AmplitudeJS)">
+            <input class="amplitude-volume-slider" type="range" min="0" max="100" value="100" aria-label="${pt("amplitudeVolume")}" data-player-i18n-aria-label="amplitudeVolume">
           </div>
         </div>
         <div class="engine-ui-view" data-engine-view="aplayer" hidden>
@@ -138,28 +272,32 @@
 
     <div class="player-tools">
     <div class="player-extra">
-      <button class="player-btn player-queue-toggle" id="playerQueueToggle" type="button" aria-label="Очередь треков" aria-expanded="false" aria-controls="playerQueuePanel" title="Очередь треков">
+      <button class="player-btn player-skip-intro" id="playerSkipIntro" type="button" aria-label="${pt("skipIntro")}" title="${pt("skipIntroHint")}" data-player-i18n-aria-label="skipIntro" data-player-i18n-title="skipIntroHint" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14l9-7-9-7zm10 0v14l9-7-9-7z"/></svg>
+        <span data-player-i18n="skipIntroShort">${pt("skipIntroShort")}</span>
+      </button>
+      <button class="player-btn player-queue-toggle" id="playerQueueToggle" type="button" aria-label="${pt("queue")}" aria-expanded="false" aria-controls="playerQueuePanel" title="${pt("queue")}" data-player-i18n-aria-label="queue" data-player-i18n-title="queue">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11v2H4zM4 11h11v2H4zM4 16h7v2H4zM17 8l5 4-5 4V8z"/></svg>
         <span class="player-queue-count" id="playerQueueCount" hidden>0</span>
       </button>
-      <button class="player-btn player-toggle" id="playerShuffle" type="button" aria-label="Перемешать" aria-pressed="false">
+      <button class="player-btn player-toggle" id="playerShuffle" type="button" aria-label="${pt("shuffleOff")}" aria-pressed="false" data-player-i18n-aria-label="shuffleOff">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4zm3.8-5.2 2 2L4.1 18.6 5.5 20 17.9 7.7l2 2V4h-5.5zm-.3 9.4-1.4 1.4 3.1 3.1-3.1 3.1 1.4 1.4 3.1-3.1V20H20v-4h-2.8l-3.1-3.1z"/></svg>
       </button>
-      <button class="player-btn player-toggle" id="playerRepeat" type="button" aria-label="Повтор: выключен" aria-pressed="false">
+      <button class="player-btn player-toggle" id="playerRepeat" type="button" aria-label="${pt("repeatOff")}" aria-pressed="false" data-player-i18n-aria-label="repeatOff">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
         <span class="player-repeat-one" aria-hidden="true">1</span>
       </button>
-      <button class="player-btn player-mute" id="playerMute" type="button" aria-label="Выключить звук">
+      <button class="player-btn player-mute" id="playerMute" type="button" aria-label="${pt("muteOff")}" data-player-i18n-aria-label="muteOff">
         <svg class="icon-volume" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 1-2.5 4v-8a4.5 4.5 0 0 1 2.5 4z"/></svg>
         <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm12.6 1.1 1.4-1.4 4.4 4.4-1.4 1.4-4.4-4.4zm5.8 0-4.4 4.4-1.4-1.4 4.4-4.4 1.4 1.4z"/></svg>
       </button>
-      <input class="player-range player-volume" id="playerVolume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Громкость">
-      <button class="player-btn player-settings-toggle" id="playerSettingsToggle" type="button" aria-label="Настройки плеера" aria-expanded="false" aria-controls="playerSettings">
+      <input class="player-range player-volume" id="playerVolume" type="range" min="0" max="1" step="0.01" value="1" aria-label="${pt("volume")}" data-player-i18n-aria-label="volume">
+      <button class="player-btn player-settings-toggle" id="playerSettingsToggle" type="button" aria-label="${pt("settings")}" aria-expanded="false" aria-controls="playerSettings" data-player-i18n-aria-label="settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.6 7.6 0 0 0 .05-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54a7.3 7.3 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.6 7.6 0 0 0 0 1.88L2.82 14.5a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96a7.3 7.3 0 0 0 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7.3 7.3 0 0 0 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
       </button>
     </div>
 
-    <button class="player-btn player-close" id="playerClose" type="button" aria-label="Остановить и закрыть плеер">
+    <button class="player-btn player-close" id="playerClose" type="button" aria-label="${pt("close")}" data-player-i18n-aria-label="close">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4L13.4 12 19 6.4 17.6 5 12 10.6z"/></svg>
     </button>
     </div>
@@ -168,7 +306,7 @@
          percentage is visible even when a library renders its own controls. -->
     <div class="player-loading" id="playerLoading" hidden role="status" aria-live="polite">
       <span class="player-loading-ring" aria-hidden="true"></span>
-      <span class="player-loading-text">Загрузка трека</span>
+      <span class="player-loading-text">${pt("loading")}</span>
       <span class="player-loading-percent" id="playerLoadingPercent">0%</span>
       <span class="player-loading-track" aria-hidden="true">
         <span class="player-loading-fill" id="playerLoadingFill"></span>
@@ -178,22 +316,22 @@
 
   <div class="player-settings" id="playerSettings" hidden>
     <div class="player-settings-head">
-      <strong>Настройки плеера</strong>
-      <button class="player-btn player-settings-close" id="playerSettingsClose" type="button" aria-label="Закрыть настройки">×</button>
+      <strong data-player-i18n="settings">${pt("settings")}</strong>
+      <button class="player-btn player-settings-close" id="playerSettingsClose" type="button" aria-label="${pt("closeSettings")}" data-player-i18n-aria-label="closeSettings">×</button>
     </div>
     <div class="player-settings-mount" data-player-settings-mount></div>
   </div>
 
   <div class="player-queue" id="playerQueuePanel" hidden>
     <div class="player-queue-head">
-      <strong>Очередь треков</strong>
+      <strong data-player-i18n="queue">${pt("queue")}</strong>
       <div class="player-queue-actions">
-        <button type="button" id="playerQueueClear" class="player-queue-text-btn">Очистить</button>
-        <button class="player-btn player-queue-close" id="playerQueueClose" type="button" aria-label="Закрыть очередь">×</button>
+        <button type="button" id="playerQueueClear" class="player-queue-text-btn" data-player-i18n="clearQueue">${pt("clearQueue")}</button>
+        <button class="player-btn player-queue-close" id="playerQueueClose" type="button" aria-label="${pt("closeQueue")}" data-player-i18n-aria-label="closeQueue">×</button>
       </div>
     </div>
     <ol class="player-queue-list" id="playerQueueList"></ol>
-    <p class="player-queue-empty" id="playerQueueEmpty">Очередь пуста. Добавьте треки кнопкой «+» в каталоге.</p>
+    <p class="player-queue-empty" id="playerQueueEmpty" data-player-i18n="queueEmpty">${pt("queueEmpty")}</p>
   </div>
 
   <audio id="audio" preload="metadata"></audio>
@@ -238,8 +376,9 @@
     crossfade: true,          // fade the outgoing track under the incoming one
     fadeOutMs: DEFAULT_FADE_OUT_MS,
     fadeInMs: DEFAULT_FADE_IN_MS,
-    skipIntro: false,         // jump over the first seconds of a fresh track
-    skipIntroSec: DEFAULT_SKIP_INTRO_SEC,
+    skipIntro: false,         // skip detected initial silence on a fresh track
+    silenceDb: DEFAULT_SILENCE_DB,
+    introMaxSec: DEFAULT_INTRO_MAX_SEC,
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -259,6 +398,12 @@
   let mainGainNode = null;
   let pendingStart = null;
   let pendingAutoplay = false;
+  // Intro analysis is cached per URL + threshold so scrubbing back and
+  // replaying a track never decodes the same file twice.
+  const introCache = new Map();
+  let introToken = 0;
+  let introTarget = null;
+  let introUserSeeked = false;
   let saveTimer = 0;
   let hideTimer = 0;
   let settingsTimer = 0;
@@ -312,6 +457,121 @@
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
   }
 
+  /* ---------- intro silence detection ----------
+   * The old implementation skipped a hard-coded 12 seconds, which regularly
+   * ate the beginning of a track. Instead, decode the file once in a dedicated
+   * AudioContext, measure short RMS windows and jump only when a run of real
+   * sound follows a sustained initial silence. A failed decode simply leaves
+   * the manual button available with a small fallback seek. */
+  function introKey(url) {
+    return `${url}|${state.silenceDb}|${state.introMaxSec}`;
+  }
+
+  function ensureIntroTarget(url) {
+    if (!url) return Promise.resolve(null);
+    const key = introKey(url);
+    if (!introCache.has(key)) introCache.set(key, analyzeIntro(url).catch(() => null));
+    return introCache.get(key);
+  }
+
+  async function analyzeIntro(url) {
+    if (!window.fetch || !(window.AudioContext || window.webkitAudioContext)) return null;
+    const response = await fetch(url, { cache: "force-cache", credentials: "same-origin" });
+    if (!response.ok) return null;
+    const bytes = await response.arrayBuffer();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let context = null;
+    try {
+      context = new AudioContextClass();
+      const buffer = await context.decodeAudioData(bytes);
+      const sampleRate = buffer.sampleRate;
+      const frameSamples = Math.max(1, Math.round(sampleRate * INTRO_WINDOW_SEC));
+      const maxSeconds = Math.max(
+        INTRO_MIN_QUIET_SEC + INTRO_MIN_SOUND_SEC,
+        Math.min(buffer.duration, state.introMaxSec, INTRO_SCAN_MAX_SEC),
+      );
+      const threshold = Math.pow(10, Number(state.silenceDb) / 20);
+      const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
+      let soundStart = -1;
+
+      for (let time = 0; time < maxSeconds; time += INTRO_WINDOW_SEC) {
+        const from = Math.floor(time * sampleRate);
+        const to = Math.min(from + frameSamples, buffer.length);
+        if (to <= from) break;
+        let sumSquares = 0;
+        let count = 0;
+        for (const channel of channels) {
+          for (let i = from; i < to; i++) {
+            const value = channel[i];
+            sumSquares += value * value;
+            count++;
+          }
+        }
+        const rms = count ? Math.sqrt(sumSquares / count) : 0;
+        if (rms >= threshold) {
+          if (soundStart < 0) soundStart = time;
+          if (time - soundStart + INTRO_WINDOW_SEC >= INTRO_MIN_SOUND_SEC) {
+            // Music that starts immediately is never an intro. Only a quiet
+            // run long enough to be intentional qualifies for a skip.
+            if (soundStart < INTRO_MIN_QUIET_SEC) return null;
+            return Math.max(0, Math.round((soundStart - INTRO_LEAD_SEC) * 100) / 100);
+          }
+        } else {
+          soundStart = -1;
+        }
+      }
+      return null;
+    } finally {
+      if (context && typeof context.close === "function") context.close().catch(() => {});
+    }
+  }
+
+  function updateSkipIntroButton() {
+    const button = $("playerSkipIntro");
+    if (!button) return;
+    button.disabled = !state.current;
+    button.classList.toggle("is-ready", introTarget != null);
+    button.setAttribute("title", introTarget != null
+      ? `${pt("skipIntroHint")} · ${formatTime(introTarget)}`
+      : pt("skipIntroHint"));
+  }
+
+  // Called for every fresh track. The token prevents a slow decode from an
+  // earlier track seeking after the visitor has already moved on.
+  function prepareIntro(url, autoSeek) {
+    const token = ++introToken;
+    introTarget = null;
+    introUserSeeked = false;
+    updateSkipIntroButton();
+    ensureIntroTarget(url).then((target) => {
+      if (token !== introToken || !state.current) return;
+      introTarget = target;
+      updateSkipIntroButton();
+      // Decoding can take a moment; only a deliberate scrub by the visitor
+      // should cancel the automatic jump, not natural playback progress.
+      if (autoSeek && target != null && !introUserSeeked) {
+        setTime(target);
+        notify("intro");
+      }
+    });
+  }
+
+  function skipIntro() {
+    if (!state.current) return;
+    const url = assetUrl(resolveTrackPath(state.current));
+    const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+    const fallback = duration > MANUAL_SKIP_FALLBACK_SEC + 0.5
+      ? MANUAL_SKIP_FALLBACK_SEC
+      : Math.max(0, duration - 0.1);
+    ensureIntroTarget(url).then((target) => {
+      if (!state.current) return;
+      introTarget = target;
+      updateSkipIntroButton();
+      setTime(target != null ? target : fallback);
+      notify("intro");
+    });
+  }
+
   // WaveSurfer replaces the compact seek bar with a full-width waveform row;
   // marking both the bar and the body lets CSS enlarge the row and the page
   // padding without measuring anything in JS.
@@ -345,7 +605,7 @@
     const percent = Math.round(Math.min(100, Math.max(0, numeric)));
     if (loadingPercentEl) loadingPercentEl.textContent = `${percent}%`;
     if (loadingFillEl) loadingFillEl.style.width = `${percent}%`;
-    loadingEl?.setAttribute("aria-label", `Загрузка трека: ${percent}%`);
+    loadingEl?.setAttribute("aria-label", `${pt("loading")}: ${percent}%`);
   }
 
   function setLoading(active, progress = 0) {
@@ -580,7 +840,7 @@
       play.type = "button";
       play.className = "player-queue-play";
       play.dataset.queuePlay = String(index);
-      play.setAttribute("aria-label", `Играть следующим: ${item.title}`);
+      play.setAttribute("aria-label", pt("playNext", { title: item.title }));
       const title = document.createElement("span");
       title.className = "player-queue-title";
       title.textContent = item.title;
@@ -593,7 +853,7 @@
       remove.type = "button";
       remove.className = "player-btn player-queue-remove";
       remove.dataset.queueRemove = String(index);
-      remove.setAttribute("aria-label", `Убрать из очереди: ${item.title}`);
+      remove.setAttribute("aria-label", pt("removeQueue", { title: item.title }));
       remove.textContent = "×";
 
       li.append(play, remove);
@@ -735,7 +995,7 @@
         engineExplicit: state.engineExplicit,
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
-        skipIntro: state.skipIntro, skipIntroSec: state.skipIntroSec,
+        skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -1052,7 +1312,10 @@
     // onto the shared <audio> guarantees scrubbing with the cursor works even
     // when an external media element is used.
     waveSurfer.on("interaction", (seconds) => {
-      if (Number.isFinite(seconds)) setTime(seconds);
+      if (Number.isFinite(seconds)) {
+        introUserSeeked = true;
+        setTime(seconds);
+      }
     });
     // "ended" on the shared <audio> covers track completion; no need to
     // also handle WaveSurfer's "finish" (that would advance twice).
@@ -1870,9 +2133,8 @@
   function loadCurrent(options = {}) {
     if (!state.current) return;
     let start = Number(options.startTime) || 0;
-    // An explicit saved position always wins. With the intro-skip setting on,
-    // a fresh start jumps over the first seconds of the track instead.
-    if (!start && state.skipIntro && state.skipIntroSec > 0) start = state.skipIntroSec;
+    // An explicit saved position always wins. A fresh start asks the detector
+    // for the real end of the initial silence instead of jumping a fixed 12s.
     pendingStart = start;
     pendingAutoplay = options.autoplay !== false;
     // Use the saved volume, not audio.volume: a previous anti-click ramp may
@@ -1896,6 +2158,13 @@
 
     const url = assetUrl(resolveTrackPath(state.current));
     destroyWaveforms();
+    if (!start && state.skipIntro) prepareIntro(url, true);
+    else {
+      introToken++;
+      introTarget = null;
+      introUserSeeked = false;
+      updateSkipIntroButton();
+    }
     loadEngine(url, pendingStart, pendingAutoplay);
     // Warm the next file while the current one starts, so switching tracks
     // doesn't feel like waiting for a fresh network request.
@@ -2094,7 +2363,7 @@
     state.current = null;
     state.time = 0;
     hideBar();
-    $("playerTitle").textContent = "Ничего не играет";
+    $("playerTitle").textContent = pt("nothingPlaying");
     $("playerAlbum").textContent = "";
     updateTime();
     saveState();
@@ -2119,7 +2388,7 @@
     const playing = !!(state.current && !audio.paused && !audio.ended);
     bar.classList.toggle("is-playing", playing);
     const playButton = $("playerPlay");
-    playButton.setAttribute("aria-label", playing ? "Пауза" : "Воспроизвести");
+    playButton.setAttribute("aria-label", playing ? pt("pause") : pt("play"));
     pulseElement(playButton);
     updateMediaSessionState();
     notify("playstate");
@@ -2128,7 +2397,7 @@
   function updateMuteState() {
     const muted = audio.muted || state.volume === 0;
     bar.classList.toggle("is-muted", muted);
-    $("playerMute").setAttribute("aria-label", muted ? "Включить звук" : "Выключить звук");
+    $("playerMute").setAttribute("aria-label", muted ? pt("muteOn") : pt("muteOff"));
     $("playerMute").setAttribute("aria-pressed", String(muted));
     notify("volume");
   }
@@ -2143,7 +2412,7 @@
 
   function applyShuffle() {
     $("playerShuffle").setAttribute("aria-pressed", String(state.shuffle));
-    $("playerShuffle").setAttribute("aria-label", state.shuffle ? "Перемешивание включено" : "Перемешивание выключено");
+    $("playerShuffle").setAttribute("aria-label", state.shuffle ? pt("shuffleOn") : pt("shuffleOff"));
   }
 
   function applyRepeat() {
@@ -2151,7 +2420,7 @@
     button.dataset.repeat = state.repeat;
     button.setAttribute("aria-pressed", String(state.repeat !== "off"));
     button.setAttribute("aria-label", {
-      off: "Повтор: выключен", all: "Повтор: весь релиз", one: "Повтор: один трек",
+      off: pt("repeatOff"), all: pt("repeatAll"), one: pt("repeatOne"),
     }[state.repeat]);
   }
 
@@ -2160,25 +2429,25 @@
   function settingsFormHtml() {
     return `
 <div class="player-settings-body">
-  <p class="player-settings-hint">Плеер универсальный: движок и поведение выбираются здесь и сохраняются для всего сайта.</p>
+  <p class="player-settings-hint" data-player-i18n="settingsHint">${pt("settingsHint")}</p>
   <div class="settings-field">
-    <label class="settings-label" for="playerEngineSelect">Движок воспроизведения</label>
+    <label class="settings-label" for="playerEngineSelect" data-player-i18n="engine">${pt("engine")}</label>
     <select class="settings-select" id="playerEngineSelect" data-player-setting="engine">
-      <option value="html5">HTML5 (встроенный в браузер)</option>
-      <option value="wavesurfer">WaveSurfer.js (форма волны)</option>
-      <option value="peaks">Peaks.js (форма волны)</option>
-      <option value="howler">Howler.js (аудио + живой сигнал)</option>
-      <option value="waviz">Waviz (визуализация)</option>
-      <option value="mediaelement">MediaElement.js (интерфейс)</option>
-      <option value="amplitude">AmplitudeJS (интерфейс)</option>
-      <option value="aplayer">APlayer (интерфейс)</option>
-      <option value="jplayer">jPlayer (интерфейс)</option>
+      <option value="html5" data-player-i18n="engineHtml5">${pt("engineHtml5")}</option>
+      <option value="wavesurfer" data-player-i18n="engineWavesurfer">${pt("engineWavesurfer")}</option>
+      <option value="peaks" data-player-i18n="enginePeaks">${pt("enginePeaks")}</option>
+      <option value="howler" data-player-i18n="engineHowler">${pt("engineHowler")}</option>
+      <option value="waviz" data-player-i18n="engineWaviz">${pt("engineWaviz")}</option>
+      <option value="mediaelement" data-player-i18n="engineMediaelement">${pt("engineMediaelement")}</option>
+      <option value="amplitude" data-player-i18n="engineAmplitude">${pt("engineAmplitude")}</option>
+      <option value="aplayer" data-player-i18n="engineAplayer">${pt("engineAplayer")}</option>
+      <option value="jplayer" data-player-i18n="engineJplayer">${pt("engineJplayer")}</option>
     </select>
-    <p class="player-settings-hint">По умолчанию используется WaveSurfer.js: JavaScript и нужные браузерные API определяются автоматически, при ошибке загрузки включается HTML5. Выбранный здесь движок сохраняется как явный выбор.</p>
-    <p class="player-settings-hint">Интерфейс выбранной библиотеки отображается прямо в строке плеера — отдельного окна больше нет.</p>
+    <p class="player-settings-hint" data-player-i18n="engineDefaultHint">${pt("engineDefaultHint")}</p>
+    <p class="player-settings-hint" data-player-i18n="engineUiHint">${pt("engineUiHint")}</p>
   </div>
   <div class="settings-field">
-    <label class="settings-label" for="playerFormatSelect">Формат аудиофайла</label>
+    <label class="settings-label" for="playerFormatSelect" data-player-i18n="format">${pt("format")}</label>
     <select class="settings-select" id="playerFormatSelect" data-player-setting="format">
       <option value="opus">.opus</option>
       <option value="mp3">.mp3</option>
@@ -2187,15 +2456,33 @@
     </select>
   </div>
   <fieldset class="settings-group">
-    <legend>Поведение</legend>
-    <label><input type="checkbox" data-player-setting="autoNext"> Играть следующий трек автоматически</label>
-    <label><input type="checkbox" data-player-setting="rememberPosition"> Запоминать позицию трека</label>
-    <label><input type="checkbox" data-player-setting="crossfade"> Плавный переход между треками</label>
-    <label><input type="checkbox" data-player-setting="skipIntro"> Пропускать интро автоматически</label>
+    <legend data-player-i18n="behavior">${pt("behavior")}</legend>
+    <label><input type="checkbox" data-player-setting="autoNext"><span data-player-i18n="autoNext">${pt("autoNext")}</span></label>
+    <label><input type="checkbox" data-player-setting="rememberPosition"><span data-player-i18n="rememberPosition">${pt("rememberPosition")}</span></label>
+    <label><input type="checkbox" data-player-setting="crossfade"><span data-player-i18n="crossfade">${pt("crossfade")}</span></label>
+    <label><input type="checkbox" data-player-setting="skipIntro"><span data-player-i18n="skipIntroAuto">${pt("skipIntroAuto")}</span></label>
   </fieldset>
+  <div class="settings-field intro-setting" data-intro-setting>
+    <label class="intro-control" for="playerSilenceDb">
+      <span class="intro-control-row">
+        <span data-player-i18n="silenceThreshold">${pt("silenceThreshold")}</span>
+        <span class="intro-control-value" id="playerSilenceDbValue"></span>
+      </span>
+      <input class="intro-range" id="playerSilenceDb" type="range" min="-60" max="-12" step="1" data-player-setting="silenceDb">
+    </label>
+    <label class="intro-control" for="playerIntroMaxSec">
+      <span class="intro-control-row">
+        <span data-player-i18n="introMax">${pt("introMax")}</span>
+        <span class="intro-control-value" id="playerIntroMaxValue"></span>
+      </span>
+      <input class="intro-range" id="playerIntroMaxSec" type="range" min="5" max="120" step="1" data-player-setting="introMaxSec">
+    </label>
+    <p class="player-settings-hint" data-player-i18n="thresholdHint">${pt("thresholdHint")}</p>
+    <p class="player-settings-hint" data-player-i18n="introMaxHint">${pt("introMaxHint")}</p>
+  </div>
   <div class="settings-field fade-setting" data-fade-setting>
     <div class="fade-setting-head">
-      <span class="settings-label">Появление / затухание</span>
+      <span class="settings-label" data-player-i18n="fadeLabel">${pt("fadeLabel")}</span>
       <span class="fade-setting-value" id="playerFadeSummary"></span>
     </div>
     <div class="fade-visual" aria-hidden="true">
@@ -2205,19 +2492,19 @@
         <path class="fade-visual-out" id="playerFadeOutPath"></path>
       </svg>
       <div class="fade-visual-labels">
-        <span>появление</span>
-        <span>затухание</span>
+        <span data-player-i18n="fadeIn">${pt("fadeIn")}</span>
+        <span data-player-i18n="fadeOut">${pt("fadeOut")}</span>
       </div>
     </div>
     <label class="fade-control" for="playerFadeInMs">
-      <span class="fade-control-row"><span>Появление</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
+      <span class="fade-control-row"><span data-player-i18n="fadeIn">${pt("fadeIn")}</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
       <input class="fade-range" id="playerFadeInMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeInMs">
     </label>
     <label class="fade-control" for="playerFadeOutMs">
-      <span class="fade-control-row"><span>Затухание</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
+      <span class="fade-control-row"><span data-player-i18n="fadeOut">${pt("fadeOut")}</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
       <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
     </label>
-    <p class="player-settings-hint">Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.</p>
+    <p class="player-settings-hint" data-player-i18n="fadeHint">${pt("fadeHint")}</p>
   </div>
 </div>`;
   }
@@ -2231,10 +2518,10 @@
 
   function formatFadeMs(ms) {
     const value = Math.max(0, Number(ms) || 0);
-    if (value === 0) return "выкл";
-    if (value < 1000) return `${value} мс`;
+    if (value === 0) return pt("off");
+    if (value < 1000) return `${value} ${pt("ms")}`;
     const seconds = value / 1000;
-    return `${seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(1)} с`;
+    return `${seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(1)} ${pt("s")}`;
   }
 
   function syncFadeVisual() {
@@ -2270,6 +2557,19 @@
     });
   }
 
+  function syncIntroVisual() {
+    document.querySelectorAll("#playerSilenceDbValue").forEach((el) => {
+      el.textContent = `${state.silenceDb} ${pt("db")}`;
+    });
+    document.querySelectorAll("#playerIntroMaxValue").forEach((el) => {
+      el.textContent = `${state.introMaxSec} ${pt("s")}`;
+    });
+    document.querySelectorAll("[data-intro-setting]").forEach((el) => {
+      el.classList.toggle("is-disabled", !state.skipIntro);
+      el.querySelectorAll("input").forEach((input) => { input.disabled = !state.skipIntro; });
+    });
+  }
+
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
@@ -2279,11 +2579,14 @@
       }
       else if (key === "fadeOutMs") input.value = String(state.fadeOutMs);
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
+      else if (key === "silenceDb") input.value = String(state.silenceDb);
+      else if (key === "introMaxSec") input.value = String(state.introMaxSec);
       else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
         input.checked = !!state[key];
       }
     });
     syncFadeVisual();
+    syncIntroVisual();
   }
 
   function openSettings() {
@@ -2322,9 +2625,13 @@
   });
   $("playerPrev").addEventListener("click", previous);
   $("playerNext").addEventListener("click", () => next(true));
+  $("playerSkipIntro").addEventListener("click", skipIntro);
   $("playerClose").addEventListener("click", stop);
 
-  seek.addEventListener("input", () => setTime((Number(seek.value) / 1000) * (audio.duration || 0)));
+  seek.addEventListener("input", () => {
+    introUserSeeked = true;
+    setTime((Number(seek.value) / 1000) * (audio.duration || 0));
+  });
 
   volume.addEventListener("input", () => {
     const value = Math.min(1, Math.max(0, Number(volume.value)));
@@ -2403,6 +2710,23 @@
     notify("settings");
   }
 
+  function applyIntroSetting(key, rawValue) {
+    const n = Number(rawValue);
+    if (!Number.isFinite(n)) return;
+    if (key === "silenceDb") {
+      state.silenceDb = Math.min(-12, Math.max(-60, Math.round(n)));
+    } else if (key === "introMaxSec") {
+      state.introMaxSec = Math.min(INTRO_SCAN_MAX_SEC, Math.max(5, Math.round(n)));
+    }
+    // Threshold changes make every cached result stale.
+    introCache.clear();
+    introTarget = null;
+    updateSkipIntroButton();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
+  }
+
   document.addEventListener("change", (ev) => {
     const input = ev.target instanceof Element ? ev.target.closest("[data-player-setting]") : null;
     if (!input) return;
@@ -2411,6 +2735,8 @@
     else if (key === "format") setFormat(input.value);
     else if (key === "fadeOutMs" || key === "fadeInMs") {
       applyFadeSetting(key, input.value);
+    } else if (key === "silenceDb" || key === "introMaxSec") {
+      applyIntroSetting(key, input.value);
     } else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
@@ -2425,6 +2751,7 @@
     if (!input) return;
     const key = input.dataset.playerSetting;
     if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
+    else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
   });
 
   audio.addEventListener("loadedmetadata", () => {
@@ -2461,8 +2788,8 @@
     if (target instanceof Element && target.closest("input, textarea, select, [contenteditable='true']")) return;
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     if (ev.code === "Space" && state.current) { ev.preventDefault(); toggle(); }
-    else if (ev.key === "ArrowRight" && state.current) { ev.preventDefault(); setTime(audio.currentTime + 5); }
-    else if (ev.key === "ArrowLeft" && state.current) { ev.preventDefault(); setTime(audio.currentTime - 5); }
+    else if (ev.key === "ArrowRight" && state.current) { ev.preventDefault(); introUserSeeked = true; setTime(audio.currentTime + 5); }
+    else if (ev.key === "ArrowLeft" && state.current) { ev.preventDefault(); introUserSeeked = true; setTime(audio.currentTime - 5); }
     else if (ev.key.toLowerCase() === "m" && state.current) {
       audio.muted = !audio.muted;
       state.muted = audio.muted;
@@ -2470,6 +2797,10 @@
       updateMuteState();
       saveState();
     }
+  });
+
+  window.addEventListener("zqwy:languagechange", (event) => {
+    setPlayerLanguage(event?.detail?.language);
   });
 
   window.addEventListener("zqwy:themechange", () => {
@@ -2509,9 +2840,9 @@
       pause: pauseAudio,
       previoustrack: previous,
       nexttrack: () => next(true),
-      seekbackward: () => setTime(audio.currentTime - 10),
-      seekforward: () => setTime(audio.currentTime + 10),
-      seekto: (details) => { if (Number.isFinite(details.seekTime)) setTime(details.seekTime); },
+      seekbackward: () => { introUserSeeked = true; setTime(audio.currentTime - 10); },
+      seekforward: () => { introUserSeeked = true; setTime(audio.currentTime + 10); },
+      seekto: (details) => { if (Number.isFinite(details.seekTime)) { introUserSeeked = true; setTime(details.seekTime); } },
     };
     for (const [action, handler] of Object.entries(handlers)) {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
@@ -2550,10 +2881,16 @@
     state.fadeOutMs = saved.fadeOutMs == null ? legacy : clampFade(saved.fadeOutMs, DEFAULT_FADE_OUT_MS);
     state.fadeInMs = clampFade(saved.fadeInMs, DEFAULT_FADE_IN_MS);
     state.skipIntro = !!saved.skipIntro;
-    const skipSec = Number(saved.skipIntroSec);
-    state.skipIntroSec = Number.isFinite(skipSec)
-      ? Math.min(120, Math.max(0, Math.round(skipSec)))
-      : DEFAULT_SKIP_INTRO_SEC;
+    const clampDb = (value, fallback) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.min(-12, Math.max(-60, Math.round(n))) : fallback;
+    };
+    const clampIntroMax = (value, fallback) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.min(INTRO_SCAN_MAX_SEC, Math.max(5, Math.round(n))) : fallback;
+    };
+    state.silenceDb = clampDb(saved.silenceDb, DEFAULT_SILENCE_DB);
+    state.introMaxSec = clampIntroMax(saved.introMaxSec, DEFAULT_INTRO_MAX_SEC);
     state.queue = Array.isArray(saved.queue)
       ? saved.queue.filter((item) => item && item.path && Array.isArray(item.tracks)).slice(0, 100)
       : [];
@@ -2567,6 +2904,7 @@
     updateMuteState();
     renderQueue();
     mountSettings();
+    updateSkipIntroButton();
 
     if (!state.current || !state.current.path) return;
     showBar();

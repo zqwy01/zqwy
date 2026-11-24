@@ -589,13 +589,17 @@ body.menu-is-open {
 :root.zqwy-theme-changing *,
 :root.zqwy-theme-changing *::before,
 :root.zqwy-theme-changing *::after {
-  transition-property: color, background-color, border-color, box-shadow, fill, stroke, filter, text-shadow;
-  transition-duration: .42s;
-  transition-timing-function: ease;
+  transition-property: color, background-color, border-color, box-shadow, fill, stroke, filter, opacity;
+  transition-duration: .48s;
+  transition-timing-function: cubic-bezier(.4, 0, .2, 1);
   transition-delay: 0s;
 }
-:root.zqwy-theme-changing {
-  text-shadow: 0 0 1px rgba(0, 0, 0, 0.55), 0 0 9px rgba(0, 0, 0, 0.24);
+/* Text gets a neutral halo only around the crossover point, so black-on-white
+   and white-on-black stay legible while both colours are passing through grey. */
+:root.zqwy-theme-changing { animation: zqwy-theme-text .52s ease both; }
+@keyframes zqwy-theme-text {
+  0%, 100% { text-shadow: 0 0 0 transparent; }
+  45% { text-shadow: 0 0 1px rgba(128, 128, 128, .55), 0 0 10px rgba(128, 128, 128, .28); }
 }
 html.zqwy-theme-changing::after {
   content: "";
@@ -603,13 +607,22 @@ html.zqwy-theme-changing::after {
   inset: 0;
   z-index: 1000009;
   pointer-events: none;
-  background: var(--bg);
-  animation: zqwy-theme-wash .42s ease both;
+  background: #000000;
+  animation: zqwy-theme-wash .48s ease both;
 }
+html.zqwy-theme-changing[data-theme-change-to="light"]::after { background: #ffffff; }
 @keyframes zqwy-theme-wash {
   0% { opacity: 0; }
-  45% { opacity: .12; }
+  45% { opacity: .1; }
   100% { opacity: 0; }
+}
+
+/* Brief highlight for text found by the site search on the current page. */
+.zqwy-search-hit {
+  border-radius: 4px;
+  background: rgba(128, 128, 128, .35);
+  box-shadow: 0 0 0 4px rgba(128, 128, 128, .35);
+  transition: background-color .2s ease, box-shadow .2s ease;
 }
 
 /* --- animated language switch ---
@@ -633,6 +646,7 @@ html.zqwy-theme-changing::after {
   :root.zqwy-theme-changing *::after {
     transition-duration: 1ms;
   }
+  :root.zqwy-theme-changing { animation-duration: 1ms; }
   html.zqwy-theme-changing::after { animation-duration: 1ms; }
   :root.zqwy-lang-changing [data-i18n],
   :root.zqwy-lang-changing [data-i18n-placeholder],

@@ -244,6 +244,11 @@
 .lab-mediaelement .mejs__container { width: 100%; }
 
 .player-extra { display: flex; align-items: center; gap: 4px; }
+/* Manual intro skip stays compact until a precise offset has been measured. */
+.player-skip-intro { width: auto; gap: 5px; padding: 0 8px; font-size: 0.72rem; white-space: nowrap; }
+.player-skip-intro svg { width: 16px; height: 16px; }
+.player-skip-intro[disabled] { opacity: 0.4; cursor: default; }
+.player-skip-intro.is-ready { border-color: var(--focus-border); background: var(--bg-elevated-2); }
 .player-queue-toggle { position: relative; }
 .player-queue-count {
   position: absolute;
@@ -458,6 +463,20 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
   box-shadow: 0 0 0 2px rgba(128, 128, 128, 0.28);
 }
 
+/* --- intro silence detection controls --- */
+.intro-setting { display: flex; flex-direction: column; gap: 10px; }
+.intro-setting.is-disabled { opacity: 0.45; }
+.intro-setting.is-disabled .intro-range { pointer-events: none; }
+.intro-control { display: flex; flex-direction: column; gap: 4px; cursor: default; }
+.intro-control-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+.intro-control-value { color: var(--muted); font-variant-numeric: tabular-nums; }
+.intro-range { width: 100%; height: 18px; margin: 0; accent-color: var(--text); cursor: pointer; }
+
 /* --- fade in / fade out controls --- */
 .fade-setting { display: flex; flex-direction: column; gap: 10px; }
 .fade-setting.is-disabled { opacity: 0.45; }
@@ -593,6 +612,8 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
 @media (max-width: 520px) {
   .player-btn { width: 34px; height: 34px; }
   .player-play { width: 40px; height: 40px; }
+  .player-skip-intro { width: 34px; padding: 0; }
+  .player-skip-intro span { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -37,6 +37,7 @@
       catalogPhoto: "фото", catalogLinks: "ссылки", catalogSettings: "настройки",
       homeGame: "игры", homeMusic: "музыка", homeLinks: "ссылки",
       notesHeading: "Заметки в формате markdown, собранные из src/notes/.",
+      notesBack: "Назад к заметкам",
       blogHeading: "Блог · хронология",
       blogHint: "Записи расположены по датам — от новых к старым.",
       linksHeading: "Все мои ссылки в одном месте.",
@@ -48,12 +49,14 @@
       notesEmpty: "Заметки пока не добавлены. Положите .md-файлы в src/notes/.",
       wikiHint: "Хранение текстовой информации. Формат: markdown (преобразуется в HTML выбранным движком).",
       settingsHint: "Настройки касаются всего веб-сайта.",
+      playerSettings: "Настройки плеера",
       theme: "Тема", themeDark: "Тёмная", themeLight: "Светлая", themeSystem: "Системная",
       search: "Поиск", rememberQuery: "Запоминать последний запрос",
       language: "Язык", languageRu: "Русский", languageEn: "English",
       reset: "Сбросить", save: "Сохранить",
       searching: "Поиск: «{query}»…", found: "Найдено: {count}",
       noResults: "Ничего не найдено. Попробуйте слово на другом языке.",
+      onPage: "На странице",
       indexUnavailable: "Индекс поиска недоступен (data/search-index.json).",
       build: "Версия сборки", buildNumber: "сборка", buildUnavailable: "недоступна",
       themePreview: "Предпросмотр темы — нажмите «Сохранить».",
@@ -72,6 +75,7 @@
       catalogPhoto: "photo", catalogLinks: "links", catalogSettings: "settings",
       homeGame: "games", homeMusic: "music", homeLinks: "links",
       notesHeading: "Markdown notes collected from src/notes/.",
+      notesBack: "Back to notes",
       blogHeading: "Blog · timeline",
       blogHint: "Entries follow dates — newest first.",
       linksHeading: "All my links in one place.",
@@ -83,12 +87,14 @@
       notesEmpty: "No notes yet. Put .md files into src/notes/.",
       wikiHint: "Text storage. Format: markdown (converted to HTML by the selected engine).",
       settingsHint: "Settings apply to the whole site.",
+      playerSettings: "Player settings",
       theme: "Theme", themeDark: "Dark", themeLight: "Light", themeSystem: "System",
       search: "Search", rememberQuery: "Remember last query",
       language: "Language", languageRu: "Russian", languageEn: "English",
       reset: "Reset", save: "Save",
       searching: "Searching: “{query}”…", found: "Found: {count}",
       noResults: "Nothing found. Try a word in another language.",
+      onPage: "On this page",
       indexUnavailable: "Search index unavailable (data/search-index.json).",
       build: "Build version", buildNumber: "build", buildUnavailable: "unavailable",
       themePreview: "Theme preview — click “Save” to keep it.",
@@ -136,6 +142,8 @@
       }
       updateSearchLayout();
       loadBuildInfo();
+      // The player is injected outside [data-i18n] and translates itself.
+      window.dispatchEvent(new CustomEvent("zqwy:languagechange", { detail: { language: resolved } }));
     };
 
     const root = document.documentElement;
@@ -170,6 +178,7 @@
   let activeSuggestion = -1;
   let suggestionSeq = 0;
   let suggestionBlurTimer = 0;
+  let pageMatches = [];
 
   function refresh() {
     const container = document.querySelector("#menuButtonContainer");
@@ -341,7 +350,11 @@
   }
 
   function haystack(item) {
-    const values = [item.title, item.text, item.category, item.path, item.alias];
+    // Synthetic on-page results use a private link target; it must not leak
+    // into the searchable text as extra "page match" words.
+    const values = item._onPage
+      ? [item.title, item.text]
+      : [item.title, item.text, item.category, item.path, item.alias];
     values.push(Array.isArray(item.tags) ? item.tags.join(" ") : item.tags);
     values.push(Array.isArray(item.keywords) ? item.keywords.join(" ") : item.keywords);
     return normalize(values.join(" "));
@@ -408,6 +421,49 @@
       if (results.length) break;
     }
     return results.slice(0, 50);
+  }
+
+  /* The index covers catalog entries, but a visitor may also be looking for a
+     word they can see on the current screen. Walk the visible page text and
+     feed those blocks through the same synonym/phrase matcher. */
+  function findPageMatches(query, index) {
+    const scope = document.querySelector(".page-content") || document.querySelector("main") || document.body;
+    if (!scope || !scope.querySelectorAll) return [];
+    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .player-bar, .player-settings, .player-queue, .menu-open-button";
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        const parent = node.parentElement;
+        if (!parent || parent.closest(excluded)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    const blocks = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      const raw = String(node.nodeValue).replace(/\s+/g, " ").trim();
+      if (raw.length < 2) continue;
+      const heading = node.parentElement?.closest("h1, h2, h3, h4, h5, h6");
+      const label = heading?.textContent.replace(/\s+/g, " ").trim().slice(0, 60) || t("onPage");
+      blocks.push({
+        type: "onpage",
+        title: label,
+        text: raw,
+        path: "",
+        category: t("onPage"),
+        _onPage: true,
+        _node: node,
+        _href: `#page-match-${blocks.length}`,
+      });
+    }
+    if (!blocks.length) return [];
+    const data = {
+      items: blocks,
+      phrases: index?.phrases || [],
+      synonyms: index?.synonyms || [],
+      synonymGroups: index?.synonymGroups || [],
+    };
+    return runSearch(data, query).slice(0, 8);
   }
 
   /* ---------- prefix suggestions for the search field ----------
@@ -558,6 +614,7 @@
     album: "▣",
     game: "🎮",
     page: "▤",
+    onpage: "⌕",
   };
 
   function renderResults(container, items) {
@@ -572,10 +629,20 @@
       // setAttribute keeps the literal '&' in query strings; assigning the
       // href property with pre-escaped HTML would create a param named
       // 'amp;track' instead of 'track'.
-      link.setAttribute("href", String(item.path || "#"));
-      if (/^https?:\/\//i.test(item.path || "")) {
+      link.setAttribute("href", item._href || String(item.path || "#"));
+      if (!item._onPage && /^https?:\/\//i.test(item.path || "")) {
         link.target = "_blank";
         link.rel = "noopener noreferrer";
+      }
+      if (item._node) {
+        link.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          const target = item._node.parentElement;
+          if (!target || !document.contains(target)) return;
+          target.classList.add("zqwy-search-hit");
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          window.setTimeout(() => target.classList.remove("zqwy-search-hit"), 2400);
+        });
       }
       link.textContent = item.title || item.path || "Без названия";
 
@@ -620,20 +687,28 @@
       openMenu();
       return;
     }
+    if ((readSettings() || {}).rememberQuery) saveSettings({ lastQuery: query }, true);
+    els.status.textContent = t("searching", { query });
+    let index = null;
+    let indexError = false;
     try {
-      if ((readSettings() || {}).rememberQuery) saveSettings({ lastQuery: query }, true);
-      els.status.textContent = t("searching", { query });
-      const index = await loadIndex();
-      const matches = runSearch(index, query);
-      renderResults(els.results, matches);
-      els.status.textContent = matches.length
-        ? t("found", { count: matches.length })
-        : t("noResults");
-      if (els.hasMenu && els.menu.classList.contains("is-open")) closeMenu();
-      els.resultsArea?.scrollIntoView({ behavior: "smooth", block: "start" });
+      index = await loadIndex();
     } catch {
-      els.status.textContent = t("indexUnavailable");
+      indexError = true;
     }
+    pageMatches = findPageMatches(query, index);
+    const indexMatches = index ? runSearch(index, query) : [];
+    // Page hits come first: they point at text the visitor is looking at right
+    // now, while index results remain the broader site-wide fallback.
+    const matches = [...pageMatches, ...indexMatches].slice(0, 50);
+    renderResults(els.results, matches);
+    if (matches.length) {
+      els.status.textContent = t("found", { count: matches.length });
+    } else {
+      els.status.textContent = indexError ? t("indexUnavailable") : t("noResults");
+    }
+    if (els.hasMenu && els.menu.classList.contains("is-open")) closeMenu();
+    els.resultsArea?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   /* ---------- settings (site-wide) ---------- */
@@ -658,13 +733,19 @@
       // The class enables the CSS colour transitions for one switch. It is
       // never added on first paint, so the stored theme appears without motion.
       root.classList.add("zqwy-theme-changing");
+      root.setAttribute("data-theme-change-to", resolved);
+      // Force a style flush: without it the browser batches the class and the
+      // new data-theme into one frame and the transition silently never runs.
+      void root.offsetWidth;
       if (themeAnimTimer) window.clearTimeout(themeAnimTimer);
       themeAnimTimer = window.setTimeout(() => {
         root.classList.remove("zqwy-theme-changing");
+        root.removeAttribute("data-theme-change-to");
         themeAnimTimer = 0;
-      }, 520);
+      }, 560);
     } else if (!themeAnimTimer) {
       root.classList.remove("zqwy-theme-changing");
+      root.removeAttribute("data-theme-change-to");
     }
     root.dataset.theme = resolved === "light" ? "light" : "dark";
     window.dispatchEvent(new CustomEvent("zqwy:themechange", { detail: { theme: resolved } }));
@@ -849,7 +930,17 @@
       performSearch(query);
       return;
     }
-    // No results area on this page: hand the query to the home page.
+    // No results area on this page: first look right here. If the word is on
+    // the current screen, jump to it instead of sending the visitor home.
+    const localHit = findPageMatches(query, null)[0]?._node?.parentElement;
+    if (localHit && document.contains(localHit)) {
+      localHit.classList.add("zqwy-search-hit");
+      localHit.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => localHit.classList.remove("zqwy-search-hit"), 2400);
+      els.input?.blur();
+      return;
+    }
+    // Otherwise hand the query to the home page.
     const target = new URL(els.form?.getAttribute("action") || "../", window.location.href);
     target.hash = "";
     if (query) target.searchParams.set("q", query);

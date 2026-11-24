@@ -2846,14 +2846,16 @@
         <span data-player-i18n="fadeOut">${pt("fadeOut")}</span>
       </div>
     </div>
-    <label class="fade-control" for="playerFadeInMs">
-      <span class="fade-control-row"><span data-player-i18n="fadeIn">${pt("fadeIn")}</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
-      <input class="fade-range" id="playerFadeInMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeInMs">
-    </label>
-    <label class="fade-control" for="playerFadeOutMs">
-      <span class="fade-control-row"><span data-player-i18n="fadeOut">${pt("fadeOut")}</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
-      <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
-    </label>
+    <div class="fade-controls">
+      <label class="fade-control" for="playerFadeInMs">
+        <span class="fade-control-row"><span data-player-i18n="fadeIn">${pt("fadeIn")}</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
+        <input class="fade-range" id="playerFadeInMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeInMs">
+      </label>
+      <label class="fade-control" for="playerFadeOutMs">
+        <span class="fade-control-row"><span data-player-i18n="fadeOut">${pt("fadeOut")}</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
+        <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
+      </label>
+    </div>
     <p class="player-settings-hint" data-player-i18n="fadeHint">${pt("fadeHint")}</p>
   </div>
   <div class="settings-field limiter-setting" data-limiter-setting>
@@ -2897,8 +2899,8 @@
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const w = canvas.width, h = canvas.height;
-      const padX = 18, padY = 14;
-      const innerW = w - padX * 2, innerH = h - padY * 2;
+      const padX = 22, padTop = 18, padBottom = 14;
+      const innerW = w - padX * 2, innerH = h - padTop - padBottom;
       const inMs = clamp(Number(state.fadeInMs) || 0, 0, CROSSFADE_MAX_MS);
       const outMs = clamp(Number(state.fadeOutMs) || 0, 0, CROSSFADE_MAX_MS);
       const bg = cssVar("--bg-elevated-2") || "#141414";
@@ -2908,36 +2910,44 @@
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
       ctx.strokeStyle = border; ctx.lineWidth = 1;
-      ctx.strokeRect(padX, padY, innerW, innerH);
-      ctx.beginPath(); ctx.moveTo(padX, padY + innerH); ctx.lineTo(padX + innerW, padY + innerH); ctx.stroke();
+      ctx.strokeRect(padX, padTop, innerW, innerH);
+      ctx.beginPath(); ctx.moveTo(padX, padTop + innerH); ctx.lineTo(padX + innerW, padTop + innerH); ctx.stroke();
 
       const xForMs = (ms) => padX + (clamp(ms, 0, CROSSFADE_MAX_MS) / CROSSFADE_MAX_MS) * innerW;
       const inX = xForMs(inMs);
       const outX = padX + innerW - (clamp(outMs, 0, CROSSFADE_MAX_MS) / CROSSFADE_MAX_MS) * innerW;
-      const topY = padY;
-      const botY = padY + innerH;
+      const topY = padTop;
+      const botY = padTop + innerH;
+      const active = state.crossfade;
 
       ctx.beginPath();
       ctx.moveTo(padX, botY);
       if (inMs <= 0) ctx.lineTo(padX, topY);
-      else ctx.bezierCurveTo(padX + (inX-padX)*0.25, botY, padX + (inX-padX)*0.55, topY, inX, topY);
+      else ctx.bezierCurveTo(padX + (inX - padX) * 0.25, botY, padX + (inX - padX) * 0.55, topY, inX, topY);
       ctx.lineTo(outX, topY);
       if (outMs <= 0) ctx.lineTo(padX + innerW, botY);
-      else ctx.bezierCurveTo(outX + (padX+innerW-outX)*0.45, topY, outX + (padX+innerW-outX)*0.75, botY, padX + innerW, botY);
+      else ctx.bezierCurveTo(outX + (padX + innerW - outX) * 0.45, topY, outX + (padX + innerW - outX) * 0.75, botY, padX + innerW, botY);
       ctx.closePath();
-      ctx.fillStyle = state.crossfade ? "rgba(255,255,255,0.08)" : "rgba(163,163,163,0.05)";
+      ctx.fillStyle = active ? "rgba(255,255,255,0.08)" : "rgba(163,163,163,0.05)";
       ctx.fill();
-      ctx.strokeStyle = state.crossfade ? text : muted;
+      ctx.strokeStyle = active ? text : muted;
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      const drawHandle = (x, active) => {
-        ctx.beginPath(); ctx.arc(x, topY, active ? 7 : 5, 0, Math.PI * 2);
-        ctx.fillStyle = state.crossfade ? text : muted; ctx.fill();
+      const drawHandle = (x, type) => {
+        const isActive = fadeDrag.type === type;
+        const r = isActive ? 8 : 6;
+        ctx.strokeStyle = active ? text : muted;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, botY); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, topY, r, 0, Math.PI * 2);
+        ctx.fillStyle = active ? text : muted; ctx.fill();
         ctx.strokeStyle = bg; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = bg;
+        ctx.fillRect(x - 3, topY - 2, 6, 4);
       };
-      drawHandle(inX, fadeDrag.type === "in");
-      drawHandle(outX, fadeDrag.type === "out");
+      drawHandle(inX, "in");
+      drawHandle(outX, "out");
     });
   }
 
@@ -2949,28 +2959,35 @@
       const toMs = (ev) => {
         const rect = canvas.getBoundingClientRect();
         const x = ((ev.clientX - rect.left) / rect.width) * canvas.width;
-        const padX = 18, innerW = canvas.width - padX * 2;
+        const padX = 22, innerW = canvas.width - padX * 2;
         return clamp(Math.round((clamp(x - padX, 0, innerW) / innerW) * CROSSFADE_MAX_MS / 50) * 50, 0, CROSSFADE_MAX_MS);
       };
       const pick = (ev) => {
         const rect = canvas.getBoundingClientRect();
         const x = ((ev.clientX - rect.left) / rect.width) * canvas.width;
-        const padX = 18, innerW = canvas.width - padX * 2;
-        const inX = padX + (clamp(state.fadeInMs,0,CROSSFADE_MAX_MS) / CROSSFADE_MAX_MS) * innerW;
-        const outX = padX + innerW - (clamp(state.fadeOutMs,0,CROSSFADE_MAX_MS) / CROSSFADE_MAX_MS) * innerW;
-        return Math.abs(x - inX) <= Math.abs(x - outX) ? "in" : "out";
+        const padX = 22, innerW = canvas.width - padX * 2;
+        const inX = padX + (clamp(state.fadeInMs, 0, CROSSFADE_MAX_MS) / CROSSFADE_MAX_MS) * innerW;
+        const outX = padX + innerW - (clamp(state.fadeOutMs, 0, CROSSFADE_MAX_MS) / CROSSFADE_MAX_MS) * innerW;
+        const inDist = Math.abs(x - inX);
+        const outDist = Math.abs(x - outX);
+        if (Math.min(inDist, outDist) > 28) return inDist <= outDist ? "in" : "out";
+        return inDist <= outDist ? "in" : "out";
+      };
+      const msForType = (type, ev) => {
+        const ms = toMs(ev);
+        return type === "out" ? CROSSFADE_MAX_MS - ms : ms;
       };
       canvas.addEventListener("pointerdown", (ev) => {
         if (!state.crossfade) return;
         fadeDrag.type = pick(ev); fadeDrag.pointerId = ev.pointerId;
         canvas.setPointerCapture?.(ev.pointerId);
-        const ms = toMs(ev);
+        const ms = msForType(fadeDrag.type, ev);
         if (fadeDrag.type === "in") state.fadeInMs = ms; else state.fadeOutMs = ms;
         syncFadeVisual(); syncSettingsUI(); saveState(); notify("settings");
       });
       canvas.addEventListener("pointermove", (ev) => {
         if (fadeDrag.pointerId !== ev.pointerId || !fadeDrag.type) return;
-        const ms = toMs(ev);
+        const ms = msForType(fadeDrag.type, ev);
         if (fadeDrag.type === "in") state.fadeInMs = ms; else state.fadeOutMs = ms;
         syncFadeVisual(); syncSettingsUI(); saveState(); notify("settings");
       });

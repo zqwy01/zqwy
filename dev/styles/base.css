@@ -8,12 +8,29 @@
   --accent: #ffffff;
   --border: #2a2a2a;
   --radius: 12px;
-  --max-width: 980px;
+  /* No portrait-sized cap: the content follows the viewport in both 9:16 and
+     16:9 (and wider). Long-form text is capped separately where readability
+     actually needs it. */
+  --max-width: 100%;
+  --logo-row-max: 100%;
   --font: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+
+  /* Fluid type scale. Every text object below uses one of these clamps, so
+     sizes grow with the screen instead of staying at a phone-scale 14px on a
+     1920px display. `rem` steps follow the fluid root font-size as well. */
+  --fs-2xs: clamp(0.6rem, 0.57rem + 0.14vw, 0.72rem);
+  --fs-xs: clamp(0.68rem, 0.64rem + 0.16vw, 0.82rem);
+  --fs-sm: clamp(0.78rem, 0.73rem + 0.22vw, 0.94rem);
+  --fs-base: clamp(0.88rem, 0.82rem + 0.28vw, 1.05rem);
+  --fs-md: clamp(0.95rem, 0.88rem + 0.34vw, 1.14rem);
+  --fs-lg: clamp(1.08rem, 0.98rem + 0.5vw, 1.32rem);
+  --fs-xl: clamp(1.3rem, 1.15rem + 0.7vw, 1.62rem);
+  --fs-2xl: clamp(1.8rem, 1.4rem + 1.8vw, 2.6rem);
+  --fs-3xl: clamp(2.2rem, 1.6rem + 3vw, 3.6rem);
 
   /* vars expected by the copied menu styles */
   --blue: transparent;
-  --page-padding: clamp(12px, 2vw, 24px);
+  --page-padding: clamp(12px, 1.5vw, 24px);
   /* same top inset for the page and for the catalog's scroll container, so the
      docked logo/search block does not jump when the overlay opens */
   --page-top-padding: 20px;
@@ -57,6 +74,9 @@ html, body {
    body overflow to hidden, the scrollbar disappears, and every centred element
    — including the logo — shifts sideways by half its width. */
 html {
+  /* One clamp for the whole site: rem-based type and spacing scale with the
+     viewport, but stop growing before text becomes oversized on 4K screens. */
+  font-size: clamp(15px, 13.8px + 0.32vw, 20px);
   scrollbar-gutter: stable;
 }
 
@@ -157,7 +177,7 @@ body.menu-is-open #menuButtonContainer .menu-open-button {
 }
 body.menu-is-open #menuButtonContainer .menu-trigger-row {
   width: 100%;
-  max-width: 760px;
+  max-width: var(--logo-row-max);
 }
 .home-head {
   padding: 12px 4px 0;
@@ -191,7 +211,7 @@ body.menu-is-open #menuButtonContainer .menu-trigger-row {
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 760px;
+  max-width: var(--logo-row-max);
   height: auto;
   min-width: 0;
   margin: 0 auto;
@@ -215,7 +235,9 @@ body.menu-is-open #menuButtonContainer .menu-trigger-row {
   left: calc(50% + var(--menu-logo-size) / 2 + var(--menu-row-gap));
   z-index: 1;
   display: flex;
-  width: var(--search-width, 120px);
+  /* menu.js sets --search-width from the typed text. The clamp is a fluid
+     minimum, so the top row also uses the extra width on wide screens. */
+  width: max(var(--search-width, 120px), clamp(120px, 22vw, 520px));
   min-width: 0;
   /* only the space to the right of the centred logo may be used */
   max-width: calc(50% - var(--menu-logo-size) / 2 - var(--menu-row-gap) - 8px);
@@ -239,7 +261,13 @@ body.menu-is-open #menuButtonContainer .menu-trigger-row {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: calc(var(--page-top-padding) + var(--menu-bar-height)) var(--menu-side-padding) 32px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2vw, 18px);
+  padding:
+    calc(var(--page-top-padding) + var(--menu-bar-height))
+    var(--menu-side-padding)
+    clamp(24px, 3vw, 48px);
 }
 /* Solid shelf behind the permanent logo row. The row itself is transparent,
    so without this catalog items scrolling underneath would show through the
@@ -318,8 +346,8 @@ body.menu-is-open {
   top: calc(100% + 6px);
   left: 0;
   z-index: 1000002;
-  width: max(100%, 260px);
-  max-height: min(60vh, 340px);
+  width: max(100%, clamp(16rem, 40vw, 22rem));
+  max-height: min(60dvh, 26rem);
   overflow-y: auto;
   padding: 6px;
   border: 1px solid var(--border);
@@ -340,7 +368,7 @@ body.menu-is-open {
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   text-align: left;
   cursor: pointer;
 }
@@ -356,7 +384,7 @@ body.menu-is-open {
   border-radius: 5px;
   background: var(--bg-elevated-2);
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   line-height: 1;
 }
 .search-suggestion-label {
@@ -368,7 +396,7 @@ body.menu-is-open {
 .search-suggestion-hint {
   margin-left: auto;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 
@@ -409,47 +437,77 @@ body.menu-is-open {
 .search-status {
   min-height: 1.2em;
   color: var(--muted);
-  font-size: .95rem;
+  font-size: var(--fs-base);
   /* Same horizontal anchor as the first paragraph in .home-head. */
   text-align: center;
 }
-.search-results { display: grid; gap: 10px; }
+/* One column on phones, as many fluid columns as fit on wide screens — the
+   results use the full viewport instead of leaving half of 16:9 empty. */
+.search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  gap: clamp(8px, 1vw, 14px);
+  align-items: start;
+}
 .search-result-item {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: clamp(10px, 0.9vw, 16px) clamp(12px, 1.1vw, 20px);
 }
 .search-result-item a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .search-result-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .search-result-icon {
   display: inline-flex; flex: 0 0 22px; align-items: center; justify-content: center;
   width: 22px; height: 22px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--bg-elevated-2); color: var(--text); font-size: .85rem; line-height: 1;
+  background: var(--bg-elevated-2); color: var(--text); font-size: var(--fs-sm); line-height: 1;
 }
 .search-result-item[data-type="track"] .search-result-icon,
-.search-result-item[data-type="album"] .search-result-icon { font-size: 1rem; }
-.search-result-meta { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+.search-result-item[data-type="album"] .search-result-icon { font-size: var(--fs-md); }
+.search-result-meta { color: var(--muted); font-size: var(--fs-sm); margin-top: 4px; }
 
 /* --- menu content --- */
-.site-menu-section { display: flex; flex-direction: column; gap: 8px; }
+.site-menu-section { display: flex; flex-direction: column; gap: clamp(8px, 1vw, 14px); }
 .site-menu-section-title {
   margin: 0 0 4px;
-  font-size: .95rem;
+  font-size: var(--fs-md);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: .04em;
 }
 .site-menu-link { text-decoration: none; color: inherit; }
+/* The copied menu.css sizes the catalog for a phone column. Override it here
+   so the same dialog fills a 16:9 screen too. */
+.site-menu-button {
+  min-height: clamp(44px, 3.4vw, 64px);
+  padding: clamp(10px, 1vw, 16px) clamp(12px, 1.3vw, 20px);
+  gap: clamp(10px, 1vw, 16px);
+}
 /* catalog icons: a clear pictogram for every section instead of a grid cell */
+.site-menu-button-icon {
+  flex-basis: clamp(22px, 1.8vw, 30px);
+  width: clamp(22px, 1.8vw, 30px);
+  min-width: clamp(22px, 1.8vw, 30px);
+}
 .site-menu-button-icon svg {
-  display: block; width: 18px; height: 18px;
+  display: block;
+  width: clamp(18px, 1.4vw, 26px);
+  height: clamp(18px, 1.4vw, 26px);
   fill: none; stroke: currentColor; stroke-width: 1.7;
   stroke-linecap: round; stroke-linejoin: round;
 }
-.menu-catalog { display: flex; flex-direction: column; gap: 8px; }
-.catalog-hint { margin: 0 0 8px; color: var(--muted); font-size: .9rem; }
-.site-menu-item.nested .site-menu-button { padding: 10px 12px; font-size: .98rem; min-height: 46px; }
+.menu-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(8px, 1.1vw, 16px);
+  align-items: start;
+}
+.catalog-hint { margin: 0 0 8px; color: var(--muted); font-size: var(--fs-sm); }
+.site-menu-item.nested .site-menu-button {
+  padding: clamp(8px, 0.8vw, 12px) clamp(10px, 1vw, 14px);
+  font-size: var(--fs-base);
+  min-height: clamp(40px, 3vw, 54px);
+}
 
 /* Catalog items rise into place after the reveal passes over them (--i is set
    by menu.js). On close they leave quietly towards the logo — no stagger, no
@@ -524,7 +582,7 @@ body.menu-is-open {
   flex-direction: column;
   gap: 6px;
 }
-.settings-group legend { color: var(--muted); font-size: .9rem; padding: 0 4px; }
+.settings-group legend { color: var(--muted); font-size: var(--fs-sm); padding: 0 4px; }
 .settings-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .settings-group input[type="radio"],
 .settings-group input[type="checkbox"] { accent-color: var(--text); }
@@ -539,7 +597,7 @@ body.menu-is-open {
 }
 .menu-action-btn:hover { background: var(--menu-button-background-hover); }
 .menu-action-btn.secondary { background: transparent; }
-.settings-saved { margin: 0; color: var(--accent); font-size: .9rem; min-height: 1.2em; }
+.settings-saved { margin: 0; color: var(--accent); font-size: var(--fs-sm); min-height: 1.2em; }
 .settings-build {
   display: flex;
   align-items: baseline;
@@ -549,7 +607,7 @@ body.menu-is-open {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  font-size: .9rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 .settings-build-value {

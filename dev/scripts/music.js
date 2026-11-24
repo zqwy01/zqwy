@@ -309,8 +309,16 @@
     const large = state.view === "large";
     const cards = state.view === "cards" || large;
     const extra = large ? 150 : cards ? 96 : 62; // cover/gap/arrow or count + padding
-    const min = large ? 300 : cards ? 220 : 170;
-    const maxWidth = large ? 480 : cards ? 390 : 340;
+    const baseMin = large ? 300 : cards ? 220 : 170;
+    // Keep the release column proportional to the viewport on wide screens
+    // instead of freezing it at a 340–480px phone-era cap. Leave room for the
+    // track list even on smaller landscape windows.
+    const viewport = document.documentElement.clientWidth || window.innerWidth || 0;
+    const room = Math.max(0, viewport - 48 - (large ? 520 : cards ? 440 : 360));
+    const fluidCap = Math.round(viewport * (large ? 0.42 : cards ? 0.36 : 0.32));
+    const upper = large ? 900 : cards ? 680 : 560;
+    const min = Math.round(Math.max(baseMin, Math.min(upper, viewport * (large ? 0.24 : cards ? 0.2 : 0.16))));
+    const maxWidth = Math.max(min, Math.min(upper, fluidCap, room));
     const width = Math.round(Math.min(maxWidth, Math.max(min, max + extra)));
     const property = large ? "--album-columns-large" : cards ? "--album-columns-cards" : "--album-columns";
     ui.musicLayout.style.setProperty(property, `${width}px`);

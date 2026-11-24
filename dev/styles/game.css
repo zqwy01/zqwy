@@ -14,7 +14,7 @@
 #zemic {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(min(100%, clamp(15rem, 20vw, 26rem)), 0.75fr);
   gap: clamp(20px, 4vw, 52px);
   align-items: center;
   margin: 6px 0 28px;
@@ -42,7 +42,7 @@
   display: inline-block;
   margin-bottom: 10px;
   color: #d0763c;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -54,16 +54,16 @@
   letter-spacing: -0.02em;
 }
 .zemic-lead {
-  max-width: 60ch;
+  max-width: clamp(60ch, 70vw, 100ch);
   margin: 0 0 10px;
   font-size: clamp(1rem, 1.6vw, 1.15rem);
   line-height: 1.5;
 }
 .zemic-description {
-  max-width: 62ch;
+  max-width: clamp(62ch, 72vw, 104ch);
   margin: 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: var(--fs-sm);
   line-height: 1.55;
 }
 .zemic-facts {
@@ -79,13 +79,13 @@
 }
 .zemic-facts dt {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .zemic-facts dd {
   margin: 4px 0 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   line-height: 1.35;
 }
 
@@ -96,7 +96,7 @@
   align-items: center;
   justify-content: center;
   aspect-ratio: 4 / 3;
-  min-height: 190px;
+  min-height: clamp(170px, 18vw, 280px);
   border: 1px solid var(--border);
   border-radius: 14px;
   background: radial-gradient(circle at 50% 45%, #161d1d, #080b0c 70%);
@@ -131,7 +131,7 @@
   right: 12px;
   bottom: 10px;
   color: rgba(224, 161, 104, 0.75);
-  font-size: 0.62rem;
+  font-size: var(--fs-2xs);
   letter-spacing: 0.18em;
 }
 .zemic-hero-side .game-card {
@@ -145,7 +145,7 @@
 .zemic-about { margin: 0 0 28px; }
 .zemic-features {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(13rem, 15vw, 21rem)), 1fr));
   gap: 10px;
   margin: 12px 0 0;
   padding: 0;
@@ -157,13 +157,13 @@
   border-radius: 10px;
   background: var(--bg-elevated);
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: var(--fs-sm);
   line-height: 1.45;
 }
 .zemic-features b { color: var(--text); }
 
 .game-grid {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(15rem, 17vw, 24rem)), 1fr));
 }
 
 .game-card {
@@ -171,8 +171,8 @@
   align-items: center;
   gap: 12px;
   box-sizing: border-box;
-  min-height: 64px;
-  padding: 12px 14px;
+  min-height: clamp(54px, 4vw, 76px);
+  padding: clamp(10px, 1vw, 16px) clamp(12px, 1.2vw, 20px);
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
@@ -199,7 +199,7 @@
 .game-card-icon {
   flex: 0 0 auto;
   width: 1.8em;
-  font-size: 1.4rem;
+  font-size: var(--fs-xl);
   line-height: 1;
   text-align: center;
 }
@@ -210,20 +210,20 @@
   gap: 2px;
 }
 .game-card-title {
-  font-size: 0.98rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 .game-card-desc {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   line-height: 1.3;
 }
 .game-card-open {
   flex: 0 0 auto;
   margin-left: auto;
   color: var(--muted);
-  font-size: 1rem;
+  font-size: var(--fs-md);
 }
 
 @media (max-width: 900px) {

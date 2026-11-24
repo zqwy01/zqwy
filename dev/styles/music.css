@@ -11,7 +11,7 @@
   display: grid;
   /* The first column is measured from the longest release title in JS, so a
      short catalog leaves the maximum width for the track list. */
-  grid-template-columns: var(--album-columns, 280px) minmax(0, 1fr);
+  grid-template-columns: var(--album-columns, clamp(11rem, 24vw, 34rem)) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
   margin-top: 22px;
@@ -19,9 +19,9 @@
     grid-template-columns var(--collapse-duration, 0.42s) var(--collapse-ease, cubic-bezier(0.22, 1, 0.36, 1)),
     gap var(--collapse-duration, 0.42s) var(--collapse-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
-.music-layout.is-list { grid-template-columns: var(--album-columns, 280px) minmax(0, 1fr); }
-.music-layout.is-cards { grid-template-columns: var(--album-columns-cards, 320px) minmax(0, 1fr); }
-.music-layout.is-large { grid-template-columns: var(--album-columns-large, 420px) minmax(0, 1fr); }
+.music-layout.is-list { grid-template-columns: var(--album-columns, clamp(11rem, 24vw, 34rem)) minmax(0, 1fr); }
+.music-layout.is-cards { grid-template-columns: var(--album-columns-cards, clamp(13rem, 28vw, 40rem)) minmax(0, 1fr); }
+.music-layout.is-large { grid-template-columns: var(--album-columns-large, clamp(16rem, 34vw, 52rem)) minmax(0, 1fr); }
 
 /* --- releases first, full screen (tracks appear after a release is chosen) --- */
 /* The tools come first; the release count sits on its own line underneath. */
@@ -87,10 +87,10 @@ body.music-releases-fullscreen .music-sidebar {
   from { opacity: 0.72; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
-body.music-releases-fullscreen .music-filter { max-width: 520px; }
+body.music-releases-fullscreen .music-filter { width: min(100%, clamp(20rem, 40vw, 52rem)); }
 body.music-releases-fullscreen .album-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(14rem, 16vw, 22rem)), 1fr));
   gap: 12px;
   max-height: none;
   overflow: visible;
@@ -109,36 +109,39 @@ body.music-releases-fullscreen .album-list.is-list .album-item {
   border-radius: 10px;
   background: var(--bg-elevated);
 }
-body.music-releases-fullscreen .album-list.is-list .album-item-title { font-size: 0.95rem; }
-body.music-releases-fullscreen .album-list.is-list .album-item-count { font-size: 0.8rem; }
+body.music-releases-fullscreen .album-list.is-list .album-item-title { font-size: var(--fs-base); }
+body.music-releases-fullscreen .album-list.is-list .album-item-count { font-size: var(--fs-sm); }
 body.music-releases-fullscreen .album-list.is-large {
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(18rem, 24vw, 32rem)), 1fr));
   gap: 18px;
 }
 body.music-releases-fullscreen .album-card-item {
-  grid-template-columns: 60px minmax(0, 1fr) auto;
+  grid-template-columns: clamp(3.2rem, 4vw, 5rem) minmax(0, 1fr) auto;
   gap: 12px;
   padding: 12px;
   border-radius: 12px;
 }
-body.music-releases-fullscreen .album-card-cover { width: 60px; height: 60px; }
-body.music-releases-fullscreen .album-card-title { font-size: 0.98rem; white-space: normal; }
-body.music-releases-fullscreen .album-card-count { font-size: 0.78rem; }
+body.music-releases-fullscreen .album-card-cover {
+  width: clamp(3.2rem, 4vw, 5rem);
+  height: clamp(3.2rem, 4vw, 5rem);
+}
+body.music-releases-fullscreen .album-card-title { font-size: var(--fs-base); white-space: normal; }
+body.music-releases-fullscreen .album-card-count { font-size: var(--fs-xs); }
 body.music-releases-fullscreen .album-list.is-large .album-card-item {
-  grid-template-columns: 112px minmax(0, 1fr) auto;
+  grid-template-columns: clamp(6rem, 8vw, 9rem) minmax(0, 1fr) auto;
   gap: 18px;
   padding: 18px;
   border-radius: 18px;
 }
 body.music-releases-fullscreen .album-list.is-large .album-card-cover {
-  width: 112px;
-  height: 112px;
+  width: clamp(6rem, 8vw, 9rem);
+  height: clamp(6rem, 8vw, 9rem);
   border-radius: 14px;
 }
-body.music-releases-fullscreen .album-list.is-large .album-card-cover-letter { font-size: 3rem; }
-body.music-releases-fullscreen .album-list.is-large .album-card-title { font-size: 1.2rem; }
-body.music-releases-fullscreen .album-list.is-large .album-card-count { font-size: 0.88rem; }
-body.music-releases-fullscreen .album-list.is-large .album-card-open { font-size: 1.3rem; }
+body.music-releases-fullscreen .album-list.is-large .album-card-cover-letter { font-size: var(--fs-3xl); }
+body.music-releases-fullscreen .album-list.is-large .album-card-title { font-size: var(--fs-lg); }
+body.music-releases-fullscreen .album-list.is-large .album-card-count { font-size: var(--fs-sm); }
+body.music-releases-fullscreen .album-list.is-large .album-card-open { font-size: var(--fs-lg); }
 body.music-releases-fullscreen .music-main { display: none; }
 body.music-releases-fullscreen .player-settings-block { display: none; }
 
@@ -158,8 +161,9 @@ body.music-releases-fullscreen .player-settings-block { display: none; }
 .album-view-toggle,
 .album-list {
   /* A real starting value is required — `max-height: none` cannot be animated
-     to 0, which made the content disappear in one frame instead of folding. */
-  max-height: 1200px;
+     to 0, which made the content disappear in one frame instead of folding.
+     Follow tall/4K viewports instead of clipping at a fixed 1200px cap. */
+  max-height: max(1200px, calc(100dvh - 24px));
   transition:
     max-height var(--collapse-duration) var(--collapse-ease),
     max-width var(--collapse-duration) var(--collapse-ease),
@@ -223,7 +227,7 @@ body.music-releases-collapsed .album-expand-btn {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
 }
 
 .music-filter {
@@ -235,7 +239,7 @@ body.music-releases-collapsed .album-expand-btn {
   background: var(--menu-search-bg);
   color: var(--menu-search-text);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
 }
 .music-filter::placeholder { color: var(--menu-search-placeholder); }
 .music-filter:focus {
@@ -271,7 +275,7 @@ body.music-releases-collapsed .album-expand-btn {
   overflow: hidden;
   background: var(--bg);
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -295,7 +299,7 @@ body.music-releases-collapsed .album-expand-btn {
      sitting exactly on top of the release cards' border. */
   margin: 0 10px 0 0;
   padding: 2px 2px 6px;
-  max-height: 1200px;
+  max-height: max(240px, calc(100dvh - 180px));
   list-style: none;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -324,7 +328,7 @@ body.music-releases-collapsed .album-expand-btn {
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: var(--fs-sm);
   line-height: 1.2;
   text-align: left;
   cursor: pointer;
@@ -357,7 +361,7 @@ body.music-releases-collapsed .album-expand-btn {
 .album-item-count {
   flex: 0 0 auto;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   transition: font-size 0.24s ease;
 }
@@ -423,7 +427,7 @@ body.music-releases-collapsed .album-expand-btn {
 .album-list.is-large { gap: 10px; }
 .album-card-item {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: clamp(2.4rem, 3vw, 3.6rem) minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
   width: 100%;
@@ -455,8 +459,8 @@ body.music-releases-collapsed .album-expand-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: clamp(2.4rem, 3vw, 3.6rem);
+  height: clamp(2.4rem, 3vw, 3.6rem);
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
@@ -475,7 +479,7 @@ body.music-releases-collapsed .album-expand-btn {
 }
 .album-card-cover-letter {
   color: var(--muted);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   font-weight: 700;
   text-transform: uppercase;
   transition: font-size 0.24s ease;
@@ -483,7 +487,7 @@ body.music-releases-collapsed .album-expand-btn {
 .album-card-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .album-card-title {
   overflow: hidden;
-  font-size: 0.86rem;
+  font-size: var(--fs-sm);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -491,29 +495,29 @@ body.music-releases-collapsed .album-expand-btn {
 }
 .album-card-count {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   transition: font-size 0.24s ease;
 }
 .album-card-item.is-active .album-card-title { font-weight: 700; }
-.album-card-open { color: var(--muted); font-size: 0.8rem; transition: font-size 0.24s ease; }
+.album-card-open { color: var(--muted); font-size: var(--fs-sm); transition: font-size 0.24s ease; }
 
 /* Large view gives each release a substantially bigger container and cover. */
 .album-list.is-large .album-card-item {
-  grid-template-columns: 96px minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: clamp(5rem, 7vw, 7.5rem) minmax(0, 1fr) auto;
+  gap: clamp(10px, 1vw, 18px);
   padding: 12px 14px;
   border-radius: 14px;
 }
 .album-list.is-large .album-card-cover {
-  width: 96px;
-  height: 96px;
+  width: clamp(5rem, 7vw, 7.5rem);
+  height: clamp(5rem, 7vw, 7.5rem);
   border-radius: 10px;
 }
-.album-list.is-large .album-card-cover-letter { font-size: 2.4rem; }
-.album-list.is-large .album-card-title { font-size: 1.05rem; white-space: normal; }
-.album-list.is-large .album-card-count { font-size: 0.82rem; }
-.album-list.is-large .album-card-open { font-size: 1.1rem; }
+.album-list.is-large .album-card-cover-letter { font-size: var(--fs-2xl); }
+.album-list.is-large .album-card-title { font-size: var(--fs-md); white-space: normal; }
+.album-list.is-large .album-card-count { font-size: var(--fs-sm); }
+.album-list.is-large .album-card-open { font-size: var(--fs-lg); }
 
 /* --- album panel --- */
 .music-main { min-width: 0; }
@@ -531,8 +535,8 @@ body.music-releases-collapsed .album-expand-btn {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 112px;
-  height: 112px;
+  width: clamp(5.5rem, 8vw, 9rem);
+  height: clamp(5.5rem, 8vw, 9rem);
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-elevated);
@@ -547,7 +551,7 @@ body.music-releases-collapsed .album-expand-btn {
   image-rendering: pixelated;
 }
 .album-cover-letter {
-  font-size: 2.4rem;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -566,7 +570,7 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
 .album-subtitle {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: var(--fs-sm);
 }
 
 .music-empty {
@@ -671,7 +675,7 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
   width: 22px;
   height: 22px;
   color: inherit;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -716,7 +720,7 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
 }
 .music-track-duration {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
 }
 .music-track.is-queued .music-track-queue {
@@ -832,8 +836,8 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  max-width: min(86vw, 86vh);
+  gap: clamp(10px, 1.4vw, 18px);
+  max-width: min(92vw, 92dvh, 120rem);
   opacity: 0;
   transform: translateY(28px) scale(0.9);
   transition:
@@ -857,8 +861,8 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
 .cover-lightbox-frame img,
 .cover-lightbox-letter {
   display: block;
-  width: min(78vw, 78vh, 720px);
-  height: min(78vw, 78vh, 720px);
+  width: min(82vw, 82dvh, 96rem);
+  height: min(82vw, 82dvh, 96rem);
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--bg-elevated);
@@ -878,10 +882,10 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
 .cover-lightbox-letter[hidden] { display: none; }
 .cover-lightbox-caption {
   margin: 0;
-  max-width: min(78vw, 720px);
+  max-width: min(82vw, 96rem);
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -900,7 +904,7 @@ body.music-releases-collapsed .album-expand-btn .icon-expand { display: block; }
   border-radius: 50%;
   background: var(--bg-elevated-2);
   color: var(--text);
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   line-height: 1;
   cursor: pointer;
 }

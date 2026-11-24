@@ -235,8 +235,8 @@ function shell({ title, description, body, depth, isIndex = false }) {
         </div>
       </div>
       <header class="home-head notes-head">
-${isIndex ? "" : `        <a class="notes-back" href="${base}wiki/zqwy/"><span aria-hidden="true">←</span> <span data-i18n="notesBack">Назад к заметкам</span></a>\n`}        <h1 class="home-title">zqwy notes</h1>
-        <p class="home-heading" data-i18n="notesHeading">Заметки в формате markdown, собранные из src/notes/.</p>
+        <h1 class="home-title">zqwy notes</h1>
+${isIndex ? "" : `        <a class="notes-back" href="${base}wiki/zqwy/"><span aria-hidden="true">←</span> <span data-i18n="notesBack">Назад к заметкам</span></a>\n`}        <p class="home-heading" data-i18n="notesHeading">Заметки в формате markdown, собранные из src/notes/.</p>
         <p class="home-heading blog-hint" data-i18n="blogHeading">Блог · хронология</p>
         <p class="home-heading blog-hint dim" data-i18n="blogHint">Записи расположены по датам — от новых к старым.</p>
       </header>

@@ -384,6 +384,46 @@
     return queries;
   }
 
+  /* Bounded Levenshtein distance: a typo or a small inflection should not hide
+     a word. The bound keeps this cheap even on long note pages. */
+  function editDistanceWithin(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return false;
+    let previous = new Array(b.length + 1);
+    let current = new Array(b.length + 1);
+    for (let j = 0; j <= b.length; j++) previous[j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      current[0] = i;
+      let rowMin = current[0];
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
+        if (current[j] < rowMin) rowMin = current[j];
+      }
+      if (rowMin > max) return false;
+      [previous, current] = [current, previous];
+    }
+    return previous[b.length] <= max;
+  }
+
+  function hayWordMatches(hay, word) {
+    if (!word) return false;
+    if (hay.includes(word)) return true;
+    if (word.length < 3) return false;
+    const words = hay.split(" ");
+    // A shorter word in the text can still be the beginning of the query word
+    // ("кот" → "котик"), and vice versa.
+    for (const candidate of words) {
+      if (candidate.length >= 3 && word.startsWith(candidate)) return true;
+    }
+    const maxDist = word.length >= 8 ? 2 : word.length >= 4 ? 1 : 0;
+    if (!maxDist) return false;
+    for (const candidate of words) {
+      if (Math.abs(candidate.length - word.length) > maxDist) continue;
+      if (editDistanceWithin(word, candidate, maxDist)) return true;
+    }
+    return false;
+  }
+
   function searchTokens(data, query) {
     const items = Array.isArray(data) ? data : (data && data.items) || [];
     const groups = Array.isArray(data) ? [] : (data && data.synonyms) || (data && data.synonymGroups) || [];
@@ -403,7 +443,13 @@
         for (const [key, words] of map) {
           if (key.split(" ").includes(token)) words.forEach((word) => variants.add(word));
         }
-        return [...variants].some((word) => word && hay.includes(word));
+        // Follow synonyms one more hop (RU → EN → another spelling) instead of
+        // stopping at the first equivalent found.
+        for (const word of [...variants]) {
+          const more = map.get(word);
+          if (more) more.forEach((item) => variants.add(item));
+        }
+        return [...variants].some((word) => hayWordMatches(hay, word));
       });
     });
   }
@@ -413,7 +459,9 @@
     const seen = new Set();
     for (const candidate of phraseQueries(data, query)) {
       for (const item of searchTokens(data, candidate)) {
-        const key = `${item.type || ""}:${item.path || ""}:${item.title || ""}`;
+        // On-page blocks share a type/path/title (the nearest heading), so
+        // without a unique key every match but the first was thrown away.
+        const key = item._href || `${item.type || ""}:${item.path || ""}:${item.title || ""}`;
         if (seen.has(key)) continue;
         seen.add(key);
         results.push(item);
@@ -463,14 +511,28 @@
       synonyms: index?.synonyms || [],
       synonymGroups: index?.synonymGroups || [],
     };
-    return runSearch(data, query).slice(0, 8);
+    return runSearch(data, query).slice(0, 24);
   }
 
-  /* ---------- prefix suggestions for the search field ----------
-   * The index already contains titles, aliases, tags and phrase forms. Build
-   * a flat word list from it once, then match the beginning of every word in
-   * the query. This is deliberately a prefix engine ("pervye bukvy"), not a
-   * fuzzy full-text search — the latter is run on submit. */
+  /* Mark every found block on the page, not only the first one, so a visitor
+     can see all the similar words the search picked up. */
+  function highlightPageHits(matches) {
+    const nodes = (matches || [])
+      .map((item) => item._node?.parentElement)
+      .filter((el) => el && document.contains(el));
+    nodes.forEach((el) => el.classList.add("zqwy-search-hit"));
+    if (nodes.length) {
+      window.setTimeout(() => {
+        nodes.forEach((el) => el.classList.remove("zqwy-search-hit"));
+      }, 3200);
+    }
+    return nodes;
+  }
+
+  /* ---------- suggestions for the search field ----------
+   * Prefix matches come first ("pervye bukvy"); when they run out, similar
+   * words (inflections and typos) are offered from the same corpus. Full-text
+   * fuzzy matching is also run on submit. */
   function buildSuggestionCorpus(data) {
     const byKey = new Map();
     const add = (value, type) => {
@@ -513,6 +575,7 @@
     const head = tokens.slice(0, -1);
     const starts = [];
     const words = [];
+    const similar = [];
 
     for (const entry of suggestionCache) {
       const normalized = normalize(entry.label);
@@ -525,8 +588,9 @@
         pushed = true;
       }
       if (!pushed && parts.some((word) => word.startsWith(last))) words.push(entry);
+      if (!pushed && parts.some((word) => hayWordMatches(word, last))) similar.push(entry);
     }
-    return [...starts, ...words].slice(0, 8);
+    return [...starts, ...words, ...similar].slice(0, 8);
   }
 
   function hideSuggestions() {
@@ -639,12 +703,14 @@
           ev.preventDefault();
           const target = item._node.parentElement;
           if (!target || !document.contains(target)) return;
-          target.classList.add("zqwy-search-hit");
+          highlightPageHits(items);
           target.scrollIntoView({ behavior: "smooth", block: "center" });
-          window.setTimeout(() => target.classList.remove("zqwy-search-hit"), 2400);
         });
       }
-      link.textContent = item.title || item.path || "Без названия";
+      // A page hit needs its text snippet: several hits can share one heading.
+      link.textContent = item._onPage
+        ? `${item.title} — ${item.text.length > 80 ? `${item.text.slice(0, 80)}…` : item.text}`
+        : (item.title || item.path || "Без названия");
 
       const icon = document.createElement("span");
       icon.className = "search-result-icon";
@@ -702,6 +768,7 @@
     // now, while index results remain the broader site-wide fallback.
     const matches = [...pageMatches, ...indexMatches].slice(0, 50);
     renderResults(els.results, matches);
+    highlightPageHits(pageMatches);
     if (matches.length) {
       els.status.textContent = t("found", { count: matches.length });
     } else {
@@ -930,13 +997,12 @@
       performSearch(query);
       return;
     }
-    // No results area on this page: first look right here. If the word is on
-    // the current screen, jump to it instead of sending the visitor home.
-    const localHit = findPageMatches(query, null)[0]?._node?.parentElement;
-    if (localHit && document.contains(localHit)) {
-      localHit.classList.add("zqwy-search-hit");
-      localHit.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => localHit.classList.remove("zqwy-search-hit"), 2400);
+    // No results area on this page: first look right here. Highlight every
+    // match and jump to the first one instead of leaving the page.
+    const localMatches = findPageMatches(query, null);
+    if (localMatches.length) {
+      const localHits = highlightPageHits(localMatches);
+      localHits[0]?.scrollIntoView({ behavior: "smooth", block: "center" });
       els.input?.blur();
       return;
     }

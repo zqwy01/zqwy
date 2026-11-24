@@ -244,11 +244,6 @@
 .lab-mediaelement .mejs__container { width: 100%; }
 
 .player-extra { display: flex; align-items: center; gap: 4px; }
-/* Manual intro skip stays compact until a precise offset has been measured. */
-.player-skip-intro { width: auto; gap: 5px; padding: 0 8px; font-size: 0.72rem; white-space: nowrap; }
-.player-skip-intro svg { width: 16px; height: 16px; }
-.player-skip-intro[disabled] { opacity: 0.4; cursor: default; }
-.player-skip-intro.is-ready { border-color: var(--focus-border); background: var(--bg-elevated-2); }
 .player-queue-toggle { position: relative; }
 .player-queue-count {
   position: absolute;
@@ -612,8 +607,6 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(160px + e
 @media (max-width: 520px) {
   .player-btn { width: 34px; height: 34px; }
   .player-play { width: 40px; height: 40px; }
-  .player-skip-intro { width: 34px; padding: 0; }
-  .player-skip-intro span { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -51,7 +51,6 @@
   // Intro detection replaces the old fixed "skip the first 12 seconds" hack.
   // These are safety limits, not the offset we always jump to: the real skip
   // point is the first sustained sound after the initial quiet run.
-  const MANUAL_SKIP_FALLBACK_SEC = 8;
   const INTRO_SCAN_MAX_SEC = 90;
   const INTRO_WINDOW_SEC = 0.02;
   const INTRO_MIN_QUIET_SEC = 1;
@@ -77,9 +76,6 @@
       close: "Остановить и закрыть плеер", loading: "Загрузка трека",
       position: "Позиция трека", volume: "Громкость", engineUi: "Позиция (AmplitudeJS)",
       playPause: "Воспроизвести/пауза", amplitudeVolume: "Громкость (AmplitudeJS)",
-      skipIntro: "Пропустить интро", skipIntroShort: "Интро",
-      skipIntroHint: "Перейти к первому звуку после начальной тишины",
-      introDone: "Интро пропущено", introNone: "Начальной тишины не найдено",
       settingsHint: "Плеер универсальный: движок и поведение выбираются здесь и сохраняются для всего сайта.",
       engine: "Движок воспроизведения",
       engineHtml5: "HTML5 (встроенный в браузер)", engineWavesurfer: "WaveSurfer.js (форма волны)",
@@ -114,9 +110,6 @@
       close: "Stop and close the player", loading: "Loading track",
       position: "Track position", volume: "Volume", engineUi: "Position (AmplitudeJS)",
       playPause: "Play/pause", amplitudeVolume: "Volume (AmplitudeJS)",
-      skipIntro: "Skip intro", skipIntroShort: "Intro",
-      skipIntroHint: "Jump to the first sustained sound after the initial silence",
-      introDone: "Intro skipped", introNone: "No initial silence found",
       settingsHint: "The player is universal: pick an engine and behaviour here; settings are saved site-wide.",
       engine: "Playback engine",
       engineHtml5: "HTML5 (built into the browser)", engineWavesurfer: "WaveSurfer.js (waveform)",
@@ -172,7 +165,6 @@
     document.querySelectorAll("[data-player-settings-mount]").forEach((mount) => {
       mount.innerHTML = settingsFormHtml();
     });
-    updateSkipIntroButton();
     syncSettingsUI();
     applyShuffle();
     applyRepeat();
@@ -272,10 +264,6 @@
 
     <div class="player-tools">
     <div class="player-extra">
-      <button class="player-btn player-skip-intro" id="playerSkipIntro" type="button" aria-label="${pt("skipIntro")}" title="${pt("skipIntroHint")}" data-player-i18n-aria-label="skipIntro" data-player-i18n-title="skipIntroHint" disabled>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14l9-7-9-7zm10 0v14l9-7-9-7z"/></svg>
-        <span data-player-i18n="skipIntroShort">${pt("skipIntroShort")}</span>
-      </button>
       <button class="player-btn player-queue-toggle" id="playerQueueToggle" type="button" aria-label="${pt("queue")}" aria-expanded="false" aria-controls="playerQueuePanel" title="${pt("queue")}" data-player-i18n-aria-label="queue" data-player-i18n-title="queue">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11v2H4zM4 11h11v2H4zM4 16h7v2H4zM17 8l5 4-5 4V8z"/></svg>
         <span class="player-queue-count" id="playerQueueCount" hidden>0</span>
@@ -402,7 +390,6 @@
   // replaying a track never decodes the same file twice.
   const introCache = new Map();
   let introToken = 0;
-  let introTarget = null;
   let introUserSeeked = false;
   let saveTimer = 0;
   let hideTimer = 0;
@@ -462,7 +449,7 @@
    * ate the beginning of a track. Instead, decode the file once in a dedicated
    * AudioContext, measure short RMS windows and jump only when a run of real
    * sound follows a sustained initial silence. A failed decode simply leaves
-   * the manual button available with a small fallback seek. */
+   * the track at its natural start — no guessing, no chopped music. */
   function introKey(url) {
     return `${url}|${state.silenceDb}|${state.introMaxSec}`;
   }
@@ -526,48 +513,16 @@
     }
   }
 
-  function updateSkipIntroButton() {
-    const button = $("playerSkipIntro");
-    if (!button) return;
-    button.disabled = !state.current;
-    button.classList.toggle("is-ready", introTarget != null);
-    button.setAttribute("title", introTarget != null
-      ? `${pt("skipIntroHint")} · ${formatTime(introTarget)}`
-      : pt("skipIntroHint"));
-  }
-
   // Called for every fresh track. The token prevents a slow decode from an
   // earlier track seeking after the visitor has already moved on.
-  function prepareIntro(url, autoSeek) {
+  function prepareIntro(url) {
     const token = ++introToken;
-    introTarget = null;
     introUserSeeked = false;
-    updateSkipIntroButton();
     ensureIntroTarget(url).then((target) => {
-      if (token !== introToken || !state.current) return;
-      introTarget = target;
-      updateSkipIntroButton();
+      if (token !== introToken || !state.current || target == null || introUserSeeked) return;
       // Decoding can take a moment; only a deliberate scrub by the visitor
       // should cancel the automatic jump, not natural playback progress.
-      if (autoSeek && target != null && !introUserSeeked) {
-        setTime(target);
-        notify("intro");
-      }
-    });
-  }
-
-  function skipIntro() {
-    if (!state.current) return;
-    const url = assetUrl(resolveTrackPath(state.current));
-    const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
-    const fallback = duration > MANUAL_SKIP_FALLBACK_SEC + 0.5
-      ? MANUAL_SKIP_FALLBACK_SEC
-      : Math.max(0, duration - 0.1);
-    ensureIntroTarget(url).then((target) => {
-      if (!state.current) return;
-      introTarget = target;
-      updateSkipIntroButton();
-      setTime(target != null ? target : fallback);
+      setTime(target);
       notify("intro");
     });
   }
@@ -2158,12 +2113,10 @@
 
     const url = assetUrl(resolveTrackPath(state.current));
     destroyWaveforms();
-    if (!start && state.skipIntro) prepareIntro(url, true);
+    if (!start && state.skipIntro) prepareIntro(url);
     else {
       introToken++;
-      introTarget = null;
       introUserSeeked = false;
-      updateSkipIntroButton();
     }
     loadEngine(url, pendingStart, pendingAutoplay);
     // Warm the next file while the current one starts, so switching tracks
@@ -2625,7 +2578,6 @@
   });
   $("playerPrev").addEventListener("click", previous);
   $("playerNext").addEventListener("click", () => next(true));
-  $("playerSkipIntro").addEventListener("click", skipIntro);
   $("playerClose").addEventListener("click", stop);
 
   seek.addEventListener("input", () => {
@@ -2720,8 +2672,6 @@
     }
     // Threshold changes make every cached result stale.
     introCache.clear();
-    introTarget = null;
-    updateSkipIntroButton();
     syncSettingsUI();
     saveState();
     notify("settings");
@@ -2904,7 +2854,6 @@
     updateMuteState();
     renderQueue();
     mountSettings();
-    updateSkipIntroButton();
 
     if (!state.current || !state.current.path) return;
     showBar();

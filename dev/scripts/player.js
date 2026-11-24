@@ -108,6 +108,8 @@
       eqEnable: "Включить эквалайзер",
       eqHint: "Визуальная кривая показывает суммарный отклик. Добавляйте фильтры и меняйте тип, частоту, усиление и Q.",
       eqCanvasHint: "Перетаскивайте точки на кривой: по горизонтали — частота, по вертикали — усиление.",
+      limiter: "Лимитер 0 dBFS",
+      limiterHint: "Ограничивает выход, чтобы громкость не превышала 0 dBFS после эквалайзера.",
       eqAdd: "Добавить фильтр",
       eqReset: "Сбросить эквалайзер",
       eqFreq: "Частота", eqGain: "Усиление", eqQ: "Q", eqType: "Тип", eqRemove: "Удалить",
@@ -158,6 +160,8 @@
       eqEnable: "Enable equalizer",
       eqHint: "The curve shows the combined response. Add filters and adjust type, frequency, gain, and Q.",
       eqCanvasHint: "Drag points on the curve: horizontal is frequency, vertical is gain.",
+      limiter: "0 dBFS limiter",
+      limiterHint: "Limits output so loudness does not exceed 0 dBFS after the equalizer.",
       eqAdd: "Add filter",
       eqReset: "Reset equalizer",
       eqFreq: "Frequency", eqGain: "Gain", eqQ: "Q", eqType: "Type", eqRemove: "Remove",
@@ -397,8 +401,8 @@
     { id: "vinyl", preservePitch: false, labelKey: "pitchVinyl" },
     { id: "tape", preservePitch: true, labelKey: "pitchTape" }, // UI mode; browser fallback uses preservePitch
   ];
-  const EQ_MIN_GAIN = -12;
-  const EQ_MAX_GAIN = 12;
+  const EQ_MIN_GAIN = -36;
+  const EQ_MAX_GAIN = 36;
   const EQ_MIN_FREQ = 31;
   const EQ_MAX_FREQ = 16000;
   const EQ_MIN_Q = 0.4;
@@ -435,6 +439,7 @@
     pitchMode: "preserve",
     eqEnabled: false,
     eqFilters: DEFAULT_EQ_FILTERS.map((f) => ({ ...f })),
+    limiterEnabled: true,
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -454,6 +459,8 @@
   let mainGainNode = null;
   let eqInputNode = null;
   let eqFilters = [];
+  let limiterNode = null;
+  let limiterEnabled = true;
   let pendingStart = null;
   let pendingAutoplay = false;
   // Intro analysis is cached per URL + threshold so scrubbing back and
@@ -749,7 +756,7 @@
         labGain = context.createGain();
         labGain.gain.value = 1;
         analyser.connect(labGain);
-        labGain.connect(context.destination);
+        labGain.connect(outputDestination() || context.destination);
       }
     } catch {}
     labNode = analyser;
@@ -1022,7 +1029,7 @@
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
         skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
         playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode, pitchMode: state.pitchMode,
-        eqEnabled: state.eqEnabled, eqFilters: state.eqFilters,
+        eqEnabled: state.eqEnabled, eqFilters: state.eqFilters, limiterEnabled: state.limiterEnabled !== false,
       }));
       if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
     } catch {}
@@ -1186,10 +1193,36 @@
     return audioContext;
   }
 
+  function ensureLimiter() {
+    const context = sharedAudioContext();
+    if (!context) return null;
+    if (limiterNode) return limiterNode;
+    try {
+      const comp = context.createDynamicsCompressor();
+      // Brickwall-ish limiter: keep output at/under ~0 dBFS.
+      comp.threshold.value = -1;
+      comp.knee.value = 0;
+      comp.ratio.value = 20;
+      comp.attack.value = 0.003;
+      comp.release.value = 0.25;
+      comp.connect(context.destination);
+      limiterNode = comp;
+    } catch {
+      limiterNode = null;
+    }
+    return limiterNode;
+  }
+
+  function outputDestination() {
+    if (!audioContext) return null;
+    const limiter = limiterEnabled ? ensureLimiter() : null;
+    return limiter || audioContext.destination;
+  }
+
   function connectMainOutput() {
     if (!mainGainNode || !audioContext) return;
     try { mainGainNode.disconnect(); } catch {}
-    const target = state.eqEnabled && eqInputNode ? eqInputNode : audioContext.destination;
+    const target = state.eqEnabled && eqInputNode ? eqInputNode : outputDestination();
     try { mainGainNode.connect(target); } catch {}
   }
 
@@ -1226,7 +1259,7 @@
         prev = node;
       }
     });
-    try { prev.connect(audioContext.destination); } catch {}
+    try { prev.connect(outputDestination() || audioContext.destination); } catch {}
   }
 
   function ensureEqChain() {
@@ -1234,6 +1267,7 @@
     if (!main) return null;
     if (eqFilters.length) return { context: main.context, filters: eqFilters };
     try {
+      ensureLimiter();
       eqInputNode = main.context.createGain();
       eqInputNode.gain.value = 1;
       eqFilters = state.eqFilters.map((cfg, index) => {
@@ -1391,6 +1425,7 @@
     }
     if (!mediaSourceNode) return null;
     try {
+      ensureLimiter();
       mainGainNode = context.createGain();
       mainGainNode.gain.value = 1;
       mediaSourceNode.connect(mainGainNode);
@@ -2138,6 +2173,7 @@
     const context = sharedAudioContext();
     if (context) {
       try {
+        ensureLimiter();
         const source = context.createMediaElementSource(fade.element);
         const gain = context.createGain();
         const now = context.currentTime;
@@ -2149,7 +2185,7 @@
           duration / 1000,
         );
         source.connect(gain);
-        gain.connect(context.destination);
+        gain.connect(outputDestination() || context.destination);
         fade.source = source;
         fade.gain = gain;
         fade.timeout = window.setTimeout(() => cleanupFade(fade), duration + 300);
@@ -2714,6 +2750,8 @@
       </div>
     </div>
     <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
+    <label class="eq-toggle limiter-toggle"><input type="checkbox" data-player-setting="limiterEnabled"><span data-player-i18n="limiter">${pt("limiter")}</span></label>
+    <p class="player-settings-hint" data-player-i18n="limiterHint">${pt("limiterHint")}</p>
     <div class="eq-visual-wrap">
       <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
       <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
@@ -2908,7 +2946,7 @@
 
       ctx.strokeStyle = border;
       ctx.lineWidth = 1;
-      [-12, -6, 0, 6, 12].forEach((db) => {
+      [-36, -24, -12, 0, 12, 24, 36].forEach((db) => {
         const y = dbToY(db);
         ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(w - padX, y); ctx.stroke();
       });
@@ -2919,7 +2957,7 @@
       ctx.fillStyle = muted;
       ctx.font = "10px system-ui, sans-serif";
       ctx.textAlign = "right";
-      [12, 0, -12].forEach((db) => ctx.fillText(`${db}`, padX - 4, dbToY(db) + 3));
+      [36, 24, 12, 0, -12, -24, -36].forEach((db) => ctx.fillText(`${db}`, padX - 4, dbToY(db) + 3));
 
       const filters = (state.eqFilters || []).filter((f) => f && f.enabled);
       const points = [];
@@ -3077,7 +3115,7 @@
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
       else if (key === "silenceDb") input.value = String(state.silenceDb);
       else if (key === "introMaxSec") input.value = String(state.introMaxSec);
-      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled") {
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled" || key === "limiterEnabled") {
         input.checked = !!state[key];
       }
     });
@@ -3257,6 +3295,16 @@
     else if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
     else if (key === "eqEnabled") setEqEnabled(input.checked);
+    else if (key === "limiterEnabled") {
+      state.limiterEnabled = !!input.checked;
+      limiterEnabled = state.limiterEnabled;
+      ensureMainGain();
+      if (state.eqEnabled) ensureEqChain();
+      applyEqState();
+      syncSettingsUI();
+      saveState();
+      notify("settings");
+    }
     else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
@@ -3433,6 +3481,8 @@
     state.preservePitch = state.pitchMode !== "vinyl";
 
     state.eqEnabled = saved.eqEnabled === true;
+    state.limiterEnabled = saved.limiterEnabled !== false;
+    limiterEnabled = state.limiterEnabled;
     const savedFilters = Array.isArray(saved.eqFilters) ? saved.eqFilters : null;
     if (savedFilters && savedFilters.length) {
       state.eqFilters = savedFilters.slice(0, 8).map((f, i) => normalizeEqFilter(f, i));
@@ -3457,9 +3507,12 @@
     renderQueue();
     mountSettings();
     applyPlaybackRate();
+    ensureMainGain();
     if (state.eqEnabled) {
       ensureEqChain();
       applyEqState();
+    } else {
+      connectMainOutput();
     }
 
     if (!state.current || !state.current.path) return;

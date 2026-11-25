@@ -53,6 +53,11 @@
   const CROSSFADE_MAX_MS = 3000;
   const DEFAULT_FADE_OUT_MS = 700;
   const DEFAULT_FADE_IN_MS = 500;
+  // Effect settings are baked once per track instead of being kept in a live
+  // Web Audio graph. Debounce slider drags so one render happens after the
+  // user settles on a value, not on every input event.
+  // Knob movement must feel immediate: only a settled pause starts the render.
+  const FX_RENDER_DEBOUNCE_MS = 10000;
   // Intro detection replaces the old fixed "skip the first 12 seconds" hack.
   // These are safety limits, not the offset we always jump to: the real skip
   // point is the first sustained sound after the initial quiet run.
@@ -83,6 +88,9 @@
       shareCopy: "Скопировать ссылку", shareCopied: "Ссылка скопирована",
       shareManual: "Ссылка готова — скопируйте её из поля",
       close: "Остановить и закрыть плеер", loading: "Загрузка трека",
+      saveRemix: "Сохранить ремикс", loadRemix: "Загрузить ремикс",
+      remixSaved: "Ремикс сохранён", remixLoaded: "Загружен ремикс — исходный файл не перезаписывается",
+      remixNoTrack: "Сначала включите трек", remixError: "Не удалось обработать ремикс",
       position: "Позиция трека", volume: "Громкость", engineUi: "Позиция (AmplitudeJS)",
       playPause: "Воспроизвести/пауза", amplitudeVolume: "Громкость (AmplitudeJS)",
       settingsHint: "Плеер универсальный: движок и поведение выбираются здесь и сохраняются для всего сайта.",
@@ -103,7 +111,8 @@
       thresholdHint: "Тише этого уровня считается тишиной. Чем ниже число, тем меньше вы пропускаете.",
       introMaxHint: "Дальше этого времени интро не ищется, чтобы не перескочить в начало музыки.",
       fadeLabel: "Появление / затухание", fadeIn: "Появление", fadeOut: "Затухание",
-      fadeHint: "Новый трек мягко появляется, предыдущий — плавно уходит. Длительности настраиваются отдельно; фейд можно выключить.",
+      fadeInEnable: "Включить появление", fadeOutEnable: "Включить затухание",
+      fadeHint: "Появление и затухание включаются отдельно. Длительности настраиваются независимо; общий плавный переход между треками задаётся выше.",
       playbackRate: "Скорость воспроизведения",
       playbackRateHint: "Ползунок меняет темп от 0.1x до 10x. Режим скорости задаёт пресет темпа, режим изменения тона — стиль воспроизведения.",
       playbackMode: "Режим скорости",
@@ -121,18 +130,27 @@
       limiterHint: "Ограничивает выход, чтобы громкость не превышала 0 dBFS после эквалайзера.",
       limiterMeter: "Пик после лимитера",
       effects: "Эффекты",
-      effectsHint: "Цепочка: дисторшн → хорус → реверб → лимитер. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      effectsHint: "Цепочка: дисторшн → хорус → флейзер → дилей → реверб. Эффект применяется один раз и запекается в звуковую волну: во время воспроизведения живой обработки нет. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      effectRendering: "Запекаю эффекты в трек…", effectReady: "Эффекты запечены в звуковую волну",
+      effectUnavailable: "Не удалось запечь эффекты — играет оригинальный файл",
       distortion: "Дисторшн", distortionEnable: "Включить дисторшн",
       distortionHint: "Нелинейное искажение с мягким фильтром тона после формы сигнала.",
       drive: "Степень", tone: "Тон", mix: "Смесь",
       chorus: "Хорус", chorusEnable: "Включить хорус",
       chorusHint: "Модуляция задержки создаёт эффект хора и ленточного вибрато.",
       rate: "Скорость LFO", depth: "Глубина",
+      flanger: "Флейзер", flangerEnable: "Включить флейзер",
+      flangerHint: "Короткая модулируемая задержка с обратной связью даёт металлический свист и движение спектра.",
+      delay: "Дилей", delayEnable: "Включить дилей",
+      delayHint: "Повторы с затуханием: время задержки, обратная связь и смесь с оригиналом.",
+      delayTime: "Время", feedback: "Обратная связь",
       reverb: "Реверб", reverbEnable: "Включить реверб",
       reverbHint: "Синтетическая impulse-характеристика с регулируемым временем затухания.",
       decay: "Затухание",
       fxCanvasDistortionHint: "Горизонталь — тон, вертикаль — степень искажения.",
       fxCanvasChorusHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
+      fxCanvasFlangerHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
+      fxCanvasDelayHint: "Горизонталь — время задержки, вертикаль — обратная связь.",
       fxCanvasReverbHint: "Горизонталь — затухание, вертикаль — смесь.",
       eqAdd: "Добавить фильтр",
       eqReset: "Сбросить эквалайзер",
@@ -154,6 +172,9 @@
       shareCopy: "Copy link", shareCopied: "Link copied",
       shareManual: "Link ready — copy it from the field",
       close: "Stop and close the player", loading: "Loading track",
+      saveRemix: "Save remix", loadRemix: "Load remix",
+      remixSaved: "Remix saved", remixLoaded: "Remix loaded — the source file is not modified",
+      remixNoTrack: "Start a track first", remixError: "Could not process the remix",
       position: "Track position", volume: "Volume", engineUi: "Position (AmplitudeJS)",
       playPause: "Play/pause", amplitudeVolume: "Volume (AmplitudeJS)",
       settingsHint: "The player is universal: pick an engine and behaviour here; settings are saved site-wide.",
@@ -174,7 +195,8 @@
       thresholdHint: "Anything quieter than this counts as silence. Lower values skip less.",
       introMaxHint: "The intro search stops here so the music itself is never skipped.",
       fadeLabel: "Fade in / fade out", fadeIn: "Fade in", fadeOut: "Fade out",
-      fadeHint: "The new track fades in while the previous one fades out. Durations are independent; fading can be turned off.",
+      fadeInEnable: "Enable fade in", fadeOutEnable: "Enable fade out",
+      fadeHint: "Fade in and fade out are switched independently. Durations are separate; the overall overlap between tracks is set above.",
       playbackRate: "Playback speed",
       playbackRateHint: "Slider changes tempo from 0.1x to 10x. Speed mode sets tempo preset; pitch mode sets playback style.",
       playbackMode: "Speed mode",
@@ -192,18 +214,27 @@
       limiterHint: "Limits output so loudness does not exceed 0 dBFS after the equalizer.",
       limiterMeter: "Post-limiter peak",
       effects: "Effects",
-      effectsHint: "Chain: distortion → chorus → reverb → limiter. The canvases are interactive: drag them or use the sliders.",
+      effectsHint: "Chain: distortion → chorus → flanger → delay → reverb. Each effect is rendered once into the waveform: there is no live processing during playback. The canvases are interactive: drag them or use the sliders.",
+      effectRendering: "Baking effects into the track…", effectReady: "Effects baked into the waveform",
+      effectUnavailable: "Could not bake effects — playing the original file",
       distortion: "Distortion", distortionEnable: "Enable distortion",
       distortionHint: "Non-linear shaping with a gentle tone filter after the waveshaper.",
       drive: "Drive", tone: "Tone", mix: "Mix",
       chorus: "Chorus", chorusEnable: "Enable chorus",
       chorusHint: "Modulated delay creates a choir/tape vibrato texture.",
       rate: "LFO rate", depth: "Depth",
+      flanger: "Flanger", flangerEnable: "Enable flanger",
+      flangerHint: "A short modulated delay with feedback creates a metallic sweep and moving spectrum.",
+      delay: "Delay", delayEnable: "Enable delay",
+      delayHint: "Decaying repeats: delay time, feedback, and mix with the original signal.",
+      delayTime: "Time", feedback: "Feedback",
       reverb: "Reverb", reverbEnable: "Enable reverb",
       reverbHint: "Synthetic impulse response with adjustable decay time.",
       decay: "Decay",
       fxCanvasDistortionHint: "Horizontal — tone, vertical — drive.",
       fxCanvasChorusHint: "Horizontal — LFO rate, vertical — depth.",
+      fxCanvasFlangerHint: "Horizontal — LFO rate, vertical — depth.",
+      fxCanvasDelayHint: "Horizontal — delay time, vertical — feedback.",
       fxCanvasReverbHint: "Horizontal — decay, vertical — mix.",
       eqAdd: "Add filter",
       eqReset: "Reset equalizer",
@@ -285,7 +316,16 @@
     <div class="player-seek">
       <span class="player-time" id="playerCurrent">0:00</span>
       <input class="player-range player-progress" id="playerSeek" type="range" min="0" max="1000" step="1" value="0" aria-label="${pt("position")}" data-player-i18n-aria-label="position">
-      <div class="player-waveform" id="playerWaveform" hidden></div>
+      <div class="player-waveform-stack">
+        <div class="player-waveform" id="playerWaveform" hidden></div>
+        <p class="fx-render-status" data-fx-status hidden>${pt("effectReady")}</p>
+        <div class="player-remix-actions">
+          <button class="player-remix-btn" id="playerRemixSave" type="button" data-player-i18n="saveRemix" aria-label="${pt("saveRemix")}" title="${pt("saveRemix")}">${pt("saveRemix")}</button>
+          <button class="player-remix-btn" id="playerRemixLoad" type="button" data-player-i18n="loadRemix" aria-label="${pt("loadRemix")}" title="${pt("loadRemix")}">${pt("loadRemix")}</button>
+          <input class="visually-hidden" id="playerRemixFile" type="file" accept=".wav,.opus,.mp3,.flac,audio/*" aria-label="${pt("loadRemix")}">
+          <span class="player-remix-message" id="playerRemixMessage" role="status" aria-live="polite"></span>
+        </div>
+      </div>
       <!-- Libraries that draw their own controls live directly in this row,
            next to the native seek bar / waveform — never in a panel above it. -->
       <div class="player-engine-ui" id="playerEngineUi" hidden>
@@ -468,13 +508,20 @@
     chorusRate: { min: 0.1, max: 5, step: 0.05, fallback: 0.8 },
     chorusDepth: { min: 0, max: 1, step: 0.01, fallback: 0.4 },
     chorusMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    flangerRate: { min: 0.05, max: 4, step: 0.05, fallback: 0.35 },
+    flangerDepth: { min: 0, max: 1, step: 0.01, fallback: 0.55 },
+    flangerMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    delayTime: { min: 0.05, max: 0.9, step: 0.01, fallback: 0.28 },
+    delayFeedback: { min: 0, max: 0.85, step: 0.01, fallback: 0.35 },
+    delayMix: { min: 0, max: 1, step: 0.01, fallback: 0.3 },
     reverbDecay: { min: 0.4, max: 4, step: 0.1, fallback: 2.2 },
     reverbMix: { min: 0, max: 1, step: 0.01, fallback: 0.3 },
   };
-  const FX_KINDS = ["distortion", "chorus", "reverb"];
+  const FX_KINDS = ["distortion", "chorus", "flanger", "delay", "reverb"];
   const SHARE_KEYS = [
     "engine", "format", "autoNext", "rememberPosition", "crossfade",
-    "fadeOutMs", "fadeInMs", "skipIntro", "silenceDb", "introMaxSec",
+    "fadeOutMs", "fadeInMs", "fadeOutEnabled", "fadeInEnabled",
+    "skipIntro", "silenceDb", "introMaxSec",
     "playbackRate", "playbackMode", "pitchMode",
     "eqEnabled", "eqFilters", "limiterEnabled",
     ...FX_KINDS.map((kind) => `${kind}Enabled`),
@@ -495,9 +542,11 @@
     format: "opus",
     autoNext: true,
     rememberPosition: true,
-    crossfade: true,          // fade the outgoing track under the incoming one
+    crossfade: true,          // overlap the outgoing and incoming tracks
     fadeOutMs: DEFAULT_FADE_OUT_MS,
     fadeInMs: DEFAULT_FADE_IN_MS,
+    fadeOutEnabled: true,     // outgoing track fade envelope
+    fadeInEnabled: true,      // incoming track fade envelope
     skipIntro: false,         // skip detected initial silence on a fresh track
     silenceDb: DEFAULT_SILENCE_DB,
     introMaxSec: DEFAULT_INTRO_MAX_SEC,
@@ -516,6 +565,14 @@
     chorusRate: FX_RANGES.chorusRate.fallback,
     chorusDepth: FX_RANGES.chorusDepth.fallback,
     chorusMix: FX_RANGES.chorusMix.fallback,
+    flangerEnabled: false,
+    flangerRate: FX_RANGES.flangerRate.fallback,
+    flangerDepth: FX_RANGES.flangerDepth.fallback,
+    flangerMix: FX_RANGES.flangerMix.fallback,
+    delayEnabled: false,
+    delayTime: FX_RANGES.delayTime.fallback,
+    delayFeedback: FX_RANGES.delayFeedback.fallback,
+    delayMix: FX_RANGES.delayMix.fallback,
     reverbEnabled: false,
     reverbDecay: FX_RANGES.reverbDecay.fallback,
     reverbMix: FX_RANGES.reverbMix.fallback,
@@ -538,8 +595,22 @@
   let mainGainNode = null;
   let eqInputNode = null;
   let eqFilters = [];
-  let fxChain = null;
-  let reverbBuildTimer = 0;
+  // Effects are offline-rendered into WAV blobs. Caches are keyed by the
+  // original track URL; the rendered URL is only used while its settings key
+  // still matches, so a half-finished render can never reach playback.
+  const decodedTrackCache = new Map();
+  const renderedTrackCache = new Map();
+  const renderRequests = new Map();
+  const MAX_DECODED_TRACKS = 4;
+  const MAX_RENDERED_TRACKS = 6;
+  let decodeContext = null;
+  let programLocked = false;   // radio owns the program: no manual track changes
+  let loadedRemixUrl = "";     // object URL of an imported remix, revoked on replace
+  let remixMessageTimer = 0;
+  let fxRenderTimer = 0;
+  let fxRenderToken = 0;
+  let restoring = false;
+  let loadToken = 0;
   let masterOutputNode = null;
   let limiterNode = null;
   let limiterEnabled = true;
@@ -589,6 +660,24 @@
       .join("/");
     if (SITE_ROOT) return new URL(tail, SITE_ROOT).href;
     return `../../${tail}`;
+  }
+
+  // Baked effects live in blob: URLs. They are already absolute and must not
+  // be passed through assetUrl(), which would URL-encode the blob prefix.
+  function sourceUrl(track) {
+    const value = sourceTrackPath(track);
+    if (!value) return "";
+    return /^(?:[a-z]+:)?\/\//i.test(value) || value.startsWith("blob:") || value.startsWith("data:")
+      ? value
+      : assetUrl(value);
+  }
+
+  function playableUrl(track) {
+    const value = resolveTrackPath(track);
+    if (!value) return "";
+    return /^(?:[a-z]+:)?\/\//i.test(value) || value.startsWith("blob:") || value.startsWith("data:")
+      ? value
+      : assetUrl(value);
   }
 
   function basePrefix() {
@@ -888,14 +977,38 @@
   // The selected format wins, but a missing file never breaks playback: we
   // fall back to the track's canonical path, then to opus, then to whatever
   // version is actually present in the catalog.
-  function resolveTrackPath(track) {
+  function sourceTrackPath(track) {
     const formats = trackFormats(track);
     if (state.format && formats[state.format]) return formats[state.format];
     return track?.path || formats.opus || Object.values(formats)[0] || "";
   }
 
+  // Playback uses the baked version only when its settings signature still
+  // matches. While a new render is in flight the original file keeps playing,
+  // so changing a slider never freezes or corrupts the current track.
+  function renderKey(source, key) {
+    return `${source}\u0000${key}`;
+  }
+
+  function renderedEntry(track) {
+    const source = sourceUrl(track);
+    if (!source || !anyFxEnabled()) return null;
+    const entry = renderedTrackCache.get(renderKey(source, fxSettingsKey()));
+    return entry?.source === source ? entry : null;
+  }
+
+  function isTrackRendered(track) {
+    return !!renderedEntry(track);
+  }
+
+  function resolveTrackPath(track) {
+    const source = sourceTrackPath(track);
+    if (!source || !anyFxEnabled()) return source;
+    return renderedEntry(track)?.url || source;
+  }
+
   function setFormat(name) {
-    if (!FORMATS.includes(name) || name === state.format) return;
+    if (programLocked || !FORMATS.includes(name) || name === state.format) return;
     const wasPlaying = !audio.paused;
     const time = audio.currentTime || 0;
     state.format = name;
@@ -981,7 +1094,7 @@
   }
 
   function openQueue() {
-    if (!queuePanel) return;
+    if (programLocked || !queuePanel) return;
     if (settingsPanel && !settingsPanel.hidden) closeSettings();
     if (queueTimer) { window.clearTimeout(queueTimer); queueTimer = 0; }
     queuePanel.hidden = false;
@@ -1007,6 +1120,7 @@
   }
 
   function enqueue(album, index) {
+    if (programLocked) return false;
     const item = queueItem(album, index);
     if (!item) return false;
     state.queue.push(item);
@@ -1018,7 +1132,7 @@
   }
 
   function removeFromQueue(index) {
-    if (!Number.isInteger(index) || index < 0 || index >= state.queue.length) return false;
+    if (programLocked || !Number.isInteger(index) || index < 0 || index >= state.queue.length) return false;
     state.queue.splice(index, 1);
     renderQueue();
     saveState();
@@ -1028,7 +1142,7 @@
   }
 
   function clearQueue() {
-    if (!state.queue.length) return;
+    if (programLocked || !state.queue.length) return;
     state.queue = [];
     renderQueue();
     saveState();
@@ -1041,6 +1155,7 @@
   }
 
   function playQueued(index) {
+    if (programLocked) return;
     const item = state.queue[index];
     if (!item) return;
     const commit = () => {
@@ -1087,7 +1202,29 @@
       fileFormat: (resolveTrackPath(state.current).match(/\.([^.]+)$/) || [])[1] || null,
       formats: trackFormats(state.current),
       queue: getQueue(),
+      programLocked,
     };
+  }
+
+  // The radio owns playback while this is on: the listener can pause and set
+  // volume, but cannot pick, skip, scrub, or queue another track.
+  function setProgramLock(enabled) {
+    programLocked = !!enabled;
+    bar.classList.toggle("is-program-locked", programLocked);
+    ["playerPrev", "playerNext", "playerQueueToggle", "playerShuffle", "playerRepeat", "playerSeek", "playerRemixLoad"]
+      .forEach((id) => {
+        const el = $(id);
+        if (el) el.disabled = programLocked;
+      });
+    if (programLocked) {
+      closeQueue();
+      closeSettings();
+    }
+    notify("programlock");
+  }
+
+  function seekProgram(seconds) {
+    setTime(seconds, true);
   }
 
   /* ---------- persistence ---------- */
@@ -1103,9 +1240,17 @@
 
   function saveState() {
     try {
+      // Imported remixes are session-only blob URLs: persisting them would
+      // restore a dead URL on the next visit.
+      const transient = !!state.current && String(state.current.path).startsWith("blob:");
+      const current = transient ? null : state.current;
+      const context = transient ? null : state.context;
       const payload = {
         ...state,
-        time: state.rememberPosition && state.current ? audio.currentTime || 0 : 0,
+        current,
+        context,
+        queue: state.queue.filter((item) => !String(item.path || "").startsWith("blob:")),
+        time: state.rememberPosition && current ? audio.currentTime || 0 : 0,
       };
       localStorage.setItem(STORAGE_STATE, JSON.stringify(payload));
       localStorage.setItem(STORAGE_SETTINGS, JSON.stringify({
@@ -1114,13 +1259,14 @@
         engineExplicit: state.engineExplicit,
         autoNext: state.autoNext, rememberPosition: state.rememberPosition,
         crossfade: state.crossfade, fadeOutMs: state.fadeOutMs, fadeInMs: state.fadeInMs,
+        fadeOutEnabled: state.fadeOutEnabled, fadeInEnabled: state.fadeInEnabled,
         skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
         playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode, pitchMode: state.pitchMode,
         eqEnabled: state.eqEnabled, eqFilters: state.eqFilters, limiterEnabled: state.limiterEnabled !== false,
-        distortionEnabled: state.distortionEnabled, chorusEnabled: state.chorusEnabled, reverbEnabled: state.reverbEnabled,
+        ...Object.fromEntries(FX_KINDS.map((kind) => [`${kind}Enabled`, state[`${kind}Enabled`]])),
         ...Object.fromEntries(Object.keys(FX_RANGES).map((key) => [key, state[key]])),
       }));
-      if (state.context?.albumId) localStorage.setItem(STORAGE_ALBUM, state.context.albumId);
+      if (context?.albumId) localStorage.setItem(STORAGE_ALBUM, context.albumId);
     } catch {}
   }
 
@@ -1482,9 +1628,7 @@
   function connectMainOutput() {
     if (!mainGainNode || !audioContext) return;
     try { mainGainNode.disconnect(); } catch {}
-    const target = state.eqEnabled && eqInputNode
-      ? eqInputNode
-      : (fxChain ? fxChain.input : outputDestination());
+    const target = state.eqEnabled && eqInputNode ? eqInputNode : outputDestination();
     try { mainGainNode.connect(target); } catch {}
   }
 
@@ -1521,7 +1665,7 @@
         prev = node;
       }
     });
-    try { prev.connect(fxChain ? fxChain.input : outputDestination() || audioContext.destination); } catch {}
+    try { prev.connect(outputDestination() || audioContext.destination); } catch {}
   }
 
   function ensureEqChain() {
@@ -1561,19 +1705,58 @@
     notify("settings");
   }
 
-  /* ---------- distortion / chorus / reverb ---------- */
+  /* ---------- effects: render once into a static waveform ----------
+   * The old player kept WaveShaper/Delay/Convolver nodes in the live graph for
+   * the whole playback. That meant continuous real-time DSP, a permanently
+   * running LFO and reverb impulse rebuilds on every slider move. It also made
+   * the audible state and the checkboxes drift apart after a reload.
+   * Now the same chain runs once in an OfflineAudioContext and the result is
+   * a plain WAV blob used as the track source. Playback itself is just audio.
+   */
 
-  function setParamSmooth(param, value) {
-    const next = Number.isFinite(value) ? value : 0;
-    try {
-      if (audioContext && typeof param.setTargetAtTime === "function") {
-        param.setTargetAtTime(next, audioContext.currentTime, 0.02);
-      } else {
-        param.value = next;
-      }
-    } catch {
-      try { param.value = next; } catch {}
+  function anyFxEnabled() {
+    return FX_KINDS.some((kind) => !!state[`${kind}Enabled`]);
+  }
+
+  function fxSnapshot() {
+    const settings = { fx: {} };
+    FX_KINDS.forEach((kind) => {
+      settings.fx[`${kind}Enabled`] = !!state[`${kind}Enabled`];
+    });
+    Object.keys(FX_RANGES).forEach((key) => { settings.fx[key] = state[key]; });
+    return settings;
+  }
+
+  function fxSettingsKey() {
+    return JSON.stringify(fxSnapshot().fx);
+  }
+
+  function getDecodeContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (decodeContext && decodeContext.state !== "closed") return decodeContext;
+    try { decodeContext = new AudioContextClass(); } catch { decodeContext = null; }
+    return decodeContext;
+  }
+
+  function decodeTrack(url) {
+    if (!url || !window.fetch) return Promise.resolve(null);
+    if (decodedTrackCache.has(url)) return decodedTrackCache.get(url);
+    const task = (async () => {
+      const context = getDecodeContext();
+      if (!context) return null;
+      const response = await fetch(url, { cache: "force-cache", credentials: "same-origin" });
+      if (!response.ok) return null;
+      const bytes = await response.arrayBuffer();
+      return await context.decodeAudioData(bytes.slice(0));
+    })().catch(() => null);
+    // Decoded PCM is heavy: keep only a few files. A render already holding a
+    // promise is unaffected when its map entry is evicted.
+    if (decodedTrackCache.size >= MAX_DECODED_TRACKS) {
+      decodedTrackCache.delete(decodedTrackCache.keys().next().value);
     }
+    decodedTrackCache.set(url, task);
+    return task;
   }
 
   function distortionCurveAt(x, drive) {
@@ -1607,124 +1790,242 @@
     return impulse;
   }
 
-  function createFxStage(context, processorInput, processorOutput) {
+  // Dry/wet stage used by the offline chain. All parameters are constants for
+  // the whole render — that is exactly why no real-time automation is needed.
+  function makeFxStage(context, processorInput, processorOutput, mix) {
+    const level = clamp(Number(mix) || 0, 0, 1);
     const input = context.createGain();
     const output = context.createGain();
     const dry = context.createGain();
     const wet = context.createGain();
+    dry.gain.value = 1 - level;
+    wet.gain.value = level;
     input.connect(dry);
     dry.connect(output);
     input.connect(processorInput);
     processorOutput.connect(wet);
     wet.connect(output);
-    return { input, output, dry, wet };
+    return { input, output };
   }
 
-  function setFxStageMix(stage, enabled, mix) {
-    const level = enabled ? clamp(Number(mix) || 0, 0, 1) : 0;
-    setParamSmooth(stage.wet.gain, level);
-    setParamSmooth(stage.dry.gain, enabled ? 1 - level : 1);
-  }
-
-  function syncReverbImpulse(chain) {
-    const reverb = chain.reverb;
-    const decay = clamp(Number(state.reverbDecay) || FX_RANGES.reverbDecay.fallback, FX_RANGES.reverbDecay.min, FX_RANGES.reverbDecay.max);
-    if (Math.abs(reverb.builtDecay - decay) < 0.05) return;
-    reverb.builtDecay = decay;
-    try { reverb.convolver.buffer = makeReverbImpulse(chain.context, decay); } catch {}
-  }
-
-  function syncFxParams(chain, immediateReverb = false) {
-    const distortion = chain.distortion;
-    distortion.shaper.curve = makeDistortionCurve(state.distortionDrive);
-    setParamSmooth(distortion.tone.frequency, 600 + clamp(state.distortionTone, 0, 1) * 11400);
-    setFxStageMix(distortion, state.distortionEnabled, state.distortionMix);
-
-    const chorus = chain.chorus;
-    setParamSmooth(chorus.lfo.frequency, clamp(state.chorusRate, FX_RANGES.chorusRate.min, FX_RANGES.chorusRate.max));
-    setParamSmooth(chorus.lfoGain.gain, clamp(state.chorusDepth, 0, 1) * 0.004);
-    setParamSmooth(chorus.delay.delayTime, 0.01 + clamp(state.chorusDepth, 0, 1) * 0.004);
-    setFxStageMix(chorus, state.chorusEnabled, state.chorusMix);
-
-    if (immediateReverb) {
-      syncReverbImpulse(chain);
-    } else {
-      if (reverbBuildTimer) window.clearTimeout(reverbBuildTimer);
-      reverbBuildTimer = window.setTimeout(() => {
-        reverbBuildTimer = 0;
-        if (fxChain) syncReverbImpulse(fxChain);
-      }, 120);
-    }
-    setFxStageMix(chain.reverb, state.reverbEnabled, state.reverbMix);
-  }
-
-  function anyFxEnabled() {
-    return FX_KINDS.some((kind) => !!state[`${kind}Enabled`]);
-  }
-
-  function ensureFxChain() {
-    if (fxChain) return fxChain;
-    const context = sharedAudioContext();
-    if (!context) return null;
-    try {
+  function connectOfflineFxChain(context, source, destination, settings) {
+    let node = source;
+    const fx = settings.fx;
+    if (fx.distortionEnabled) {
       const shaper = context.createWaveShaper();
+      shaper.curve = makeDistortionCurve(fx.distortionDrive);
       try { shaper.oversample = "4x"; } catch {}
       const tone = context.createBiquadFilter();
       tone.type = "lowpass";
+      tone.frequency.value = 600 + clamp(fx.distortionTone, 0, 1) * 11400;
       shaper.connect(tone);
-      const distortion = createFxStage(context, shaper, tone);
-      distortion.shaper = shaper;
-      distortion.tone = tone;
-
+      const stage = makeFxStage(context, shaper, tone, fx.distortionMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.chorusEnabled) {
       const delay = context.createDelay(0.08);
-      delay.delayTime.value = 0.012;
+      const depth = clamp(fx.chorusDepth, 0, 1);
+      delay.delayTime.value = 0.01 + depth * 0.004;
       const lfo = context.createOscillator();
       lfo.type = "sine";
+      lfo.frequency.value = clamp(fx.chorusRate, FX_RANGES.chorusRate.min, FX_RANGES.chorusRate.max);
       const lfoGain = context.createGain();
+      lfoGain.gain.value = depth * 0.004;
       lfo.connect(lfoGain);
       lfoGain.connect(delay.delayTime);
-      lfo.start();
-      const chorus = createFxStage(context, delay, delay);
-      chorus.delay = delay;
-      chorus.lfo = lfo;
-      chorus.lfoGain = lfoGain;
-
+      lfo.start(0);
+      const stage = makeFxStage(context, delay, delay, fx.chorusMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.flangerEnabled) {
+      const delay = context.createDelay(0.02);
+      const depth = clamp(fx.flangerDepth, FX_RANGES.flangerDepth.min, FX_RANGES.flangerDepth.max);
+      delay.delayTime.value = 0.004 + depth * 0.004;
+      const lfo = context.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = clamp(fx.flangerRate, FX_RANGES.flangerRate.min, FX_RANGES.flangerRate.max);
+      const lfoGain = context.createGain();
+      lfoGain.gain.value = depth * 0.0035;
+      lfo.connect(lfoGain);
+      lfoGain.connect(delay.delayTime);
+      lfo.start(0);
+      const stage = makeFxStage(context, delay, delay, fx.flangerMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.delayEnabled) {
+      const delay = context.createDelay(1);
+      const time = clamp(fx.delayTime, FX_RANGES.delayTime.min, FX_RANGES.delayTime.max);
+      const feedback = clamp(fx.delayFeedback, FX_RANGES.delayFeedback.min, FX_RANGES.delayFeedback.max);
+      delay.delayTime.value = time;
+      const feedbackGain = context.createGain();
+      feedbackGain.gain.value = feedback;
+      const wetMix = context.createGain();
+      delay.connect(wetMix);
+      delay.connect(feedbackGain);
+      feedbackGain.connect(delay);
+      const stage = makeFxStage(context, delay, wetMix, fx.delayMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.reverbEnabled) {
       const convolver = context.createConvolver();
       try { convolver.normalize = true; } catch {}
-      const reverb = createFxStage(context, convolver, convolver);
-      reverb.convolver = convolver;
-      reverb.builtDecay = -1;
+      convolver.buffer = makeReverbImpulse(context, fx.reverbDecay);
+      const stage = makeFxStage(context, convolver, convolver, fx.reverbMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    node.connect(destination);
+  }
 
-      const input = context.createGain();
-      input.gain.value = 1;
-      input.connect(distortion.input);
-      distortion.output.connect(chorus.input);
-      chorus.output.connect(reverb.input);
-      reverb.output.connect(outputDestination() || context.destination);
+  // 16-bit PCM WAV: every browser accepts it, and the blob is kept only for
+  // this session (no server-side files are ever rewritten).
+  function encodeWav(buffer) {
+    const channels = Math.min(2, buffer.numberOfChannels);
+    const frames = buffer.length;
+    const bytesPerSample = 2;
+    const dataSize = frames * channels * bytesPerSample;
+    const view = new DataView(new ArrayBuffer(44 + dataSize));
+    const ascii = (offset, text) => {
+      for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+    };
+    ascii(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    ascii(8, "WAVE");
+    ascii(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, buffer.sampleRate, true);
+    view.setUint32(28, buffer.sampleRate * channels * bytesPerSample, true);
+    view.setUint16(32, channels * bytesPerSample, true);
+    view.setUint16(34, 16, true);
+    ascii(36, "data");
+    view.setUint32(40, dataSize, true);
 
-      fxChain = { context, input, distortion, chorus, reverb };
-      syncFxParams(fxChain, true);
-      connectMainOutput();
-      if (eqInputNode) syncEqNodes();
-      return fxChain;
-    } catch {
-      fxChain = null;
-      return null;
+    const data = [];
+    for (let c = 0; c < channels; c++) data.push(buffer.getChannelData(c));
+    let offset = 44;
+    for (let i = 0; i < frames; i++) {
+      for (let c = 0; c < channels; c++) {
+        const sample = clamp(data[c][i] || 0, -1, 1);
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += 2;
+      }
+    }
+    return new Blob([view.buffer], { type: "audio/wav" });
+  }
+
+  async function renderTrackToWav(url, settings) {
+    const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OfflineContext) return null;
+    const source = await decodeTrack(url);
+    if (!source) return null;
+    const reverbTail = settings.fx.reverbEnabled
+      ? clamp(Number(settings.fx.reverbDecay) || FX_RANGES.reverbDecay.fallback,
+        FX_RANGES.reverbDecay.min, FX_RANGES.reverbDecay.max)
+      : 0;
+    const feedback = settings.fx.delayEnabled
+      ? clamp(Number(settings.fx.delayFeedback) || 0, FX_RANGES.delayFeedback.min, FX_RANGES.delayFeedback.max)
+      : 0;
+    const delayTail = feedback > 0
+      ? Math.min(4, clamp(Number(settings.fx.delayTime) || FX_RANGES.delayTime.fallback,
+        FX_RANGES.delayTime.min, FX_RANGES.delayTime.max) * feedback / (1 - feedback))
+      : 0;
+    const tail = reverbTail + delayTail;
+    const length = source.length + Math.ceil(tail * source.sampleRate) + 1;
+    const context = new OfflineContext(source.numberOfChannels, length, source.sampleRate);
+    const input = context.createBufferSource();
+    input.buffer = source;
+    connectOfflineFxChain(context, input, context.destination, settings);
+    input.start(0);
+    const rendered = await context.startRendering();
+    return encodeWav(rendered);
+  }
+
+  // Keep the blob cache bounded: a rendered long track is many megabytes.
+  function rememberRenderedTrack(source, key, url) {
+    const id = renderKey(source, key);
+    const previous = renderedTrackCache.get(id);
+    if (previous) window.setTimeout(() => URL.revokeObjectURL(previous.url), 8000);
+    renderedTrackCache.delete(id);
+    renderedTrackCache.set(id, { source, key, url });
+    while (renderedTrackCache.size > MAX_RENDERED_TRACKS) {
+      const [oldId, old] = renderedTrackCache.entries().next().value;
+      renderedTrackCache.delete(oldId);
+      // A crossfade copy may still be reading the old blob, so delay revocation.
+      window.setTimeout(() => URL.revokeObjectURL(old.url), 8000);
     }
   }
 
+  function ensureRenderedTrack(track) {
+    const source = sourceUrl(track);
+    if (!source || !anyFxEnabled()) return Promise.resolve(false);
+    const settings = fxSnapshot();
+    const key = JSON.stringify(settings.fx);
+    const id = renderKey(source, key);
+    if (renderedTrackCache.has(id)) return Promise.resolve(true);
+    const pending = renderRequests.get(id);
+    if (pending) return pending;
+
+    const promise = renderTrackToWav(source, settings).then((blob) => {
+      if (!blob) return false;
+      rememberRenderedTrack(source, key, URL.createObjectURL(blob));
+      return true;
+    }).catch(() => false).finally(() => {
+      if (renderRequests.get(id) === promise) renderRequests.delete(id);
+    });
+    renderRequests.set(id, promise);
+    return promise;
+  }
+
+  function setFxRendering(active, failed = false) {
+    const enabled = anyFxEnabled();
+    document.querySelectorAll("[data-fx-status]").forEach((el) => {
+      // Keep the warning visible after a failed render: the checkbox is on,
+      // but the audible source is deliberately still the untouched original.
+      el.hidden = !active && (!enabled || !failed);
+      el.textContent = active ? pt("effectRendering") : failed ? pt("effectUnavailable") : pt("effectReady");
+      el.classList.toggle("is-active", !!active);
+      el.classList.toggle("is-unavailable", !active && !!failed);
+    });
+  }
+
+  // One render per settled settings change. The original file keeps playing
+  // until the new WAV is ready, then the track is reloaded at the same position.
+  function requestFxRender() {
+    if (fxRenderTimer) window.clearTimeout(fxRenderTimer);
+    fxRenderToken++;
+    const token = fxRenderToken;
+    fxRenderTimer = window.setTimeout(async () => {
+      fxRenderTimer = 0;
+      const track = state.current;
+      if (!track) { setFxRendering(false); return; }
+      const wasPlaying = !audio.paused;
+      const position = audio.currentTime || 0;
+      setFxRendering(true);
+      const baked = anyFxEnabled() ? await ensureRenderedTrack(track) : true;
+      if (token !== fxRenderToken || state.current !== track) return;
+      setFxRendering(false, !baked);
+      loadCurrent({ autoplay: wasPlaying, startTime: position, fadeIn: false });
+    }, FX_RENDER_DEBOUNCE_MS);
+  }
+
   function applyFxState() {
-    if (!fxChain && anyFxEnabled()) ensureFxChain();
-    if (fxChain) syncFxParams(fxChain);
-    if (state.eqEnabled && eqInputNode) syncEqNodes();
-    connectMainOutput();
+    // No live nodes are touched here. The UI and the baked file are both
+    // derived from the same persisted state, so they cannot disagree.
     syncFxVisual();
+    if (!anyFxEnabled()) setFxRendering(false);
+    // loadCurrent() already waits for the first render during restore.
+    if (!restoring) requestFxRender();
   }
 
   function setFxEnabled(kind, enabled) {
     if (!FX_KINDS.includes(kind)) return;
     state[`${kind}Enabled`] = !!enabled;
-    if (state[`${kind}Enabled`]) ensureFxChain();
     applyFxState();
     syncSettingsUI();
     saveState();
@@ -2412,19 +2713,16 @@
     }
     const wasPlaying = !audio.paused;
     const time = audio.currentTime || state.time || 0;
-    const hadTrack = !!state.current;
 
     destroyWaveforms();
     state.engine = name;
     state.engineExplicit = true;
 
-    const url = hadTrack ? assetUrl(resolveTrackPath(state.current)) : "";
-    if (hadTrack) loadEngine(url, time, wasPlaying);
+    if (state.current) loadCurrent({ autoplay: wasPlaying, startTime: time, fadeIn: false });
     else { hideWaveMode(); cancelPreload(); }
     syncSettingsUI();
     saveState();
     notify("engine");
-    schedulePreload();
   }
 
   /* ---------- next-track preload ---------- */
@@ -2479,15 +2777,25 @@
     preloadTimer = 0;
     const upcoming = upcomingTrack();
     if (!upcoming) { cancelPreload(); return; }
-    const url = assetUrl(resolveTrackPath(upcoming));
-    if (!url || url === preloadUrl || url === assetUrl(resolveTrackPath(state.current))) return;
-    preloadUrl = url;
-    try {
-      preloadAudio.src = url;
-      preloadAudio.load();
-    } catch {
-      preloadUrl = "";
+    const apply = () => {
+      if (upcomingTrack() !== upcoming) return;
+      const url = playableUrl(upcoming);
+      if (!url || url === preloadUrl || url === playableUrl(state.current)) return;
+      preloadUrl = url;
+      try {
+        preloadAudio.src = url;
+        preloadAudio.load();
+      } catch {
+        preloadUrl = "";
+      }
+    };
+    // Bake the upcoming track ahead of time: the actual switch then reuses the
+    // blob instead of making the listener wait for an OfflineAudioContext pass.
+    if (anyFxEnabled() && !isTrackRendered(upcoming)) {
+      ensureRenderedTrack(upcoming).then(apply, apply);
+      return;
     }
+    apply();
   }
 
   /* ---------- playback core ---------- */
@@ -2647,13 +2955,14 @@
 
   function beginCrossfade(nextTrack, commit) {
     const proceed = () => { if (typeof commit === "function") commit(); };
-    if (!state.crossfade || !state.current || audio.paused || audio.ended) { proceed(); return; }
+    if (!state.crossfade || !state.fadeOutEnabled || !state.current || audio.paused || audio.ended) { proceed(); return; }
 
+    const start = () => {
     const absoluteUrl = (value) => {
       try { return new URL(value, document.baseURI).href; } catch { return value; }
     };
-    const fromUrl = absoluteUrl(audio.currentSrc || audio.src || assetUrl(resolveTrackPath(state.current)));
-    const toUrl = nextTrack ? absoluteUrl(assetUrl(resolveTrackPath(nextTrack))) : "";
+    const fromUrl = absoluteUrl(audio.currentSrc || audio.src || playableUrl(state.current));
+    const toUrl = nextTrack ? absoluteUrl(playableUrl(nextTrack)) : "";
     // Restarting the very same file (deep link / queue edge case) would only
     // create a phasing copy of itself — nothing to smooth there.
     if (!fromUrl || fromUrl === toUrl) { proceed(); return; }
@@ -2730,6 +3039,15 @@
         proceed();
       }, 240);
     }
+    };
+
+    // Do not start the outgoing ghost before the incoming baked file exists:
+    // otherwise the fade ends in silence while the next track is still rendering.
+    if (nextTrack && anyFxEnabled() && !isTrackRendered(nextTrack)) {
+      ensureRenderedTrack(nextTrack).then(start, start);
+      return;
+    }
+    start();
   }
 
   /* Fade-in on the incoming track. Uses Web Audio GainNode for sample-accurate,
@@ -2825,54 +3143,74 @@
   }
 
   function loadCurrent(options = {}) {
-    if (!state.current) return;
-    let start = Number(options.startTime) || 0;
-    // An explicit saved position always wins. A fresh start asks the detector
-    // for the real end of the initial silence instead of jumping a fixed 12s.
-    pendingStart = start;
-    pendingAutoplay = options.autoplay !== false;
-    // Use the saved volume, not audio.volume: a previous anti-click ramp may
-    // still be in progress and would otherwise become the new ramp's target.
-    const incomingTarget = !state.muted && !audio.muted
-      ? Math.max(0, Math.min(1, state.volume))
-      : 0;
-    const fadeInEnabled = state.crossfade && options.fadeIn !== false;
-    const fadeInMs = fadeInEnabled ? (Number(options.fadeInMs ?? state.fadeInMs) || 0) : 0;
+    if (!state.current) return Promise.resolve(false);
+    const track = state.current;
+    const token = ++loadToken;
+    const start = Number(options.startTime) || 0;
+    const needsRender = anyFxEnabled() && !isTrackRendered(track);
 
-    // Mute main gain before src/load swap to prevent click/pop on the shared
-    // element. runIncomingFade will ramp it back up.
-    const preGain = ensureMainGain();
-    if (preGain) {
-      try {
-        const t = preGain.context.currentTime;
-        preGain.gain.cancelScheduledValues(t);
-        preGain.gain.setValueAtTime(0.0001, t);
-      } catch {}
-    }
+    const apply = () => {
+      if (token !== loadToken || state.current !== track) return false;
+      // An explicit saved position always wins. A fresh start asks the detector
+      // for the real end of the initial silence instead of jumping a fixed 12s.
+      pendingStart = start;
+      pendingAutoplay = options.autoplay !== false;
+      // Use the saved volume, not audio.volume: a previous anti-click ramp may
+      // still be in progress and would otherwise become the new ramp's target.
+      const incomingTarget = !state.muted && !audio.muted
+        ? Math.max(0, Math.min(1, state.volume))
+        : 0;
+      const fadeInEnabled = state.crossfade && state.fadeInEnabled && options.fadeIn !== false;
+      const fadeInMs = fadeInEnabled ? (Number(options.fadeInMs ?? state.fadeInMs) || 0) : 0;
 
-    const url = assetUrl(resolveTrackPath(state.current));
-    destroyWaveforms();
-    if (!start && state.skipIntro) prepareIntro(url);
-    else {
-      introToken++;
-      introUserSeeked = false;
-    }
-    loadEngine(url, pendingStart, pendingAutoplay);
-    applyPlaybackRate();
-    // Warm the next file while the current one starts, so switching tracks
-    // doesn't feel like waiting for a fresh network request.
-    schedulePreload();
-    if (incomingTarget > 0) {
-      runIncomingFade(incomingTarget, fadeInMs);
-    } else {
-      // Ensure gain is not stuck low from a previous fade.
+      // Mute main gain before src/load swap to prevent click/pop on the shared
+      // element. runIncomingFade will ramp it back up.
+      const preGain = ensureMainGain();
       if (preGain) {
-        try { const t = preGain.context.currentTime; preGain.gain.cancelScheduledValues(t); preGain.gain.setValueAtTime(1, t); } catch {}
-      } else {
-        const g = ensureMainGain();
-        if (g) { try { const t = g.context.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(1, t); } catch {} }
+        try {
+          const t = preGain.context.currentTime;
+          preGain.gain.cancelScheduledValues(t);
+          preGain.gain.setValueAtTime(0.0001, t);
+        } catch {}
       }
-    }
+
+      const url = playableUrl(track);
+      destroyWaveforms();
+      if (!start && state.skipIntro) prepareIntro(url);
+      else {
+        introToken++;
+        introUserSeeked = false;
+      }
+      loadEngine(url, pendingStart, pendingAutoplay);
+      applyPlaybackRate();
+      // Warm the next file while the current one starts, so switching tracks
+      // doesn't feel like waiting for a fresh network request.
+      schedulePreload();
+      if (incomingTarget > 0) {
+        runIncomingFade(incomingTarget, fadeInMs);
+      } else {
+        // Ensure gain is not stuck low from a previous fade.
+        if (preGain) {
+          try { const t = preGain.context.currentTime; preGain.gain.cancelScheduledValues(t); preGain.gain.setValueAtTime(1, t); } catch {}
+        } else {
+          const g = ensureMainGain();
+          if (g) { try { const t = g.context.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(1, t); } catch {} }
+        }
+      }
+      return true;
+    };
+
+    if (!needsRender) return Promise.resolve(apply());
+    // The first switch to an unbaked track waits for its one-time render. All
+    // later switches reuse the cached blob with no delay.
+    setLoading(true, 10);
+    return ensureRenderedTrack(track).then((baked) => {
+      if (!baked) setFxRendering(false, true);
+      return apply();
+    }, () => {
+      setFxRendering(false, true);
+      return apply();
+    });
   }
 
   function renderMetadata() {
@@ -2922,6 +3260,7 @@
   }
 
   function playTrack(album, index, options = {}) {
+    if (programLocked && !options.fromProgram) return;
     if (!album || !album.tracks || !album.tracks[index]) return;
     const track = album.tracks[index];
     const commit = () => {
@@ -2955,7 +3294,7 @@
   }
 
   function setContext(album) {
-    if (!album) return;
+    if (programLocked || !album) return;
     const sameAlbum = state.context && state.context.albumId === album.id;
     if (!sameAlbum) {
       state.context = {
@@ -2972,6 +3311,7 @@
   }
 
   function selectByIndex(index, autoplay = true) {
+    if (programLocked) return;
     const tracks = state.context?.tracks;
     if (!tracks || !tracks.length) return;
     const wrapped = ((index % tracks.length) + tracks.length) % tracks.length;
@@ -2997,6 +3337,7 @@
   }
 
   function next(manual = false) {
+    if (programLocked) return; // the radio advances strictly by the clock
     // An explicit queue always wins over the album's own order: these are the
     // tracks the visitor deliberately marked as "up next".
     if (state.queue.length) { playQueued(0); return; }
@@ -3014,17 +3355,19 @@
   }
 
   function previous() {
-    if (!state.current) return;
+    if (programLocked || !state.current) return;
     if (audio.currentTime > 3) { setTime(0); return; }
     selectByIndex(state.current.index - 1);
   }
 
   function handleEnded() {
+    if (programLocked) return; // radio tick selects the next scheduled file
     if (state.repeat === "one") { setTime(0); attemptPlay(); return; }
     next(false);
   }
 
-  function setTime(seconds) {
+  function setTime(seconds, fromProgram = false) {
+    if (programLocked && !fromProgram) return;
     if (!Number.isFinite(seconds)) return;
     const duration = Number.isFinite(audio.duration) ? audio.duration : seconds;
     audio.currentTime = Math.max(0, Math.min(seconds, duration));
@@ -3193,21 +3536,6 @@
     </select>
     <p class="player-settings-hint" data-player-i18n="playbackRateHint">${pt("playbackRateHint")}</p>
   </div>
-  <div class="settings-field eq-setting" data-eq-setting>
-    <div class="eq-setting-head">
-      <label class="eq-toggle"><input type="checkbox" data-player-setting="eqEnabled"><span data-player-i18n="eqEnable">${pt("eqEnable")}</span></label>
-      <div class="eq-head-actions">
-        <button type="button" class="player-queue-text-btn" id="playerEqAdd" data-player-i18n="eqAdd">${pt("eqAdd")}</button>
-        <button type="button" class="player-queue-text-btn eq-reset-btn" id="playerEqReset" data-player-i18n="eqReset">${pt("eqReset")}</button>
-      </div>
-    </div>
-    <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
-    <div class="eq-visual-wrap">
-      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
-      <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
-    </div>
-    <div class="eq-filters" id="playerEqFilters"></div>
-  </div>
   <div class="settings-field intro-setting" data-intro-setting>
     <label class="intro-control" for="playerSilenceDb">
       <span class="intro-control-row">
@@ -3239,14 +3567,22 @@
       </div>
     </div>
     <div class="fade-controls">
-      <label class="fade-control" for="playerFadeInMs">
-        <span class="fade-control-row"><span data-player-i18n="fadeIn">${pt("fadeIn")}</span><span class="fade-control-value" id="playerFadeInValue"></span></span>
+      <div class="fade-control" data-fade-control="in">
+        <span class="fade-control-row">
+          <label class="fade-toggle"><input type="checkbox" data-player-setting="fadeInEnabled"><span data-player-i18n="fadeInEnable">${pt("fadeInEnable")}</span></label>
+          <span class="fade-control-value" id="playerFadeInValue"></span>
+        </span>
+        <label class="visually-hidden" for="playerFadeInMs" data-player-i18n="fadeIn">${pt("fadeIn")}</label>
         <input class="fade-range" id="playerFadeInMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeInMs">
-      </label>
-      <label class="fade-control" for="playerFadeOutMs">
-        <span class="fade-control-row"><span data-player-i18n="fadeOut">${pt("fadeOut")}</span><span class="fade-control-value" id="playerFadeOutValue"></span></span>
+      </div>
+      <div class="fade-control" data-fade-control="out">
+        <span class="fade-control-row">
+          <label class="fade-toggle"><input type="checkbox" data-player-setting="fadeOutEnabled"><span data-player-i18n="fadeOutEnable">${pt("fadeOutEnable")}</span></label>
+          <span class="fade-control-value" id="playerFadeOutValue"></span>
+        </span>
+        <label class="visually-hidden" for="playerFadeOutMs" data-player-i18n="fadeOut">${pt("fadeOut")}</label>
         <input class="fade-range" id="playerFadeOutMs" type="range" min="0" max="3000" step="50" data-player-setting="fadeOutMs">
-      </label>
+      </div>
     </div>
     <p class="player-settings-hint" data-player-i18n="fadeHint">${pt("fadeHint")}</p>
   </div>
@@ -3292,6 +3628,50 @@
       <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="reverbMix"></label>
     </div>
     <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasReverbHint">${pt("fxCanvasReverbHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="flanger">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="flangerEnabled"><span data-player-i18n="flangerEnable">${pt("flangerEnable")}</span></label>
+      <span class="fx-value" id="playerFlangerSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="flangerHint">${pt("flangerHint")}</p>
+    <canvas class="fx-visual" id="playerFlangerCanvas" width="640" height="120" aria-label="Flanger modulation"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="rate">${pt("rate")}</span><input class="fx-range" type="range" min="${FX_RANGES.flangerRate.min}" max="${FX_RANGES.flangerRate.max}" step="${FX_RANGES.flangerRate.step}" data-player-setting="flangerRate"></label>
+      <label class="fx-control"><span data-player-i18n="depth">${pt("depth")}</span><input class="fx-range" type="range" min="${FX_RANGES.flangerDepth.min}" max="${FX_RANGES.flangerDepth.max}" step="${FX_RANGES.flangerDepth.step}" data-player-setting="flangerDepth"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.flangerMix.min}" max="${FX_RANGES.flangerMix.max}" step="${FX_RANGES.flangerMix.step}" data-player-setting="flangerMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasFlangerHint">${pt("fxCanvasFlangerHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="delay">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="delayEnabled"><span data-player-i18n="delayEnable">${pt("delayEnable")}</span></label>
+      <span class="fx-value" id="playerDelaySummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="delayHint">${pt("delayHint")}</p>
+    <canvas class="fx-visual" id="playerDelayCanvas" width="640" height="120" aria-label="Delay repeats"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="delayTime">${pt("delayTime")}</span><input class="fx-range" type="range" min="${FX_RANGES.delayTime.min}" max="${FX_RANGES.delayTime.max}" step="${FX_RANGES.delayTime.step}" data-player-setting="delayTime"></label>
+      <label class="fx-control"><span data-player-i18n="feedback">${pt("feedback")}</span><input class="fx-range" type="range" min="${FX_RANGES.delayFeedback.min}" max="${FX_RANGES.delayFeedback.max}" step="${FX_RANGES.delayFeedback.step}" data-player-setting="delayFeedback"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.delayMix.min}" max="${FX_RANGES.delayMix.max}" step="${FX_RANGES.delayMix.step}" data-player-setting="delayMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasDelayHint">${pt("fxCanvasDelayHint")}</p>
+  </div>
+  <h3 class="settings-section-title eq-intro" data-player-i18n="equalizer">${pt("equalizer")}</h3>
+  <div class="settings-field eq-setting" data-eq-setting>
+    <div class="eq-setting-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="eqEnabled"><span data-player-i18n="eqEnable">${pt("eqEnable")}</span></label>
+      <div class="eq-head-actions">
+        <button type="button" class="player-queue-text-btn" id="playerEqAdd" data-player-i18n="eqAdd">${pt("eqAdd")}</button>
+        <button type="button" class="player-queue-text-btn eq-reset-btn" id="playerEqReset" data-player-i18n="eqReset">${pt("eqReset")}</button>
+      </div>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="eqHint">${pt("eqHint")}</p>
+    <div class="eq-visual-wrap">
+      <canvas class="eq-visual" id="playerEqCanvas" width="640" height="180" aria-label="Parametric EQ curve"></canvas>
+      <p class="player-settings-hint eq-canvas-hint" data-player-i18n="eqCanvasHint">${pt("eqCanvasHint")}</p>
+    </div>
+    <div class="eq-filters" id="playerEqFilters"></div>
   </div>
   <div class="settings-field limiter-setting" data-limiter-setting>
     <label class="eq-toggle limiter-toggle"><input type="checkbox" data-player-setting="limiterEnabled"><span data-player-i18n="limiter">${pt("limiter")}</span></label>
@@ -3355,34 +3735,65 @@
       const botY = padTop + innerH;
       const active = state.crossfade;
 
-      ctx.beginPath();
-      ctx.moveTo(padX, botY);
-      if (inMs <= 0) ctx.lineTo(padX, topY);
-      else ctx.bezierCurveTo(padX + (inX - padX) * 0.25, botY, padX + (inX - padX) * 0.55, topY, inX, topY);
-      ctx.lineTo(outX, topY);
-      if (outMs <= 0) ctx.lineTo(padX + innerW, botY);
-      else ctx.bezierCurveTo(outX + (padX + innerW - outX) * 0.45, topY, outX + (padX + innerW - outX) * 0.75, botY, padX + innerW, botY);
-      ctx.closePath();
-      ctx.fillStyle = active ? "rgba(255,255,255,0.08)" : "rgba(163,163,163,0.05)";
-      ctx.fill();
-      ctx.strokeStyle = active ? text : muted;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      // The whole ramp — not just the handle — shows whether a fade is live.
+      // Disabled fades stay visible as a faint dashed guide.
+      const drawRamp = (enabled, path) => {
+        ctx.save();
+        ctx.globalAlpha = active ? (enabled ? 1 : 0.3) : 0.18;
+        path();
+        ctx.fillStyle = "rgba(127,127,127,0.14)";
+        ctx.fill();
+        ctx.strokeStyle = enabled ? text : muted;
+        ctx.lineWidth = enabled ? 2 : 1.2;
+        ctx.setLineDash(enabled ? [] : [5, 5]);
+        ctx.stroke();
+        ctx.restore();
+      };
 
-      const drawHandle = (x, type) => {
+      drawRamp(state.fadeInEnabled, () => {
+        ctx.beginPath();
+        ctx.moveTo(padX, botY);
+        if (inMs <= 0) ctx.lineTo(padX, topY);
+        else ctx.bezierCurveTo(padX + (inX - padX) * 0.25, botY, padX + (inX - padX) * 0.55, topY, inX, topY);
+        ctx.lineTo(inX, botY);
+        ctx.closePath();
+      });
+      drawRamp(state.fadeOutEnabled, () => {
+        ctx.beginPath();
+        ctx.moveTo(outX, topY);
+        if (outMs <= 0) ctx.lineTo(padX + innerW, topY);
+        else ctx.bezierCurveTo(outX + (padX + innerW - outX) * 0.45, topY, outX + (padX + innerW - outX) * 0.75, botY, padX + innerW, botY);
+        ctx.lineTo(padX + innerW, topY);
+        ctx.closePath();
+      });
+
+      const drawHandle = (x, type, enabled) => {
         const isActive = fadeDrag.type === type;
         const r = isActive ? 8 : 6;
-        ctx.strokeStyle = active ? text : muted;
+        ctx.save();
+        ctx.globalAlpha = active ? (enabled ? 1 : 0.45) : 0.25;
+        const color = enabled ? text : muted;
+        ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, botY); ctx.stroke();
         ctx.beginPath(); ctx.arc(x, topY, r, 0, Math.PI * 2);
-        ctx.fillStyle = active ? text : muted; ctx.fill();
+        ctx.fillStyle = color; ctx.fill();
         ctx.strokeStyle = bg; ctx.lineWidth = 2; ctx.stroke();
         ctx.fillStyle = bg;
         ctx.fillRect(x - 3, topY - 2, 6, 4);
+        ctx.restore();
       };
-      drawHandle(inX, "in");
-      drawHandle(outX, "out");
+      drawHandle(inX, "in", state.fadeInEnabled);
+      drawHandle(outX, "out", state.fadeOutEnabled);
+      if (!state.fadeInEnabled || !state.fadeOutEnabled) {
+        ctx.save();
+        ctx.fillStyle = muted;
+        ctx.font = "10px sans-serif";
+        ctx.textAlign = "center";
+        if (!state.fadeInEnabled) ctx.fillText(pt("off"), padX + (inX - padX) / 2, botY - 8);
+        if (!state.fadeOutEnabled) ctx.fillText(pt("off"), (outX + padX + innerW) / 2, botY - 8);
+        ctx.restore();
+      }
     });
   }
 
@@ -3445,9 +3856,15 @@
 
     document.querySelectorAll("[data-fade-setting]").forEach((el) => {
       el.classList.toggle("is-disabled", !state.crossfade);
-      el.querySelectorAll("input[data-player-setting='fadeOutMs'], input[data-player-setting='fadeInMs']").forEach((input) => {
+      el.querySelectorAll("input[data-player-setting='fadeInMs'], input[data-player-setting='fadeOutMs']").forEach((input) => {
         input.disabled = !state.crossfade;
       });
+    });
+    document.querySelectorAll("[data-fade-control]").forEach((el) => {
+      const name = el.dataset.fadeControl === "in" ? "fadeInEnabled" : "fadeOutEnabled";
+      el.classList.toggle("is-off", !state.crossfade || !state[name]);
+      const range = el.querySelector("input[type='range']");
+      if (range) range.disabled = !state.crossfade || !state[name];
     });
   }
 
@@ -3779,6 +4196,56 @@
       });
     });
 
+    document.querySelectorAll("#playerFlangerCanvas").forEach((canvas) => {
+      drawFxCanvas(canvas, (ctx, m) => {
+        const pad = 12;
+        const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+        const center = pad + innerH / 2;
+        const rate = clamp(state.flangerRate, FX_RANGES.flangerRate.min, FX_RANGES.flangerRate.max);
+        const depth = clamp(state.flangerDepth, FX_RANGES.flangerDepth.min, FX_RANGES.flangerDepth.max);
+        const cycles = 1 + (rate / FX_RANGES.flangerRate.max) * 8;
+        const amplitude = innerH * (0.1 + depth * 0.38);
+        ctx.strokeStyle = m.border;
+        ctx.beginPath(); ctx.moveTo(pad, center); ctx.lineTo(m.w - pad, center); ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i <= innerW; i++) {
+          const x = pad + i;
+          const y = center - Math.sin((i / innerW) * Math.PI * 2 * cycles) * amplitude;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = state.flangerEnabled ? m.text : m.muted;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const handleX = pad + ((rate - FX_RANGES.flangerRate.min) / (FX_RANGES.flangerRate.max - FX_RANGES.flangerRate.min)) * innerW;
+        const handleY = center - amplitude;
+        ctx.beginPath(); ctx.arc(handleX, handleY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = state.flangerEnabled ? m.text : m.muted;
+        ctx.fill();
+      });
+    });
+
+    document.querySelectorAll("#playerDelayCanvas").forEach((canvas) => {
+      drawFxCanvas(canvas, (ctx, m) => {
+        const pad = 12;
+        const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+        const time = clamp(state.delayTime, FX_RANGES.delayTime.min, FX_RANGES.delayTime.max);
+        const feedback = clamp(state.delayFeedback, FX_RANGES.delayFeedback.min, FX_RANGES.delayFeedback.max);
+        const spacing = (time / FX_RANGES.delayTime.max) * (innerW / 6);
+        ctx.strokeStyle = m.border;
+        ctx.beginPath(); ctx.moveTo(pad, pad + innerH); ctx.lineTo(m.w - pad, pad + innerH); ctx.stroke();
+        for (let i = 0; i < 7; i++) {
+          const level = Math.pow(feedback / FX_RANGES.delayFeedback.max, i);
+          const x = pad + i * spacing;
+          const height = innerH * (0.18 + level * 0.72);
+          ctx.strokeStyle = state.delayEnabled ? m.text : m.muted;
+          ctx.globalAlpha = 0.25 + level * 0.75;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x, pad + innerH); ctx.lineTo(x, pad + innerH - height); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      });
+    });
+
     document.querySelectorAll("#playerReverbCanvas").forEach((canvas) => {
       drawFxCanvas(canvas, (ctx, m) => {
         const pad = 12;
@@ -3831,6 +4298,12 @@
     } else if (fxDrag.kind === "chorus") {
       state.chorusRate = round(FX_RANGES.chorusRate.min + p.x * (FX_RANGES.chorusRate.max - FX_RANGES.chorusRate.min));
       state.chorusDepth = round(1 - p.y);
+    } else if (fxDrag.kind === "flanger") {
+      state.flangerRate = round(FX_RANGES.flangerRate.min + p.x * (FX_RANGES.flangerRate.max - FX_RANGES.flangerRate.min));
+      state.flangerDepth = round(1 - p.y);
+    } else if (fxDrag.kind === "delay") {
+      state.delayTime = round(FX_RANGES.delayTime.min + p.x * (FX_RANGES.delayTime.max - FX_RANGES.delayTime.min));
+      state.delayFeedback = round(p.y * FX_RANGES.delayFeedback.max);
     } else if (fxDrag.kind === "reverb") {
       state.reverbDecay = round(FX_RANGES.reverbDecay.min + p.x * (FX_RANGES.reverbDecay.max - FX_RANGES.reverbDecay.min));
       state.reverbMix = round(1 - p.y);
@@ -3877,6 +4350,12 @@
     });
     document.querySelectorAll("#playerChorusSummary").forEach((el) => {
       el.textContent = `${state.chorusRate.toFixed(1)} Hz / ${fxPercent(state.chorusDepth)}`;
+    });
+    document.querySelectorAll("#playerFlangerSummary").forEach((el) => {
+      el.textContent = `${Number(state.flangerRate).toFixed(2)} Hz / ${fxPercent(state.flangerDepth)}`;
+    });
+    document.querySelectorAll("#playerDelaySummary").forEach((el) => {
+      el.textContent = `${Math.round(Number(state.delayTime) * 1000)} ${pt("ms")} / ${fxPercent(state.delayFeedback)}`;
     });
     document.querySelectorAll("#playerReverbSummary").forEach((el) => {
       el.textContent = `${Number(state.reverbDecay).toFixed(1)} s / ${fxPercent(state.reverbMix)}`;
@@ -3957,7 +4436,8 @@
       else if (key === "silenceDb") input.value = String(state.silenceDb);
       else if (key === "introMaxSec") input.value = String(state.introMaxSec);
       else if (FX_RANGES[key]) input.value = String(state[key]);
-      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro" || key === "eqEnabled" || key === "limiterEnabled"
+      else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "fadeInEnabled" || key === "fadeOutEnabled"
+        || key === "skipIntro" || key === "eqEnabled" || key === "limiterEnabled"
         || FX_KINDS.some((kind) => key === `${kind}Enabled`)) {
         input.checked = !!state[key];
       }
@@ -3998,6 +4478,68 @@
       }
       settingsTimer = 0;
     }, 260);
+  }
+
+  /* ---------- remix save / load ---------- */
+
+  function showRemixMessage(message) {
+    document.querySelectorAll("#playerRemixMessage").forEach((el) => { el.textContent = message || ""; });
+    if (remixMessageTimer) window.clearTimeout(remixMessageTimer);
+    remixMessageTimer = window.setTimeout(() => {
+      document.querySelectorAll("#playerRemixMessage").forEach((el) => { el.textContent = ""; });
+      remixMessageTimer = 0;
+    }, 5000);
+  }
+
+  function rememberRemixUrl(url) {
+    if (loadedRemixUrl) window.setTimeout(() => URL.revokeObjectURL(loadedRemixUrl), 8000);
+    loadedRemixUrl = url || "";
+  }
+
+  function remixDownloadName() {
+    const source = sourceTrackPath(state.current) || "remix";
+    const baked = String(resolveTrackPath(state.current)).startsWith("blob:");
+    const base = String(state.current?.title || source).replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]+/g, "_");
+    const ext = baked ? "wav" : (String(source).match(/\.([^.]+)$/)?.[1] || "wav").toLowerCase();
+    return `${base || "track"}-remix.${ext}`;
+  }
+
+  async function saveRemix() {
+    if (!state.current) { showRemixMessage(pt("remixNoTrack")); return; }
+    try {
+      const response = await fetch(playableUrl(state.current));
+      if (!response.ok) throw new Error(String(response.status));
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = remixDownloadName();
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+      showRemixMessage(pt("remixSaved"));
+    } catch {
+      showRemixMessage(pt("remixError"));
+    }
+  }
+
+  function loadRemixFile(file) {
+    if (programLocked || !file) return;
+    try {
+      const url = URL.createObjectURL(file);
+      rememberRemixUrl(url);
+      const title = `${state.current?.title || file.name} — ${pt("loadRemix")}`;
+      playTrack({
+        id: `remix-${Date.now()}`,
+        title: pt("loadRemix"),
+        cover: state.current?.cover || null,
+        tracks: [{ title, path: url, formats: {} }],
+      }, 0, { autoplay: true });
+      showRemixMessage(pt("remixLoaded"));
+    } catch {
+      showRemixMessage(pt("remixError"));
+    }
   }
 
   /* ---------- events ---------- */
@@ -4067,6 +4609,12 @@
     settingsPanel.hidden ? openSettings() : closeSettings();
   });
   $("playerSettingsClose").addEventListener("click", closeSettings);
+  $("playerRemixSave")?.addEventListener("click", saveRemix);
+  $("playerRemixLoad")?.addEventListener("click", () => $("playerRemixFile")?.click());
+  $("playerRemixFile")?.addEventListener("change", (ev) => {
+    loadRemixFile(ev.target.files?.[0]);
+    ev.target.value = "";
+  });
   queueToggle?.addEventListener("click", toggleQueue);
   $("playerQueueClose")?.addEventListener("click", closeQueue);
   $("playerQueueClear")?.addEventListener("click", clearQueue);
@@ -4159,9 +4707,12 @@
       saveState();
       notify("settings");
     }
-    else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade" || key === "skipIntro") {
+    else if (key === "autoNext" || key === "rememberPosition" || key === "crossfade"
+      || key === "fadeInEnabled" || key === "fadeOutEnabled" || key === "skipIntro") {
       state[key] = !!input.checked;
       if (key === "crossfade" && !state.crossfade) stopFades();
+      if (key === "fadeOutEnabled" && !state.fadeOutEnabled) stopFades();
+      if (key === "crossfade" || key === "fadeInEnabled" || key === "fadeOutEnabled") incomingFadeToken++;
       syncSettingsUI();
       saveState();
       notify("settings");
@@ -4317,6 +4868,11 @@
     const legacy = clampFade(saved.crossfadeMs, DEFAULT_FADE_OUT_MS);
     state.fadeOutMs = saved.fadeOutMs == null ? legacy : clampFade(saved.fadeOutMs, DEFAULT_FADE_OUT_MS);
     state.fadeInMs = clampFade(saved.fadeInMs, DEFAULT_FADE_IN_MS);
+    // New toggles default to on, including for older saves written before
+    // these keys existed. The single persisted state is the only source of
+    // truth for both the checkboxes and the audible envelopes.
+    state.fadeOutEnabled = saved.fadeOutEnabled !== false;
+    state.fadeInEnabled = saved.fadeInEnabled !== false;
     state.skipIntro = !!saved.skipIntro;
     const clampDb = (value, fallback) => {
       const n = Number(value);
@@ -4372,8 +4928,8 @@
     ensureMasterOutput();
     ensureMainGain();
     if (state.eqEnabled) ensureEqChain();
-    if (anyFxEnabled()) ensureFxChain();
     applyEqState();
+    // The UI and the baked audio are both built from this restored state.
     applyFxState();
   }
 
@@ -4387,7 +4943,8 @@
     // A link's timecode wins over the locally remembered position. The music
     // page will later select the shared album/track and apply it there too.
     if (timeParam !== null) state.time = timeParam;
-    applySettingsFrom(saved);
+    restoring = true;
+    try { applySettingsFrom(saved); } finally { restoring = false; }
     if (shared) {
       saveState();
       clearShareParam();
@@ -4431,7 +4988,8 @@
 
   window.zqwyPlayer = {
     playTrack, setContext, toggle, play: attemptPlay, pause: pauseAudio,
-    next, previous, stop, seek: setTime, getState, setEngine, setFormat, openSettings,
+    next, previous, stop, seek: setTime, seekProgram, setProgramLock,
+    getState, setEngine, setFormat, openSettings,
     enqueue, removeFromQueue, clearQueue, getQueue, openQueue, closeQueue,
     on(event, handler) {
       if (typeof handler !== "function") return;

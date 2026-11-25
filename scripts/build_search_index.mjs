@@ -325,7 +325,8 @@ function collectNotes() {
 
 const PAGES = [
   { title: "Главная", path: "./", text: "Поиск по моим данным, каталог, настройки", tags: ["главная", "поиск"], keywords: ["home", "главная", "поиск", "search"] },
-  { title: "Музыка", path: "./music/", text: "Релизы и универсальный музыкальный плеер", tags: ["музыка", "плеер"], keywords: ["music", "музыка", "плеер", "player", "альбомы", "треки"] },
+  { title: "Плеер", path: "./music/", text: "Музыкальный плеер: релизы zqwy, эффекты, эквалайзер и запекание ремиксов", tags: ["музыка", "плеер"], keywords: ["music", "музыка", "плеер", "player", "альбомы", "треки", "ремикс", "эффекты"] },
+  { title: "Радио", path: "./radio/", text: "Круглосуточный музыкальный эфир: треки идут строго по фиксированной программе", tags: ["радио", "музыка", "эфир"], keywords: ["radio", "радио", "эфир", "broadcast", "music", "программа"] },
   { title: "Ссылки", path: "./links/", text: "Все ссылки: соцсети, музыкальные площадки", tags: ["ссылки", "контакты"], keywords: ["links", "ссылки", "соцсети", "платформы"] },
   { title: "Wiki", path: "./wiki/tiddlywiki/", text: "Текстовая информация в формате markdown", tags: ["вики", "текст"], keywords: ["wiki", "вики", "markdown", "tiddlywiki"] },
   { title: "ZQWY notes", path: "./wiki/zqwy/", text: "Заметки zqwy в формате markdown из src/notes/", tags: ["заметки", "вики"], keywords: ["zqwy", "заметки", "notes", "markdown"] },

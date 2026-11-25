@@ -138,8 +138,49 @@
 .player-time { flex: 0 0 auto; min-width: 34px; color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .player-time:last-of-type { text-align: right; }
 .player-range { width: 100%; min-width: 0; height: 18px; margin: 0; accent-color: var(--text); cursor: pointer; }
+.player-waveform-stack {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 .player-waveform { flex: 1 1 auto; min-width: 0; height: clamp(64px, 7dvh, 110px); }
 .player-waveform canvas { display: block; width: 100%; height: 100%; }
+.player-waveform-stack .fx-render-status { text-align: center; }
+.player-remix-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  min-width: 0;
+}
+.player-remix-btn {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.player-remix-btn:hover:not(:disabled),
+.player-remix-btn:focus-visible { color: var(--text); border-color: var(--text); }
+.player-remix-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.player-remix-message {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-bar.is-program-locked .player-prev,
+.player-bar.is-program-locked .player-next,
+.player-bar.is-program-locked .player-queue-toggle,
+.player-bar.is-program-locked .player-toggle,
+.player-bar.is-program-locked .player-progress { opacity: 0.4; cursor: not-allowed; }
 /* Waviz draws into a canvas; keep it inside the shared waveform row. */
 .player-waveform .player-waviz-canvas { width: 100%; height: 100%; }
 /* Peaks.js draws its own layers and needs an explicit full-size surface. */
@@ -620,6 +661,11 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
   accent-color: var(--text);
   cursor: pointer;
 }
+.fade-toggle { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--fs-sm); }
+.fade-toggle input { accent-color: var(--text); margin: 0; }
+.fade-control.is-off .fade-range,
+.fade-control.is-off .fade-toggle { opacity: 0.5; }
+.fade-control.is-off .fade-range { pointer-events: none; cursor: default; }
 @media (max-width: 520px) {
   .fade-controls { grid-template-columns: 1fr; }
   .fade-range { max-width: none; }
@@ -790,6 +836,14 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
 .fx-setting.is-disabled .fx-controls { opacity: 0.45; }
 .fx-setting.is-disabled .fx-visual { cursor: default; }
 .fx-setting.is-disabled .fx-control input { pointer-events: none; }
+.fx-render-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.fx-render-status.is-active,
+.fx-render-status.is-unavailable { color: var(--text); }
 
 /* Limiter meter */
 .limiter-toggle { margin-top: 8px; }

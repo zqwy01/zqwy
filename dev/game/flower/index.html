@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fff4ef">
+<meta name="description" content="Цветочек — милая игрушка (◕ᴗ◕✿): гладь румяный цветок, лови лепестки и выращивай маленький сад.">
+<title>Цветочек · (◕ᴗ◕✿) · zqwy</title>
+<link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="daylight" aria-hidden="true"></div>
+
+<main class="app">
+  <header class="topbar">
+    <a class="back" href="../">← каталог игр</a>
+    <div class="brand">zqwy <span>/ цветочек</span> <span class="kaomoji">(◕ᴗ◕✿)</span></div>
+  </header>
+
+  <section class="garden" id="garden" aria-label="Садик с румяным цветочком">
+    <canvas id="sky" aria-label="Лепестки и сердечки летают над садиком"></canvas>
+
+    <button class="sun" id="sunBtn" type="button" aria-label="Позвать солнышко">
+      <span class="sun-rays" aria-hidden="true"></span>
+      <span class="sun-core" aria-hidden="true"></span>
+    </button>
+
+    <div class="cloud cloud-a" aria-hidden="true"></div>
+    <div class="cloud cloud-b" aria-hidden="true"></div>
+    <div class="hills" aria-hidden="true"></div>
+    <div class="garden-flowers" id="gardenFlowers" aria-hidden="true"></div>
+
+    <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+
+    <button class="flower" id="flowerBtn" type="button" aria-label="Погладить цветочек">
+      <svg class="flower-svg" viewBox="0 0 260 300" aria-hidden="true">
+        <defs>
+          <radialGradient id="petalPink" cx="45%" cy="28%" r="75%">
+            <stop offset="0%" stop-color="#fff1f2"/>
+            <stop offset="100%" stop-color="#ffb8c8"/>
+          </radialGradient>
+          <linearGradient id="potGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e79a7b"/>
+            <stop offset="100%" stop-color="#b8614e"/>
+          </linearGradient>
+        </defs>
+
+        <ellipse class="ground-shadow" cx="130" cy="288" rx="74" ry="10"/>
+
+        <g class="stem-group">
+          <path class="stem-line" d="M130 252 C126 216 134 184 130 154"/>
+          <path class="leaf leaf-left" d="M129 221 C104 228 88 212 88 194 C107 191 124 202 129 221 Z"/>
+          <path class="leaf leaf-right" d="M132 202 C153 209 169 195 170 178 C151 175 136 185 132 202 Z"/>
+        </g>
+
+        <g class="pot">
+          <path class="pot-body" d="M83 250 H177 L168 288 Q130 296 92 288 Z"/>
+          <ellipse class="pot-soil" cx="130" cy="250" rx="48" ry="9"/>
+          <rect class="pot-rim" x="77" y="241" width="106" height="15" rx="7"/>
+          <path class="pot-shine" d="M96 258 Q100 274 104 284"/>
+          <path class="pot-heart" d="M135 270 q-5 -7 -10 -1 q-4 6 10 14 q14 -8 10 -14 q-5 -6 -10 1z"/>
+        </g>
+
+        <g class="petals">
+          <g class="petal p1" transform="rotate(0 130 120)"><ellipse cx="130" cy="70" rx="29" ry="39"/></g>
+          <g class="petal p2" transform="rotate(72 130 120)"><ellipse cx="130" cy="70" rx="29" ry="39"/></g>
+          <g class="petal p3" transform="rotate(144 130 120)"><ellipse cx="130" cy="70" rx="29" ry="39"/></g>
+          <g class="petal p4" transform="rotate(216 130 120)"><ellipse cx="130" cy="70" rx="29" ry="39"/></g>
+          <g class="petal p5" transform="rotate(288 130 120)"><ellipse cx="130" cy="70" rx="29" ry="39"/></g>
+        </g>
+
+        <circle class="face-disc" cx="130" cy="120" r="41"/>
+
+        <g class="eyes">
+          <circle class="eye eye-left" cx="114" cy="115" r="8"/>
+          <circle class="eye eye-right" cx="146" cy="115" r="8"/>
+          <circle class="eye-shine" cx="117" cy="112" r="2.6"/>
+          <circle class="eye-shine" cx="149" cy="112" r="2.6"/>
+        </g>
+        <g class="happy-eyes">
+          <path d="M106 117 Q114 106 122 117"/>
+          <path d="M138 117 Q146 106 154 117"/>
+        </g>
+        <g class="sleep-eyes">
+          <path d="M106 116 Q114 123 122 116"/>
+          <path d="M138 116 Q146 123 154 116"/>
+          <text x="176" y="94" class="sleep-z">z</text>
+          <text x="188" y="78" class="sleep-z small">z</text>
+        </g>
+
+        <ellipse class="blush blush-left" cx="102" cy="129" rx="10" ry="6"/>
+        <ellipse class="blush blush-right" cx="158" cy="129" rx="10" ry="6"/>
+        <path class="mouth" d="M121 132 Q130 141 139 132"/>
+        <circle class="nose" cx="130" cy="127" r="1.6"/>
+      </svg>
+      <span class="flower-hint" id="flowerHint">погладь меня</span>
+    </button>
+
+    <button class="can" id="canBtn" type="button" aria-label="Полить цветочек">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <path class="can-handle" d="M48 30 Q55 8 82 16 Q95 20 93 36"/>
+        <path class="can-body" d="M34 28 H89 Q96 28 95 37 L90 72 Q89 78 82 78 H43 Q36 78 35 71 L30 37 Q29 28 34 28 Z"/>
+        <path class="can-spout" d="M32 36 L8 29 L4 38 L30 52 Z"/>
+        <path class="can-spout-tip" d="M8 29 L2 22 L0 31 L4 38 Z"/>
+        <path class="can-line" d="M38 43 H87 M39 52 H86"/>
+        <path class="drop d1" d="M5 47 q-4 7 0 9 q4 -2 0 -9z"/>
+        <path class="drop d2" d="M13 51 q-3 5 0 7 q3 -2 0 -7z"/>
+      </svg>
+    </button>
+  </section>
+
+  <section class="panel" aria-label="Управление цветочком">
+    <div class="panel-main">
+      <div class="meters">
+        <div class="meter-row">
+          <span class="meter-label">РАДОСТЬ</span>
+          <span class="meter"><i class="meter-fill joy-fill" id="joyFill"></i></span>
+          <b class="meter-value" id="joyValue">8%</b>
+        </div>
+        <div class="meter-row">
+          <span class="meter-label">СОЛНЦЕ</span>
+          <span class="meter"><i class="meter-fill sun-fill" id="sunFill"></i></span>
+          <b class="meter-value" id="sunValue">65%</b>
+        </div>
+      </div>
+      <p class="hint" id="hint">Лови лепестки, гладь цветочек и поиграй с солнышком — так он вырастит маленький сад. Проигрышей тут нет.</p>
+      <div class="counters">
+        <span title="Поглаживаний">♡ <b id="petCount">0</b></span>
+        <span title="Пойманных лепестков">✿ <b id="petalCount">0</b></span>
+        <span title="Растений в садике">❀ <b id="bloomCount">0</b></span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl" id="patBtn" type="button"><span class="ctrl-icon" aria-hidden="true">♡</span><span class="ctrl-text"><b>ПОГЛАДИТЬ</b><small>пробел</small></span></button>
+      <button class="ctrl" id="sunControlBtn" type="button"><span class="ctrl-icon" aria-hidden="true">☀</span><span class="ctrl-text"><b>СОЛНЦЕ</b><small>клавиша S</small></span></button>
+      <button class="ctrl" id="waterControlBtn" type="button"><span class="ctrl-icon" aria-hidden="true">≋</span><span class="ctrl-text"><b>ПОЛИТЬ</b><small>клавиша W</small></span></button>
+      <button class="ctrl small-ctrl" id="soundBtn" type="button" aria-pressed="true"><span class="ctrl-icon" aria-hidden="true">♪</span><span class="ctrl-text"><b id="soundLabel">ЗВУК ВКЛ</b><small>тихий колокольчик</small></span></button>
+      <button class="ctrl small-ctrl" id="resetBtn" type="button"><span class="ctrl-icon" aria-hidden="true">↺</span><span class="ctrl-text"><b>ЗАНОВО</b><small>новый садик</small></span></button>
+    </div>
+  </section>
+
+  <p class="footnote">Пробел — погладить · S — солнце · W — поливать. Можно просто сидеть рядом и смотреть, как падают лепестки.</p>
+</main>
+
+<script src="js/game.js"></script>
+</body>
+</html>

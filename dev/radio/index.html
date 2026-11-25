@@ -54,7 +54,7 @@
         <div class="radio-service-head">
           <div class="radio-service-copy">
             <p class="radio-eyebrow" data-i18n="radioService">радио</p>
-            <h2 class="radio-heading" id="radioHeading">Круглосуточный эфир</h2>
+            <h2 class="radio-heading" id="radioHeading" data-i18n="radioHeading">Круглосуточный эфир</h2>
             <p class="radio-hint" data-i18n="radioHint">Непрерывная программа идёт от фиксированной точки 2020-01-01 UTC. Треки следуют строго один за другим; загрузка сайта не сбрасывает эфир.</p>
           </div>
           <div class="radio-actions">
@@ -82,6 +82,11 @@
           <div class="radio-schedule-head-row">
             <h3 class="radio-schedule-head" data-i18n="radioSchedule">Программа дня</h3>
             <span class="radio-program-meta" id="radioProgramMeta"></span>
+          </div>
+          <div class="radio-schedule-nav" data-i18n-aria-label="radioProgramNav" aria-label="Навигация по программе">
+            <button class="radio-btn radio-nav-btn" id="radioProgramPrev" type="button" data-i18n="radioEarlier">← Раньше</button>
+            <button class="radio-btn radio-nav-btn" id="radioProgramNow" type="button" data-i18n="radioToLive">К эфиру</button>
+            <button class="radio-btn radio-nav-btn" id="radioProgramNext" type="button" data-i18n="radioLater">Позже →</button>
           </div>
           <p class="radio-empty" id="radioEmpty" hidden data-i18n="radioEmpty">Нет доступных треков</p>
           <div class="radio-program" id="radioProgram" aria-live="polite"></div>

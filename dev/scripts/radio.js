@@ -17,7 +17,10 @@
   const BLOCK_MS = 4 * 60 * 60 * 1000;
   const BLOCKS_PER_DAY = CYCLE_MS / BLOCK_MS;
   const TICK_MS = 1000;
-  const RESYNC_MS = 4000;
+  // Do not fight the audio clock every second: a small correction sounds like
+  // a rewind. Correct only a substantial drift, only forward, and rarely.
+  const RESYNC_MS = 20000;
+  const RESYNC_INTERVAL_MS = 30000;
   const MAX_CACHED_PROGRAMS = 3;
 
   const TEXT = {
@@ -27,6 +30,8 @@
       play: "Включить эфир", pause: "Пауза эфира",
       onAir: "В эфире", paused: "Эфир на паузе", off: "Эфир выключен",
       schedule: "Программа дня", now: "Сейчас", next: "Далее",
+      prevBlock: "← Раньше", nowBlock: "К эфиру", nextBlock: "Позже →",
+      day: "Весь день", block: "Блок",
       empty: "Нет доступных треков", unavailable: "Каталог недоступен",
       locked: "Плеер закреплён за эфиром", trackNumber: "Трек",
       blocks: [
@@ -44,6 +49,8 @@
       play: "Start broadcast", pause: "Pause broadcast",
       onAir: "On air", paused: "Broadcast paused", off: "Broadcast off",
       schedule: "Day program", now: "Now", next: "Next",
+      prevBlock: "← Earlier", nowBlock: "To live", nextBlock: "Later →",
+      day: "Full day", block: "Block",
       empty: "No tracks available", unavailable: "Catalog unavailable",
       locked: "Player locked to the broadcast", trackNumber: "Track",
       blocks: [
@@ -67,6 +74,9 @@
     switching: false,
     timer: 0,
     lastListKey: "",
+    lastActiveIndex: -1,
+    followCurrent: true,
+    lastResyncAt: 0,
   };
 
   const ui = {};
@@ -115,6 +125,9 @@
     ui.progressFill = document.getElementById("radioProgressFill");
     ui.program = document.getElementById("radioProgram");
     ui.programMeta = document.getElementById("radioProgramMeta");
+    ui.programPrev = document.getElementById("radioProgramPrev");
+    ui.programNow = document.getElementById("radioProgramNow");
+    ui.programNext = document.getElementById("radioProgramNext");
     ui.empty = document.getElementById("radioEmpty");
   }
 
@@ -216,18 +229,35 @@
     };
   }
 
+  // Keep the whole day in the DOM so it can actually be scrolled. The old
+  // version rendered one 4-hour block and called scrollIntoView() every tick,
+  // which made manual scrolling impossible.
+  function scrollProgramTo(index) {
+    if (!ui.program) return;
+    const row = ui.program.querySelector(`[data-radio-index="${index}"]`);
+    if (!row) return;
+    const top = row.offsetTop - ui.program.clientHeight / 2 + row.offsetHeight / 2;
+    ui.program.scrollTop = Math.max(0, top);
+  }
+
+  function indexAtOffset(position, offsetMs) {
+    const target = Math.max(0, Math.min(CYCLE_MS - 1, offsetMs));
+    const entry = position.program.find((item) => item.endMs > target) || position.program[position.program.length - 1];
+    return entry ? entry.index : 0;
+  }
+
   function renderProgram(position, copy) {
     if (!ui.program) return;
-    const key = `${position.cycle}|${position.blockIndex}|${lang()}|${state.poolKey}`;
-    const blockStart = position.blockIndex * BLOCK_MS;
-    const blockEnd = blockStart + BLOCK_MS;
+    // One rebuild per cycle/language/catalog, not once per block. Scrolling
+    // then never destroys the rows under the pointer.
+    const key = `${position.cycle}|${lang()}|${state.poolKey}`;
     if (state.lastListKey !== key) {
       state.lastListKey = key;
       const fragment = document.createDocumentFragment();
       position.program.forEach((entry) => {
-        if (entry.startMs >= blockEnd || entry.endMs <= blockStart) return;
         const row = document.createElement("div");
         row.className = "radio-program-item";
+        if (entry.startMs % BLOCK_MS === 0) row.classList.add("is-block-start");
         row.dataset.radioIndex = String(entry.index);
 
         const time = document.createElement("span");
@@ -249,19 +279,25 @@
       });
       ui.program.replaceChildren(fragment);
       if (ui.programMeta) {
-        ui.programMeta.textContent = `${clock(position.cycleStart + blockStart)} – ${clock(position.cycleStart + blockEnd)}`;
+        ui.programMeta.textContent = `${copy.day} · ${clock(position.cycleStart)} – ${clock(position.cycleStart + CYCLE_MS)}`;
       }
+      state.lastActiveIndex = -1;
     }
 
-    let activeRow = null;
+    if (ui.programPrev) ui.programPrev.textContent = copy.prevBlock;
+    if (ui.programNow) ui.programNow.textContent = copy.nowBlock;
+    if (ui.programNext) ui.programNext.textContent = copy.nextBlock;
+
     ui.program.querySelectorAll(".radio-program-item").forEach((row) => {
       const active = Number(row.dataset.radioIndex) === position.index;
       row.classList.toggle("is-active", active);
       row.setAttribute("aria-current", active ? "true" : "false");
-      if (active) activeRow = row;
     });
-    if (activeRow && activeRow.scrollIntoView) {
-      activeRow.scrollIntoView({ block: "nearest" });
+    // Follow the broadcast only while the visitor has not scrolled away, and
+    // only when the active track actually changes — never on every tick.
+    if (state.followCurrent && state.lastActiveIndex !== position.index) {
+      state.lastActiveIndex = position.index;
+      scrollProgramTo(position.index);
     }
   }
 
@@ -333,6 +369,7 @@
     }
 
     state.switching = true;
+    state.lastResyncAt = Date.now();
     api.setProgramLock(true);
     api.playTrack(albumFor(position), position.item.index, {
       autoplay: true,
@@ -370,21 +407,26 @@
     if (!state.active || !position.item) return;
 
     const api = player();
-    if (!api) return;
-    api.setProgramLock(true);
-    if (state.switching) return;
+    if (!api || state.switching) return;
 
+    const now = Date.now();
     const current = api.getState().current;
     const albumId = `radio-cycle-${position.cycle}`;
     if (!current || current.albumId !== albumId || current.path !== position.item.path) {
       applyTrack(position);
       return;
     }
-    // The catalog durations and the file durations match; only correct a tab
-    // that was throttled enough to fall behind the published schedule.
+    // Let the audio clock run. Seeking to the wall clock every second caused a
+    // small, constant rewind. Only a large, rare *lag* is corrected, and never
+    // backwards. If a file ends before its slot, the broadcast stays silent
+    // until the next scheduled item instead of re-seeking the finished file.
+    const playback = api.getState();
     const expectedTime = Math.max(0, (position.offsetMs - position.item.startMs) / 1000);
-    if (api.getState().playing && Math.abs(api.getState().time - expectedTime) > RESYNC_MS / 1000) {
+    const slotEnd = position.item.endMs / 1000;
+    const behind = expectedTime - (playback.time || 0);
+    if (playback.playing && behind > RESYNC_MS / 1000 && now - state.lastResyncAt > RESYNC_INTERVAL_MS && expectedTime < slotEnd - 1) {
       api.seekProgram(expectedTime);
+      state.lastResyncAt = now;
     }
   }
 
@@ -405,15 +447,46 @@
     render(state.position || positionAt(Date.now()));
   }
 
+  function jumpProgram(direction) {
+    state.followCurrent = false;
+    const position = state.position || positionAt(Date.now());
+    state.position = position;
+    if (direction === 0) {
+      state.followCurrent = true;
+      state.lastActiveIndex = -1;
+      scrollProgramTo(position.index);
+      return;
+    }
+    const targetBlock = clampBlock(position.blockIndex + direction);
+    scrollProgramTo(indexAtOffset(position, targetBlock * BLOCK_MS + 1000));
+  }
+
+  function clampBlock(index) {
+    return Math.max(0, Math.min(BLOCKS_PER_DAY - 1, index));
+  }
+
   function bind() {
+    captureUi();
     document.addEventListener("click", (ev) => {
       const target = ev.target instanceof Element ? ev.target : null;
       if (!target) return;
-      const button = target.closest("#radioPlay");
-      if (button && ui.play?.contains(button)) {
+      if (target.closest("#radioPlay") && ui.play?.contains(target)) {
         if (state.active) stop();
         else start();
+        return;
       }
+      if (target.closest("#radioProgramPrev")) jumpProgram(-1);
+      else if (target.closest("#radioProgramNext")) jumpProgram(1);
+      else if (target.closest("#radioProgramNow")) jumpProgram(0);
+    });
+
+    // A wheel/touch gesture on the program means the visitor is browsing the
+    // day themselves. Stop yanking the list back to the live track.
+    ["wheel", "touchstart", "pointerdown"].forEach((eventName) => {
+      ui.program?.addEventListener(eventName, () => { state.followCurrent = false; }, { passive: true });
+    });
+    ui.program?.addEventListener("keydown", (ev) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(ev.key)) state.followCurrent = false;
     });
 
     window.addEventListener("zqwy:playerstate", () => {

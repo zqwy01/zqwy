@@ -45,6 +45,8 @@
     "mediaelement", "amplitude", "aplayer", "jplayer",
   ];
   const FORMATS = ["opus", "mp3", "wav", "flac"];
+  const REMIX_FORMATS = ["wav", "flac", "mp3", "opus", "ogg"];
+  const LIMITER_MODES = ["dbfs", "truepeak", "softclip", "hardclip"];
   // When JavaScript and the APIs WaveSurfer needs are available, the waveform
   // player is the default. The explicit user choice (or a legacy non-HTML5
   // engine) always wins; see detectDefaultEngine()/restore().
@@ -53,11 +55,12 @@
   const CROSSFADE_MAX_MS = 3000;
   const DEFAULT_FADE_OUT_MS = 700;
   const DEFAULT_FADE_IN_MS = 500;
-  // Effect settings are baked once per track instead of being kept in a live
-  // Web Audio graph. Debounce slider drags so one render happens after the
-  // user settles on a value, not on every input event.
-  // Knob movement must feel immediate: only a settled pause starts the render.
-  const FX_RENDER_DEBOUNCE_MS = 10000;
+  // Effects are audible immediately through a live Web Audio chain. After a
+  // configurable pause without knob movement the current track is baked once
+  // into a static WAV, and playback switches to that baked waveform.
+  const DEFAULT_FX_BAKE_DELAY_MS = 10000;
+  const FX_BAKE_DELAY_MIN_MS = 1000;
+  const FX_BAKE_DELAY_MAX_MS = 60000;
   // Intro detection replaces the old fixed "skip the first 12 seconds" hack.
   // These are safety limits, not the offset we always jump to: the real skip
   // point is the first sustained sound after the initial quiet run.
@@ -88,9 +91,15 @@
       shareCopy: "Скопировать ссылку", shareCopied: "Ссылка скопирована",
       shareManual: "Ссылка готова — скопируйте её из поля",
       close: "Остановить и закрыть плеер", loading: "Загрузка трека",
-      saveRemix: "Сохранить ремикс", loadRemix: "Загрузить ремикс",
+      createRemix: "Создать ремикс", saveRemix: "Сохранить ремикс", loadRemix: "Загрузить ремикс",
+      remixSection: "Ремикс",
+      remixHint: "«Создать ремикс» запекает текущие эффекты сразу. «Сохранить ремикс» скачивает готовый файл в выбранном формате. Исходные файлы не перезаписываются.",
+      remixFormat: "Формат файла ремикса",
       remixSaved: "Ремикс сохранён", remixLoaded: "Загружен ремикс — исходный файл не перезаписывается",
-      remixNoTrack: "Сначала включите трек", remixError: "Не удалось обработать ремикс",
+      remixCreated: "Ремикс создан и запечён в звуковую волну", remixEncoding: "Кодирую {format}…",
+      remixNoTrack: "Сначала включите трек", remixNoFx: "Включите хотя бы один эффект",
+      remixError: "Не удалось обработать ремикс",
+      remixUnsupported: "Формат {format} недоступен в этом браузере — выберите WAV или FLAC",
       position: "Позиция трека", volume: "Громкость", engineUi: "Позиция (AmplitudeJS)",
       playPause: "Воспроизвести/пауза", amplitudeVolume: "Громкость (AmplitudeJS)",
       settingsHint: "Плеер универсальный: движок и поведение выбираются здесь и сохраняются для всего сайта.",
@@ -127,11 +136,18 @@
       eqHint: "Визуальная кривая показывает суммарный отклик. Добавляйте фильтры и меняйте тип, частоту, усиление и Q.",
       eqCanvasHint: "Перетаскивайте точки на кривой: по горизонтали — частота, по вертикали — усиление.",
       limiter: "Лимитер 0 dBFS",
-      limiterHint: "Ограничивает выход, чтобы громкость не превышала 0 dBFS после эквалайзера.",
+      limiterMode: "Режим лимитера",
+      limiterModeHint: "dBFS — пиковый лимитер; true peak — 4× оверсемплинг и запас по межсэмпльным пикам; soft clip — мягкое насыщение; hard clip — жёсткое цифровое ограничение.",
+      limiterDbfs: "dBFS (пиковый)", limiterTruePeak: "True peak (4×)",
+      limiterSoftClip: "Soft clip", limiterHardClip: "Hard clip",
+      limiterHint: "Ограничивает выход после эквалайзера в выбранном режиме.",
       limiterMeter: "Пик после лимитера",
       effects: "Эффекты",
-      effectsHint: "Цепочка: дисторшн → хорус → флейзер → дилей → реверб. Эффект применяется один раз и запекается в звуковую волну: во время воспроизведения живой обработки нет. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      effectsHint: "Цепочка: дисторшн → хорус → флейзер → дилей → реверб. Изменения слышны сразу через живую обработку; после паузы в настройках эффект запекается в звуковую волну. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      fxBakeDelay: "Ожидание до запекания", fxBakeDelayHint: "Секунд бездействия после последнего изменения эффекта, прежде чем начать запекание.",
       effectRendering: "Запекаю эффекты в трек…", effectReady: "Эффекты запечены в звуковую волну",
+      effectCountdown: "Живой эффект · запекание через {s} с",
+      effectLive: "Живой эффект · запекание после {s} с бездействия",
       effectUnavailable: "Не удалось запечь эффекты — играет оригинальный файл",
       distortion: "Дисторшн", distortionEnable: "Включить дисторшн",
       distortionHint: "Нелинейное искажение с мягким фильтром тона после формы сигнала.",
@@ -172,9 +188,15 @@
       shareCopy: "Copy link", shareCopied: "Link copied",
       shareManual: "Link ready — copy it from the field",
       close: "Stop and close the player", loading: "Loading track",
-      saveRemix: "Save remix", loadRemix: "Load remix",
+      createRemix: "Create remix", saveRemix: "Save remix", loadRemix: "Load remix",
+      remixSection: "Remix",
+      remixHint: "“Create remix” bakes the current effects immediately. “Save remix” downloads the result in the selected format. Source files are never overwritten.",
+      remixFormat: "Remix file format",
       remixSaved: "Remix saved", remixLoaded: "Remix loaded — the source file is not modified",
-      remixNoTrack: "Start a track first", remixError: "Could not process the remix",
+      remixCreated: "Remix created and baked into the waveform", remixEncoding: "Encoding {format}…",
+      remixNoTrack: "Start a track first", remixNoFx: "Enable at least one effect",
+      remixError: "Could not process the remix",
+      remixUnsupported: "The {format} format is not available in this browser — choose WAV or FLAC",
       position: "Track position", volume: "Volume", engineUi: "Position (AmplitudeJS)",
       playPause: "Play/pause", amplitudeVolume: "Volume (AmplitudeJS)",
       settingsHint: "The player is universal: pick an engine and behaviour here; settings are saved site-wide.",
@@ -211,11 +233,18 @@
       eqHint: "The curve shows the combined response. Add filters and adjust type, frequency, gain, and Q.",
       eqCanvasHint: "Drag points on the curve: horizontal is frequency, vertical is gain.",
       limiter: "0 dBFS limiter",
-      limiterHint: "Limits output so loudness does not exceed 0 dBFS after the equalizer.",
+      limiterMode: "Limiter mode",
+      limiterModeHint: "dBFS — sample-peak limiter; true peak — 4× oversampling with intersample headroom; soft clip — gentle saturation; hard clip — hard digital ceiling.",
+      limiterDbfs: "dBFS (peak)", limiterTruePeak: "True peak (4×)",
+      limiterSoftClip: "Soft clip", limiterHardClip: "Hard clip",
+      limiterHint: "Limits the output after the equalizer using the selected mode.",
       limiterMeter: "Post-limiter peak",
       effects: "Effects",
-      effectsHint: "Chain: distortion → chorus → flanger → delay → reverb. Each effect is rendered once into the waveform: there is no live processing during playback. The canvases are interactive: drag them or use the sliders.",
+      effectsHint: "Chain: distortion → chorus → flanger → delay → reverb. Changes are audible immediately through live processing; after a pause the effect is baked into the waveform. The canvases are interactive: drag them or use the sliders.",
+      fxBakeDelay: "Bake delay", fxBakeDelayHint: "Seconds of inactivity after the last effect change before baking starts.",
       effectRendering: "Baking effects into the track…", effectReady: "Effects baked into the waveform",
+      effectCountdown: "Live effect · baking in {s} s",
+      effectLive: "Live effect · bakes after {s} s of inactivity",
       effectUnavailable: "Could not bake effects — playing the original file",
       distortion: "Distortion", distortionEnable: "Enable distortion",
       distortionHint: "Non-linear shaping with a gentle tone filter after the waveshaper.",
@@ -275,7 +304,9 @@
     document.querySelectorAll("[data-player-settings-mount]").forEach((mount) => {
       mount.innerHTML = settingsFormHtml();
     });
+    syncProgramLockUi();
     syncSettingsUI();
+    setFxRendering(false, fxRenderFailed);
     applyShuffle();
     applyRepeat();
     updateMuteState();
@@ -319,12 +350,6 @@
       <div class="player-waveform-stack">
         <div class="player-waveform" id="playerWaveform" hidden></div>
         <p class="fx-render-status" data-fx-status hidden>${pt("effectReady")}</p>
-        <div class="player-remix-actions">
-          <button class="player-remix-btn" id="playerRemixSave" type="button" data-player-i18n="saveRemix" aria-label="${pt("saveRemix")}" title="${pt("saveRemix")}">${pt("saveRemix")}</button>
-          <button class="player-remix-btn" id="playerRemixLoad" type="button" data-player-i18n="loadRemix" aria-label="${pt("loadRemix")}" title="${pt("loadRemix")}">${pt("loadRemix")}</button>
-          <input class="visually-hidden" id="playerRemixFile" type="file" accept=".wav,.opus,.mp3,.flac,audio/*" aria-label="${pt("loadRemix")}">
-          <span class="player-remix-message" id="playerRemixMessage" role="status" aria-live="polite"></span>
-        </div>
       </div>
       <!-- Libraries that draw their own controls live directly in this row,
            next to the native seek bar / waveform — never in a panel above it. -->
@@ -523,7 +548,7 @@
     "fadeOutMs", "fadeInMs", "fadeOutEnabled", "fadeInEnabled",
     "skipIntro", "silenceDb", "introMaxSec",
     "playbackRate", "playbackMode", "pitchMode",
-    "eqEnabled", "eqFilters", "limiterEnabled",
+    "eqEnabled", "eqFilters", "limiterEnabled", "limiterMode", "fxBakeDelayMs",
     ...FX_KINDS.map((kind) => `${kind}Enabled`),
     ...Object.keys(FX_RANGES),
   ];
@@ -557,6 +582,7 @@
     eqEnabled: false,
     eqFilters: DEFAULT_EQ_FILTERS.map((f) => ({ ...f })),
     limiterEnabled: true,
+    limiterMode: "dbfs",
     distortionEnabled: false,
     distortionDrive: FX_RANGES.distortionDrive.fallback,
     distortionTone: FX_RANGES.distortionTone.fallback,
@@ -576,6 +602,8 @@
     reverbEnabled: false,
     reverbDecay: FX_RANGES.reverbDecay.fallback,
     reverbMix: FX_RANGES.reverbMix.fallback,
+    fxBakeDelayMs: DEFAULT_FX_BAKE_DELAY_MS,
+    remixFormat: "wav",
     queue: [],   // upcoming tracks added from the music catalog
   };
 
@@ -609,10 +637,20 @@
   let remixMessageTimer = 0;
   let fxRenderTimer = 0;
   let fxRenderToken = 0;
+  let fxRenderDeadline = 0;
+  let fxRenderFailed = false;
+  let fxStatusTick = 0;
+  let liveFxInputNode = null;
+  let liveFxOutputNode = null;
+  let liveFxOscillators = [];
+  let liveFxSignature = "";
   let restoring = false;
   let loadToken = 0;
   let masterOutputNode = null;
   let limiterNode = null;
+  let limiterInputNode = null;
+  let limiterOutputNode = null;
+  let limiterChainNodes = [];
   let limiterEnabled = true;
   let limiterMeterNode = null;
   let limiterMeterRaf = 0;
@@ -1206,16 +1244,26 @@
     };
   }
 
-  // The radio owns playback while this is on: the listener can pause and set
-  // volume, but cannot pick, skip, scrub, or queue another track.
-  function setProgramLock(enabled) {
-    programLocked = !!enabled;
+  function syncProgramLockUi() {
+    if (!bar) return;
     bar.classList.toggle("is-program-locked", programLocked);
-    ["playerPrev", "playerNext", "playerQueueToggle", "playerShuffle", "playerRepeat", "playerSeek", "playerRemixLoad"]
+    ["playerPrev", "playerNext", "playerQueueToggle", "playerShuffle", "playerRepeat", "playerSeek"]
       .forEach((id) => {
         const el = $(id);
         if (el) el.disabled = programLocked;
       });
+    document.querySelectorAll("[data-remix-action], [data-remix-file]").forEach((el) => {
+      el.disabled = programLocked;
+    });
+  }
+
+  // The radio owns playback while this is on: the listener can pause and set
+  // volume, but cannot pick, skip, scrub, or queue another track.
+  function setProgramLock(enabled) {
+    const next = !!enabled;
+    if (programLocked === next) return;
+    programLocked = next;
+    syncProgramLockUi();
     if (programLocked) {
       closeQueue();
       closeSettings();
@@ -1262,7 +1310,9 @@
         fadeOutEnabled: state.fadeOutEnabled, fadeInEnabled: state.fadeInEnabled,
         skipIntro: state.skipIntro, silenceDb: state.silenceDb, introMaxSec: state.introMaxSec,
         playbackRate: state.playbackRate, preservePitch: state.preservePitch, playbackMode: state.playbackMode, pitchMode: state.pitchMode,
-        eqEnabled: state.eqEnabled, eqFilters: state.eqFilters, limiterEnabled: state.limiterEnabled !== false,
+        eqEnabled: state.eqEnabled, eqFilters: state.eqFilters,
+        limiterEnabled: state.limiterEnabled !== false, limiterMode: state.limiterMode,
+        fxBakeDelayMs: state.fxBakeDelayMs, remixFormat: state.remixFormat,
         ...Object.fromEntries(FX_KINDS.map((kind) => [`${kind}Enabled`, state[`${kind}Enabled`]])),
         ...Object.fromEntries(Object.keys(FX_RANGES).map((key) => [key, state[key]])),
       }));
@@ -1547,23 +1597,90 @@
     return audioContext;
   }
 
+  function makeLimiterCurve(mode) {
+    const samples = 4096;
+    const curve = new Float32Array(samples);
+    for (let i = 0; i < samples; i++) {
+      const x = (i / (samples - 1)) * 2 - 1;
+      if (mode === "truepeak") curve[i] = (Math.tanh(x * 1.6) / Math.tanh(1.6)) * 0.96;
+      else if (mode === "softclip") curve[i] = (Math.tanh(x * 1.3) / Math.tanh(1.3)) * 0.99;
+      else curve[i] = clamp(x, -0.999, 0.999);
+    }
+    return curve;
+  }
+
+  function stopLimiterChain() {
+    limiterChainNodes.forEach((node) => { try { node.disconnect(); } catch {} });
+    limiterChainNodes = [];
+    limiterNode = null;
+    limiterInputNode = null;
+    limiterOutputNode = null;
+  }
+
+  // Four ceiling modes. dBFS uses a compressor, true peak adds 4× oversampling
+  // and intersample headroom, and the clip modes use WaveShaper curves.
   function ensureLimiter() {
     const context = sharedAudioContext();
     if (!context) return null;
-    if (limiterNode) return limiterNode;
+    if (limiterInputNode && limiterOutputNode) return limiterInputNode;
+    stopLimiterChain();
     try {
-      const comp = context.createDynamicsCompressor();
-      // Brickwall-ish limiter: keep output at/under ~0 dBFS.
-      comp.threshold.value = -1;
-      comp.knee.value = 0;
-      comp.ratio.value = 20;
-      comp.attack.value = 0.003;
-      comp.release.value = 0.25;
-      limiterNode = comp;
+      const input = context.createGain();
+      const output = context.createGain();
+      const keep = (node) => { limiterChainNodes.push(node); return node; };
+      let tail = input;
+      const mode = LIMITER_MODES.includes(state.limiterMode) ? state.limiterMode : "dbfs";
+
+      if (mode === "dbfs" || mode === "truepeak") {
+        const comp = keep(context.createDynamicsCompressor());
+        comp.threshold.value = mode === "truepeak" ? -2.5 : -1;
+        comp.knee.value = 0;
+        comp.ratio.value = 20;
+        comp.attack.value = mode === "truepeak" ? 0.001 : 0.003;
+        comp.release.value = mode === "truepeak" ? 0.18 : 0.25;
+        tail.connect(comp);
+        tail = comp;
+        limiterNode = comp;
+        if (mode === "truepeak") {
+          const shaper = keep(context.createWaveShaper());
+          shaper.curve = makeLimiterCurve("truepeak");
+          try { shaper.oversample = "4x"; } catch {}
+          tail.connect(shaper);
+          tail = shaper;
+          limiterNode = shaper;
+        }
+      } else {
+        const shaper = keep(context.createWaveShaper());
+        shaper.curve = makeLimiterCurve(mode);
+        try { shaper.oversample = mode === "softclip" ? "4x" : "none"; } catch {}
+        tail.connect(shaper);
+        tail = shaper;
+        limiterNode = shaper;
+      }
+      tail.connect(output);
+      limiterInputNode = input;
+      limiterOutputNode = output;
+      return input;
     } catch {
-      limiterNode = null;
+      stopLimiterChain();
+      return null;
     }
-    return limiterNode;
+  }
+
+  function rebuildLimiter() {
+    stopLimiterChain();
+    ensureLimiter();
+    wireMasterOutput();
+  }
+
+  function setLimiterMode(mode) {
+    if (!LIMITER_MODES.includes(mode) || mode === state.limiterMode) return;
+    state.limiterMode = mode;
+    rebuildLimiter();
+    connectMainOutput();
+    syncSettingsUI();
+    saveState();
+    notify("settings");
   }
 
   function ensureLimiterMeter() {
@@ -1603,14 +1720,14 @@
     try { masterOutputNode.disconnect(); } catch {}
     const meter = ensureLimiterMeter();
     if (limiterEnabled) {
-      const limiter = ensureLimiter();
-      if (limiter) {
-        try { limiter.disconnect(); } catch {}
-        try { masterOutputNode.connect(limiter); } catch {}
+      const input = ensureLimiter();
+      if (input && limiterOutputNode) {
+        try { limiterOutputNode.disconnect(); } catch {}
+        try { masterOutputNode.connect(input); } catch {}
         if (meter) {
-          try { limiter.connect(meter); } catch {}
+          try { limiterOutputNode.connect(meter); } catch {}
         }
-        try { limiter.connect(audioContext.destination); } catch {}
+        try { limiterOutputNode.connect(audioContext.destination); } catch {}
         return;
       }
     }
@@ -1628,7 +1745,9 @@
   function connectMainOutput() {
     if (!mainGainNode || !audioContext) return;
     try { mainGainNode.disconnect(); } catch {}
-    const target = state.eqEnabled && eqInputNode ? eqInputNode : outputDestination();
+    const fxInput = liveFxActive() ? ensureLiveFx() : null;
+    if (!fxInput) stopLiveFx();
+    const target = fxInput || (state.eqEnabled && eqInputNode ? eqInputNode : outputDestination());
     try { mainGainNode.connect(target); } catch {}
   }
 
@@ -1808,7 +1927,7 @@
     return { input, output };
   }
 
-  function connectOfflineFxChain(context, source, destination, settings) {
+  function connectOfflineFxChain(context, source, destination, settings, oscillators) {
     let node = source;
     const fx = settings.fx;
     if (fx.distortionEnabled) {
@@ -1835,6 +1954,7 @@
       lfo.connect(lfoGain);
       lfoGain.connect(delay.delayTime);
       lfo.start(0);
+      if (oscillators) oscillators.push(lfo);
       const stage = makeFxStage(context, delay, delay, fx.chorusMix);
       node.connect(stage.input);
       node = stage.output;
@@ -1851,6 +1971,7 @@
       lfo.connect(lfoGain);
       lfoGain.connect(delay.delayTime);
       lfo.start(0);
+      if (oscillators) oscillators.push(lfo);
       const stage = makeFxStage(context, delay, delay, fx.flangerMix);
       node.connect(stage.input);
       node = stage.output;
@@ -1879,6 +2000,73 @@
       node = stage.output;
     }
     node.connect(destination);
+  }
+
+  /* Live preview: the same chain runs in the realtime context while knobs
+   * move. Once the idle timer fires, renderTrackToWav() bakes an identical
+   * static copy and playback switches to it, so there is no permanent LFO or
+   * convolution load during steady playback. */
+  function liveFxActive() {
+    return !!state.current && anyFxEnabled() && !isTrackRendered(state.current);
+  }
+
+  function stopLiveFxOscillators() {
+    liveFxOscillators.forEach((osc) => { try { osc.stop(); } catch {} });
+    liveFxOscillators = [];
+  }
+
+  function stopLiveFx() {
+    stopLiveFxOscillators();
+    if (liveFxInputNode) { try { liveFxInputNode.disconnect(); } catch {} }
+    if (liveFxOutputNode) { try { liveFxOutputNode.disconnect(); } catch {} }
+    liveFxSignature = "";
+  }
+
+  function normalizeBakeDelay(value) {
+    const n = Number(value);
+    return Number.isFinite(n)
+      ? Math.min(FX_BAKE_DELAY_MAX_MS, Math.max(FX_BAKE_DELAY_MIN_MS, Math.round(n)))
+      : DEFAULT_FX_BAKE_DELAY_MS;
+  }
+
+  function bakeDelayMs() {
+    return normalizeBakeDelay(state.fxBakeDelayMs);
+  }
+
+  function wireLiveFxOutput() {
+    if (!liveFxOutputNode) return;
+    try { liveFxOutputNode.disconnect(); } catch {}
+    const target = state.eqEnabled && eqInputNode ? eqInputNode : outputDestination();
+    try { liveFxOutputNode.connect(target); } catch {}
+  }
+
+  function ensureLiveFx() {
+    const context = sharedAudioContext();
+    if (!context || !anyFxEnabled()) { stopLiveFx(); return null; }
+    if (!liveFxInputNode) liveFxInputNode = context.createGain();
+    if (!liveFxOutputNode) liveFxOutputNode = context.createGain();
+    const signature = fxSettingsKey();
+    if (liveFxSignature !== signature) {
+      stopLiveFxOscillators();
+      // Replace the whole graph, not just its endpoints: a delay or convolver
+      // tail from the previous settings would otherwise stay connected to a
+      // reused output node and bleed into the new preview.
+      if (liveFxInputNode) { try { liveFxInputNode.disconnect(); } catch {} }
+      if (liveFxOutputNode) { try { liveFxOutputNode.disconnect(); } catch {} }
+      liveFxInputNode = context.createGain();
+      liveFxOutputNode = context.createGain();
+      connectOfflineFxChain(context, liveFxInputNode, liveFxOutputNode, fxSnapshot(), liveFxOscillators);
+      liveFxSignature = signature;
+    }
+    wireLiveFxOutput();
+    return liveFxInputNode;
+  }
+
+  function syncLiveFx() {
+    if (!audioContext) return;
+    if (liveFxActive()) ensureLiveFx();
+    else stopLiveFx();
+    connectMainOutput();
   }
 
   // 16-bit PCM WAV: every browser accepts it, and the blob is kept only for
@@ -1917,6 +2105,153 @@
       }
     }
     return new Blob([view.buffer], { type: "audio/wav" });
+  }
+
+  // Minimal FLAC encoder: verbatim 16-bit subframes. It is not the smallest
+  // FLAC file, but it is dependency-free, lossless and accepted by browsers
+  // and media players. Frame headers use 16-bit block size / sample rate so
+  // arbitrary track lengths and sample rates work.
+  function flacCrc8(bytes) {
+    let crc = 0;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let i = 0; i < 8; i++) crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) & 0xff : (crc << 1) & 0xff;
+    }
+    return crc;
+  }
+
+  function flacCrc16(bytes) {
+    let crc = 0;
+    for (const byte of bytes) {
+      crc ^= byte << 8;
+      for (let i = 0; i < 8; i++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x8005) & 0xffff : (crc << 1) & 0xffff;
+    }
+    return crc;
+  }
+
+  function flacFrameNumberBytes(value) {
+    if (value < 0x80) return [value];
+    if (value < 0x800) return [0xc0 | (value >> 6), 0x80 | (value & 0x3f)];
+    if (value < 0x10000) return [0xe0 | (value >> 12), 0x80 | ((value >> 6) & 0x3f), 0x80 | (value & 0x3f)];
+    if (value < 0x200000) return [0xf0 | (value >> 18), 0x80 | ((value >> 12) & 0x3f), 0x80 | ((value >> 6) & 0x3f), 0x80 | (value & 0x3f)];
+    return [0xf8 | (value >> 24), 0x80 | ((value >> 18) & 0x3f), 0x80 | ((value >> 12) & 0x3f), 0x80 | ((value >> 6) & 0x3f), 0x80 | (value & 0x3f)];
+  }
+
+  function encodeFlac(buffer) {
+    const channels = Math.min(2, buffer.numberOfChannels);
+    const sampleRate = Math.max(1, Math.round(buffer.sampleRate));
+    const blockSize = 4096;
+    const data = [];
+    for (let c = 0; c < channels; c++) data.push(buffer.getChannelData(c));
+
+    const frames = [];
+    let frameNumber = 0;
+    for (let start = 0; start < buffer.length; start += blockSize) {
+      const count = Math.min(blockSize, buffer.length - start);
+      const header = [
+        0xff, 0xfc,             // 14-bit sync, reserved 0, fixed block size
+        0x7d,                   // block size / sample rate read from 16-bit fields
+        channels === 2 ? 0x18 : 0x08, // channel assignment, 16-bit samples
+      ];
+      header.push(...flacFrameNumberBytes(frameNumber));
+      header.push(((count - 1) >> 8) & 0xff, (count - 1) & 0xff);
+      header.push((sampleRate >> 8) & 0xff, sampleRate & 0xff);
+      header.push(flacCrc8(header));
+
+      const frame = header.slice();
+      for (let c = 0; c < channels; c++) {
+        frame.push(0x01); // verbatim subframe
+        const channel = data[c];
+        for (let i = 0; i < count; i++) {
+          const sample = clamp(channel[start + i] || 0, -1, 1);
+          const value = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+          frame.push((value >> 8) & 0xff, value & 0xff);
+        }
+      }
+      const crc = flacCrc16(frame);
+      frame.push((crc >> 8) & 0xff, crc & 0xff);
+      frames.push(new Uint8Array(frame));
+      frameNumber += count;
+    }
+
+    // STREAMINFO: 20-bit rate, 3-bit channels-1, 5-bit bits-1, 36-bit length,
+    // then the (optional for most decoders) all-zero MD5.
+    const infoBytes = new Uint8Array(34);
+    const info = new DataView(infoBytes.buffer);
+    info.setUint16(0, blockSize);
+    info.setUint16(2, blockSize);
+    let bit = 0;
+    const writeBits = (value, count) => {
+      for (let i = count - 1; i >= 0; i--) {
+        if (Math.floor(value / (2 ** i)) % 2) {
+          const index = 10 + Math.floor(bit / 8);
+          info.setUint8(index, info.getUint8(index) | (1 << (7 - (bit % 8))));
+        }
+        bit++;
+      }
+    };
+    writeBits(sampleRate, 20);
+    writeBits(channels - 1, 3);
+    writeBits(15, 5);
+    writeBits(buffer.length, 36);
+
+    return new Blob([
+      new Uint8Array([0x66, 0x4c, 0x61, 0x43]), // fLaC
+      new Uint8Array([0x80, 0x00, 0x00, 0x22]), // last metadata block, STREAMINFO, 34 bytes
+      infoBytes,
+      ...frames,
+    ], { type: "audio/flac" });
+  }
+
+  const RECORDER_MIMES = {
+    mp3: ["audio/mpeg", "audio/webm;codecs=mp3"],
+    opus: ["audio/ogg;codecs=opus", "audio/opus", "audio/webm;codecs=opus"],
+    ogg: ["audio/ogg;codecs=opus", "audio/ogg;codecs=vorbis", "audio/ogg"],
+  };
+
+  function recorderMime(format) {
+    const candidates = RECORDER_MIMES[format] || [];
+    if (!window.MediaRecorder || typeof window.MediaRecorder.isTypeSupported !== "function") return "";
+    return candidates.find((mime) => window.MediaRecorder.isTypeSupported(mime)) || "";
+  }
+
+  // MP3/Opus/Ogg have no dependency-free encoder here. Where the browser has
+  // MediaRecorder support, render the decoded buffer into a media stream in
+  // real time and capture it in the requested container.
+  function encodeWithMediaRecorder(buffer, format) {
+    const mimeType = recorderMime(format);
+    if (!mimeType) throw new Error("unsupported format");
+    const context = getDecodeContext();
+    if (!context || !context.createMediaStreamDestination) throw new Error("no recording context");
+    const destination = context.createMediaStreamDestination();
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(destination);
+    const chunks = [];
+    const recorder = new window.MediaRecorder(destination.stream, { mimeType, audioBitsPerSecond: 192000 });
+    const done = new Promise((resolve, reject) => {
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data && event.data.size) chunks.push(event.data);
+      });
+      recorder.addEventListener("error", (event) => reject(event.error || new Error("recording failed")), { once: true });
+      recorder.addEventListener("stop", () => resolve(new Blob(chunks, { type: mimeType })), { once: true });
+    });
+    if (context.state === "suspended") context.resume().catch(() => {});
+    recorder.start();
+    source.addEventListener("ended", () => {
+      window.setTimeout(() => { if (recorder.state !== "inactive") recorder.stop(); }, 120);
+    }, { once: true });
+    source.start();
+    return done;
+  }
+
+  async function decodeUrlToBuffer(url) {
+    const context = getDecodeContext();
+    if (!context || !url) return null;
+    const response = await fetch(url, { cache: "force-cache", credentials: "same-origin" });
+    if (!response.ok) throw new Error(String(response.status));
+    const bytes = await response.arrayBuffer();
+    return await context.decodeAudioData(bytes.slice(0));
   }
 
   async function renderTrackToWav(url, settings) {
@@ -1982,26 +2317,60 @@
     return promise;
   }
 
+  function fxStatusText(active, failed) {
+    if (active) return pt("effectRendering");
+    if (failed) return pt("effectUnavailable");
+    const left = Math.max(0, Math.ceil((fxRenderDeadline - Date.now()) / 1000));
+    if (fxRenderDeadline && left > 0) return pt("effectCountdown", { s: left });
+    if (isTrackRendered(state.current)) return pt("effectReady");
+    return pt("effectLive", { s: Math.ceil(bakeDelayMs() / 1000) });
+  }
+
   function setFxRendering(active, failed = false) {
+    if (!active) fxRenderFailed = !!failed;
     const enabled = anyFxEnabled();
     document.querySelectorAll("[data-fx-status]").forEach((el) => {
       // Keep the warning visible after a failed render: the checkbox is on,
       // but the audible source is deliberately still the untouched original.
-      el.hidden = !active && (!enabled || !failed);
-      el.textContent = active ? pt("effectRendering") : failed ? pt("effectUnavailable") : pt("effectReady");
+      el.hidden = !active && !enabled && !fxRenderFailed;
+      el.textContent = fxStatusText(active, failed);
       el.classList.toggle("is-active", !!active);
       el.classList.toggle("is-unavailable", !active && !!failed);
     });
   }
 
-  // One render per settled settings change. The original file keeps playing
-  // until the new WAV is ready, then the track is reloaded at the same position.
+  function startFxCountdown() {
+    if (fxStatusTick) return;
+    fxStatusTick = window.setInterval(() => {
+      if (fxRenderDeadline && fxRenderDeadline <= Date.now()) {
+        stopFxCountdown();
+        return;
+      }
+      setFxRendering(false, fxRenderFailed);
+    }, 500);
+  }
+
+  function stopFxCountdown() {
+    if (!fxStatusTick) return;
+    window.clearInterval(fxStatusTick);
+    fxStatusTick = 0;
+  }
+
+  // One render per settled settings change. The original file plays through
+  // the live effect chain meanwhile; the WAV only replaces it when ready.
   function requestFxRender() {
     if (fxRenderTimer) window.clearTimeout(fxRenderTimer);
     fxRenderToken++;
     const token = fxRenderToken;
+    const delay = bakeDelayMs();
+    fxRenderDeadline = Date.now() + delay;
+    fxRenderFailed = false;
+    setFxRendering(false, false);
+    startFxCountdown();
     fxRenderTimer = window.setTimeout(async () => {
       fxRenderTimer = 0;
+      fxRenderDeadline = 0;
+      stopFxCountdown();
       const track = state.current;
       if (!track) { setFxRendering(false); return; }
       const wasPlaying = !audio.paused;
@@ -2011,16 +2380,32 @@
       if (token !== fxRenderToken || state.current !== track) return;
       setFxRendering(false, !baked);
       loadCurrent({ autoplay: wasPlaying, startTime: position, fadeIn: false });
-    }, FX_RENDER_DEBOUNCE_MS);
+    }, delay);
   }
 
   function applyFxState() {
-    // No live nodes are touched here. The UI and the baked file are both
-    // derived from the same persisted state, so they cannot disagree.
     syncFxVisual();
-    if (!anyFxEnabled()) setFxRendering(false);
+    // Slider movement is heard immediately; baking happens after the idle
+    // delay. Both paths read the same persisted state.
+    syncLiveFx();
+    if (!anyFxEnabled()) {
+      fxRenderDeadline = 0;
+      stopFxCountdown();
+      setFxRendering(false, false);
+    }
     // loadCurrent() already waits for the first render during restore.
     if (!restoring) requestFxRender();
+  }
+
+  function applyBakeDelay(raw) {
+    state.fxBakeDelayMs = normalizeBakeDelay(raw);
+    // Re-arm an already pending bake so the visible countdown matches the
+    // newly chosen idle time.
+    if (fxRenderTimer) requestFxRender();
+    else setFxRendering(false, fxRenderFailed);
+    syncSettingsUI();
+    saveState();
+    notify("settings");
   }
 
   function setFxEnabled(kind, enabled) {
@@ -3175,6 +3560,9 @@
       }
 
       const url = playableUrl(track);
+      // A baked blob already contains the effects; the live preview must be
+      // bypassed, but the original file still needs it while a render is due.
+      syncLiveFx();
       destroyWaveforms();
       if (!start && state.skipIntro) prepareIntro(url);
       else {
@@ -3205,7 +3593,7 @@
     // later switches reuse the cached blob with no delay.
     setLoading(true, 10);
     return ensureRenderedTrack(track).then((baked) => {
-      if (!baked) setFxRendering(false, true);
+      setFxRendering(false, !baked);
       return apply();
     }, () => {
       setFxRendering(false, true);
@@ -3588,6 +3976,11 @@
   </div>
   <h3 class="settings-section-title fx-intro" data-player-i18n="effects">${pt("effects")}</h3>
   <p class="player-settings-hint fx-intro" data-player-i18n="effectsHint">${pt("effectsHint")}</p>
+  <div class="settings-field fx-bake-setting fx-intro" data-fx-bake-setting>
+    <span class="settings-label" data-player-i18n="fxBakeDelay">${pt("fxBakeDelay")}</span>
+    <input class="fx-range" id="playerFxBakeDelay" type="range" min="${FX_BAKE_DELAY_MIN_MS}" max="${FX_BAKE_DELAY_MAX_MS}" step="1000" data-player-setting="fxBakeDelayMs">
+    <p class="player-settings-hint" data-player-i18n="fxBakeDelayHint">${pt("fxBakeDelayHint")}</p>
+  </div>
   <div class="fx-setting" data-fx-setting="distortion">
     <div class="fx-head">
       <label class="eq-toggle"><input type="checkbox" data-player-setting="distortionEnabled"><span data-player-i18n="distortionEnable">${pt("distortionEnable")}</span></label>
@@ -3657,7 +4050,24 @@
     </div>
     <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasDelayHint">${pt("fxCanvasDelayHint")}</p>
   </div>
-  <h3 class="settings-section-title eq-intro" data-player-i18n="equalizer">${pt("equalizer")}</h3>
+  <h3 class="settings-section-title remix-intro" data-player-i18n="remixSection">${pt("remixSection")}</h3>
+  <div class="settings-field remix-setting remix-intro" data-remix-setting>
+    <p class="player-settings-hint" data-player-i18n="remixHint">${pt("remixHint")}</p>
+    <div class="remix-actions">
+      <button type="button" class="player-queue-text-btn" data-remix-action="create" data-player-i18n="createRemix">${pt("createRemix")}</button>
+      <button type="button" class="player-queue-text-btn" data-remix-action="save" data-player-i18n="saveRemix">${pt("saveRemix")}</button>
+      <button type="button" class="player-queue-text-btn" data-remix-action="load" data-player-i18n="loadRemix">${pt("loadRemix")}</button>
+    </div>
+    <label class="settings-label remix-format-label">
+      <span data-player-i18n="remixFormat">${pt("remixFormat")}</span>
+      <select class="settings-select" data-player-setting="remixFormat">
+        ${REMIX_FORMATS.map((fmt) => `<option value="${fmt}">${fmt.toUpperCase()}</option>`).join("")}
+      </select>
+    </label>
+    <p class="remix-message" data-remix-message role="status" aria-live="polite"></p>
+    <input class="visually-hidden" type="file" data-remix-file accept=".wav,.flac,.mp3,.opus,.ogg,audio/*" aria-label="${pt("loadRemix")}">
+  </div>
+  <h3 class="settings-section-title eq-intro eq-section-title" data-player-i18n="equalizer">${pt("equalizer")}</h3>
   <div class="settings-field eq-setting" data-eq-setting>
     <div class="eq-setting-head">
       <label class="eq-toggle"><input type="checkbox" data-player-setting="eqEnabled"><span data-player-i18n="eqEnable">${pt("eqEnable")}</span></label>
@@ -3675,7 +4085,17 @@
   </div>
   <div class="settings-field limiter-setting" data-limiter-setting>
     <label class="eq-toggle limiter-toggle"><input type="checkbox" data-player-setting="limiterEnabled"><span data-player-i18n="limiter">${pt("limiter")}</span></label>
+    <label class="settings-label limiter-mode-label">
+      <span data-player-i18n="limiterMode">${pt("limiterMode")}</span>
+      <select class="settings-select" data-player-setting="limiterMode">
+        <option value="dbfs" data-player-i18n="limiterDbfs">${pt("limiterDbfs")}</option>
+        <option value="truepeak" data-player-i18n="limiterTruePeak">${pt("limiterTruePeak")}</option>
+        <option value="softclip" data-player-i18n="limiterSoftClip">${pt("limiterSoftClip")}</option>
+        <option value="hardclip" data-player-i18n="limiterHardClip">${pt("limiterHardClip")}</option>
+      </select>
+    </label>
     <p class="player-settings-hint" data-player-i18n="limiterHint">${pt("limiterHint")}</p>
+    <p class="player-settings-hint" data-player-i18n="limiterModeHint">${pt("limiterModeHint")}</p>
     <div class="limiter-meter" data-limiter-meter>
       <div class="limiter-meter-head">
         <span class="settings-label" data-player-i18n="limiterMeter">${pt("limiterMeter")}</span>
@@ -3695,6 +4115,7 @@
     document.querySelectorAll("[data-player-settings-mount]").forEach((mount) => {
       if (!mount.querySelector("[data-player-setting]")) mount.innerHTML = settingsFormHtml();
     });
+    syncProgramLockUi();
     syncSettingsUI();
   }
 
@@ -3706,7 +4127,7 @@
     return `${seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(1)} ${pt("s")}`;
   }
 
-  const fadeDrag = { type: null, pointerId: null };
+  const fadeDrag = { type: null, pointerId: null, offsetIn: 0, offsetOut: 0 };
 
   function drawFadeEnvelope() {
     document.querySelectorAll("#playerFadeCanvas").forEach((canvas) => {
@@ -3819,25 +4240,39 @@
         if (Math.min(inDist, outDist) > 28) return inDist <= outDist ? "in" : "out";
         return inDist <= outDist ? "in" : "out";
       };
-      const msForType = (type, ev) => {
+      const rawForType = (type, ev) => {
         const ms = toMs(ev);
         return type === "out" ? CROSSFADE_MAX_MS - ms : ms;
       };
-      canvas.addEventListener("pointerdown", (ev) => {
-        if (!state.crossfade) return;
-        fadeDrag.type = pick(ev); fadeDrag.pointerId = ev.pointerId;
-        canvas.setPointerCapture?.(ev.pointerId);
-        const ms = msForType(fadeDrag.type, ev);
+      const applyDrag = (ev) => {
+        const raw = rawForType(fadeDrag.type, ev);
+        const offset = fadeDrag.type === "in" ? fadeDrag.offsetIn : fadeDrag.offsetOut;
+        const ms = clamp(raw + offset, 0, CROSSFADE_MAX_MS);
         if (fadeDrag.type === "in") state.fadeInMs = ms; else state.fadeOutMs = ms;
         syncFadeVisual(); syncSettingsUI(); saveState(); notify("settings");
+      };
+      canvas.addEventListener("pointerdown", (ev) => {
+        if (!state.crossfade) return;
+        fadeDrag.type = pick(ev);
+        fadeDrag.pointerId = ev.pointerId;
+        // Keep the grab point on the handle. Without this offset a click
+        // anywhere on the canvas snapped the chosen point to the cursor.
+        const raw = rawForType(fadeDrag.type, ev);
+        fadeDrag.offsetIn = fadeDrag.type === "in" ? clamp(state.fadeInMs, 0, CROSSFADE_MAX_MS) - raw : 0;
+        fadeDrag.offsetOut = fadeDrag.type === "out" ? clamp(state.fadeOutMs, 0, CROSSFADE_MAX_MS) - raw : 0;
+        canvas.setPointerCapture?.(ev.pointerId);
+        applyDrag(ev);
       });
       canvas.addEventListener("pointermove", (ev) => {
         if (fadeDrag.pointerId !== ev.pointerId || !fadeDrag.type) return;
-        const ms = msForType(fadeDrag.type, ev);
-        if (fadeDrag.type === "in") state.fadeInMs = ms; else state.fadeOutMs = ms;
-        syncFadeVisual(); syncSettingsUI(); saveState(); notify("settings");
+        applyDrag(ev);
       });
-      const end = (ev) => { if (fadeDrag.pointerId !== ev.pointerId) return; fadeDrag.type = null; fadeDrag.pointerId = null; drawFadeEnvelope(); };
+      const end = (ev) => {
+        if (fadeDrag.pointerId !== ev.pointerId) return;
+        fadeDrag.type = null; fadeDrag.pointerId = null;
+        fadeDrag.offsetIn = 0; fadeDrag.offsetOut = 0;
+        drawFadeEnvelope();
+      };
       canvas.addEventListener("pointerup", end);
       canvas.addEventListener("pointercancel", end);
     });
@@ -4426,10 +4861,12 @@
   function syncSettingsUI() {
     document.querySelectorAll("[data-player-setting]").forEach((input) => {
       const key = input.dataset.playerSetting;
-      if (key === "engine" || key === "format" || key === "playbackMode" || key === "pitchMode") {
+      if (key === "engine" || key === "format" || key === "playbackMode" || key === "pitchMode"
+        || key === "limiterMode" || key === "remixFormat") {
         if (input instanceof HTMLSelectElement) input.value = String(state[key]);
         else input.checked = String(input.value) === String(state[key]);
       }
+      else if (key === "fxBakeDelayMs") input.value = String(bakeDelayMs());
       else if (key === "playbackRate") input.value = String(clampPlaybackRate(state.playbackRate));
       else if (key === "fadeOutMs") input.value = String(state.fadeOutMs);
       else if (key === "fadeInMs") input.value = String(state.fadeInMs);
@@ -4480,13 +4917,13 @@
     }, 260);
   }
 
-  /* ---------- remix save / load ---------- */
+  /* ---------- remix create / save / load ---------- */
 
   function showRemixMessage(message) {
-    document.querySelectorAll("#playerRemixMessage").forEach((el) => { el.textContent = message || ""; });
+    document.querySelectorAll("[data-remix-message]").forEach((el) => { el.textContent = message || ""; });
     if (remixMessageTimer) window.clearTimeout(remixMessageTimer);
     remixMessageTimer = window.setTimeout(() => {
-      document.querySelectorAll("#playerRemixMessage").forEach((el) => { el.textContent = ""; });
+      document.querySelectorAll("[data-remix-message]").forEach((el) => { el.textContent = ""; });
       remixMessageTimer = 0;
     }, 5000);
   }
@@ -4496,28 +4933,76 @@
     loadedRemixUrl = url || "";
   }
 
-  function remixDownloadName() {
+  function remixBaseName() {
     const source = sourceTrackPath(state.current) || "remix";
-    const baked = String(resolveTrackPath(state.current)).startsWith("blob:");
-    const base = String(state.current?.title || source).replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]+/g, "_");
-    const ext = baked ? "wav" : (String(source).match(/\.([^.]+)$/)?.[1] || "wav").toLowerCase();
-    return `${base || "track"}-remix.${ext}`;
+    return String(state.current?.title || source)
+      .replace(/\.[^.]+$/, "")
+      .replace(/[\\/:*?"<>|]+/g, "_") || "track";
   }
 
-  async function saveRemix() {
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function bakeRemixNow() {
     if (!state.current) { showRemixMessage(pt("remixNoTrack")); return; }
+    if (!anyFxEnabled()) { showRemixMessage(pt("remixNoFx")); return; }
+    if (fxRenderTimer) window.clearTimeout(fxRenderTimer);
+    fxRenderTimer = 0;
+    fxRenderDeadline = 0;
+    stopFxCountdown();
+    fxRenderToken++;
+    const token = fxRenderToken;
+    const track = state.current;
+    const wasPlaying = !audio.paused;
+    const position = audio.currentTime || 0;
+    setFxRendering(true);
+    const baked = await ensureRenderedTrack(track);
+    if (token !== fxRenderToken || state.current !== track) return;
+    setFxRendering(false, !baked);
+    if (!baked) { showRemixMessage(pt("remixError")); return; }
+    loadCurrent({ autoplay: wasPlaying, startTime: position, fadeIn: false });
+    showRemixMessage(pt("remixCreated"));
+  }
+
+  function remixExtension(blob, format) {
+    const mime = String(blob.type || "");
+    if (format === "ogg" || mime.includes("ogg")) return "ogg";
+    if (format === "mp3" || mime.includes("mpeg")) return "mp3";
+    if (mime.includes("webm")) return "webm";
+    return format === "opus" ? "opus" : format;
+  }
+
+  async function saveRemix(format) {
+    if (!state.current) { showRemixMessage(pt("remixNoTrack")); return; }
+    const fmt = REMIX_FORMATS.includes(format) ? format
+      : (REMIX_FORMATS.includes(state.remixFormat) ? state.remixFormat : "wav");
     try {
-      const response = await fetch(playableUrl(state.current));
-      if (!response.ok) throw new Error(String(response.status));
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = remixDownloadName();
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+      if (fmt !== "wav" && fmt !== "flac" && !recorderMime(fmt)) {
+        showRemixMessage(pt("remixUnsupported", { format: fmt.toUpperCase() }));
+        return;
+      }
+      const track = state.current;
+      let url = sourceUrl(track);
+      if (anyFxEnabled()) {
+        const baked = await ensureRenderedTrack(track);
+        if (!baked) throw new Error("render failed");
+        url = resolveTrackPath(track);
+      }
+      showRemixMessage(pt("remixEncoding", { format: fmt.toUpperCase() }));
+      const buffer = await decodeUrlToBuffer(url);
+      if (!buffer) throw new Error("decode failed");
+      const blob = fmt === "wav" ? encodeWav(buffer)
+        : fmt === "flac" ? encodeFlac(buffer)
+          : await encodeWithMediaRecorder(buffer, fmt);
+      downloadBlob(blob, `${remixBaseName()}-remix.${remixExtension(blob, fmt)}`);
       showRemixMessage(pt("remixSaved"));
     } catch {
       showRemixMessage(pt("remixError"));
@@ -4609,11 +5094,28 @@
     settingsPanel.hidden ? openSettings() : closeSettings();
   });
   $("playerSettingsClose").addEventListener("click", closeSettings);
-  $("playerRemixSave")?.addEventListener("click", saveRemix);
-  $("playerRemixLoad")?.addEventListener("click", () => $("playerRemixFile")?.click());
-  $("playerRemixFile")?.addEventListener("change", (ev) => {
-    loadRemixFile(ev.target.files?.[0]);
-    ev.target.value = "";
+  document.addEventListener("click", (ev) => {
+    const target = ev.target instanceof Element ? ev.target : null;
+    const button = target?.closest("[data-remix-action]");
+    if (!button) return;
+    const action = button.dataset.remixAction;
+    if (action === "create") { bakeRemixNow(); return; }
+    if (action === "save") {
+      const format = button.closest("[data-player-settings-mount]")
+        ?.querySelector("[data-player-setting='remixFormat']")?.value || state.remixFormat;
+      saveRemix(format);
+      return;
+    }
+    if (action === "load") {
+      button.closest("[data-player-settings-mount]")
+        ?.querySelector("[data-remix-file]")?.click();
+    }
+  });
+  document.addEventListener("change", (ev) => {
+    const input = ev.target instanceof Element ? ev.target.closest("[data-remix-file]") : null;
+    if (!input || !(input instanceof HTMLInputElement)) return;
+    loadRemixFile(input.files?.[0]);
+    input.value = "";
   });
   queueToggle?.addEventListener("click", toggleQueue);
   $("playerQueueClose")?.addEventListener("click", closeQueue);
@@ -4697,6 +5199,14 @@
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
     else if (key === "eqEnabled") setEqEnabled(input.checked);
     else if (FX_KINDS.some((kind) => key === `${kind}Enabled`)) setFxEnabled(key.replace(/Enabled$/, ""), input.checked);
+    else if (key === "limiterMode") setLimiterMode(input.value);
+    else if (key === "fxBakeDelayMs") applyBakeDelay(input.value);
+    else if (key === "remixFormat" && REMIX_FORMATS.includes(input.value)) {
+      state.remixFormat = input.value;
+      syncSettingsUI();
+      saveState();
+      notify("settings");
+    }
     else if (key === "limiterEnabled") {
       state.limiterEnabled = !!input.checked;
       limiterEnabled = state.limiterEnabled;
@@ -4736,6 +5246,7 @@
     const key = input.dataset.playerSetting;
     if (key === "fadeOutMs" || key === "fadeInMs") applyFadeSetting(key, input.value);
     else if (key === "silenceDb" || key === "introMaxSec") applyIntroSetting(key, input.value);
+    else if (key === "fxBakeDelayMs") applyBakeDelay(input.value);
     else if (key === "playbackRate") setPlaybackRate(input.value);
     else if (FX_RANGES[key]) applyFxSetting(key, input.value);
   });
@@ -4894,6 +5405,9 @@
 
     state.eqEnabled = saved.eqEnabled === true;
     state.limiterEnabled = saved.limiterEnabled !== false;
+    state.limiterMode = LIMITER_MODES.includes(saved.limiterMode) ? saved.limiterMode : "dbfs";
+    state.fxBakeDelayMs = normalizeBakeDelay(saved.fxBakeDelayMs);
+    state.remixFormat = REMIX_FORMATS.includes(saved.remixFormat) ? saved.remixFormat : "wav";
     limiterEnabled = state.limiterEnabled;
     FX_KINDS.forEach((kind) => { state[`${kind}Enabled`] = saved[`${kind}Enabled`] === true; });
     Object.keys(FX_RANGES).forEach((key) => {
@@ -4926,6 +5440,9 @@
     mountSettings();
     applyPlaybackRate();
     ensureMasterOutput();
+    // A shared link can change the limiter mode after the context already
+    // exists; drop the old graph so the restored mode is the audible one.
+    if (audioContext) rebuildLimiter();
     ensureMainGain();
     if (state.eqEnabled) ensureEqChain();
     applyEqState();

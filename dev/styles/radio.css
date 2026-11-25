@@ -116,6 +116,17 @@
   gap: 10px;
 }
 .radio-schedule-head { margin: 0; font-size: var(--fs-sm); }
+.radio-schedule-nav {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.radio-nav-btn {
+  min-height: 30px;
+  flex: 1 1 0;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
+}
 .radio-program-meta {
   color: var(--muted);
   font-size: var(--fs-xs);
@@ -127,6 +138,7 @@
   font-size: var(--fs-xs);
 }
 .radio-program {
+  position: relative;
   max-height: 360px;
   margin-top: 8px;
   overflow-y: auto;
@@ -150,6 +162,8 @@
   box-shadow: inset 3px 0 0 var(--text);
   opacity: 1;
 }
+.radio-program-item.is-block-start { border-top: 2px solid var(--border); }
+.radio-program-item.is-block-start .radio-program-time::after { content: " ●"; color: var(--muted); }
 .radio-program-time {
   color: var(--muted);
   font-size: var(--fs-xs);

@@ -148,39 +148,12 @@
 .player-waveform { flex: 1 1 auto; min-width: 0; height: clamp(64px, 7dvh, 110px); }
 .player-waveform canvas { display: block; width: 100%; height: 100%; }
 .player-waveform-stack .fx-render-status { text-align: center; }
-.player-remix-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 22px;
-  min-width: 0;
-}
-.player-remix-btn {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-elevated-2);
-  color: var(--muted);
-  font: inherit;
-  font-size: var(--fs-xs);
-  cursor: pointer;
-}
-.player-remix-btn:hover:not(:disabled),
-.player-remix-btn:focus-visible { color: var(--text); border-color: var(--text); }
-.player-remix-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.player-remix-message {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: var(--fs-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .player-bar.is-program-locked .player-prev,
 .player-bar.is-program-locked .player-next,
 .player-bar.is-program-locked .player-queue-toggle,
 .player-bar.is-program-locked .player-toggle,
 .player-bar.is-program-locked .player-progress { opacity: 0.4; cursor: not-allowed; }
+[data-remix-action]:disabled { opacity: 0.45; cursor: not-allowed; }
 /* Waviz draws into a canvas; keep it inside the shared waveform row. */
 .player-waveform .player-waviz-canvas { width: 100%; height: 100%; }
 /* Peaks.js draws its own layers and needs an explicit full-size surface. */
@@ -844,6 +817,26 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
 }
 .fx-render-status.is-active,
 .fx-render-status.is-unavailable { color: var(--text); }
+.fx-bake-setting { gap: 6px; }
+.remix-intro { grid-column: 1 / -1; }
+.remix-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.remix-format-label { display: flex; flex-direction: column; gap: 5px; max-width: 18rem; }
+.remix-message {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.eq-section-title {
+  padding-top: clamp(12px, 1.3vw, 20px);
+  border-top: 1px solid var(--border);
+}
+.limiter-mode-label { display: flex; flex-direction: column; gap: 5px; }
 
 /* Limiter meter */
 .limiter-toggle { margin-top: 8px; }

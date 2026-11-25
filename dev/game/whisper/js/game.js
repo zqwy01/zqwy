@@ -519,6 +519,7 @@
     $('calmValue').textContent = Math.round(S.calm);
     $('fearValue').textContent = Math.round(S.fear);
     $('attentionValue').textContent = Math.round(S.attention);
+    AUDIO.setMood(S.calm, S.fear);
 
     const svg = $('ushkoSvg');
     let mood = 'Ушко смотрит на тебя большими глазами.';
@@ -648,6 +649,7 @@
     const q = quality();
     const stars = win ? starsFor(q, S.maxFear) : 0;
     if (win) {
+      AUDIO.chime();
       const old = save.nights[S.night.id] || { stars: 0 };
       save.nights[S.night.id] = {
         stars: Math.max(old.stars || 0, stars),

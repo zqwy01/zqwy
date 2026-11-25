@@ -247,8 +247,19 @@ button { cursor: pointer; }
 .ear-fluff { fill: #f7ead9; opacity: 0.85; }
 .cheek { fill: #ffb8b1; opacity: 0.55; transition: opacity 0.25s ease; }
 .eye-white { fill: #fffaf3; }
-.eye { fill: #35231f; transition: transform 0.2s ease; }
-.eye-shine { fill: #fff; opacity: 0.95; }
+.eye {
+  fill: #35231f;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+.eye-shine {
+  fill: #fff;
+  opacity: 0.95;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
 .eye-shine.small { opacity: 0.75; }
 .nose { fill: #d48984; }
 .mouth { fill: none; stroke: #8c5f57; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
@@ -280,18 +291,22 @@ button { cursor: pointer; }
 /* mood states */
 .ushko-svg.listening .ushko-body { animation: none; transform: translateY(-4px) scale(1.03); }
 .ushko-svg.listening .eye { transform: scaleY(0.72); }
+.ushko-svg.listening .eye-shine { transform: scaleY(0.72); }
 .ushko-svg.listening .ear-left { transform: rotate(-4deg); }
 .ushko-svg.listening .ear-right { transform: rotate(4deg); }
 .ushko-svg.calm .ushko-body { animation: none; transform: translateY(2px) rotate(-1deg); }
-.ushko-svg.calm .eye { transform: scaleY(0.18); }
+.ushko-svg.calm .eye { transform: scaleY(0.22); }
+.ushko-svg.calm .eye-shine { transform: scaleY(0.22); }
 .ushko-svg.calm .cheek { opacity: 0.75; }
 .ushko-svg.asleep .ushko-body { animation: none; transform: translateY(10px) scale(0.98); }
-.ushko-svg.asleep .eye { transform: scaleY(0.08); }
+.ushko-svg.asleep .eye { transform: scaleY(0.12); }
+.ushko-svg.asleep .eye-shine { transform: scaleY(0.12); }
 .ushko-svg.asleep .mouth { stroke-width: 2; }
 .ushko-svg.scared .ushko-body { animation: none; transform: translateY(-10px) scale(0.95); }
 .ushko-svg.scared .ear-left { transform: rotate(-24deg); }
 .ushko-svg.scared .ear-right { transform: rotate(24deg); }
-.ushko-svg.scared .eye { transform: scale(1.12); }
+.ushko-svg.scared .eye { transform: scale(1.08); }
+.ushko-svg.scared .eye-shine { transform: scale(1.08); }
 .ushko-svg.scared .cheek { opacity: 0.15; }
 .ushko-svg.scared .whiskers path { stroke: #c97a6b; }
 
@@ -633,6 +648,7 @@ button { cursor: pointer; }
   .ushko-body,
   .ear,
   .eye,
+  .eye-shine,
   .meter-fill,
   .whisper-btn,
   .whisperer,

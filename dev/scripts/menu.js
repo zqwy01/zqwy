@@ -20,6 +20,7 @@
   // load of /music/ still points at the site-wide /data/ folder.
   const SCRIPT_URL = document.currentScript?.src || new URL("./scripts/menu.js", document.baseURI).href;
   const BUILD_INFO_URL = new URL("../data/build-info.json", SCRIPT_URL).href;
+  const baseRelativeUrl = (path) => new URL(path, document.baseURI).href;
   const systemQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
 
   /* Site chrome is bilingual. Search data stays bilingual regardless of this
@@ -44,6 +45,10 @@
       radioOnAir: "В эфире", radioPaused: "Эфир на паузе", radioOffAir: "Эфир выключен",
       radioSchedule: "Программа дня", radioNow: "Сейчас", radioNextTrack: "Далее",
       radioProgramNav: "Навигация по программе", radioEarlier: "← Раньше", radioToLive: "К эфиру", radioLater: "Позже →",
+      radioSettings: "Настройки радио", radioSyncTip: "Если эфир ушёл вперёд или отстал по времени, синхронизируйте его вручную или настройте автоподстройку в «Настройках радио» ниже.",
+      radioSettingsHint: "Ручная синхронизация перематывает текущий трек к времени эфира. Автоподстройка работает только при большом отставании и не отматывает назад.",
+      radioSyncNow: "Синхронизировать время", radioAutoSync: "Автосинхронизация при отставании",
+      radioSyncThreshold: "Порог отставания", radioSyncInterval: "Минимальный интервал",
       radioLocked: "Плеер закреплён за эфиром",
       radioEmpty: "Нет доступных треков", radioUnavailable: "Каталог недоступен",
       notesHeading: "Заметки в формате markdown, собранные из src/notes/.",
@@ -71,6 +76,7 @@
       onPage: "На странице",
       indexUnavailable: "Индекс поиска недоступен (data/search-index.json).",
       build: "Версия сборки", buildNumber: "сборка", buildUnavailable: "недоступна",
+      updateNote: "Что нового",
       themePreview: "Предпросмотр темы — нажмите «Сохранить».",
       languagePreview: "Предпросмотр языка — нажмите «Сохранить».",
       saved: "Сохранено.", resetDone: "Сброшено.", enterQuery: "Введите запрос для поиска.",
@@ -94,6 +100,10 @@
       radioOnAir: "On air", radioPaused: "Broadcast paused", radioOffAir: "Broadcast off",
       radioSchedule: "Day program", radioNow: "Now", radioNextTrack: "Next",
       radioProgramNav: "Program navigation", radioEarlier: "← Earlier", radioToLive: "To live", radioLater: "Later →",
+      radioSettings: "Radio settings", radioSyncTip: "If the broadcast has drifted ahead or behind, sync it manually or adjust automatic resync in “Radio settings” below.",
+      radioSettingsHint: "Manual sync seeks the current track to the broadcast time. Automatic resync only reacts to a large lag and never seeks backwards.",
+      radioSyncNow: "Synchronize time", radioAutoSync: "Automatic resync on lag",
+      radioSyncThreshold: "Lag threshold", radioSyncInterval: "Minimum interval",
       radioLocked: "Player locked to the broadcast",
       radioEmpty: "No tracks available", radioUnavailable: "Catalog unavailable",
       notesHeading: "Markdown notes collected from src/notes/.",
@@ -121,6 +131,7 @@
       onPage: "On this page",
       indexUnavailable: "Search index unavailable (data/search-index.json).",
       build: "Build version", buildNumber: "build", buildUnavailable: "unavailable",
+      updateNote: "What's new",
       themePreview: "Theme preview — click “Save” to keep it.",
       languagePreview: "Language preview — click “Save” to keep it.",
       saved: "Saved.", resetDone: "Reset.", enterQuery: "Enter a query to search.",
@@ -1351,12 +1362,28 @@
     if (!element || !info) return;
     // The build counter is data, not text: keep the wording translated in the UI
     // instead of baking "сборка/build" into build-info.json.
+    element.textContent = "";
     const parts = [];
-    if (info.version) parts.push(`v${info.version}`);
-    if (info.build) parts.push(`${t("buildNumber")} ${info.build}`);
-    if (info.commit) parts.push(info.commit);
+    if (info.version) {
+      const versionLink = document.createElement("a");
+      versionLink.className = "settings-build-link";
+      const v = String(info.version);
+      const short = v.replace(/^(\d+\.\d+)\.0$/, "$1");
+      versionLink.href = baseRelativeUrl(`wiki/zqwy/updates-${short.replace(/\./g, "-")}.html`);
+      versionLink.textContent = `v${short}`;
+      versionLink.title = t("updateNote");
+      element.appendChild(versionLink);
+      parts.push(`v${short}`);
+    }
+    const tail = [];
+    if (info.build) tail.push(`${t("buildNumber")} ${info.build}`);
+    if (info.commit) tail.push(info.commit);
+    if (tail.length) {
+      element.appendChild(document.createTextNode(` · ${tail.join(" · ")}`));
+      parts.push(...tail);
+    }
     const label = parts.join(" · ") || info.label || "";
-    element.textContent = label || t("buildUnavailable");
+    if (!element.childNodes.length) element.textContent = label || t("buildUnavailable");
     const when = info.builtAt ? new Date(info.builtAt) : null;
     if (when && !Number.isNaN(when.getTime())) {
       element.title = `${label} · ${when.toLocaleString(language === "en" ? "en-GB" : "ru-RU", {

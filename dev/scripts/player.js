@@ -143,7 +143,8 @@
       limiterHint: "Ограничивает выход после эквалайзера в выбранном режиме.",
       limiterMeter: "Пик после лимитера",
       effects: "Эффекты",
-      effectsHint: "Цепочка: дисторшн → хорус → флейзер → дилей → реверб. Изменения слышны сразу через живую обработку; после паузы в настройках эффект запекается в звуковую волну. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      effectsHint: "Цепочка: дисторшн → сатурация → фейзер → тремоло → вибрато → ринг-модулятор → хорус → флейзер → дилей → реверб. Изменения слышны сразу через живую обработку; после паузы в настройках эффект запекается в звуковую волну. Холсты интерактивны: перетаскивайте их или используйте ползунки.",
+      fxDocs: "Подробное описание эффектов в заметках",
       fxBakeDelay: "Ожидание до запекания", fxBakeDelayHint: "Секунд бездействия после последнего изменения эффекта, прежде чем начать запекание.",
       effectRendering: "Запекаю эффекты в трек…", effectReady: "Эффекты запечены в звуковую волну",
       effectCountdown: "Живой эффект · запекание через {s} с",
@@ -152,6 +153,17 @@
       distortion: "Дисторшн", distortionEnable: "Включить дисторшн",
       distortionHint: "Нелинейное искажение с мягким фильтром тона после формы сигнала.",
       drive: "Степень", tone: "Тон", mix: "Смесь",
+      saturation: "Сатурация", saturationEnable: "Включить сатурацию",
+      saturationHint: "Мягкое аналоговое насыщение: тёплые гармоники и ламповый/ленточный характер без резкого перегруза.",
+      phaser: "Фейзер", phaserEnable: "Включить фейзер",
+      phaserHint: "Каскад allpass-фильтров с LFO создаёт круговое, пульсирующее сканирование спектра.",
+      tremolo: "Тремоло", tremoloEnable: "Включить тремоло",
+      tremoloHint: "Периодическое изменение громкости: пульсация амплитуды по скорости и глубине LFO.",
+      vibrato: "Вибрато", vibratoEnable: "Включить вибрато",
+      vibratoHint: "Периодическое изменение высоты тона через модуляцию небольшой задержки — дрожащий, колеблющийся звук.",
+      ringmod: "Ринг-модулятор", ringmodEnable: "Включить ринг-модулятор",
+      ringmodHint: "Перемножение сигнала и несущего генератора даёт металлические, диссонирующие тембры.",
+      rateHz: "Частота LFO", carrierFreq: "Частота несущей",
       chorus: "Хорус", chorusEnable: "Включить хорус",
       chorusHint: "Модуляция задержки создаёт эффект хора и ленточного вибрато.",
       rate: "Скорость LFO", depth: "Глубина",
@@ -164,6 +176,11 @@
       reverbHint: "Синтетическая impulse-характеристика с регулируемым временем затухания.",
       decay: "Затухание",
       fxCanvasDistortionHint: "Горизонталь — тон, вертикаль — степень искажения.",
+      fxCanvasSaturationHint: "Горизонталь — тон, вертикаль — мягкость насыщения.",
+      fxCanvasPhaserHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
+      fxCanvasTremoloHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
+      fxCanvasVibratoHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
+      fxCanvasRingmodHint: "Горизонталь — частота несущей, вертикаль — глубина.",
       fxCanvasChorusHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
       fxCanvasFlangerHint: "Горизонталь — скорость LFO, вертикаль — глубина.",
       fxCanvasDelayHint: "Горизонталь — время задержки, вертикаль — обратная связь.",
@@ -240,7 +257,8 @@
       limiterHint: "Limits the output after the equalizer using the selected mode.",
       limiterMeter: "Post-limiter peak",
       effects: "Effects",
-      effectsHint: "Chain: distortion → chorus → flanger → delay → reverb. Changes are audible immediately through live processing; after a pause the effect is baked into the waveform. The canvases are interactive: drag them or use the sliders.",
+      effectsHint: "Chain: distortion → saturation → phaser → tremolo → vibrato → ring modulator → chorus → flanger → delay → reverb. Changes are audible immediately through live processing; after a pause the effect is baked into the waveform. The canvases are interactive: drag them or use the sliders.",
+      fxDocs: "Detailed effect descriptions in the notes",
       fxBakeDelay: "Bake delay", fxBakeDelayHint: "Seconds of inactivity after the last effect change before baking starts.",
       effectRendering: "Baking effects into the track…", effectReady: "Effects baked into the waveform",
       effectCountdown: "Live effect · baking in {s} s",
@@ -249,6 +267,17 @@
       distortion: "Distortion", distortionEnable: "Enable distortion",
       distortionHint: "Non-linear shaping with a gentle tone filter after the waveshaper.",
       drive: "Drive", tone: "Tone", mix: "Mix",
+      saturation: "Saturation", saturationEnable: "Enable saturation",
+      saturationHint: "Warm analogue-style saturation: smooth harmonics and tape/tube character without harsh overdrive.",
+      phaser: "Phaser", phaserEnable: "Enable phaser",
+      phaserHint: "A cascade of allpass filters with an LFO creates a circular, sweeping spectrum.",
+      tremolo: "Tremolo", tremoloEnable: "Enable tremolo",
+      tremoloHint: "Regular amplitude modulation: pulsing volume controlled by LFO rate and depth.",
+      vibrato: "Vibrato", vibratoEnable: "Enable vibrato",
+      vibratoHint: "Regular pitch modulation through a small modulated delay — a wobbling, breathing tone.",
+      ringmod: "Ring modulator", ringmodEnable: "Enable ring modulator",
+      ringmodHint: "Multiplying the signal by a carrier oscillator produces metallic, dissonant timbres.",
+      rateHz: "LFO rate", carrierFreq: "Carrier frequency",
       chorus: "Chorus", chorusEnable: "Enable chorus",
       chorusHint: "Modulated delay creates a choir/tape vibrato texture.",
       rate: "LFO rate", depth: "Depth",
@@ -261,6 +290,11 @@
       reverbHint: "Synthetic impulse response with adjustable decay time.",
       decay: "Decay",
       fxCanvasDistortionHint: "Horizontal — tone, vertical — drive.",
+      fxCanvasSaturationHint: "Horizontal — tone, vertical — warmth.",
+      fxCanvasPhaserHint: "Horizontal — LFO rate, vertical — depth.",
+      fxCanvasTremoloHint: "Horizontal — LFO rate, vertical — depth.",
+      fxCanvasVibratoHint: "Horizontal — LFO rate, vertical — depth.",
+      fxCanvasRingmodHint: "Horizontal — carrier frequency, vertical — depth.",
       fxCanvasChorusHint: "Horizontal — LFO rate, vertical — depth.",
       fxCanvasFlangerHint: "Horizontal — LFO rate, vertical — depth.",
       fxCanvasDelayHint: "Horizontal — delay time, vertical — feedback.",
@@ -319,6 +353,17 @@
 
   const BAR_HTML = `
 <div class="player-bar" id="playerBar" hidden>
+  <div class="player-queue" id="playerQueuePanel" hidden role="dialog" aria-modal="true" aria-labelledby="playerQueueTitle">
+    <div class="player-queue-head">
+      <strong id="playerQueueTitle" data-player-i18n="queue">${pt("queue")}</strong>
+      <div class="player-queue-actions">
+        <button type="button" id="playerQueueClear" class="player-queue-text-btn" data-player-i18n="clearQueue">${pt("clearQueue")}</button>
+        <button class="player-btn player-queue-close" id="playerQueueClose" type="button" aria-label="${pt("closeQueue")}" data-player-i18n-aria-label="closeQueue">×</button>
+      </div>
+    </div>
+    <ol class="player-queue-list" id="playerQueueList"></ol>
+    <p class="player-queue-empty" id="playerQueueEmpty" data-player-i18n="queueEmpty">${pt("queueEmpty")}</p>
+  </div>
   <div class="player-inner">
     <div class="player-now">
       <div class="player-cover">
@@ -454,17 +499,7 @@
     <div class="player-settings-mount" data-player-settings-mount></div>
   </div>
 
-  <div class="player-queue" id="playerQueuePanel" hidden>
-    <div class="player-queue-head">
-      <strong data-player-i18n="queue">${pt("queue")}</strong>
-      <div class="player-queue-actions">
-        <button type="button" id="playerQueueClear" class="player-queue-text-btn" data-player-i18n="clearQueue">${pt("clearQueue")}</button>
-        <button class="player-btn player-queue-close" id="playerQueueClose" type="button" aria-label="${pt("closeQueue")}" data-player-i18n-aria-label="closeQueue">×</button>
-      </div>
-    </div>
-    <ol class="player-queue-list" id="playerQueueList"></ol>
-    <p class="player-queue-empty" id="playerQueueEmpty" data-player-i18n="queueEmpty">${pt("queueEmpty")}</p>
-  </div>
+
 
   <audio id="audio" preload="metadata"></audio>
   <!-- Warms the HTTP cache for the upcoming track. It never plays and never
@@ -486,14 +521,17 @@
   const waveform = $("playerWaveform");
   const volume = $("playerVolume");
   const settingsPanel = $("playerSettings");
-  // The settings dialog is a full-screen page. It cannot stay inside the
-  // player bar: `will-change: transform` on the bar would make `position: fixed`
-  // resolve against the bar instead of the viewport.
+  const queuePanel = $("playerQueuePanel");
+  // Both dialogs are full-screen pages. They cannot stay inside the player bar:
+  // `will-change: transform` on the bar would make `position: fixed` resolve
+  // against the bar instead of the viewport.
   if (settingsPanel && settingsPanel.parentElement !== document.body) {
     document.body.appendChild(settingsPanel);
   }
+  if (queuePanel && queuePanel.parentElement !== document.body) {
+    document.body.appendChild(queuePanel);
+  }
   const settingsToggle = $("playerSettingsToggle");
-  const queuePanel = $("playerQueuePanel");
   const queueToggle = $("playerQueueToggle");
   const engineUi = $("playerEngineUi");
 
@@ -530,6 +568,22 @@
     distortionDrive: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
     distortionTone: { min: 0, max: 1, step: 0.01, fallback: 0.55 },
     distortionMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    saturationDrive: { min: 0, max: 1, step: 0.01, fallback: 0.3 },
+    saturationTone: { min: 0, max: 1, step: 0.01, fallback: 0.7 },
+    saturationMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    phaserRate: { min: 0.05, max: 5, step: 0.05, fallback: 0.8 },
+    phaserDepth: { min: 0, max: 1, step: 0.01, fallback: 0.5 },
+    phaserFeedback: { min: 0, max: 0.85, step: 0.01, fallback: 0.2 },
+    phaserMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
+    tremoloRate: { min: 0.1, max: 12, step: 0.1, fallback: 4 },
+    tremoloDepth: { min: 0, max: 1, step: 0.01, fallback: 0.5 },
+    tremoloMix: { min: 0, max: 1, step: 0.01, fallback: 0.6 },
+    vibratoRate: { min: 0.1, max: 8, step: 0.05, fallback: 5 },
+    vibratoDepth: { min: 0, max: 1, step: 0.01, fallback: 0.2 },
+    vibratoMix: { min: 0, max: 1, step: 0.01, fallback: 0.5 },
+    ringmodFreq: { min: 20, max: 2000, step: 1, fallback: 440 },
+    ringmodDepth: { min: 0, max: 1, step: 0.01, fallback: 0.5 },
+    ringmodMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
     chorusRate: { min: 0.1, max: 5, step: 0.05, fallback: 0.8 },
     chorusDepth: { min: 0, max: 1, step: 0.01, fallback: 0.4 },
     chorusMix: { min: 0, max: 1, step: 0.01, fallback: 0.35 },
@@ -542,7 +596,11 @@
     reverbDecay: { min: 0.4, max: 4, step: 0.1, fallback: 2.2 },
     reverbMix: { min: 0, max: 1, step: 0.01, fallback: 0.3 },
   };
-  const FX_KINDS = ["distortion", "chorus", "flanger", "delay", "reverb"];
+  const FX_KINDS = [
+    "distortion", "saturation", "phaser", "tremolo", "vibrato", "ringmod",
+    "chorus", "flanger", "delay", "reverb",
+  ];
+  const FX_NOTES_URL = SITE_ROOT ? new URL("wiki/zqwy/music-effects.html", SITE_ROOT).href : "../wiki/zqwy/music-effects.html";
   const SHARE_KEYS = [
     "engine", "format", "autoNext", "rememberPosition", "crossfade",
     "fadeOutMs", "fadeInMs", "fadeOutEnabled", "fadeInEnabled",
@@ -587,6 +645,27 @@
     distortionDrive: FX_RANGES.distortionDrive.fallback,
     distortionTone: FX_RANGES.distortionTone.fallback,
     distortionMix: FX_RANGES.distortionMix.fallback,
+    saturationEnabled: false,
+    saturationDrive: FX_RANGES.saturationDrive.fallback,
+    saturationTone: FX_RANGES.saturationTone.fallback,
+    saturationMix: FX_RANGES.saturationMix.fallback,
+    phaserEnabled: false,
+    phaserRate: FX_RANGES.phaserRate.fallback,
+    phaserDepth: FX_RANGES.phaserDepth.fallback,
+    phaserFeedback: FX_RANGES.phaserFeedback.fallback,
+    phaserMix: FX_RANGES.phaserMix.fallback,
+    tremoloEnabled: false,
+    tremoloRate: FX_RANGES.tremoloRate.fallback,
+    tremoloDepth: FX_RANGES.tremoloDepth.fallback,
+    tremoloMix: FX_RANGES.tremoloMix.fallback,
+    vibratoEnabled: false,
+    vibratoRate: FX_RANGES.vibratoRate.fallback,
+    vibratoDepth: FX_RANGES.vibratoDepth.fallback,
+    vibratoMix: FX_RANGES.vibratoMix.fallback,
+    ringmodEnabled: false,
+    ringmodFreq: FX_RANGES.ringmodFreq.fallback,
+    ringmodDepth: FX_RANGES.ringmodDepth.fallback,
+    ringmodMix: FX_RANGES.ringmodMix.fallback,
     chorusEnabled: false,
     chorusRate: FX_RANGES.chorusRate.fallback,
     chorusDepth: FX_RANGES.chorusDepth.fallback,
@@ -1138,19 +1217,22 @@
     queuePanel.hidden = false;
     queueToggle?.setAttribute("aria-expanded", "true");
     renderQueue();
+    document.body.classList.add("player-queue-open");
     void queuePanel.offsetWidth;
     queuePanel.classList.add("is-open");
+    $("playerQueueClose")?.focus({ preventScroll: true });
   }
 
   function closeQueue() {
     if (!queuePanel || queuePanel.hidden) return;
     queueToggle?.setAttribute("aria-expanded", "false");
     queuePanel.classList.remove("is-open");
+    document.body.classList.remove("player-queue-open");
     if (queueTimer) window.clearTimeout(queueTimer);
     queueTimer = window.setTimeout(() => {
       if (!queuePanel.classList.contains("is-open")) queuePanel.hidden = true;
       queueTimer = 0;
-    }, 260);
+    }, 280);
   }
 
   function toggleQueue() {
@@ -1893,6 +1975,21 @@
     return curve;
   }
 
+  function saturationCurveAt(x, drive) {
+    const amount = clamp(Number(drive) || 0, 0, 1) * 6;
+    if (amount < 0.001) return x;
+    return Math.tanh(x * (1 + amount)) / Math.tanh(1 + amount);
+  }
+
+  function makeSaturationCurve(drive) {
+    const samples = 2048;
+    const curve = new Float32Array(samples);
+    for (let i = 0; i < samples; i++) {
+      curve[i] = saturationCurveAt((i * 2) / (samples - 1) - 1, drive);
+    }
+    return curve;
+  }
+
   function makeReverbImpulse(context, decay) {
     const seconds = clamp(Number(decay) || FX_RANGES.reverbDecay.fallback, FX_RANGES.reverbDecay.min, FX_RANGES.reverbDecay.max);
     const length = Math.max(1, Math.floor(context.sampleRate * seconds));
@@ -1939,6 +2036,104 @@
       tone.frequency.value = 600 + clamp(fx.distortionTone, 0, 1) * 11400;
       shaper.connect(tone);
       const stage = makeFxStage(context, shaper, tone, fx.distortionMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.saturationEnabled) {
+      const shaper = context.createWaveShaper();
+      shaper.curve = makeSaturationCurve(fx.saturationDrive);
+      try { shaper.oversample = "2x"; } catch {}
+      const tone = context.createBiquadFilter();
+      tone.type = "lowpass";
+      tone.frequency.value = 1800 + clamp(fx.saturationTone, 0, 1) * 16200;
+      shaper.connect(tone);
+      const stage = makeFxStage(context, shaper, tone, fx.saturationMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.phaserEnabled) {
+      const input = context.createGain();
+      const output = context.createGain();
+      const depth = clamp(fx.phaserDepth, FX_RANGES.phaserDepth.min, FX_RANGES.phaserDepth.max);
+      const feedback = clamp(fx.phaserFeedback, FX_RANGES.phaserFeedback.min, FX_RANGES.phaserFeedback.max);
+      const filters = [];
+      for (let i = 0; i < 6; i++) {
+        const filter = context.createBiquadFilter();
+        filter.type = "allpass";
+        filter.frequency.value = 200 + depth * 700;
+        filter.Q.value = 0.9;
+        filters.push(filter);
+        if (i === 0) input.connect(filter);
+        else filters[i - 1].connect(filter);
+      }
+      filters[filters.length - 1].connect(output);
+      if (feedback > 0) {
+        const loop = context.createGain();
+        loop.gain.value = feedback;
+        filters[filters.length - 1].connect(loop);
+        loop.connect(filters[0]);
+      }
+      const lfo = context.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = clamp(fx.phaserRate, FX_RANGES.phaserRate.min, FX_RANGES.phaserRate.max);
+      const lfoGain = context.createGain();
+      lfoGain.gain.value = depth * 900;
+      lfo.connect(lfoGain);
+      filters.forEach((filter) => lfoGain.connect(filter.frequency));
+      lfo.start(0);
+      if (oscillators) oscillators.push(lfo);
+      const stage = makeFxStage(context, input, output, fx.phaserMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.tremoloEnabled) {
+      const trem = context.createGain();
+      const depth = clamp(fx.tremoloDepth, FX_RANGES.tremoloDepth.min, FX_RANGES.tremoloDepth.max);
+      trem.gain.value = 1 - depth * 0.5;
+      const lfo = context.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = clamp(fx.tremoloRate, FX_RANGES.tremoloRate.min, FX_RANGES.tremoloRate.max);
+      const lfoGain = context.createGain();
+      lfoGain.gain.value = depth * 0.5;
+      lfo.connect(lfoGain);
+      lfoGain.connect(trem.gain);
+      lfo.start(0);
+      if (oscillators) oscillators.push(lfo);
+      const stage = makeFxStage(context, trem, trem, fx.tremoloMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.vibratoEnabled) {
+      const delay = context.createDelay(0.05);
+      const depth = clamp(fx.vibratoDepth, FX_RANGES.vibratoDepth.min, FX_RANGES.vibratoDepth.max);
+      delay.delayTime.value = 0.006;
+      const lfo = context.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = clamp(fx.vibratoRate, FX_RANGES.vibratoRate.min, FX_RANGES.vibratoRate.max);
+      const lfoGain = context.createGain();
+      lfoGain.gain.value = depth * 0.004;
+      lfo.connect(lfoGain);
+      lfoGain.connect(delay.delayTime);
+      lfo.start(0);
+      if (oscillators) oscillators.push(lfo);
+      const stage = makeFxStage(context, delay, delay, fx.vibratoMix);
+      node.connect(stage.input);
+      node = stage.output;
+    }
+    if (fx.ringmodEnabled) {
+      const ring = context.createGain();
+      const depth = clamp(fx.ringmodDepth, FX_RANGES.ringmodDepth.min, FX_RANGES.ringmodDepth.max);
+      ring.gain.value = 0;
+      const carrier = context.createOscillator();
+      carrier.type = "sine";
+      carrier.frequency.value = clamp(fx.ringmodFreq, FX_RANGES.ringmodFreq.min, FX_RANGES.ringmodFreq.max);
+      const carrierGain = context.createGain();
+      carrierGain.gain.value = depth;
+      carrier.connect(carrierGain);
+      carrierGain.connect(ring.gain);
+      carrier.start(0);
+      if (oscillators) oscillators.push(carrier);
+      const stage = makeFxStage(context, ring, ring, fx.ringmodMix);
       node.connect(stage.input);
       node = stage.output;
     }
@@ -3976,6 +4171,7 @@
   </div>
   <h3 class="settings-section-title fx-intro" data-player-i18n="effects">${pt("effects")}</h3>
   <p class="player-settings-hint fx-intro" data-player-i18n="effectsHint">${pt("effectsHint")}</p>
+  <p class="fx-docs-line fx-intro"><a class="player-queue-text-btn fx-docs-link" href="${FX_NOTES_URL}" target="_blank" rel="noopener noreferrer" data-player-i18n="fxDocs">${pt("fxDocs")}</a></p>
   <div class="settings-field fx-bake-setting fx-intro" data-fx-bake-setting>
     <span class="settings-label" data-player-i18n="fxBakeDelay">${pt("fxBakeDelay")}</span>
     <input class="fx-range" id="playerFxBakeDelay" type="range" min="${FX_BAKE_DELAY_MIN_MS}" max="${FX_BAKE_DELAY_MAX_MS}" step="1000" data-player-setting="fxBakeDelayMs">
@@ -3994,6 +4190,77 @@
       <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="0" max="1" step="0.01" data-player-setting="distortionMix"></label>
     </div>
     <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasDistortionHint">${pt("fxCanvasDistortionHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="saturation">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="saturationEnabled"><span data-player-i18n="saturationEnable">${pt("saturationEnable")}</span></label>
+      <span class="fx-value" id="playerSaturationSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="saturationHint">${pt("saturationHint")}</p>
+    <canvas class="fx-visual" id="playerSaturationCanvas" width="640" height="120" aria-label="Saturation curve"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="drive">${pt("drive")}</span><input class="fx-range" type="range" min="${FX_RANGES.saturationDrive.min}" max="${FX_RANGES.saturationDrive.max}" step="${FX_RANGES.saturationDrive.step}" data-player-setting="saturationDrive"></label>
+      <label class="fx-control"><span data-player-i18n="tone">${pt("tone")}</span><input class="fx-range" type="range" min="${FX_RANGES.saturationTone.min}" max="${FX_RANGES.saturationTone.max}" step="${FX_RANGES.saturationTone.step}" data-player-setting="saturationTone"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.saturationMix.min}" max="${FX_RANGES.saturationMix.max}" step="${FX_RANGES.saturationMix.step}" data-player-setting="saturationMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasSaturationHint">${pt("fxCanvasSaturationHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="phaser">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="phaserEnabled"><span data-player-i18n="phaserEnable">${pt("phaserEnable")}</span></label>
+      <span class="fx-value" id="playerPhaserSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="phaserHint">${pt("phaserHint")}</p>
+    <canvas class="fx-visual" id="playerPhaserCanvas" width="640" height="120" aria-label="Phaser sweep"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="rateHz">${pt("rateHz")}</span><input class="fx-range" type="range" min="${FX_RANGES.phaserRate.min}" max="${FX_RANGES.phaserRate.max}" step="${FX_RANGES.phaserRate.step}" data-player-setting="phaserRate"></label>
+      <label class="fx-control"><span data-player-i18n="depth">${pt("depth")}</span><input class="fx-range" type="range" min="${FX_RANGES.phaserDepth.min}" max="${FX_RANGES.phaserDepth.max}" step="${FX_RANGES.phaserDepth.step}" data-player-setting="phaserDepth"></label>
+      <label class="fx-control"><span data-player-i18n="feedback">${pt("feedback")}</span><input class="fx-range" type="range" min="${FX_RANGES.phaserFeedback.min}" max="${FX_RANGES.phaserFeedback.max}" step="${FX_RANGES.phaserFeedback.step}" data-player-setting="phaserFeedback"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.phaserMix.min}" max="${FX_RANGES.phaserMix.max}" step="${FX_RANGES.phaserMix.step}" data-player-setting="phaserMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasPhaserHint">${pt("fxCanvasPhaserHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="tremolo">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="tremoloEnabled"><span data-player-i18n="tremoloEnable">${pt("tremoloEnable")}</span></label>
+      <span class="fx-value" id="playerTremoloSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="tremoloHint">${pt("tremoloHint")}</p>
+    <canvas class="fx-visual" id="playerTremoloCanvas" width="640" height="120" aria-label="Tremolo amplitude"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="rateHz">${pt("rateHz")}</span><input class="fx-range" type="range" min="${FX_RANGES.tremoloRate.min}" max="${FX_RANGES.tremoloRate.max}" step="${FX_RANGES.tremoloRate.step}" data-player-setting="tremoloRate"></label>
+      <label class="fx-control"><span data-player-i18n="depth">${pt("depth")}</span><input class="fx-range" type="range" min="${FX_RANGES.tremoloDepth.min}" max="${FX_RANGES.tremoloDepth.max}" step="${FX_RANGES.tremoloDepth.step}" data-player-setting="tremoloDepth"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.tremoloMix.min}" max="${FX_RANGES.tremoloMix.max}" step="${FX_RANGES.tremoloMix.step}" data-player-setting="tremoloMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasTremoloHint">${pt("fxCanvasTremoloHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="vibrato">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="vibratoEnabled"><span data-player-i18n="vibratoEnable">${pt("vibratoEnable")}</span></label>
+      <span class="fx-value" id="playerVibratoSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="vibratoHint">${pt("vibratoHint")}</p>
+    <canvas class="fx-visual" id="playerVibratoCanvas" width="640" height="120" aria-label="Vibrato pitch modulation"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="rateHz">${pt("rateHz")}</span><input class="fx-range" type="range" min="${FX_RANGES.vibratoRate.min}" max="${FX_RANGES.vibratoRate.max}" step="${FX_RANGES.vibratoRate.step}" data-player-setting="vibratoRate"></label>
+      <label class="fx-control"><span data-player-i18n="depth">${pt("depth")}</span><input class="fx-range" type="range" min="${FX_RANGES.vibratoDepth.min}" max="${FX_RANGES.vibratoDepth.max}" step="${FX_RANGES.vibratoDepth.step}" data-player-setting="vibratoDepth"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.vibratoMix.min}" max="${FX_RANGES.vibratoMix.max}" step="${FX_RANGES.vibratoMix.step}" data-player-setting="vibratoMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasVibratoHint">${pt("fxCanvasVibratoHint")}</p>
+  </div>
+  <div class="fx-setting" data-fx-setting="ringmod">
+    <div class="fx-head">
+      <label class="eq-toggle"><input type="checkbox" data-player-setting="ringmodEnabled"><span data-player-i18n="ringmodEnable">${pt("ringmodEnable")}</span></label>
+      <span class="fx-value" id="playerRingmodSummary"></span>
+    </div>
+    <p class="player-settings-hint" data-player-i18n="ringmodHint">${pt("ringmodHint")}</p>
+    <canvas class="fx-visual" id="playerRingmodCanvas" width="640" height="120" aria-label="Ring modulator carrier"></canvas>
+    <div class="fx-controls">
+      <label class="fx-control"><span data-player-i18n="carrierFreq">${pt("carrierFreq")}</span><input class="fx-range" type="range" min="${FX_RANGES.ringmodFreq.min}" max="${FX_RANGES.ringmodFreq.max}" step="${FX_RANGES.ringmodFreq.step}" data-player-setting="ringmodFreq"></label>
+      <label class="fx-control"><span data-player-i18n="depth">${pt("depth")}</span><input class="fx-range" type="range" min="${FX_RANGES.ringmodDepth.min}" max="${FX_RANGES.ringmodDepth.max}" step="${FX_RANGES.ringmodDepth.step}" data-player-setting="ringmodDepth"></label>
+      <label class="fx-control"><span data-player-i18n="mix">${pt("mix")}</span><input class="fx-range" type="range" min="${FX_RANGES.ringmodMix.min}" max="${FX_RANGES.ringmodMix.max}" step="${FX_RANGES.ringmodMix.step}" data-player-setting="ringmodMix"></label>
+    </div>
+    <p class="player-settings-hint fx-canvas-hint" data-player-i18n="fxCanvasRingmodHint">${pt("fxCanvasRingmodHint")}</p>
   </div>
   <div class="fx-setting" data-fx-setting="chorus">
     <div class="fx-head">
@@ -4605,6 +4872,65 @@
       });
     });
 
+    document.querySelectorAll("#playerSaturationCanvas").forEach((canvas) => {
+      drawFxCanvas(canvas, (ctx, m) => {
+        const pad = 12;
+        const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+        ctx.strokeStyle = m.border;
+        ctx.beginPath(); ctx.moveTo(pad, pad + innerH / 2); ctx.lineTo(m.w - pad, pad + innerH / 2); ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i <= innerW; i++) {
+          const input = (i / innerW) * 2 - 1;
+          const output = saturationCurveAt(input, state.saturationDrive);
+          const x = pad + i;
+          const y = pad + (innerH * (1 - output)) / 2;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = state.saturationEnabled ? m.text : m.muted;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(pad + clamp(state.saturationTone, 0, 1) * innerW, pad + innerH / 2, 5, 0, Math.PI * 2);
+        ctx.fillStyle = state.saturationEnabled ? m.text : m.muted;
+        ctx.fill();
+      });
+    });
+
+    const fxWave = (id, range, value, cycles, amplitude, enabled) => {
+      document.querySelectorAll(id).forEach((canvas) => {
+        drawFxCanvas(canvas, (ctx, m) => {
+          const pad = 12;
+          const innerW = m.w - pad * 2, innerH = m.h - pad * 2;
+          const center = pad + innerH / 2;
+          const norm = (clamp(value, range.min, range.max) - range.min) / (range.max - range.min);
+          const amp = innerH * (0.08 + amplitude * 0.4);
+          ctx.strokeStyle = m.border;
+          ctx.beginPath(); ctx.moveTo(pad, center); ctx.lineTo(m.w - pad, center); ctx.stroke();
+          ctx.beginPath();
+          for (let i = 0; i <= innerW; i++) {
+            const x = pad + i;
+            const y = center - Math.sin((i / innerW) * Math.PI * 2 * cycles) * amp;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = enabled ? m.text : m.muted;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(pad + norm * innerW, center - amp, 5, 0, Math.PI * 2);
+          ctx.fillStyle = enabled ? m.text : m.muted;
+          ctx.fill();
+        });
+      });
+    };
+    fxWave("#playerPhaserCanvas", FX_RANGES.phaserRate, state.phaserRate,
+      1 + state.phaserRate / FX_RANGES.phaserRate.max * 8, state.phaserDepth, state.phaserEnabled);
+    fxWave("#playerTremoloCanvas", FX_RANGES.tremoloRate, state.tremoloRate,
+      1 + state.tremoloRate / FX_RANGES.tremoloRate.max * 10, state.tremoloDepth, state.tremoloEnabled);
+    fxWave("#playerVibratoCanvas", FX_RANGES.vibratoRate, state.vibratoRate,
+      1 + state.vibratoRate / FX_RANGES.vibratoRate.max * 8, state.vibratoDepth, state.vibratoEnabled);
+    fxWave("#playerRingmodCanvas", FX_RANGES.ringmodFreq, state.ringmodFreq,
+      2 + state.ringmodFreq / FX_RANGES.ringmodFreq.max * 38, state.ringmodDepth, state.ringmodEnabled);
+
     document.querySelectorAll("#playerChorusCanvas").forEach((canvas) => {
       drawFxCanvas(canvas, (ctx, m) => {
         const pad = 12;
@@ -4730,6 +5056,21 @@
     if (fxDrag.kind === "distortion") {
       state.distortionTone = round(p.x);
       state.distortionDrive = round(1 - p.y);
+    } else if (fxDrag.kind === "saturation") {
+      state.saturationTone = round(p.x);
+      state.saturationDrive = round(1 - p.y);
+    } else if (fxDrag.kind === "phaser") {
+      state.phaserRate = round(FX_RANGES.phaserRate.min + p.x * (FX_RANGES.phaserRate.max - FX_RANGES.phaserRate.min));
+      state.phaserDepth = round(1 - p.y);
+    } else if (fxDrag.kind === "tremolo") {
+      state.tremoloRate = round(FX_RANGES.tremoloRate.min + p.x * (FX_RANGES.tremoloRate.max - FX_RANGES.tremoloRate.min));
+      state.tremoloDepth = round(1 - p.y);
+    } else if (fxDrag.kind === "vibrato") {
+      state.vibratoRate = round(FX_RANGES.vibratoRate.min + p.x * (FX_RANGES.vibratoRate.max - FX_RANGES.vibratoRate.min));
+      state.vibratoDepth = round(1 - p.y);
+    } else if (fxDrag.kind === "ringmod") {
+      state.ringmodFreq = Math.round(FX_RANGES.ringmodFreq.min + p.x * (FX_RANGES.ringmodFreq.max - FX_RANGES.ringmodFreq.min));
+      state.ringmodDepth = round(1 - p.y);
     } else if (fxDrag.kind === "chorus") {
       state.chorusRate = round(FX_RANGES.chorusRate.min + p.x * (FX_RANGES.chorusRate.max - FX_RANGES.chorusRate.min));
       state.chorusDepth = round(1 - p.y);
@@ -4782,6 +5123,21 @@
     drawFxVisuals();
     document.querySelectorAll("#playerDistortionSummary").forEach((el) => {
       el.textContent = `${fxPercent(state.distortionDrive)} / ${fxPercent(state.distortionTone)}`;
+    });
+    document.querySelectorAll("#playerSaturationSummary").forEach((el) => {
+      el.textContent = `${fxPercent(state.saturationDrive)} / ${fxPercent(state.saturationTone)}`;
+    });
+    document.querySelectorAll("#playerPhaserSummary").forEach((el) => {
+      el.textContent = `${Number(state.phaserRate).toFixed(2)} Hz / ${fxPercent(state.phaserDepth)}`;
+    });
+    document.querySelectorAll("#playerTremoloSummary").forEach((el) => {
+      el.textContent = `${Number(state.tremoloRate).toFixed(1)} Hz / ${fxPercent(state.tremoloDepth)}`;
+    });
+    document.querySelectorAll("#playerVibratoSummary").forEach((el) => {
+      el.textContent = `${Number(state.vibratoRate).toFixed(1)} Hz / ${fxPercent(state.vibratoDepth)}`;
+    });
+    document.querySelectorAll("#playerRingmodSummary").forEach((el) => {
+      el.textContent = `${Math.round(state.ringmodFreq)} Hz / ${fxPercent(state.ringmodDepth)}`;
     });
     document.querySelectorAll("#playerChorusSummary").forEach((el) => {
       el.textContent = `${state.chorusRate.toFixed(1)} Hz / ${fxPercent(state.chorusDepth)}`;
@@ -5121,6 +5477,7 @@
   $("playerQueueClose")?.addEventListener("click", closeQueue);
   $("playerQueueClear")?.addEventListener("click", clearQueue);
   queuePanel?.addEventListener("click", (ev) => {
+    if (ev.target === queuePanel) { closeQueue(); return; }
     const target = ev.target instanceof Element ? ev.target : null;
     if (!target) return;
     const remove = target.closest("[data-queue-remove]");

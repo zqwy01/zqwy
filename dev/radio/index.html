@@ -71,6 +71,7 @@
             <span class="radio-clock" id="radioBlockTime"></span>
           </div>
           <p class="radio-lock" id="radioLock" hidden data-i18n="radioLocked">Плеер закреплён за эфиром</p>
+          <p class="radio-sync-tip" data-i18n="radioSyncTip">Если эфир ушёл вперёд или отстал по времени, синхронизируйте его вручную или настройте автоподстройку в «Настройках радио» ниже.</p>
           <h3 class="radio-onair-title" id="radioBlockTitle"></h3>
           <p class="radio-onair-description" id="radioBlockDescription"></p>
           <p class="radio-onair-track" id="radioTrackTitle"></p>
@@ -91,6 +92,29 @@
           <p class="radio-empty" id="radioEmpty" hidden data-i18n="radioEmpty">Нет доступных треков</p>
           <div class="radio-program" id="radioProgram" aria-live="polite"></div>
         </div>
+
+        <details class="radio-settings" id="radioSettings">
+          <summary data-i18n="radioSettings">Настройки радио</summary>
+          <p class="radio-settings-hint" data-i18n="radioSettingsHint">Ручная синхронизация перематывает текущий трек к времени эфира. Автоподстройка работает только при большом отставании и не отматывает назад.</p>
+          <div class="radio-sync-actions">
+            <button class="radio-btn radio-sync-btn" id="radioSyncNow" type="button" data-i18n="radioSyncNow">Синхронизировать время</button>
+            <span class="radio-sync-message" id="radioSyncMessage" hidden role="status" aria-live="polite"></span>
+          </div>
+          <label class="radio-setting-row radio-setting-check">
+            <input type="checkbox" id="radioAutoSync" data-radio-setting="autoSync" checked>
+            <span data-i18n="radioAutoSync">Автосинхронизация при отставании</span>
+          </label>
+          <label class="radio-setting-row">
+            <span data-i18n="radioSyncThreshold">Порог отставания</span>
+            <input type="range" id="radioSyncThreshold" data-radio-setting="thresholdSec" min="5" max="120" step="5" value="20">
+            <span class="radio-setting-value" id="radioSyncThresholdValue">20 с</span>
+          </label>
+          <label class="radio-setting-row">
+            <span data-i18n="radioSyncInterval">Минимальный интервал</span>
+            <input type="range" id="radioSyncInterval" data-radio-setting="intervalSec" min="10" max="180" step="10" value="30">
+            <span class="radio-setting-value" id="radioSyncIntervalValue">30 с</span>
+          </label>
+        </details>
       </section>
 
     </div>

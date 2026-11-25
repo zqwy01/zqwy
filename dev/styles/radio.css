@@ -90,6 +90,52 @@
   color: var(--muted);
   font-size: var(--fs-xs);
 }
+.radio-sync-tip {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.radio-settings {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.radio-settings summary {
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.radio-settings summary:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.radio-settings-hint {
+  margin: 8px 0 10px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.radio-sync-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.radio-sync-btn { min-height: 32px; padding: 0 10px; font-size: var(--fs-xs); }
+.radio-sync-message {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.radio-sync-message[hidden] { display: none; }
+.radio-setting-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(100px, 2fr) 56px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: var(--fs-xs);
+}
+.radio-setting-check { display: flex; align-items: center; gap: 8px; }
+.radio-setting-value { color: var(--muted); font-variant-numeric: tabular-nums; }
 .radio-onair-title { margin: 10px 0 0; font-size: 1.05rem; }
 .radio-onair-description { margin: 4px 0 0; color: var(--muted); font-size: var(--fs-xs); }
 .radio-onair-track { margin: 10px 0 0; font-size: var(--fs-sm); }
@@ -196,6 +242,11 @@
   .radio-actions { width: 100%; }
   .radio-btn-play { flex: 1 1 auto; }
   .radio-program { max-height: 280px; }
+}
+
+@media (max-width: 520px) {
+  .radio-setting-row { grid-template-columns: 1fr 56px; }
+  .radio-setting-row input[type="range"] { grid-column: 1 / -1; grid-row: 2; width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

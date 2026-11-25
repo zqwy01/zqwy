@@ -618,6 +618,8 @@ body.menu-is-open {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.settings-build-link { color: inherit; text-decoration: underline; text-decoration-color: var(--border); }
+.settings-build-link:hover, .settings-build-link:focus-visible { color: var(--text); }
 
 /* --- light theme: pure white / black --- */
 :root[data-theme="light"] {

@@ -112,10 +112,43 @@
   background: transparent;
   color: var(--text);
   cursor: pointer;
-  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .player-btn svg { width: 20px; height: 20px; fill: currentColor; }
 .player-btn:hover, .player-btn:focus-visible { border-color: var(--border); background: var(--bg-elevated-2); }
+/* Every transport button gets a small, tactile lift; the icon inside moves a
+   fraction further so prev/next and the utility buttons read as one mechanism. */
+.player-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+.player-btn:not(:disabled):active {
+  transform: translateY(1px) scale(0.92);
+}
+.player-btn:not(:disabled):hover svg {
+  transform: scale(1.08);
+}
+.player-btn svg { transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes player-control-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+.player-bar.is-visible .player-controls .player-btn:not(.player-play),
+.player-bar.is-visible .player-tools .player-btn {
+  animation: player-control-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.player-bar.is-visible .player-controls .player-btn:nth-child(2),
+.player-bar.is-visible .player-tools .player-btn:nth-child(2) { animation-delay: 0.04s; }
+.player-bar.is-visible .player-controls .player-btn:nth-child(3),
+.player-bar.is-visible .player-tools .player-btn:nth-child(3) { animation-delay: 0.08s; }
+.player-bar.is-visible .player-controls .player-btn:nth-child(4),
+.player-bar.is-visible .player-tools .player-btn:nth-child(4) { animation-delay: 0.12s; }
+.player-bar.is-visible .player-controls .player-btn:nth-child(5),
+.player-bar.is-visible .player-tools .player-btn:nth-child(5) { animation-delay: 0.16s; }
+.player-bar.is-visible .player-tools .player-btn:nth-child(6) { animation-delay: 0.2s; }
 .player-play { position: relative; width: 42px; height: 42px; border-color: var(--border); background: var(--bg-elevated-2); }
 /* Cross-fade and scale the two icons instead of swapping `display`, so
    starting and pausing are visibly animated in the bar as well. */
@@ -308,6 +341,7 @@ body.has-player.has-waveform .site-menu-content { padding-bottom: calc(clamp(160
    The dialog lives directly under <body> (see player.js) so `fixed` is relative
    to the viewport. It covers the catalog and leaves only the player bar on top. */
 body.player-settings-open { overflow: hidden; }
+body.player-queue-open { overflow: hidden; }
 .player-settings {
   position: fixed;
   inset: 0;
@@ -349,68 +383,85 @@ body.player-settings-open { overflow: hidden; }
     visibility 0s;
 }
 
-/* Upcoming tracks panel. It opens from the queue button next to the settings
-   gear and stays a compact popover above the bar. */
+/* Upcoming tracks panel. It opens fullscreen from the queue button so the
+   visitor can browse and manage the queue without a cramped popover. */
 .player-queue {
-  position: absolute;
-  right: var(--page-padding);
-  bottom: calc(100% + 8px);
-  width: min(clamp(18rem, 28vw, 26rem), calc(100vw - 2 * var(--page-padding)));
-  max-height: min(70dvh, 28rem);
-  overflow-y: auto;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-elevated);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  position: fixed;
+  inset: 0;
+  z-index: 1000002;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(16px, 3vw, 32px);
+  padding-bottom: calc(clamp(16px, 3vw, 32px) + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-14px) scale(0.98);
-  transform-origin: top right;
+  transform: translateY(18px) scale(0.985);
   pointer-events: none;
   transition:
-    opacity 0.18s ease,
-    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 0.24s;
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.28s;
 }
+.player-queue[hidden] { display: none; }
 .player-queue.is-open {
   opacity: 1;
   visibility: visible;
   transform: none;
   pointer-events: auto;
   transition:
-    opacity 0.18s ease,
-    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     visibility 0s;
 }
-:root[data-theme="light"] .player-queue { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); }
-.player-queue-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.player-queue-head strong { font-size: var(--fs-base); }
-.player-queue-actions { display: flex; align-items: center; gap: 4px; }
+:root[data-theme="light"] .player-queue { background: color-mix(in srgb, var(--bg) 97%, white 3%); }
+.player-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+}
+.player-queue-head strong { font-size: clamp(1.1rem, 2vw, 1.5rem); }
+.player-queue-actions { display: flex; align-items: center; gap: 8px; }
 .player-queue-text-btn {
-  padding: 3px 7px;
+  padding: 6px 10px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   cursor: pointer;
 }
 .player-queue-text-btn:hover,
 .player-queue-text-btn:focus-visible { color: var(--text); border-color: var(--border); }
-.player-queue-close { width: 28px; height: 28px; font-size: var(--fs-lg); }
-.player-queue-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.player-queue-item { display: flex; align-items: stretch; gap: 4px; }
+.player-queue-close { width: 40px; height: 40px; font-size: 1.5rem; }
+.player-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: 0 0 24px;
+  list-style: none;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+.player-queue-item { display: flex; align-items: stretch; gap: 8px; }
 .player-queue-play {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--bg-elevated-2);
   color: var(--text);
   font: inherit;
@@ -419,10 +470,10 @@ body.player-settings-open { overflow: hidden; }
 }
 .player-queue-play:hover,
 .player-queue-play:focus-visible { border-color: var(--focus-border); }
-.player-queue-title { overflow: hidden; font-size: var(--fs-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.player-queue-album { overflow: hidden; color: var(--muted); font-size: var(--fs-xs); text-overflow: ellipsis; white-space: nowrap; }
-.player-queue-remove { flex: 0 0 30px; width: 30px; height: 30px; color: var(--muted); font-size: var(--fs-lg); }
-.player-queue-empty { margin: 0; color: var(--muted); font-size: var(--fs-sm); line-height: 1.4; }
+.player-queue-title { overflow: hidden; font-size: var(--fs-base); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.player-queue-album { overflow: hidden; color: var(--muted); font-size: var(--fs-sm); text-overflow: ellipsis; white-space: nowrap; }
+.player-queue-remove { flex: 0 0 44px; width: 44px; height: auto; color: var(--muted); font-size: 1.4rem; border-radius: 12px; }
+.player-queue-empty { width: min(100%, 1100px); margin: 12px auto 0; color: var(--muted); font-size: var(--fs-base); line-height: 1.4; }
 .player-queue-empty[hidden] { display: none; }
 
 .player-settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -722,6 +773,7 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
   .player-bar,
   .player-bar.is-visible .player-inner,
   .player-inner,
+  .player-btn,
   .player-settings,
   .player-settings.is-open,
   .player-queue,
@@ -731,6 +783,8 @@ body.has-player.has-waveform #playerSettings .player-settings-mount {
   .player-settings-toggle svg,
   .player-play svg,
   .player-settings-block summary::after { transition: none; }
+  .player-bar.is-visible .player-controls .player-btn,
+  .player-bar.is-visible .player-tools .player-btn { animation: none; }
   .player-loading-ring { animation: none; }
   .player-loading-fill { transition: none; }
 }

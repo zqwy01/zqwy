@@ -12,6 +12,7 @@
 
   const CATALOG_URL = new URL("../../data/music-catalog.json", document.baseURI).href;
   const STORAGE_ACTIVE = "zqwy.radio.active.v1";
+  const STORAGE_SETTINGS = "zqwy.radio.settings.v1";
   const EPOCH_MS = Date.UTC(2020, 0, 1);
   const CYCLE_MS = 24 * 60 * 60 * 1000;
   const BLOCK_MS = 4 * 60 * 60 * 1000;
@@ -19,8 +20,9 @@
   const TICK_MS = 1000;
   // Do not fight the audio clock every second: a small correction sounds like
   // a rewind. Correct only a substantial drift, only forward, and rarely.
-  const RESYNC_MS = 20000;
-  const RESYNC_INTERVAL_MS = 30000;
+  // Both values are editable in the radio settings and persisted locally.
+  const DEFAULT_RESYNC_MS = 20000;
+  const DEFAULT_RESYNC_INTERVAL_MS = 30000;
   const MAX_CACHED_PROGRAMS = 3;
 
   const TEXT = {
@@ -34,6 +36,9 @@
       day: "Весь день", block: "Блок",
       empty: "Нет доступных треков", unavailable: "Каталог недоступен",
       locked: "Плеер закреплён за эфиром", trackNumber: "Трек",
+      syncDone: "Время синхронизировано", syncDrift: "Расхождение",
+      syncNoTrack: "Нет текущего трека для синхронизации", syncUnavailable: "Каталог недоступен",
+      syncAhead: "Вперёд", syncBehind: "Отставание",
       blocks: [
         { title: "Ночной эфир", description: "Тихая часть программы: спокойные записи для ночного прослушивания." },
         { title: "Утренний эфир", description: "Мягкое начало дня без резких переходов между треками." },
@@ -53,6 +58,9 @@
       day: "Full day", block: "Block",
       empty: "No tracks available", unavailable: "Catalog unavailable",
       locked: "Player locked to the broadcast", trackNumber: "Track",
+      syncDone: "Time synchronized", syncDrift: "Drift",
+      syncNoTrack: "No current track to synchronize", syncUnavailable: "Catalog unavailable",
+      syncAhead: "Ahead", syncBehind: "Lag",
       blocks: [
         { title: "Night air", description: "The quiet part of the program: calm recordings for late listening." },
         { title: "Morning air", description: "A gentle start to the day with smooth transitions." },
@@ -77,6 +85,9 @@
     lastActiveIndex: -1,
     followCurrent: true,
     lastResyncAt: 0,
+    autoSync: true,
+    resyncMs: DEFAULT_RESYNC_MS,
+    resyncIntervalMs: DEFAULT_RESYNC_INTERVAL_MS,
   };
 
   const ui = {};
@@ -129,6 +140,64 @@
     ui.programNow = document.getElementById("radioProgramNow");
     ui.programNext = document.getElementById("radioProgramNext");
     ui.empty = document.getElementById("radioEmpty");
+    ui.syncNow = document.getElementById("radioSyncNow");
+    ui.syncMessage = document.getElementById("radioSyncMessage");
+    ui.autoSync = document.getElementById("radioAutoSync");
+    ui.syncThreshold = document.getElementById("radioSyncThreshold");
+    ui.syncThresholdValue = document.getElementById("radioSyncThresholdValue");
+    ui.syncInterval = document.getElementById("radioSyncInterval");
+    ui.syncIntervalValue = document.getElementById("radioSyncIntervalValue");
+  }
+
+  function clampSetting(value, fallback, min, max) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+  }
+
+  function loadSettings() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || "null"); } catch {}
+    if (!saved || typeof saved !== "object") saved = {};
+    state.autoSync = saved.autoSync !== false;
+    state.resyncMs = clampSetting(saved.resyncMs, DEFAULT_RESYNC_MS, 5000, 120000);
+    state.resyncIntervalMs = clampSetting(saved.resyncIntervalMs, DEFAULT_RESYNC_INTERVAL_MS, 10000, 180000);
+    syncSettingsUi();
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(STORAGE_SETTINGS, JSON.stringify({
+        autoSync: state.autoSync,
+        resyncMs: state.resyncMs,
+        resyncIntervalMs: state.resyncIntervalMs,
+      }));
+    } catch {}
+  }
+
+  function syncSettingsUi() {
+    if (ui.autoSync) ui.autoSync.checked = state.autoSync;
+    if (ui.syncThreshold) ui.syncThreshold.value = String(Math.round(state.resyncMs / 1000));
+    const sec = lang() === "en" ? "s" : "с";
+    if (ui.syncThresholdValue) ui.syncThresholdValue.textContent = `${Math.round(state.resyncMs / 1000)} ${sec}`;
+    if (ui.syncInterval) ui.syncInterval.value = String(Math.round(state.resyncIntervalMs / 1000));
+    if (ui.syncIntervalValue) ui.syncIntervalValue.textContent = `${Math.round(state.resyncIntervalMs / 1000)} ${sec}`;
+  }
+
+  function showSyncMessage(key, driftSec) {
+    if (!ui.syncMessage) return;
+    const copy = text();
+    let message = copy[key] || "";
+    if (Number.isFinite(driftSec)) {
+      const direction = driftSec >= 0 ? copy.syncBehind : copy.syncAhead;
+      const sec = lang() === "en" ? "s" : "с";
+      message += ` · ${copy.syncDrift} ${direction} ${Math.abs(driftSec).toFixed(1)} ${sec}`;
+    }
+    ui.syncMessage.textContent = message;
+    ui.syncMessage.hidden = false;
+    window.clearTimeout(showSyncMessage.timer);
+    showSyncMessage.timer = window.setTimeout(() => {
+      if (ui.syncMessage) ui.syncMessage.hidden = true;
+    }, 6000);
   }
 
   function buildPool() {
@@ -315,9 +384,15 @@
       ui.status.textContent = status;
       ui.status.classList.toggle("is-live", live);
     }
+    const driftSec = live && position?.item && api
+      ? (position.offsetMs - position.item.startMs) / 1000 - (api.getState().time || 0)
+      : null;
     if (ui.lock) {
       ui.lock.hidden = !state.active;
-      ui.lock.textContent = copy.locked;
+      const sec = lang() === "en" ? "s" : "с";
+      ui.lock.textContent = driftSec != null && Math.abs(driftSec) > 1
+        ? `${copy.locked} · ${copy.syncDrift} ${driftSec >= 0 ? copy.syncBehind : copy.syncAhead} ${Math.abs(driftSec).toFixed(1)} ${sec}`
+        : copy.locked;
     }
     if (ui.play) {
       ui.play.setAttribute("aria-pressed", String(state.active));
@@ -362,8 +437,9 @@
     const albumId = `radio-cycle-${position.cycle}`;
     const expectedTime = Math.max(0, (position.offsetMs - position.item.startMs) / 1000);
     if (current?.albumId === albumId && current.path === position.item.path) {
-      if (api.getState().playing && Math.abs(api.getState().time - expectedTime) > RESYNC_MS / 1000) {
+      if (api.getState().playing && Math.abs(api.getState().time - expectedTime) > state.resyncMs / 1000) {
         api.seekProgram(expectedTime);
+        state.lastResyncAt = Date.now();
       }
       return;
     }
@@ -424,10 +500,37 @@
     const expectedTime = Math.max(0, (position.offsetMs - position.item.startMs) / 1000);
     const slotEnd = position.item.endMs / 1000;
     const behind = expectedTime - (playback.time || 0);
-    if (playback.playing && behind > RESYNC_MS / 1000 && now - state.lastResyncAt > RESYNC_INTERVAL_MS && expectedTime < slotEnd - 1) {
+    if (state.autoSync && playback.playing && behind > state.resyncMs / 1000 && now - state.lastResyncAt > state.resyncIntervalMs && expectedTime < slotEnd - 1) {
       api.seekProgram(expectedTime);
       state.lastResyncAt = now;
     }
+  }
+
+  function syncNow() {
+    const position = state.position || positionAt(Date.now());
+    state.position = position;
+    const api = player();
+    if (!state.catalog || !position.item) {
+      showSyncMessage(state.catalog ? "syncNoTrack" : "syncUnavailable");
+      return;
+    }
+    if (!api || !state.active) {
+      showSyncMessage("syncNoTrack");
+      return;
+    }
+    const current = api.getState().current;
+    const albumId = `radio-cycle-${position.cycle}`;
+    if (!current || current.albumId !== albumId || current.path !== position.item.path) {
+      applyTrack(position);
+      showSyncMessage("syncDone");
+      return;
+    }
+    const expectedTime = Math.max(0, (position.offsetMs - position.item.startMs) / 1000);
+    const drift = expectedTime - (api.getState().time || 0);
+    api.seekProgram(expectedTime);
+    state.lastResyncAt = Date.now();
+    render(position);
+    showSyncMessage("syncDone", drift);
   }
 
   function start() {
@@ -475,9 +578,22 @@
         else start();
         return;
       }
-      if (target.closest("#radioProgramPrev")) jumpProgram(-1);
+      if (target.closest("#radioSyncNow")) syncNow();
+      else if (target.closest("#radioProgramPrev")) jumpProgram(-1);
       else if (target.closest("#radioProgramNext")) jumpProgram(1);
       else if (target.closest("#radioProgramNow")) jumpProgram(0);
+    });
+
+    document.addEventListener("change", (ev) => {
+      const target = ev.target instanceof HTMLInputElement ? ev.target : null;
+      if (!target) return;
+      const key = target.dataset.radioSetting;
+      if (key === "autoSync") state.autoSync = target.checked;
+      else if (key === "thresholdSec") state.resyncMs = clampSetting(Number(target.value) * 1000, DEFAULT_RESYNC_MS, 5000, 120000);
+      else if (key === "intervalSec") state.resyncIntervalMs = clampSetting(Number(target.value) * 1000, DEFAULT_RESYNC_INTERVAL_MS, 10000, 180000);
+      else return;
+      saveSettings();
+      syncSettingsUi();
     });
 
     // A wheel/touch gesture on the program means the visitor is browsing the
@@ -503,12 +619,14 @@
 
     window.addEventListener("zqwy:languagechange", () => {
       state.lastListKey = "";
+      syncSettingsUi();
       render(state.position || positionAt(Date.now()));
     });
   }
 
   async function init() {
     captureUi();
+    loadSettings();
     if (!state.timer) {
       state.timer = window.setInterval(() => tick(), TICK_MS);
     }

@@ -8,8 +8,9 @@
  * (src/tracks/...), а страница добавляет к ним префикс ../../.
  * Для каждого трека сохраняется карта formats ({opus, mp3, wav, flac})
  * с путями ко всем реально существующим версиям файла и заранее посчитанная
- * длительность (секунды) предпочтительной версии — она сразу показывается
- * в .music-track-duration, без ожидания воспроизведения.
+ * длительность (секунды) оригинального трека, если рядом лежит файл orig_*,
+ * иначе предпочтительной версии — она сразу показывается в
+ * .music-track-duration, без ожидания воспроизведения.
  *
  * Аудиофайлы не изменяются: ffprobe только читает метаданные.
  * Запускается автоматически из scripts/build_dist.sh и вручную:
@@ -102,7 +103,7 @@ function findCover(albumId) {
   return null;
 }
 
-function walk(dir, isRoot = false) {
+function walk(dir, isRoot = false, includeOriginals = false) {
   const result = [];
   let entries;
   try {
@@ -114,16 +115,33 @@ function walk(dir, isRoot = false) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       if (!isRoot && SKIP_DIRS.test(entry.name)) continue;
-      result.push(...walk(full));
+      result.push(...walk(full, false, includeOriginals));
       continue;
     }
     if (!entry.isFile()) continue;
     if (entry.name.startsWith(".")) continue;
-    if (/^orig[_-]/i.test(entry.name)) continue;
     if (!AUDIO_EXT.has(path.extname(entry.name).toLowerCase())) continue;
+    if (/^orig[_-]/i.test(entry.name) && !includeOriginals) continue;
     result.push(full);
   }
   return result;
+}
+
+function originalKey(name) {
+  return String(name)
+    .replace(/^orig[_-]/i, "")
+    .replace(/\.[^.]+$/, "")
+    .replace(/^\d+[_-]/, "")
+    .toLowerCase();
+}
+
+function originalDurationPath(entry, originals) {
+  const key = originalKey(path.basename(entry.base));
+  const matches = originals.get(key);
+  if (!matches) return null;
+  return FORMAT_PRIORITY
+    .map((ext) => matches[ext.slice(1)])
+    .find(Boolean) || Object.values(matches)[0] || null;
 }
 
 if (!fs.existsSync(TRACKS_DIR)) {
@@ -146,6 +164,14 @@ for (const entry of fs.readdirSync(TRACKS_DIR, { withFileTypes: true })) {
     const byNumber = trackOrder(path.basename(a)) - trackOrder(path.basename(b));
     return byNumber || path.basename(a).localeCompare(path.basename(b), "ru");
   });
+  const originals = new Map();
+  for (const file of walk(root, true, true)) {
+    if (!/^orig[_-]/i.test(path.basename(file))) continue;
+    const ext = path.extname(file).slice(1).toLowerCase();
+    const key = originalKey(path.basename(file));
+    if (!originals.has(key)) originals.set(key, {});
+    originals.get(key)[ext] = path.relative(PROJECT, file).split(path.sep).join("/");
+  }
 
   if (!files.length) continue;
 
@@ -171,11 +197,12 @@ for (const entry of fs.readdirSync(TRACKS_DIR, { withFileTypes: true })) {
       .find(Boolean) || Object.values(entry.formats)[0];
     let size = 0;
     try { size = fs.statSync(path.join(PROJECT, preferred)).size; } catch {}
+    const original = originalDurationPath(entry, originals);
     return {
       title: trackTitle(path.basename(entry.base)),
       path: preferred,
       size,
-      duration: probeDuration(preferred),
+      duration: probeDuration(original) ?? probeDuration(preferred),
       formats: entry.formats,
     };
   });

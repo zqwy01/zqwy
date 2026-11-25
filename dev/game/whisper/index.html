@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0908">
+  <meta name="description" content="Ушко — уютное ASMR-тамагочи: успокой пушистое существо шёпотом.">
+  <title>Ушко · zqwy</title>
+  <link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="room-glow" aria-hidden="true"></div>
+
+  <main class="whisper-app">
+    <a class="catalog-back" href="../">← каталог игр</a>
+
+    <!-- ───────────────────────── intro ───────────────────────── -->
+    <section id="introScreen" class="screen intro-screen">
+      <div class="intro-card">
+        <p class="kicker">ZQWY · ASMR-ТАМАГОЧИ</p>
+        <h1 class="game-title">УШКО</h1>
+        <p class="intro-lead">В норке живёт пушистое Ушко. Оно устало от громкого мира. Шепни ему что-нибудь доброе — и оно свернётся клубочком.</p>
+
+        <div class="headphone-note" role="note">
+          <span class="headphone-icon" aria-hidden="true">🎧</span>
+          <span><b>Лучше в наушниках.</b> Голос читает браузер, а дыхание комнаты панорамится в выбранное ухо. Микрофон не используется.</span>
+        </div>
+
+        <div class="intro-actions">
+          <button id="startBtn" class="btn primary" type="button">РАЗБУДИТЬ УШКО</button>
+          <button id="nightsBtn" class="btn" type="button">ВЫБОР НОЧИ</button>
+          <button id="achievementsBtn" class="btn ghost" type="button">ДОСТИЖЕНИЯ</button>
+        </div>
+        <p class="fine" id="introProgress">Прогресс сохраняется в этом браузере.</p>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── nights ───────────────────────── -->
+    <section id="nightsScreen" class="screen hidden" aria-labelledby="nightsTitle">
+      <header class="screen-head">
+        <div>
+          <p class="kicker">ПЯТЬ КОРОТКИХ НОЧЕЙ</p>
+          <h2 id="nightsTitle">Выбери ночь</h2>
+        </div>
+        <button class="btn ghost small" type="button" data-go="intro">НАЗАД</button>
+      </header>
+      <div id="nightsGrid" class="nights-grid"></div>
+      <button id="resetBtn" class="btn ghost small reset-btn" type="button">СБРОСИТЬ ПРОГРЕСС</button>
+    </section>
+
+    <!-- ───────────────────────── game ───────────────────────── -->
+    <section id="gameScreen" class="screen game-screen hidden" aria-labelledby="nightTitle">
+      <header class="game-head">
+        <div>
+          <p class="kicker" id="nightKicker">НОЧЬ 1</p>
+          <h2 id="nightTitle">Громкость</h2>
+        </div>
+        <div class="head-actions">
+          <button id="codexBtn" class="btn ghost small" type="button">ДНЕВНИК</button>
+          <button id="stopBtn" class="btn small" type="button">СТОП</button>
+        </div>
+      </header>
+
+      <div class="stage">
+        <div class="burrow" id="burrow">
+          <svg id="ushkoSvg" class="ushko-svg" viewBox="0 0 260 230" role="img" aria-label="Пушистое существо Ушко в норке">
+            <defs>
+              <radialGradient id="furGrad" cx="40%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#f3d9b8"/>
+                <stop offset="100%" stop-color="#cfa978"/>
+              </radialGradient>
+              <radialGradient id="earGrad" cx="45%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#f6dfc3"/>
+                <stop offset="100%" stop-color="#d4ad7d"/>
+              </radialGradient>
+            </defs>
+            <ellipse class="burrow-shadow" cx="130" cy="190" rx="114" ry="32"></ellipse>
+            <ellipse class="burrow-rim" cx="130" cy="178" rx="106" ry="40"></ellipse>
+            <ellipse class="burrow-hole" cx="130" cy="177" rx="92" ry="31"></ellipse>
+
+            <g class="ushko-body">
+              <g class="tail-wrap">
+                <path class="tail" d="M184 154 q40 10 34 -24 q-3 -20 -24 -16 q-14 3 -14 18"></path>
+                <path class="tail-tip" d="M206 136 q10 -6 16 2 q-8 2 -16 -2"></path>
+              </g>
+
+              <ellipse class="fur" cx="130" cy="126" rx="68" ry="56"></ellipse>
+              <ellipse class="belly" cx="130" cy="138" rx="42" ry="34"></ellipse>
+
+              <g class="ear ear-left">
+                <path class="ear-outer" d="M74 104 q-30 -40 -4 -58 q27 -8 34 38 z"></path>
+                <path class="ear-inner" d="M79 98 q-17 -26 -3 -36 q17 -3 20 24 z"></path>
+                <circle class="ear-fluff" cx="88" cy="86" r="5"></circle>
+              </g>
+              <g class="ear ear-right">
+                <path class="ear-outer" d="M186 104 q30 -40 4 -58 q-27 -8 -34 38 z"></path>
+                <path class="ear-inner" d="M181 98 q17 -26 3 -36 q-17 -3 -20 24 z"></path>
+                <circle class="ear-fluff" cx="172" cy="86" r="5"></circle>
+              </g>
+
+              <path class="tuft tuft-one" d="M111 74 q-10 -16 1 -22 q9 11 8 21"></path>
+              <path class="tuft tuft-two" d="M130 70 q-2 -20 10 -22 q4 14 -1 22"></path>
+              <path class="tuft tuft-three" d="M149 74 q8 -16 18 -12 q-2 14 -10 16"></path>
+
+              <g class="face">
+                <ellipse class="cheek cheek-left" cx="96" cy="137" rx="15" ry="9"></ellipse>
+                <ellipse class="cheek cheek-right" cx="164" cy="137" rx="15" ry="9"></ellipse>
+
+                <g class="eye-group eye-group-left">
+                  <ellipse class="eye-white" cx="108" cy="118" rx="11" ry="12"></ellipse>
+                  <circle class="eye eye-left" cx="110" cy="120" r="7"></circle>
+                  <circle class="eye-shine" cx="113" cy="117" r="2.6"></circle>
+                  <circle class="eye-shine small" cx="107" cy="123" r="1.3"></circle>
+                </g>
+                <g class="eye-group eye-group-right">
+                  <ellipse class="eye-white" cx="152" cy="118" rx="11" ry="12"></ellipse>
+                  <circle class="eye eye-right" cx="150" cy="120" r="7"></circle>
+                  <circle class="eye-shine" cx="153" cy="117" r="2.6"></circle>
+                  <circle class="eye-shine small" cx="147" cy="123" r="1.3"></circle>
+                </g>
+
+                <path class="nose" d="M130 133 q-6 0 -7 -5 q7 -5 14 0 q-1 5 -7 5z"></path>
+                <path class="mouth" d="M130 133 v5 M130 138 q-5 6 -10 2 M130 138 q5 6 10 2"></path>
+
+                <g class="whiskers whiskers-left">
+                  <path d="M60 124 h22" /><path d="M62 131 h20" /><path d="M66 138 h17" />
+                </g>
+                <g class="whiskers whiskers-right">
+                  <path d="M178 124 h22" /><path d="M178 131 h20" /><path d="M177 138 h17" />
+                </g>
+              </g>
+
+              <g class="paws">
+                <path class="paw paw-left" d="M94 164 q10 -14 22 0 q-11 5 -22 0"></path>
+                <path class="paw paw-right" d="M166 164 q-10 -14 -22 0 q11 5 22 0"></path>
+              </g>
+
+              <g class="sparkles" aria-hidden="true">
+                <path class="sparkle s1" d="M52 64 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"></path>
+                <path class="sparkle s2" d="M208 60 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"></path>
+              </g>
+            </g>
+          </svg>
+          <p class="ear-hint" id="earHint" aria-live="polite"></p>
+          <p class="mood-line" id="moodLine" aria-live="polite">Ушко смотрит на тебя.</p>
+        </div>
+
+        <div class="meters" aria-label="Состояние Ушка">
+          <div class="meter-row">
+            <span class="meter-label">СПОКОЙСТВИЕ</span>
+            <div class="meter"><span id="calmBar" class="meter-fill calm-fill"></span></div>
+            <span class="meter-value" id="calmValue">0</span>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">ИСПУГ</span>
+            <div class="meter"><span id="fearBar" class="meter-fill fear-fill"></span></div>
+            <span class="meter-value" id="fearValue">0</span>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">ВНИМАНИЕ</span>
+            <div class="meter"><span id="attentionBar" class="meter-fill attention-fill"></span></div>
+            <span class="meter-value" id="attentionValue">100</span>
+          </div>
+          <p class="night-hint" id="hintLine"></p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <fieldset class="ear-switch" id="earSwitch">
+          <legend>Ухо</legend>
+          <button class="ear-btn is-active" type="button" data-ear="left" aria-pressed="true">ЛЕВОЕ</button>
+          <button class="ear-btn" type="button" data-ear="right" aria-pressed="false">ПРАВОЕ</button>
+        </fieldset>
+
+        <div class="sliders">
+          <label class="slider-row" id="volumeRow">
+            <span class="slider-name">ГРОМКОСТЬ <b id="volumeValue">36%</b></span>
+            <input id="volumeSlider" type="range" min="0" max="100" value="36" step="1">
+            <span class="slider-zone" id="volumeZone"></span>
+          </label>
+          <label class="slider-row" id="tempoRow">
+            <span class="slider-name">ТЕМП <b id="tempoValue">0.85×</b></span>
+            <input id="tempoSlider" type="range" min="0" max="100" value="35" step="1">
+            <span class="slider-zone" id="tempoZone"></span>
+          </label>
+          <label class="slider-row" id="pitchRow">
+            <span class="slider-name">ВЫСОТА <b id="pitchValue">0.95</b></span>
+            <input id="pitchSlider" type="range" min="0" max="100" value="45" step="1">
+            <span class="slider-zone" id="pitchZone"></span>
+          </label>
+        </div>
+
+        <button id="whisperBtn" class="whisper-btn" type="button">
+          <span class="whisper-btn-label">ШЕПТАТЬ</span>
+          <small>зажми или держи пробел</small>
+        </button>
+      </div>
+
+      <div class="subtitle-box">
+        <p class="subtitle-kicker">ШЁПОТ · <span id="subtitleSource">rhymes/whisper.md</span></p>
+        <p id="subtitles" class="subtitles" aria-live="polite">Нажми «Шептать», чтобы Ушко услышало первое слово.</p>
+      </div>
+      <p class="status-line" id="statusLine" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- ───────────────────────── result ───────────────────────── -->
+    <section id="resultScreen" class="screen hidden" aria-labelledby="resultTitle">
+      <div class="result-card">
+        <p class="kicker" id="resultKicker">НОЧЬ ЗАВЕРШЕНА</p>
+        <h2 id="resultTitle">Ушко уснуло</h2>
+        <p id="resultText" class="result-text"></p>
+        <div id="resultStars" class="result-stars" aria-label="Звёзды"></div>
+        <div id="resultStats" class="result-stats"></div>
+        <div class="result-actions">
+          <button id="retryBtn" class="btn primary" type="button">ЕЩЁ РАЗ</button>
+          <button id="nextNightBtn" class="btn hidden" type="button">СЛЕДУЮЩАЯ НОЧЬ</button>
+          <button id="resultNightsBtn" class="btn ghost" type="button">К НОЧАМ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────────────── codex / achievements ───────────────────────── -->
+    <section id="codexScreen" class="screen hidden" aria-labelledby="codexTitle">
+      <header class="screen-head">
+        <div>
+          <p class="kicker">ДНЕВНИК УШКА</p>
+          <h2 id="codexTitle">Услышанные слова</h2>
+        </div>
+        <button class="btn ghost small" type="button" data-go="back">НАЗАД</button>
+      </header>
+      <ul id="heardList" class="heard-list"></ul>
+      <h3 class="sub-heading">Достижения</h3>
+      <ul id="achievementList" class="achievement-list"></ul>
+    </section>
+  </main>
+
+  <script src="js/data.js" defer></script>
+  <script src="js/audio.js" defer></script>
+  <script src="js/voice.js" defer></script>
+  <script src="js/game.js" defer></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#fff4ef">
-<meta name="description" content="Цветочек — милая игрушка (◕ᴗ◕✿): гладь румяный цветок, лови лепестки и выращивай маленький сад.">
+<meta name="description" content="Цветочек (◕ᴗ◕✿) — живой аленький персонаж: гладь его, нюхай аромат, дразни и выращивай садик в любое время суток.">
 <title>Цветочек · (◕ᴗ◕✿) · zqwy</title>
 <link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
 <link rel="stylesheet" href="style.css">
@@ -15,7 +15,7 @@
 <main class="app">
   <header class="topbar">
     <a class="back" href="../">← каталог игр</a>
-    <div class="brand">zqwy <span>/ цветочек</span> <span class="kaomoji">(◕ᴗ◕✿)</span></div>
+    <div class="brand">zqwy <span>/ цветочек</span> <span class="kaomoji">(◕ᴗ◕✿)</span> <span class="daypart" id="daypart" title="Сейчас в садике">день</span></div>
   </header>
 
   <section class="garden" id="garden" aria-label="Садик с румяным цветочком">
@@ -33,7 +33,8 @@
 
     <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
 
-    <button class="flower" id="flowerBtn" type="button" aria-label="Погладить цветочек">
+    <button class="flower" id="flowerBtn" type="button" aria-label="Погладить цветочек (◕ᴗ◕✿)">
+      <span class="kaomoji-hero" id="kaomojiHero" aria-hidden="true"><span class="k-eye">◕</span><span class="k-mouth k-happy">ᴗ</span><span class="k-mouth k-angry">︿</span><span class="k-eye">◕</span><span class="k-flower">✿</span></span>
       <svg class="flower-svg" viewBox="0 0 260 300" aria-hidden="true">
         <defs>
           <radialGradient id="petalPink" cx="45%" cy="28%" r="75%">
@@ -50,8 +51,8 @@
 
         <g class="stem-group">
           <path class="stem-line" d="M130 252 C126 216 134 184 130 154"/>
-          <path class="leaf leaf-left" d="M129 221 C104 228 88 212 88 194 C107 191 124 202 129 221 Z"/>
-          <path class="leaf leaf-right" d="M132 202 C153 209 169 195 170 178 C151 175 136 185 132 202 Z"/>
+          <path class="leaf leaf-left" d="M129 212 C112 217 100 207 100 193 C113 191 124 199 129 212 Z"/>
+          <path class="leaf leaf-right" d="M132 195 C146 199 156 189 157 177 C146 175 136 183 132 195 Z"/>
         </g>
 
         <g class="pot">
@@ -88,10 +89,19 @@
           <text x="176" y="94" class="sleep-z">z</text>
           <text x="188" y="78" class="sleep-z small">z</text>
         </g>
+        <g class="grumpy-eyes">
+          <path d="M105 106 L122 114"/>
+          <path d="M155 106 L138 114"/>
+        </g>
+        <g class="steam">
+          <path d="M97 96 q7 -8 0 -17"/>
+          <path d="M163 96 q7 -8 0 -17"/>
+        </g>
 
         <ellipse class="blush blush-left" cx="102" cy="129" rx="10" ry="6"/>
         <ellipse class="blush blush-right" cx="158" cy="129" rx="10" ry="6"/>
         <path class="mouth" d="M121 132 Q130 141 139 132"/>
+        <path class="grumpy-mouth" d="M121 139 Q130 131 139 139"/>
         <circle class="nose" cx="130" cy="127" r="1.6"/>
       </svg>
       <span class="flower-hint" id="flowerHint">погладь меня</span>
@@ -123,12 +133,19 @@
           <span class="meter"><i class="meter-fill sun-fill" id="sunFill"></i></span>
           <b class="meter-value" id="sunValue">65%</b>
         </div>
+        <div class="meter-row">
+          <span class="meter-label">АРОМАТ</span>
+          <span class="meter"><i class="meter-fill scent-fill" id="scentFill"></i></span>
+          <b class="meter-value" id="scentValue">0%</b>
+        </div>
       </div>
-      <p class="hint" id="hint">Лови лепестки, гладь цветочек и поиграй с солнышком — так он вырастит маленький сад. Проигрышей тут нет.</p>
+      <p class="mood" id="moodText">настроение: тихо радуется</p>
+      <p class="hint" id="hint">Гладь цветочек (◕ᴗ◕✿), нюхай его аромат, лови лепестки, дразни и заставляй танцевать — он умеет и радоваться, и злиться. Проигрышей нет.</p>
       <div class="counters">
         <span title="Поглаживаний">♡ <b id="petCount">0</b></span>
         <span title="Пойманных лепестков">✿ <b id="petalCount">0</b></span>
         <span title="Растений в садике">❀ <b id="bloomCount">0</b></span>
+        <span title="Разов понюхали аромат">≈ <b id="smellCount">0</b></span>
       </div>
     </div>
 
@@ -136,12 +153,15 @@
       <button class="ctrl" id="patBtn" type="button"><span class="ctrl-icon" aria-hidden="true">♡</span><span class="ctrl-text"><b>ПОГЛАДИТЬ</b><small>пробел</small></span></button>
       <button class="ctrl" id="sunControlBtn" type="button"><span class="ctrl-icon" aria-hidden="true">☀</span><span class="ctrl-text"><b>СОЛНЦЕ</b><small>клавиша S</small></span></button>
       <button class="ctrl" id="waterControlBtn" type="button"><span class="ctrl-icon" aria-hidden="true">≋</span><span class="ctrl-text"><b>ПОЛИТЬ</b><small>клавиша W</small></span></button>
+      <button class="ctrl" id="smellBtn" type="button"><span class="ctrl-icon" aria-hidden="true">≈</span><span class="ctrl-text"><b>ПОНЮХАТЬ</b><small>клавиша N</small></span></button>
+      <button class="ctrl" id="teaseBtn" type="button"><span class="ctrl-icon" aria-hidden="true">!</span><span class="ctrl-text"><b>ДРАЗНИТЬ</b><small>клавиша D</small></span></button>
+      <button class="ctrl" id="danceBtn" type="button"><span class="ctrl-icon" aria-hidden="true">♪</span><span class="ctrl-text"><b>ТАНЦЕВАТЬ</b><small>клавиша T</small></span></button>
       <button class="ctrl small-ctrl" id="soundBtn" type="button" aria-pressed="true"><span class="ctrl-icon" aria-hidden="true">♪</span><span class="ctrl-text"><b id="soundLabel">ЗВУК ВКЛ</b><small>тихий колокольчик</small></span></button>
       <button class="ctrl small-ctrl" id="resetBtn" type="button"><span class="ctrl-icon" aria-hidden="true">↺</span><span class="ctrl-text"><b>ЗАНОВО</b><small>новый садик</small></span></button>
     </div>
   </section>
 
-  <p class="footnote">Пробел — погладить · S — солнце · W — поливать. Можно просто сидеть рядом и смотреть, как падают лепестки.</p>
+  <p class="footnote">Пробел — погладить · S — солнце · W — поливать · N — понюхать · D — подразнить · T — потанцевать. Садик жив и днём, и ночью — подстраивается под твои часы.</p>
 </main>
 
 <script src="js/game.js"></script>

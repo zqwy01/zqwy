@@ -1,6 +1,8 @@
-/* Цветочек — маленькая игрушка (◕ᴗ◕✿).
+/* Цветочек — маленькая игрушка (◕ᴗ◕✿). Каомодзи здесь не подпись, а живой
+ * персонаж: оно моргает, улыбается, сердится и выпускает аромат.
  * Никаких таймеров и проигрышей: лепестки падают сами, цветочек можно
- * гладить, греть солнышком и поливать. Всё живёт в текущей вкладке.
+ * гладить, греть солнышком, поливать, нюхать и дразнить. Садик меняет свет
+ * по времени суток. Всё живёт в текущей вкладке.
  */
 (function () {
   'use strict';
@@ -11,6 +13,7 @@
 
   var flowerBtn = document.getElementById('flowerBtn');
   var flowerHint = document.getElementById('flowerHint');
+  var daypartEl = document.getElementById('daypart');
   var sunBtn = document.getElementById('sunBtn');
   var canBtn = document.getElementById('canBtn');
   var bubble = document.getElementById('bubble');
@@ -20,13 +23,20 @@
   var joyValue = document.getElementById('joyValue');
   var sunFill = document.getElementById('sunFill');
   var sunValue = document.getElementById('sunValue');
+  var scentFill = document.getElementById('scentFill');
+  var scentValue = document.getElementById('scentValue');
+  var moodText = document.getElementById('moodText');
   var petCountEl = document.getElementById('petCount');
   var petalCountEl = document.getElementById('petalCount');
   var bloomCountEl = document.getElementById('bloomCount');
+  var smellCountEl = document.getElementById('smellCount');
 
   var patBtn = document.getElementById('patBtn');
   var sunControlBtn = document.getElementById('sunControlBtn');
   var waterControlBtn = document.getElementById('waterControlBtn');
+  var smellBtn = document.getElementById('smellBtn');
+  var teaseBtn = document.getElementById('teaseBtn');
+  var danceBtn = document.getElementById('danceBtn');
   var soundBtn = document.getElementById('soundBtn');
   var soundLabel = document.getElementById('soundLabel');
   var resetBtn = document.getElementById('resetBtn');
@@ -45,11 +55,24 @@
   var SUN_PHRASES = ['Солнышко, иди сюда!', 'Тепло…', 'Лучик поймали!', 'Давай греться.'];
   var WATER_PHRASES = ['Кап-кап — спасибо!', 'Я пью!', 'Свеженько…', 'Листочки радуются.'];
   var CATCH_PHRASES = ['Лепесток мой!', 'Ещё один в садик!', '✿', 'Поймал!', 'Спасибо, ветерок!'];
+  var SMELL_PHRASES = ['Ах, пахнет летом…', 'Нюхай — я пахну цветами!', 'Запах лепестков — это я.', 'Тепло и душисто.', 'Вдохни… и улыбнись.'];
+  var TEASE_PHRASES = ['Не дёргай меня!', 'Ну всё, хватит!', 'Я злюсь, видишь?', 'Фу! Я ещё не расцвела!', 'Ой, щекотно — злюсь!'];
+  var DANCE_PHRASES = ['Смотри, я танцую! (◕ᴗ◕✿)', 'Раз-два, лепесток!', 'Это мой танец цветения.', 'Покачаемся вместе!', '♪ Танцуй, садик, танцуй!'];
+  var CALM_PHRASES = ['Ладно, помирились (◕ᴗ◕✿)', 'Фух… снова пахну.', 'Давай посидим тихо.'];
+  var DANCE_NOTES = [523, 659, 784, 659, 587, 784, 880, 784];
   var PETAL_COLORS = ['#ffc6d3', '#f9a8bd', '#ffe0c8', '#ffd1dc'];
 
   var state = {
     joy: 8,
     sun: 65,
+    aroma: 0,
+    grumpy: 0,
+    dance: 0,
+    danceBeat: 0,
+    beatIndex: 0,
+    smells: 0,
+    petStreak: 0,
+    lastPetAt: 0,
     pets: 0,
     petals: 0,
     blooms: 0,
@@ -59,36 +82,86 @@
 
   var petals = [];
   var sparks = [];
+  var scents = [];
   var W = 1, H = 1, dpr = 1;
   var lastFrame = 0, uiTick = 0, spawnTimer = 1.4, waterCooldown = 0, idleTimer = 16;
+  var scentTimer = 3.2, daypartTimer = 0, lastDaypart = '';
   var bubbleTimer = null;
-  var audioCtx = null;
+  var audioCtx = null, audioBus = null, audioVoices = [], lastChimeAt = 0;
 
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function pick(list) { return list[(Math.random() * list.length) | 0]; }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
-  /* ── звук: тихий колокольчик без внешних файлов ─────────────────── */
+  /* ── звук: мягкий колокольчик без внешних файлов ─────────────────
+   * Раньше быстрые клики складывали несколько голосов и давали «пук»/хрип.
+   * Теперь у звука есть общий фильтр, компрессор, плавная атака и лимит голосов.
+   */
 
-  function chime(freq, duration) {
+  function initAudio() {
+    if (audioCtx) return true;
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return false;
+    audioCtx = new Ctx();
+    var filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 2400;
+    filter.Q.value = 0.4;
+    var comp = audioCtx.createDynamicsCompressor();
+    comp.threshold.value = -24;
+    comp.knee.value = 18;
+    comp.ratio.value = 6;
+    comp.attack.value = 0.004;
+    comp.release.value = 0.18;
+    var master = audioCtx.createGain();
+    master.gain.value = 0.48;
+    filter.connect(comp);
+    comp.connect(master);
+    master.connect(audioCtx.destination);
+    audioBus = filter;
+    return true;
+  }
+
+  function chime(freq, duration, soft) {
     if (!state.sound) return;
     try {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      if (!audioCtx) audioCtx = new Ctx();
+      if (!initAudio()) return;
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      var end = audioCtx.currentTime + (duration || 0.32);
+      var nowMs = performance.now();
+      if (nowMs - lastChimeAt < 45) return; // анти-дребезг при частых кликах
+      lastChimeAt = nowMs;
+
+      while (audioVoices.length >= 4) {
+        var old = audioVoices.shift();
+        try {
+          old.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+          old.gain.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.01);
+          old.osc.stop(audioCtx.currentTime + 0.05);
+        } catch (e) { /* голос уже закончился */ }
+      }
+
+      var now = audioCtx.currentTime + 0.005;
+      var len = Math.max(0.12, Math.min(duration || 0.28, 0.6));
+      var peak = soft ? 0.032 : 0.05;
       var osc = audioCtx.createOscillator();
       var gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.055, audioCtx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, end);
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(peak, now + 0.035);
+      gain.gain.exponentialRampToValueAtTime(peak * 0.35, now + len * 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + len);
       osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(end + 0.02);
+      gain.connect(audioBus);
+      osc.start(now);
+      osc.stop(now + len + 0.03);
+      var voice = { osc: osc, gain: gain };
+      audioVoices.push(voice);
+      osc.onended = function () {
+        var i = audioVoices.indexOf(voice);
+        if (i >= 0) audioVoices.splice(i, 1);
+        try { gain.disconnect(); } catch (e) { /* уже отключён */ }
+      };
     } catch (e) { /* без звука игра тоже работает */ }
   }
 
@@ -113,6 +186,10 @@
     for (var j = 0; j < sparks.length; j++) {
       sparks[j].x *= sx;
       sparks[j].y *= sy;
+    }
+    for (var k = 0; k < scents.length; k++) {
+      scents[k].x *= sx;
+      scents[k].y *= sy;
     }
   }
 
@@ -151,6 +228,28 @@
     }
   }
 
+  /* Аромат — видимый: лёгкие значки поднимаются от чашечки и тают. */
+  function spawnScent(x, y, count, angry) {
+    var glyphs = angry ? ['≋', '!', '☁'] : ['≈', '✿', '♡', '·'];
+    var colors = angry ? ['#d18a8a', '#b56d6d', '#e3a4a4'] : ['#ef9fb5', '#f4c96f', '#f7b6c9'];
+    for (var i = 0; i < count; i++) {
+      var life = rnd(1.4, 2.6);
+      scents.push({
+        x: x + rnd(-24, 24),
+        y: y + rnd(-12, 12),
+        vx: rnd(-13, 13),
+        vy: angry ? rnd(-40, -18) : rnd(-34, -14),
+        phase: rnd(0, 6.28),
+        life: life,
+        maxLife: life,
+        text: pick(glyphs),
+        color: pick(colors),
+        size: rnd(12, 22)
+      });
+    }
+    if (scents.length > 40) scents.splice(0, scents.length - 40);
+  }
+
   function centerIn(element) {
     var r = element.getBoundingClientRect();
     var g = garden.getBoundingClientRect();
@@ -175,6 +274,17 @@
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.4;
       ctx.stroke();
+      ctx.restore();
+    }
+
+    for (var k = scents.length - 1; k >= 0; k--) {
+      var a = scents[k];
+      ctx.save();
+      ctx.globalAlpha = clamp(a.life / a.maxLife, 0, 1) * 0.72;
+      ctx.fillStyle = a.color;
+      ctx.font = '600 ' + a.size.toFixed(0) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(a.text, a.x + Math.sin(t * 1.6 + a.phase) * 7, a.y);
       ctx.restore();
     }
 
@@ -226,19 +336,41 @@
     joyValue.textContent = Math.round(state.joy) + '%';
     sunFill.style.width = state.sun.toFixed(1) + '%';
     sunValue.textContent = Math.round(state.sun) + '%';
+    scentFill.style.width = state.aroma.toFixed(1) + '%';
+    scentValue.textContent = Math.round(state.aroma) + '%';
     petCountEl.textContent = state.pets;
     petalCountEl.textContent = state.petals;
     bloomCountEl.textContent = state.blooms;
+    smellCountEl.textContent = state.smells;
 
-    flowerBtn.classList.toggle('is-happy', !state.sleeping && state.joy >= 55 && state.sun >= 22);
-    flowerBtn.classList.toggle('is-sleepy', !state.sleeping && state.sun < 22);
-    flowerHint.textContent = state.sleeping
-      ? 'я расцвёл ♡'
-      : state.sun < 22 ? 'мне холодновато…' : state.joy >= 55 ? 'как хорошо!' : 'погладь меня';
+    var grumpy = state.grumpy > 0;
+    var dancing = state.dance > 0 && !grumpy;
+    flowerBtn.classList.toggle('is-grumpy', grumpy);
+    flowerBtn.classList.toggle('is-dancing', dancing);
+    garden.classList.toggle('is-dancing', dancing);
+    flowerBtn.classList.toggle('is-happy', !grumpy && !dancing && !state.sleeping && state.joy >= 55 && state.sun >= 22);
+    flowerBtn.classList.toggle('is-sleepy', !grumpy && !dancing && !state.sleeping && state.sun < 22);
+    flowerBtn.classList.toggle('has-aroma', !grumpy && state.aroma >= 22);
+    moodText.classList.toggle('is-grumpy', grumpy);
+    moodText.textContent = grumpy
+      ? 'настроение: злится (︿)'
+      : dancing ? 'настроение: танцует (◕ᴗ◕✿)'
+      : state.sleeping ? 'настроение: расцвела и дремлет'
+      : state.sun < 22 ? 'настроение: ёжится от холода'
+      : state.joy >= 55 ? 'настроение: радуется и пахнет'
+      : 'настроение: тихо радуется';
+
+    flowerHint.textContent = grumpy
+      ? 'не дёргай меня!'
+      : dancing ? 'я танцую!'
+      : state.sleeping ? 'я расцвела ♡'
+      : state.sun < 22 ? 'мне холодновато…'
+      : state.joy >= 55 ? 'как хорошо!' : 'погладь меня';
   }
 
   function addJoy(amount) {
-    if (state.sleeping) return;
+    state.aroma = clamp(state.aroma + Math.max(0, amount) * 0.9 + 1.5, 0, 100);
+    if (state.sleeping || state.grumpy > 0) return;
     state.joy = clamp(state.joy + amount, 0, 100);
     syncBlooms();
     if (state.joy >= 100) {
@@ -248,22 +380,63 @@
       var c = centerIn(flowerBtn);
       burst(c.x, c.y - 30, 'heart', 12);
       burst(c.x, c.y - 30, 'sparkle', 10);
-      say('Я расцвёл! (◕ᴗ◕✿) Спасибо!');
+      spawnScent(c.x, c.y - 30, 14, false);
+      say('Я расцвела! (◕ᴗ◕✿) Спасибо!');
       chime(1046, 0.55);
     }
     updateUI();
+  }
+
+  function makeGrumpy(reason) {
+    if (state.sleeping) {
+      say('Я расцвела — не дразнись.');
+      return false;
+    }
+    if (state.grumpy > 0) {
+      say(pick(TEASE_PHRASES));
+      var f = centerIn(flowerBtn);
+      spawnScent(f.x, f.y - 28, 4, true);
+      return false;
+    }
+    state.grumpy = 7;
+    state.dance = 0;
+    state.danceBeat = 0;
+    flowerBtn.classList.remove('is-dancing');
+    garden.classList.remove('is-dancing');
+    state.aroma = clamp(state.aroma - 20, 0, 100);
+    state.joy = clamp(state.joy - 5, 0, 100);
+    var c = centerIn(flowerBtn);
+    burst(c.x, c.y - 30, 'sparkle', 4);
+    spawnScent(c.x, c.y - 28, 9, true);
+    say(reason || pick(TEASE_PHRASES));
+    chime(330, 0.18, true); // мягкий «обиженный» звук вместо низкого «пука»
+    updateUI();
+    return true;
   }
 
   function pet() {
     state.pets++;
     var c = centerIn(flowerBtn);
     burst(c.x, c.y - 26, 'heart', 7);
-    if (state.sleeping) {
+    var nowMs = performance.now();
+    state.petStreak = nowMs - state.lastPetAt < 500 ? state.petStreak + 1 : 1;
+    state.lastPetAt = nowMs;
+
+    if (state.petStreak >= 6 && !state.sleeping) {
+      state.petStreak = 0;
+      makeGrumpy('Ой! Хватит щекотать!');
+    } else if (state.grumpy > 0) {
+      say(pick(TEASE_PHRASES));
+      spawnScent(c.x, c.y - 28, 4, true);
+      chime(330, 0.14, true);
+    } else if (state.sleeping) {
       say('Я сплю… но спасибо (◕ᴗ◕✿)');
+      spawnScent(c.x, c.y - 28, 4, false);
     } else {
       say(pick(PAT_PHRASES));
       addJoy(2.4);
       if (Math.random() < 0.45) spawnPetal(rnd(30, W - 30), rnd(18, 90));
+      if (Math.random() < 0.5) spawnScent(c.x, c.y - 28, 3, false);
     }
     chime(660 + (state.pets % 3) * 80, 0.22);
     updateUI();
@@ -276,9 +449,14 @@
     for (var i = 0; i < 3; i++) spawnPetal(c.x + rnd(-30, 55), c.y + rnd(-5, 30));
     sunBtn.classList.add('is-warm');
     window.setTimeout(function () { sunBtn.classList.remove('is-warm'); }, 420);
-    say(pick(SUN_PHRASES));
+    say(state.grumpy > 0 ? 'Даже солнышко не поможет — я злюсь!' : pick(SUN_PHRASES));
     chime(880, 0.3);
-    addJoy(1.3);
+    if (state.grumpy <= 0) {
+      addJoy(1.3);
+      state.aroma = clamp(state.aroma + 9, 0, 100);
+      var f = centerIn(flowerBtn);
+      spawnScent(f.x, f.y - 30, 4, false);
+    }
     updateUI();
   }
 
@@ -286,25 +464,88 @@
     if (waterCooldown > 0) return;
     waterCooldown = 0.45;
     var c = centerIn(canBtn);
-    burst(c.x - 36, c.y, 'drop', 12);
+    var f = centerIn(flowerBtn);
+    // Небольшой поток из носника, и основной: капли падают прямо на чашечку.
+    burst(c.x - 24, c.y - 6, 'drop', 4);
+    burst(f.x + rnd(-16, 16), f.y - 28, 'drop', 14);
     canBtn.classList.add('is-pouring');
     window.setTimeout(function () { canBtn.classList.remove('is-pouring'); }, 660);
     state.sun = clamp(state.sun - 3, 0, 100);
-    say(pick(WATER_PHRASES));
+    say(state.grumpy > 0 ? 'Не поливай сердитый цветок!' : pick(WATER_PHRASES));
     chime(520, 0.25);
-    addJoy(4.5);
+    if (state.grumpy <= 0) {
+      addJoy(4.5);
+      state.aroma = clamp(state.aroma + 12, 0, 100);
+      spawnScent(f.x, f.y - 30, 6, false);
+    }
+    updateUI();
+  }
+
+  function smell() {
+    var c = centerIn(flowerBtn);
+    if (state.grumpy > 0) {
+      say('Фу! Я злюсь — не нюхай.');
+      spawnScent(c.x, c.y - 28, 4, true);
+      chime(330, 0.14, true);
+      return;
+    }
+    state.smells++;
+    if (state.aroma < 10) {
+      say('Подожди, аромат ещё собирается…');
+      spawnScent(c.x, c.y - 28, 2, false);
+    } else {
+      say(state.sleeping ? 'Пахнет сном… (◕ᴗ◕✿)' : pick(SMELL_PHRASES));
+      burst(c.x, c.y - 34, 'sparkle', 6);
+      spawnScent(c.x, c.y - 28, 12, false);
+      addJoy(2.2);
+      chime(1040, 0.3);
+    }
+    updateUI();
+  }
+
+  function tease() {
+    makeGrumpy(pick(TEASE_PHRASES));
+  }
+
+  function dance() {
+    if (state.grumpy > 0) {
+      say('Я злюсь — не хочу танцевать!');
+      var g = centerIn(flowerBtn);
+      spawnScent(g.x, g.y - 28, 4, true);
+      return;
+    }
+    state.dance = 6;
+    state.danceBeat = 0;
+    flowerBtn.classList.add('is-dancing');
+    garden.classList.add('is-dancing');
+    var c = centerIn(flowerBtn);
+    burst(c.x, c.y - 34, 'heart', 5);
+    spawnScent(c.x, c.y - 30, 8, false);
+    say(state.sleeping ? 'Я расцвела и танцую во сне…' : pick(DANCE_PHRASES));
+    addJoy(3);
+    chime(784, 0.2, true);
     updateUI();
   }
 
   function reset() {
     petals.length = 0;
     sparks.length = 0;
+    scents.length = 0;
     state.joy = 8;
     state.sun = 65;
+    state.aroma = 0;
+    state.grumpy = 0;
+    state.dance = 0;
+    state.danceBeat = 0;
+    state.beatIndex = 0;
+    state.smells = 0;
+    state.petStreak = 0;
+    state.lastPetAt = 0;
     state.pets = 0;
     state.petals = 0;
     state.sleeping = false;
-    flowerBtn.classList.remove('is-bloomed', 'is-happy', 'is-sleepy');
+    flowerBtn.classList.remove('is-bloomed', 'is-happy', 'is-sleepy', 'is-grumpy', 'is-dancing', 'has-aroma');
+    garden.classList.remove('is-dancing');
     syncBlooms();
     updateUI();
     say('Снова здравствуй! (◕ᴗ◕✿)');
@@ -319,6 +560,9 @@
   sunControlBtn.addEventListener('click', callSun);
   canBtn.addEventListener('click', water);
   waterControlBtn.addEventListener('click', water);
+  smellBtn.addEventListener('click', smell);
+  teaseBtn.addEventListener('click', tease);
+  danceBtn.addEventListener('click', dance);
   resetBtn.addEventListener('click', reset);
 
   soundBtn.addEventListener('click', function () {
@@ -341,7 +585,7 @@
         petals.splice(i, 1);
         state.petals++;
         burst(px, p.y, 'sparkle', 7);
-        say(pick(CATCH_PHRASES));
+        say(state.grumpy > 0 ? 'Даже лепесток не утешит!' : pick(CATCH_PHRASES));
         chime(990, 0.26);
         addJoy(3.2);
         updateUI();
@@ -361,8 +605,28 @@
       callSun();
     } else if (e.key === 'w' || e.key === 'W' || e.key === 'ц' || e.key === 'Ц') {
       water();
+    } else if (e.key === 'n' || e.key === 'N' || e.key === 'т' || e.key === 'Т') {
+      smell();
+    } else if (e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В') {
+      tease();
+    } else if (e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') {
+      dance();
     }
   });
+
+  /* ── время суток ────────────────────────────────────────────────── */
+
+  function updateDaypart() {
+    var hour = new Date().getHours();
+    var part = hour >= 7 && hour < 17 ? 'day' : hour >= 17 && hour < 22 ? 'evening' : 'night';
+    if (part === lastDaypart) return;
+    lastDaypart = part;
+    garden.dataset.daypart = part;
+    var label = part === 'day' ? 'день' : part === 'evening' ? 'вечер' : 'ночь';
+    daypartEl.textContent = label;
+    daypartEl.title = 'Сейчас ' + label + ' — цветочек радует и злит в любое время';
+    sunBtn.setAttribute('aria-label', part === 'night' ? 'Позвать лучик' : 'Позвать солнышко');
+  }
 
   /* ── кадр ───────────────────────────────────────────────────────── */
 
@@ -378,6 +642,34 @@
       }
     }
 
+    if (state.grumpy > 0) {
+      state.grumpy = Math.max(0, state.grumpy - dt);
+      if (state.grumpy === 0) {
+        var calmCenter = centerIn(flowerBtn);
+        spawnScent(calmCenter.x, calmCenter.y - 30, 7, false);
+        say(pick(CALM_PHRASES));
+        chime(700, 0.24);
+      }
+    }
+    if (state.dance > 0) {
+      state.dance = Math.max(0, state.dance - dt);
+      state.danceBeat -= dt;
+      if (state.danceBeat <= 0) {
+        state.danceBeat = 0.42;
+        chime(DANCE_NOTES[state.beatIndex % DANCE_NOTES.length], 0.18, true);
+        state.beatIndex++;
+        var danceCenter = centerIn(flowerBtn);
+        if (state.beatIndex % 2 === 0) spawnScent(danceCenter.x, danceCenter.y - 30, 2, false);
+        else burst(danceCenter.x, danceCenter.y - 40, 'sparkle', 3);
+      }
+      if (state.dance === 0) {
+        flowerBtn.classList.remove('is-dancing');
+        garden.classList.remove('is-dancing');
+        say(pick(CALM_PHRASES));
+      }
+    }
+    state.aroma = clamp(state.aroma - dt * (state.grumpy > 0 ? 3.2 : 1), 0, 100);
+
     waterCooldown = Math.max(0, waterCooldown - dt);
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
@@ -385,10 +677,24 @@
       spawnPetal(rnd(24, W - 24), -22);
     }
 
+    scentTimer -= dt;
+    if (scentTimer <= 0) {
+      scentTimer = rnd(2.4, 4.2);
+      var scentCenter = centerIn(flowerBtn);
+      if (state.grumpy > 0) spawnScent(scentCenter.x, scentCenter.y - 28, 3, true);
+      else if (state.aroma >= 22 && !state.sleeping) spawnScent(scentCenter.x, scentCenter.y - 30, 2, false);
+    }
+
+    daypartTimer -= dt;
+    if (daypartTimer <= 0) {
+      daypartTimer = 30;
+      updateDaypart();
+    }
+
     idleTimer -= dt;
     if (idleTimer <= 0) {
       idleTimer = rnd(14, 24);
-      if (!bubble.classList.contains('is-visible')) say(pick(PHRASES));
+      if (!bubble.classList.contains('is-visible') && state.dance <= 0) say(pick(state.grumpy > 0 ? TEASE_PHRASES : PHRASES));
     }
 
     for (var i = petals.length - 1; i >= 0; i--) {
@@ -404,6 +710,13 @@
       s.life -= dt;
       if (s.life <= 0) sparks.splice(j, 1);
     }
+    for (var k = scents.length - 1; k >= 0; k--) {
+      var a = scents[k];
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      a.life -= dt;
+      if (a.life <= 0) scents.splice(k, 1);
+    }
 
     if (now - uiTick > 120) {
       uiTick = now;
@@ -413,6 +726,7 @@
     requestAnimationFrame(frame);
   }
 
+  updateDaypart();
   resize();
   if (window.ResizeObserver) {
     new ResizeObserver(resize).observe(garden);

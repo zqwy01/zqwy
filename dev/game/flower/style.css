@@ -66,6 +66,18 @@ body {
 .brand { color: var(--pink-deep); letter-spacing: .12em; }
 .brand span { color: var(--muted); letter-spacing: .04em; }
 .brand .kaomoji { margin-left: 8px; color: var(--pink-deep); letter-spacing: 0; white-space: nowrap; }
+.daypart {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .7);
+  color: var(--muted);
+  font-size: .72rem;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
 
 /* ── садик ───────────────────────────────────────────────────────── */
 
@@ -80,6 +92,37 @@ body {
   background: linear-gradient(180deg, #fff8f3 0%, #fdeef0 48%, #e8f4e6 100%);
   box-shadow: 0 22px 60px rgba(120, 86, 95, .16), inset 0 1px rgba(255, 255, 255, .9);
 }
+
+/* Садик подстраивается под время суток: ночью не «выключается», а меняет свет. */
+.garden[data-daypart="evening"] {
+  background: linear-gradient(180deg, #fff1ec 0%, #f9dfe6 48%, #e7eee4 100%);
+}
+.garden[data-daypart="night"] {
+  background: linear-gradient(180deg, #282740 0%, #44354c 55%, #2d403d 100%);
+  box-shadow: 0 22px 60px rgba(58, 48, 72, .3), inset 0 1px rgba(255, 255, 255, .22);
+}
+.garden[data-daypart="night"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 14% 16%, rgba(255, 255, 255, .9), transparent),
+    radial-gradient(2px 2px at 34% 9%, rgba(255, 255, 255, .7), transparent),
+    radial-gradient(2px 2px at 62% 14%, rgba(255, 255, 255, .85), transparent),
+    radial-gradient(2px 2px at 84% 8%, rgba(255, 255, 255, .75), transparent),
+    radial-gradient(2px 2px at 72% 28%, rgba(255, 255, 255, .6), transparent),
+    radial-gradient(2px 2px at 46% 24%, rgba(255, 255, 255, .55), transparent);
+}
+.garden[data-daypart="night"] .hills { filter: brightness(.66) saturate(.75); }
+.garden[data-daypart="night"] .cloud { opacity: .22; }
+.garden[data-daypart="night"] .sun-rays { opacity: .3; }
+.garden[data-daypart="night"] .sun-core {
+  background: radial-gradient(circle at 36% 34%, #fffdf4 0%, #e9e6d8 62%, #bdb9c9 100%);
+  box-shadow: 0 0 30px rgba(223, 220, 255, .5), inset 0 -3px 8px rgba(90, 80, 110, .2);
+}
+.garden[data-daypart="night"] .flower-hint { color: #f7e6ec; }
 
 #sky {
   position: absolute;
@@ -217,6 +260,37 @@ body {
 .flower:hover, .flower:focus-visible { transform: translateX(-50%) translateY(-4px); }
 .flower:active { transform: translateX(-50%) translateY(2px) scale(.98); }
 
+/* Главный участник садика — само личико (◕ᴗ◕✿). Оно живое: моргает,
+   улыбается, сердится и крутит лепестком, когда цветочек расцветает. */
+.kaomoji-hero {
+  position: absolute;
+  left: 50%;
+  top: -10%;
+  z-index: 2;
+  padding: 4px 13px 5px;
+  border: 1px solid rgba(247, 169, 188, .6);
+  border-radius: 999px;
+  background: rgba(255, 253, 251, .94);
+  box-shadow: 0 8px 20px rgba(140, 100, 110, .18);
+  color: var(--pink-deep);
+  font: 700 clamp(19px, 2.6vw, 29px)/1 var(--font);
+  letter-spacing: .02em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: kaomoji-float 3.4s ease-in-out infinite;
+}
+.kaomoji-hero::before { content: '('; opacity: .7; }
+.kaomoji-hero::after { content: ')'; opacity: .7; }
+.kaomoji-hero > span { display: inline-block; }
+.kaomoji-hero .k-eye { animation: kaomoji-blink 5.6s infinite; }
+.kaomoji-hero .k-mouth { transition: transform .3s ease; }
+.kaomoji-hero .k-angry { display: none; }
+.flower.is-happy .kaomoji-hero .k-happy { transform: scale(1.22) translateY(1px); }
+.flower.is-grumpy .kaomoji-hero { border-color: #e58f8f; color: #c85353; animation: kaomoji-shake .45s ease-in-out infinite; }
+.flower.is-grumpy .kaomoji-hero .k-happy { display: none; }
+.flower.is-grumpy .kaomoji-hero .k-angry { display: inline-block; }
+.flower.is-bloomed .kaomoji-hero .k-flower { animation: kaomoji-spin 3s ease-in-out infinite; }
+
 .flower-svg {
   display: block;
   width: 100%;
@@ -260,6 +334,31 @@ body {
 .flower.is-happy .mouth { stroke-width: 3.6; }
 .flower.is-bloomed .flower-svg { filter: drop-shadow(0 0 16px rgba(247, 169, 188, .55)); }
 .flower.is-bloomed .petal ellipse { fill: #ffc6d3; }
+.flower.has-aroma .flower-svg { filter: drop-shadow(0 0 13px rgba(247, 169, 188, .5)); }
+.flower.is-bloomed.has-aroma .flower-svg { filter: drop-shadow(0 0 20px rgba(247, 169, 188, .7)); }
+
+.grumpy-eyes, .grumpy-mouth, .steam { opacity: 0; transition: opacity .3s ease; }
+.grumpy-eyes path, .grumpy-mouth, .steam path {
+  fill: none;
+  stroke: #a85353;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+.flower.is-grumpy .eyes,
+.flower.is-grumpy .happy-eyes,
+.flower.is-grumpy .sleep-eyes,
+.flower.is-grumpy .mouth { opacity: 0; }
+.flower.is-grumpy .grumpy-eyes,
+.flower.is-grumpy .grumpy-mouth,
+.flower.is-grumpy .steam { opacity: 1; }
+.flower.is-grumpy .steam path { animation: steam-rise 1.2s ease-in-out infinite; }
+.flower.is-grumpy .petal ellipse { fill: #f6a6ac; }
+.flower.is-grumpy .blush { fill: #ef8d8d; }
+
+/* Танец: цветок покачивается, каомодзи подпрыгивает, садик подпевает. */
+.flower.is-dancing .flower-svg { animation: flower-dance .42s ease-in-out infinite; }
+.flower.is-dancing .kaomoji-hero { animation: kaomoji-dance .42s ease-in-out infinite; }
+.garden.is-dancing .mini-flower { animation: mini-dance .42s ease-in-out infinite; }
 
 .flower-hint {
   display: block;
@@ -275,7 +374,7 @@ body {
 
 .can {
   position: absolute;
-  right: 7%; bottom: 11%;
+  left: 62%; right: auto; bottom: 9%;
   z-index: 6;
   width: clamp(78px, 10vw, 118px);
   padding: 0;
@@ -332,17 +431,20 @@ body {
 }
 .joy-fill { background: linear-gradient(90deg, #ffc0cc, #f38ba5); }
 .sun-fill { background: linear-gradient(90deg, #ffe3a0, #f1b95f); }
+.scent-fill { background: linear-gradient(90deg, #f9d7e4, #ec8fb2); }
 .meter-value { font-variant-numeric: tabular-nums; font-size: .82rem; text-align: right; }
 
-.hint { margin: 12px 0 10px; color: var(--muted); font-size: .84rem; }
+.mood { margin: 10px 0 0; color: var(--pink-deep); font-size: .78rem; font-weight: 600; }
+.mood.is-grumpy { color: #c85353; }
+.hint { margin: 8px 0 10px; color: var(--muted); font-size: .84rem; }
 .counters { display: flex; flex-wrap: wrap; gap: 18px; color: var(--pink-deep); font-size: .9rem; }
 .counters b { color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(104px, 1fr));
+  grid-template-columns: repeat(4, minmax(96px, 1fr));
   gap: 8px;
-  max-width: 470px;
+  max-width: 620px;
 }
 .ctrl {
   display: flex;
@@ -369,6 +471,42 @@ body {
 
 /* ── анимации ────────────────────────────────────────────────────── */
 
+@keyframes kaomoji-float {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(-1deg); }
+  50% { transform: translateX(-50%) translateY(-5px) rotate(1deg); }
+}
+@keyframes kaomoji-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(.12); }
+}
+@keyframes kaomoji-shake {
+  0%, 100% { transform: translateX(-50%) rotate(0); }
+  25% { transform: translateX(-50%) rotate(-3deg); }
+  75% { transform: translateX(-50%) rotate(3deg); }
+}
+@keyframes kaomoji-spin {
+  0%, 100% { transform: rotate(0) scale(1); }
+  50% { transform: rotate(18deg) scale(1.12); }
+}
+@keyframes steam-rise {
+  0% { opacity: .25; transform: translateY(4px); }
+  50% { opacity: 1; transform: translateY(-3px); }
+  100% { opacity: .25; transform: translateY(-8px); }
+}
+@keyframes flower-dance {
+  0%, 100% { transform: translateX(-4px) rotate(-3deg) scale(1); }
+  25% { transform: translateX(3px) rotate(2deg) scale(1.02); }
+  50% { transform: translateX(5px) rotate(3deg) scale(1); }
+  75% { transform: translateX(-3px) rotate(-2deg) scale(1.02); }
+}
+@keyframes kaomoji-dance {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(-4deg); }
+  50% { transform: translateX(-50%) translateY(-7px) rotate(4deg); }
+}
+@keyframes mini-dance {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-6px) rotate(calc(var(--r, 0deg) + 8deg)); }
+}
 @keyframes flower-breathe {
   0%, 100% { transform: scale(1) rotate(-.6deg); }
   50% { transform: scale(1.015) rotate(.6deg); }
@@ -395,13 +533,14 @@ body {
 @media (max-width: 760px) {
   .panel { grid-template-columns: 1fr; gap: 16px; }
   .controls { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .can { right: 3%; bottom: 8%; }
+  .can { left: 58%; bottom: 7%; }
   .sun { left: 4%; }
   .brand .kaomoji { display: none; }
 }
 
 @media (max-width: 460px) {
   .garden { height: 440px; }
+  .kaomoji-hero { font-size: 19px; top: -8%; padding: 3px 9px; }
   .controls { grid-template-columns: 1fr 1fr; }
   .ctrl { min-height: 50px; padding: 7px 9px; }
   .ctrl-text small { display: none; }

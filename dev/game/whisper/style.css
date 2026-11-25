@@ -295,6 +295,65 @@ button { cursor: pointer; }
 .ushko-svg.scared .cheek { opacity: 0.15; }
 .ushko-svg.scared .whiskers path { stroke: #c97a6b; }
 
+/* Кто-то шепчет сверху: тихий силуэт и волны над выбранным ухом. */
+.whisperer { opacity: 0; transition: opacity 0.3s ease; }
+.whisperer-head { fill: #e8c7a2; stroke: #b9946f; stroke-width: 1.6; }
+.whisperer-hood { fill: #4a382b; stroke: #6d5240; stroke-width: 1.6; }
+.whisperer-mouth { fill: #8c5f57; transform-origin: center; }
+.sound-wave {
+  fill: none;
+  stroke: #ffe0b8;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.ushko-svg.speaking.chosen-left .whisperer-left,
+.ushko-svg.speaking.chosen-right .whisperer-right { opacity: 0.95; }
+.ushko-svg.speaking .sound-wave { animation: sound-wave 1.1s ease-out infinite; }
+.ushko-svg.speaking .w2 { animation-delay: 0.35s; }
+.ushko-svg.speaking .whisperer-mouth { animation: mouth-pulse 0.8s ease-in-out infinite; }
+@keyframes sound-wave {
+  0% { opacity: 0; transform: translateY(4px) scale(0.85); }
+  40% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-5px) scale(1.15); }
+}
+@keyframes mouth-pulse {
+  0%, 100% { transform: scaleX(1); opacity: 0.8; }
+  50% { transform: scaleX(1.5); opacity: 1; }
+}
+
+/* Выбранное ухо игрока и ухо, которое слушает Ушко, — разные подсказки. */
+.ear-halo {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-dasharray: 4 5;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.ushko-svg.target-left .ear-halo-left,
+.ushko-svg.target-right .ear-halo-right { opacity: 0.85; animation: halo-pulse 1.9s ease-in-out infinite; }
+@keyframes halo-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+.ear-halo-left { transform-origin: 78px 82px; }
+.ear-halo-right { transform-origin: 182px 82px; }
+.ear-select-mark {
+  fill: #ffe9cc;
+  stroke: #c79e6d;
+  stroke-width: 1.5;
+  opacity: 0;
+  transition: opacity 0.25s ease, fill 0.25s ease;
+  filter: drop-shadow(0 0 6px rgba(255, 224, 184, 0.8));
+}
+.ushko-svg.chosen-left .ear-select-mark-left,
+.ushko-svg.chosen-right .ear-select-mark-right { opacity: 1; }
+.ushko-svg.wrong-ear .ear-select-mark-left,
+.ushko-svg.wrong-ear .ear-select-mark-right { fill: var(--fear); stroke: #a3534a; filter: drop-shadow(0 0 7px rgba(217, 122, 107, 0.8)); }
+.ushko-svg.chosen-left .ear-left .ear-outer,
+.ushko-svg.chosen-right .ear-right .ear-outer { stroke: #fff0d8; stroke-width: 3; }
+
 .ear-hint {
   min-height: 1.5em;
   margin: 0;
@@ -361,30 +420,83 @@ button { cursor: pointer; }
 }
 .ear-btn.is-active { border-color: var(--amber); background: rgba(224, 173, 109, 0.15); color: var(--cream); }
 .ear-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.auto-btn.is-on {
+  border-color: var(--calm);
+  background: rgba(159, 201, 166, 0.16);
+  color: #dff0e1;
+  box-shadow: 0 0 14px rgba(159, 201, 166, 0.25);
+}
 
 .sliders { display: grid; gap: 10px; }
-.slider-row { position: relative; display: block; }
+.slider-row { display: block; }
 .slider-row.is-locked { opacity: 0.35; }
 .slider-name {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   color: var(--muted);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.1em;
 }
 .slider-name b { color: var(--cream); font-variant-numeric: tabular-nums; }
-.slider-row input[type="range"] { width: 100%; height: 20px; margin: 0; accent-color: var(--amber); }
+.slider-control { position: relative; display: block; height: 22px; }
+.slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 1px solid #3a3029;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2c231d, #51402f 55%, #2c231d);
+}
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 17px;
+  height: 17px;
+  margin-top: -7px;
+  border: 1px solid #ffe1b8;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff6e9, #dbb68d 72%, #b98e63);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.55), 0 0 12px rgba(224, 173, 109, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.slider-row input[type="range"]:hover::-webkit-slider-thumb,
+.slider-row input[type="range"]:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.14);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.55), 0 0 18px rgba(224, 173, 109, 0.55);
+}
+.slider-row input[type="range"]::-moz-range-track {
+  height: 6px;
+  border: 1px solid #3a3029;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2c231d, #51402f 55%, #2c231d);
+}
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #ffe1b8;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff6e9, #dbb68d 72%, #b98e63);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.55), 0 0 12px rgba(224, 173, 109, 0.28);
+}
 .slider-row input[type="range"]:disabled { cursor: not-allowed; }
+.slider-row input[type="range"]:focus-visible { outline: 1px solid var(--amber); outline-offset: 3px; border-radius: 999px; }
 .slider-zone {
   position: absolute;
   left: 0;
-  bottom: -1px;
-  height: 3px;
+  top: 9px;
+  height: 6px;
   border-radius: 999px;
-  background: rgba(159, 201, 166, 0.7);
-  box-shadow: 0 0 8px rgba(159, 201, 166, 0.35);
+  background: linear-gradient(90deg, rgba(159, 201, 166, 0.35), rgba(159, 201, 166, 0.75));
+  box-shadow: 0 0 9px rgba(159, 201, 166, 0.35);
   pointer-events: none;
 }
 .slider-row.is-locked .slider-zone { display: none; }
@@ -409,6 +521,7 @@ button { cursor: pointer; }
 }
 .whisper-btn:hover,
 .whisper-btn:focus-visible { background: rgba(224, 173, 109, 0.24); }
+.whisper-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .whisper-btn.is-holding {
   transform: scale(0.97);
   background: rgba(224, 173, 109, 0.34);
@@ -482,5 +595,8 @@ button { cursor: pointer; }
   .ear,
   .eye,
   .meter-fill,
-  .whisper-btn { transition-duration: 0.01ms !important; }
+  .whisper-btn,
+  .whisperer,
+  .sound-wave,
+  .ear-halo { transition-duration: 0.01ms !important; animation: none !important; }
 }

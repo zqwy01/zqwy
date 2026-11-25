@@ -29,6 +29,7 @@
 
         <div class="intro-actions">
           <button id="startBtn" class="btn primary" type="button">РАЗБУДИТЬ УШКО</button>
+          <button id="autoStartBtn" class="btn" type="button">🤖 АВТО-ИГРА</button>
           <button id="nightsBtn" class="btn" type="button">ВЫБОР НОЧИ</button>
           <button id="achievementsBtn" class="btn ghost" type="button">ДОСТИЖЕНИЯ</button>
         </div>
@@ -58,13 +59,14 @@
         </div>
         <div class="head-actions">
           <button id="codexBtn" class="btn ghost small" type="button">ДНЕВНИК</button>
+          <button id="autoBtn" class="btn ghost small auto-btn" type="button" aria-pressed="false">🤖 АВТО</button>
           <button id="stopBtn" class="btn small" type="button">СТОП</button>
         </div>
       </header>
 
       <div class="stage">
         <div class="burrow" id="burrow">
-          <svg id="ushkoSvg" class="ushko-svg" viewBox="0 0 260 230" role="img" aria-label="Пушистое существо Ушко в норке">
+          <svg id="ushkoSvg" class="ushko-svg" viewBox="-10 -26 280 256" role="img" aria-label="Пушистое существо Ушко в норке">
             <defs>
               <radialGradient id="furGrad" cx="40%" cy="35%" r="65%">
                 <stop offset="0%" stop-color="#f3d9b8"/>
@@ -79,6 +81,29 @@
             <ellipse class="burrow-rim" cx="130" cy="178" rx="106" ry="40"></ellipse>
             <ellipse class="burrow-hole" cx="130" cy="177" rx="92" ry="31"></ellipse>
 
+            <!-- Кто-то тихо говорит над ушком. Появляется над выбранной стороной. -->
+            <g class="whisperer whisperer-left" aria-hidden="true">
+              <path class="sound-wave w1" d="M64 20 q10 8 15 18"></path>
+              <path class="sound-wave w2" d="M70 14 q13 9 19 21"></path>
+              <circle class="whisperer-head" cx="54" cy="10" r="9"></circle>
+              <path class="whisperer-hood" d="M43 14 q2 -20 11 -20 q10 0 12 20"></path>
+              <ellipse class="whisperer-mouth" cx="54" cy="12" rx="2.4" ry="1.6"></ellipse>
+            </g>
+            <g class="whisperer whisperer-right" aria-hidden="true">
+              <path class="sound-wave w1" d="M196 20 q-10 8 -15 18"></path>
+              <path class="sound-wave w2" d="M190 14 q-13 9 -19 21"></path>
+              <circle class="whisperer-head" cx="206" cy="10" r="9"></circle>
+              <path class="whisperer-hood" d="M217 14 q-2 -20 -11 -20 q-10 0 -12 20"></path>
+              <ellipse class="whisperer-mouth" cx="206" cy="12" rx="2.4" ry="1.6"></ellipse>
+            </g>
+            <g class="whisperer whisperer-center" aria-hidden="true">
+              <path class="sound-wave w1" d="M122 8 q8 7 8 15"></path>
+              <path class="sound-wave w2" d="M138 8 q-8 7 -8 15"></path>
+              <circle class="whisperer-head" cx="130" cy="-4" r="9"></circle>
+              <path class="whisperer-hood" d="M119 0 q2 -20 11 -20 q10 0 12 20"></path>
+              <ellipse class="whisperer-mouth" cx="130" cy="-2" rx="2.4" ry="1.6"></ellipse>
+            </g>
+
             <g class="ushko-body">
               <g class="tail-wrap">
                 <path class="tail" d="M184 154 q40 10 34 -24 q-3 -20 -24 -16 q-14 3 -14 18"></path>
@@ -87,6 +112,11 @@
 
               <ellipse class="fur" cx="130" cy="126" rx="68" ry="56"></ellipse>
               <ellipse class="belly" cx="130" cy="138" rx="42" ry="34"></ellipse>
+
+              <ellipse class="ear-halo ear-halo-left" cx="78" cy="82" rx="31" ry="39"></ellipse>
+              <ellipse class="ear-halo ear-halo-right" cx="182" cy="82" rx="31" ry="39"></ellipse>
+              <circle class="ear-select-mark ear-select-mark-left" cx="56" cy="52" r="4"></circle>
+              <circle class="ear-select-mark ear-select-mark-right" cx="204" cy="52" r="4"></circle>
 
               <g class="ear ear-left">
                 <path class="ear-outer" d="M74 104 q-30 -40 -4 -58 q27 -8 34 38 z"></path>
@@ -176,18 +206,24 @@
         <div class="sliders">
           <label class="slider-row" id="volumeRow">
             <span class="slider-name">ГРОМКОСТЬ <b id="volumeValue">36%</b></span>
-            <input id="volumeSlider" type="range" min="0" max="100" value="36" step="1">
-            <span class="slider-zone" id="volumeZone"></span>
+            <span class="slider-control">
+              <input id="volumeSlider" type="range" min="0" max="100" value="36" step="1">
+              <span class="slider-zone" id="volumeZone"></span>
+            </span>
           </label>
           <label class="slider-row" id="tempoRow">
             <span class="slider-name">ТЕМП <b id="tempoValue">0.85×</b></span>
-            <input id="tempoSlider" type="range" min="0" max="100" value="35" step="1">
-            <span class="slider-zone" id="tempoZone"></span>
+            <span class="slider-control">
+              <input id="tempoSlider" type="range" min="0" max="100" value="35" step="1">
+              <span class="slider-zone" id="tempoZone"></span>
+            </span>
           </label>
           <label class="slider-row" id="pitchRow">
             <span class="slider-name">ВЫСОТА <b id="pitchValue">0.95</b></span>
-            <input id="pitchSlider" type="range" min="0" max="100" value="45" step="1">
-            <span class="slider-zone" id="pitchZone"></span>
+            <span class="slider-control">
+              <input id="pitchSlider" type="range" min="0" max="100" value="45" step="1">
+              <span class="slider-zone" id="pitchZone"></span>
+            </span>
           </label>
         </div>
 

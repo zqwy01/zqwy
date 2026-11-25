@@ -157,11 +157,11 @@
       };
     });
     if (S.night && S.night.drift) {
-      const t = now / 2200;
+      const t = now / 1800;
       const shift = {
-        volume: 0.055 * Math.sin(t + S.phraseIdx * 0.8),
-        tempo: 0.045 * Math.cos(t * 0.9 + S.phraseIdx * 0.5),
-        pitch: 0.05 * Math.sin(t * 1.15 + S.phraseIdx * 0.35)
+        volume: 0.075 * Math.sin(t * 1.1 + S.phraseIdx * 0.9),
+        tempo: 0.06 * Math.cos(t + S.phraseIdx * 0.7),
+        pitch: 0.07 * Math.sin(t * 1.25 + S.phraseIdx * 0.45)
       };
       keys.forEach((key) => {
         const minBound = key === 'volume' ? 0.14 : 0.58;
@@ -557,7 +557,7 @@
       let harsh = false;
       if (value > zone.max) { dist = value - zone.max; harsh = true; }
       else if (value < zone.min) { dist = zone.min - value; harsh = false; }
-      const score = dist === 0 ? 1 : Math.max(0, 1 - dist / (span * 1.6));
+      const score = dist === 0 ? 1 : Math.max(0, 1 - dist / (span * 1.4));
       scoreSum += score;
       if (harsh) scare += 1 - score;
       else if (dist > 0) neglect += 1 - score;
@@ -568,25 +568,25 @@
     const earOk = !usesEar || selectedEar() === S.targetEar;
     if (usesEar && S.holding) S.usedEars[selectedEar()] = true;
 
-    const nightFactor = 1 + (S.night.id - 1) * 0.08;
-    const driftPenalty = S.night.drift ? 1.15 : 1;
+    const nightFactor = 1 + (S.night.id - 1) * 0.14;
+    const driftPenalty = S.night.drift ? 1.2 : 1;
 
     if (S.holding) {
       if (earOk && avgScore > 0.9) {
-        S.calm += 12 * dt;
-        S.fear = Math.max(0, S.fear - 6 * dt);
-        S.attention = Math.min(100, S.attention + 5 * dt);
+        S.calm += 10 * dt;
+        S.fear = Math.max(0, S.fear - 5 * dt);
+        S.attention = Math.min(100, S.attention + 4 * dt);
         S.qualitySum += avgScore;
         S.qualityTicks += 1;
       } else {
         if (!earOk) {
-          neglect += 1.6;
-          S.fear += 10 * dt * nightFactor;
+          neglect += 2;
+          S.fear += 14 * dt * nightFactor;
         }
-        S.fear += scare * 24 * dt * nightFactor * driftPenalty;
-        S.attention -= neglect * 18 * dt * nightFactor;
-        S.calm -= (scare + neglect) * 5 * dt * nightFactor;
-        if (avgScore > 0.72 && earOk) {
+        S.fear += scare * 28 * dt * nightFactor * driftPenalty;
+        S.attention -= neglect * 22 * dt * nightFactor;
+        S.calm -= (scare + neglect) * 7 * dt * nightFactor;
+        if (avgScore > 0.78 && earOk) {
           S.qualitySum += avgScore * 0.35;
           S.qualityTicks += 0.35;
         }
@@ -594,7 +594,7 @@
     } else {
       S.fear = Math.max(0, S.fear - 7 * dt);
       S.attention = Math.min(100, S.attention + 2.2 * dt);
-      S.calm = Math.max(0, S.calm - 2.2 * dt * nightFactor);
+      S.calm = Math.max(0, S.calm - 2.6 * dt * nightFactor);
     }
 
     S.calm = clamp(S.calm, 0, 100);
@@ -603,7 +603,7 @@
     S.maxFear = Math.max(S.maxFear, S.fear);
     S.zeroAttentionMs = S.attention <= 0.5 ? S.zeroAttentionMs + dt * 1000 : 0;
 
-    const attentionLimit = S.night.id >= 4 ? 2600 : 3200;
+    const attentionLimit = S.night.id >= 4 ? 1900 : 2600;
     if (S.calm >= 100) finish(true);
     else if (S.fear >= 100) finish(false, 'Ушко испугалось. Сделай голос тише, ниже и медленнее.');
     else if (S.zeroAttentionMs >= attentionLimit) finish(false, 'Ушко отвернулось. Лови зону комфорта и правильное ухо.');
@@ -631,8 +631,8 @@
   }
 
   function starsFor(q, fear) {
-    if (fear > 45 || q < 0.62) return 1;
-    if (fear < 16 && q > 0.93) return 3;
+    if (fear > 40 || q < 0.72) return 1;
+    if (fear < 12 && q > 0.95) return 3;
     return 2;
   }
 

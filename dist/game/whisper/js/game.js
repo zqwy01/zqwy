@@ -27,7 +27,7 @@
       achievements: [],
       heard: [],
       lastNight: 1,
-      settings: { volume: 36, tempo: 35, pitch: 45, ear: 'left' }
+      settings: { volume: 36, tempo: 35, pitch: 45, ear: 'left', auto: false }
     };
   }
 
@@ -80,11 +80,33 @@
     wordRanges: [],
     fallbackTimer: 0,
     silentMode: false,
-    silentWarned: false
+    silentWarned: false,
+    auto: false,
+    autoAdvanceTimer: 0,
+    autoRetries: 0
   };
 
   function selectedEar() {
     return document.querySelector('.ear-btn.is-active')?.dataset.ear || 'left';
+  }
+
+  function selectEar(value, manual) {
+    const ear = value === 'right' ? 'right' : 'left';
+    document.querySelectorAll('.ear-btn').forEach((btn) => {
+      const active = btn.dataset.ear === ear;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    AUDIO.setEar(ear);
+    if (manual) {
+      saveSettings();
+      if (S.night && S.night.mechanics.indexOf('ear') === -1) setTargetEar();
+    }
+  }
+
+  function clearAutoAdvance() {
+    if (S.autoAdvanceTimer) window.clearTimeout(S.autoAdvanceTimer);
+    S.autoAdvanceTimer = 0;
   }
 
   function slider(name) { return $(name + 'Slider'); }
@@ -135,11 +157,11 @@
       };
     });
     if (S.night && S.night.drift) {
-      const t = now / 2200;
+      const t = now / 1800;
       const shift = {
-        volume: 0.055 * Math.sin(t + S.phraseIdx * 0.8),
-        tempo: 0.045 * Math.cos(t * 0.9 + S.phraseIdx * 0.5),
-        pitch: 0.05 * Math.sin(t * 1.15 + S.phraseIdx * 0.35)
+        volume: 0.075 * Math.sin(t * 1.1 + S.phraseIdx * 0.9),
+        tempo: 0.06 * Math.cos(t + S.phraseIdx * 0.7),
+        pitch: 0.07 * Math.sin(t * 1.25 + S.phraseIdx * 0.45)
       };
       keys.forEach((key) => {
         const minBound = key === 'volume' ? 0.14 : 0.58;
@@ -194,13 +216,22 @@
     slider('volume').value = clamp(Number(save.settings.volume), 0, 100);
     slider('tempo').value = clamp(Number(save.settings.tempo), 0, 100);
     slider('pitch').value = clamp(Number(save.settings.pitch), 0, 100);
-    document.querySelectorAll('.ear-btn').forEach((btn) => {
-      const active = btn.dataset.ear === save.settings.ear;
-      btn.classList.toggle('is-active', active);
-      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-    AUDIO.setEar(selectedEar());
+    selectEar(save.settings.ear, false);
     renderSliderLabels();
+  }
+
+  function refreshControls() {
+    if (!S.night) return;
+    const usesEar = S.night.mechanics.indexOf('ear') !== -1;
+    document.querySelectorAll('.ear-btn').forEach((btn) => {
+      btn.disabled = S.auto || !usesEar;
+    });
+    ['volume', 'tempo', 'pitch'].forEach((key) => {
+      slider(key).disabled = S.auto || S.night.mechanics.indexOf(key) === -1;
+    });
+    $('whisperBtn').disabled = S.auto;
+    const hint = $('whisperBtn').querySelector('small');
+    if (hint) hint.textContent = S.auto ? 'авто-игра · Ушко само слушает' : 'зажми или держи пробел';
   }
 
   /* ───────────────────────── nights ───────────────────────── */
@@ -238,6 +269,7 @@
   function startNight(id) {
     const night = DATA.nights.find((n) => n.id === id);
     if (!night || id > unlockedNight()) return;
+    clearAutoAdvance();
     S.night = night;
     S.calm = 0;
     S.fear = 0;
@@ -258,13 +290,7 @@
     $('nightTitle').textContent = night.title;
     $('hintLine').textContent = night.hint;
 
-    const usesEar = night.mechanics.indexOf('ear') !== -1;
-    document.querySelectorAll('.ear-btn').forEach((btn) => { btn.disabled = !usesEar; });
-    ['volume', 'tempo', 'pitch'].forEach((key) => {
-      const active = night.mechanics.indexOf(key) !== -1;
-      slider(key).disabled = !active;
-    });
-
+    refreshControls();
     applySettings();
     renderZones();
     setTargetEar();
@@ -279,6 +305,54 @@
       S.lastTs = performance.now();
       S.raf = window.requestAnimationFrame(tick);
     }
+    if (S.auto) autoStep(performance.now());
+  }
+
+  /* ───────────────────────── auto-play ───────────────────────── */
+
+  /* The bot uses the same rules as a player: listen to the glowing ear,
+     keep every active slider in the middle of its comfort zone and hold the
+     whisper. It can finish a night and move on without further clicks. */
+  function applyAutoChoices(now) {
+    if (!S.auto || !S.night || S.screen !== 'game' || S.finished) return;
+    if (S.night.mechanics.indexOf('ear') !== -1 && selectedEar() !== S.targetEar) {
+      selectEar(S.targetEar, false);
+    }
+    const zones = comfort(now);
+    S.night.mechanics.forEach((key) => {
+      if (key === 'ear') return;
+      const center = (zones[key].min + zones[key].max) / 2;
+      slider(key).value = String(toSliderValue(key, center));
+    });
+    renderSliderLabels();
+  }
+
+  function autoStep(now) {
+    if (!S.auto || !S.night || S.screen !== 'game' || S.finished) return;
+    applyAutoChoices(now);
+    if (!S.holding) beginWhisper(true);
+  }
+
+  function setAuto(on, quiet) {
+    S.auto = !!on;
+    const btn = $('autoBtn');
+    btn.classList.toggle('is-on', S.auto);
+    btn.setAttribute('aria-pressed', S.auto ? 'true' : 'false');
+    btn.textContent = S.auto ? '🤖 АВТО ✓' : '🤖 АВТО';
+    save.settings.auto = S.auto;
+    refreshControls();
+    if (quiet) return;
+
+    clearAutoAdvance();
+    if (S.auto) {
+      AUDIO.unlock();
+      if (S.screen === 'game' && !S.finished) autoStep(performance.now());
+      $('statusLine').textContent = 'Авто-игра включена: Ушко само слушает шёпот.';
+    } else {
+      endWhisper();
+      $('statusLine').textContent = 'Авто-игра выключена. Шёпот снова под твоим контролем.';
+    }
+    persist();
   }
 
   /* ───────────────────────── speech ───────────────────────── */
@@ -320,6 +394,7 @@
     const step = () => {
       if (!S.holding || !S.wordEls.length) return;
       highlightWord(i);
+      AUDIO.word();
       i += 1;
       if (i < S.wordEls.length) {
         const delay = S.silentMode ? 200 / rate : 330 / rate;
@@ -392,6 +467,7 @@
         let index = S.wordRanges.findIndex((r) => charIndex >= r.start && charIndex < r.end);
         if (index < 0) index = S.wordRanges.length - 1;
         if (index >= 0) highlightWord(index);
+        AUDIO.word();
       },
       onEnd: () => {
         if (myToken !== S.speakToken || !S.holding || S.finished) return;
@@ -413,7 +489,8 @@
     startFallbackHighlight(v.tempo);
   }
 
-  function beginWhisper() {
+  function beginWhisper(fromAuto) {
+    if (!fromAuto && S.auto) return;
     if (S.screen !== 'game' || S.finished || S.holding) return;
     if (!S.silentWarned) $('statusLine').textContent = '';
     AUDIO.unlock();
@@ -442,6 +519,7 @@
     $('calmValue').textContent = Math.round(S.calm);
     $('fearValue').textContent = Math.round(S.fear);
     $('attentionValue').textContent = Math.round(S.attention);
+    AUDIO.setMood(S.calm, S.fear);
 
     const svg = $('ushkoSvg');
     let mood = 'Ушко смотрит на тебя большими глазами.';
@@ -452,8 +530,14 @@
     else if (S.holding) { mood = 'Ушко навострил ушки и слушает.'; state = 'listening'; }
     else if (S.attention < 35) { mood = 'Ушко скучает... позови его шёпотом.'; }
     $('moodLine').textContent = mood;
-    const targetClass = S.night && S.night.mechanics.indexOf('ear') !== -1 ? 'target-' + S.targetEar : '';
-    svg.setAttribute('class', ['ushko-svg', state, targetClass].filter(Boolean).join(' '));
+    const usesEar = S.night && S.night.mechanics.indexOf('ear') !== -1;
+    const targetClass = usesEar ? 'target-' + S.targetEar : '';
+    const chosenClass = 'chosen-' + selectedEar();
+    const wrongClass = usesEar && S.holding && selectedEar() !== S.targetEar ? 'wrong-ear' : '';
+    svg.setAttribute('class', [
+      'ushko-svg', state, targetClass, chosenClass, wrongClass,
+      S.holding ? 'speaking' : ''
+    ].filter(Boolean).join(' '));
 
     renderZones(now);
   }
@@ -474,7 +558,7 @@
       let harsh = false;
       if (value > zone.max) { dist = value - zone.max; harsh = true; }
       else if (value < zone.min) { dist = zone.min - value; harsh = false; }
-      const score = dist === 0 ? 1 : Math.max(0, 1 - dist / (span * 1.6));
+      const score = dist === 0 ? 1 : Math.max(0, 1 - dist / (span * 1.4));
       scoreSum += score;
       if (harsh) scare += 1 - score;
       else if (dist > 0) neglect += 1 - score;
@@ -485,25 +569,25 @@
     const earOk = !usesEar || selectedEar() === S.targetEar;
     if (usesEar && S.holding) S.usedEars[selectedEar()] = true;
 
-    const nightFactor = 1 + (S.night.id - 1) * 0.08;
-    const driftPenalty = S.night.drift ? 1.15 : 1;
+    const nightFactor = 1 + (S.night.id - 1) * 0.14;
+    const driftPenalty = S.night.drift ? 1.2 : 1;
 
     if (S.holding) {
       if (earOk && avgScore > 0.9) {
-        S.calm += 12 * dt;
-        S.fear = Math.max(0, S.fear - 6 * dt);
-        S.attention = Math.min(100, S.attention + 5 * dt);
+        S.calm += 10 * dt;
+        S.fear = Math.max(0, S.fear - 5 * dt);
+        S.attention = Math.min(100, S.attention + 4 * dt);
         S.qualitySum += avgScore;
         S.qualityTicks += 1;
       } else {
         if (!earOk) {
-          neglect += 1.6;
-          S.fear += 10 * dt * nightFactor;
+          neglect += 2;
+          S.fear += 14 * dt * nightFactor;
         }
-        S.fear += scare * 24 * dt * nightFactor * driftPenalty;
-        S.attention -= neglect * 18 * dt * nightFactor;
-        S.calm -= (scare + neglect) * 5 * dt * nightFactor;
-        if (avgScore > 0.72 && earOk) {
+        S.fear += scare * 28 * dt * nightFactor * driftPenalty;
+        S.attention -= neglect * 22 * dt * nightFactor;
+        S.calm -= (scare + neglect) * 7 * dt * nightFactor;
+        if (avgScore > 0.78 && earOk) {
           S.qualitySum += avgScore * 0.35;
           S.qualityTicks += 0.35;
         }
@@ -511,7 +595,7 @@
     } else {
       S.fear = Math.max(0, S.fear - 7 * dt);
       S.attention = Math.min(100, S.attention + 2.2 * dt);
-      S.calm = Math.max(0, S.calm - 2.2 * dt * nightFactor);
+      S.calm = Math.max(0, S.calm - 2.6 * dt * nightFactor);
     }
 
     S.calm = clamp(S.calm, 0, 100);
@@ -520,7 +604,7 @@
     S.maxFear = Math.max(S.maxFear, S.fear);
     S.zeroAttentionMs = S.attention <= 0.5 ? S.zeroAttentionMs + dt * 1000 : 0;
 
-    const attentionLimit = S.night.id >= 4 ? 2600 : 3200;
+    const attentionLimit = S.night.id >= 4 ? 1900 : 2600;
     if (S.calm >= 100) finish(true);
     else if (S.fear >= 100) finish(false, 'Ушко испугалось. Сделай голос тише, ниже и медленнее.');
     else if (S.zeroAttentionMs >= attentionLimit) finish(false, 'Ушко отвернулось. Лови зону комфорта и правильное ухо.');
@@ -531,6 +615,7 @@
     if (S.screen !== 'game' || S.finished || !S.night) { S.lastTs = ts; return; }
     const dt = Math.min(0.05, Math.max(0, (ts - S.lastTs) / 1000));
     S.lastTs = ts;
+    autoStep(ts);
     evaluate(dt, ts);
     updateUI(ts);
   }
@@ -547,14 +632,16 @@
   }
 
   function starsFor(q, fear) {
-    if (fear > 45 || q < 0.62) return 1;
-    if (fear < 16 && q > 0.93) return 3;
+    if (fear > 40 || q < 0.72) return 1;
+    if (fear < 12 && q > 0.95) return 3;
     return 2;
   }
 
   function finish(win, reason) {
     if (S.finished) return;
+    const wasAuto = S.auto;
     S.finished = true;
+    clearAutoAdvance();
     endWhisper();
     window.cancelAnimationFrame(S.raf);
     S.raf = 0;
@@ -562,6 +649,7 @@
     const q = quality();
     const stars = win ? starsFor(q, S.maxFear) : 0;
     if (win) {
+      AUDIO.chime();
       const old = save.nights[S.night.id] || { stars: 0 };
       save.nights[S.night.id] = {
         stars: Math.max(old.stars || 0, stars),
@@ -573,6 +661,7 @@
       if (S.maxFear <= 2) addAchievement('no-fear');
       if (S.night.mechanics.indexOf('ear') !== -1 && S.usedEars.left && S.usedEars.right) addAchievement('both-ears');
       if (DATA.nights.every((n) => save.nights[n.id] && save.nights[n.id].stars > 0)) addAchievement('five-nights');
+      if (wasAuto) addAchievement('auto-pilot');
       persist();
     }
 
@@ -597,6 +686,28 @@
     $('nextNightBtn').classList.toggle('hidden', !hasNext);
     if (hasNext) $('nextNightBtn').dataset.next = String(S.night.id + 1);
     showScreen('result');
+
+    if (wasAuto) {
+      saveSettings();
+      const nextNight = win ? S.night.id + 1 : S.night.id;
+      if (win) S.autoRetries = 0;
+      if (nextNight <= DATA.nights.length && (win || S.autoRetries < 2)) {
+        if (!win) S.autoRetries += 1;
+        $('resultText').textContent += win
+          ? ' Авто-игра продолжится сама через пару секунд.'
+          : ' Авто-игра попробует ещё раз тише.';
+        S.autoAdvanceTimer = window.setTimeout(() => {
+          S.autoAdvanceTimer = 0;
+          if (S.auto && S.screen === 'result') startNight(nextNight);
+        }, win ? 1800 : 2600);
+      } else {
+        setAuto(false, true);
+        $('resultText').textContent += win
+          ? ' Авто-игра завершена: все ночи пройдены.'
+          : ' Авто-игра остановлена.';
+      }
+      persist();
+    }
   }
 
   /* ───────────────────────── codex ───────────────────────── */
@@ -648,6 +759,12 @@
       AUDIO.unlock();
       startNight(Math.min(save.lastNight || 1, unlockedNight()));
     });
+    $('autoStartBtn').addEventListener('click', () => {
+      AUDIO.unlock();
+      setAuto(true, true);
+      startNight(Math.min(save.lastNight || 1, unlockedNight()));
+    });
+    $('autoBtn').addEventListener('click', () => setAuto(!S.auto));
     $('nightsBtn').addEventListener('click', () => { renderNights(); showScreen('nights'); });
     $('achievementsBtn').addEventListener('click', () => openCodex('intro'));
     $('codexBtn').addEventListener('click', () => openCodex('game'));
@@ -668,21 +785,13 @@
     });
 
     $('stopBtn').addEventListener('click', () => {
+      if (S.auto) { setAuto(false, true); persist(); }
       endWhisper();
       $('statusLine').textContent = 'Шёпот остановлен. Ушко отдыхает.';
     });
 
     document.querySelectorAll('.ear-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.ear-btn').forEach((b) => {
-          const active = b === btn;
-          b.classList.toggle('is-active', active);
-          b.setAttribute('aria-pressed', active ? 'true' : 'false');
-        });
-        AUDIO.setEar(btn.dataset.ear);
-        saveSettings();
-        if (S.night && S.night.mechanics.indexOf('ear') === -1) setTargetEar();
-      });
+      btn.addEventListener('click', () => selectEar(btn.dataset.ear, true));
     });
 
     ['volume', 'tempo', 'pitch'].forEach((key) => {
@@ -696,13 +805,14 @@
     const whisperBtn = $('whisperBtn');
     whisperBtn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      if (S.auto) return;
       beginWhisper();
       const release = () => { endWhisper(); window.removeEventListener('pointerup', release); window.removeEventListener('pointercancel', release); };
       window.addEventListener('pointerup', release, { once: true });
       window.addEventListener('pointercancel', release, { once: true });
     });
     whisperBtn.addEventListener('keydown', (e) => {
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) beginWhisper(); }
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat && !S.auto) beginWhisper(); }
     });
     whisperBtn.addEventListener('keyup', (e) => {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); endWhisper(); }
@@ -713,7 +823,7 @@
       if (e.key !== ' ' || e.repeat) return;
       const tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (S.screen !== 'game') return;
+      if (S.screen !== 'game' || S.auto) return;
       e.preventDefault();
       beginWhisper();
     });
@@ -739,6 +849,7 @@
 
   bind();
   applySettings();
+  setAuto(save.settings.auto, true);
   renderNights();
   renderCodex();
   renderIntroProgress();

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1420">
+<meta name="description" content="Домашняя гиенка у окна смотрит на мокрый снег. Можно тереть стекло, ловить хлопья и играть с ней.">
+<title>Мокрый снег · zqwy</title>
+<link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="room" aria-hidden="true"></div>
+
+<main class="app">
+  <header class="topbar">
+    <a class="back" href="../">← каталог игр</a>
+    <div class="brand">zqwy <span>/ гиенка у окна</span></div>
+  </header>
+
+  <section class="window" aria-label="Окно, за которым идёт мокрый снег">
+    <div class="frame frame-top" aria-hidden="true"></div>
+    <div class="frame frame-left" aria-hidden="true"></div>
+    <div class="frame frame-right" aria-hidden="true"></div>
+    <div class="glass">
+      <canvas id="snow" aria-label="Вид из окна: мокрый снег падает за стеклом"></canvas>
+      <div class="glass-shine" aria-hidden="true"></div>
+
+      <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+
+      <button class="toy" id="toy" type="button" aria-label="Погладить гиенку">
+        <svg class="toy-svg" viewBox="0 0 260 220" aria-hidden="true">
+          <defs>
+            <radialGradient id="fur" cx="38%" cy="28%" r="72%">
+              <stop offset="0%" stop-color="#e8d0aa"/>
+              <stop offset="100%" stop-color="#b99163"/>
+            </radialGradient>
+            <linearGradient id="scarf" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#be5648"/>
+              <stop offset="100%" stop-color="#7a302a"/>
+            </linearGradient>
+          </defs>
+          <ellipse class="toy-shadow" cx="130" cy="198" rx="82" ry="11"/>
+          <g class="toy-head">
+            <g class="ear ear-left">
+              <path class="ear-outer" d="M72 85 Q34 56 48 26 Q76 20 96 62 Z"/>
+              <path class="ear-inner" d="M73 77 Q50 56 58 37 Q75 35 88 64 Z"/>
+            </g>
+            <g class="ear ear-right">
+              <path class="ear-outer" d="M188 85 Q226 56 212 26 Q184 20 164 62 Z"/>
+              <path class="ear-inner" d="M187 77 Q210 56 202 37 Q185 35 172 64 Z"/>
+            </g>
+
+            <path class="mane" d="M130 66 l8 11 l9 -8 l7 12 l10 -7 l2 13 l-72 0 l2 -13 l10 7 l7 -12 l9 8 z"/>
+            <ellipse class="body" cx="130" cy="138" rx="70" ry="56"/>
+            <ellipse class="belly" cx="130" cy="152" rx="45" ry="35"/>
+            <path class="spot s1" d="M92 136 a6 4 0 1 0 12 0 a6 4 0 1 0 -12 0"/>
+            <path class="spot s2" d="M156 136 a6 4 0 1 0 12 0 a6 4 0 1 0 -12 0"/>
+            <path class="spot s3" d="M124 160 a5 3 0 1 0 10 0 a5 3 0 1 0 -10 0"/>
+
+            <path class="paw paw-left" d="M82 172 q-24 13 -14 24 q18 6 33 -12 z"/>
+            <path class="paw paw-right" d="M178 172 q24 13 14 24 q-18 6 -33 -12 z"/>
+
+            <path class="scarf" d="M80 167 Q130 192 180 167 L186 180 Q130 208 74 180 Z"/>
+            <path class="scarf-tail" d="M168 182 q19 13 12 26 q-16 3 -24 -20 z"/>
+
+            <g class="muzzle-group">
+              <ellipse class="muzzle" cx="130" cy="141" rx="29" ry="21"/>
+              <ellipse class="nose" cx="130" cy="132" rx="8" ry="5.5"/>
+              <path class="mouth" d="M130 137.5 v7 M130 144.5 q-7 8 -13 1 M130 144.5 q7 8 13 1"/>
+            </g>
+
+            <g class="eyes">
+              <ellipse class="eye-white" cx="108" cy="116" rx="12" ry="13"/>
+              <ellipse class="eye-white" cx="152" cy="116" rx="12" ry="13"/>
+              <circle class="pupil" cx="110" cy="118" r="7.2"/>
+              <circle class="pupil" cx="150" cy="118" r="7.2"/>
+              <circle class="eye-shine" cx="113" cy="114" r="2.4"/>
+              <circle class="eye-shine" cx="153" cy="114" r="2.4"/>
+            </g>
+            <ellipse class="cheek" cx="88" cy="137" rx="10" ry="6"/>
+            <ellipse class="cheek" cx="172" cy="137" rx="10" ry="6"/>
+          </g>
+        </svg>
+        <span class="hearts" id="hearts" aria-hidden="true"></span>
+      </button>
+
+      <div class="sill" aria-hidden="true">
+        <div class="jar">
+          <div class="jar-fill" id="jarFill"></div>
+          <div class="jar-shine"></div>
+        </div>
+        <div class="cup"><span class="steam steam-a"></span><span class="steam steam-b"></span><span class="steam steam-c"></span></div>
+      </div>
+    </div>
+    <div class="frame frame-bottom" aria-hidden="true"></div>
+  </section>
+
+  <section class="panel" aria-label="Управление игрушкой">
+    <div class="panel-main">
+      <div class="cozy">
+        <span class="cozy-label">Уют <b id="cozyValue">0%</b></span>
+        <div class="cozy-track"><i id="cozyFill"></i></div>
+      </div>
+      <p class="hint" id="hint">Води по стеклу — сотрёшь пар. Лови прилипшие снежинки в банку. Нажимай на гиенку, бросай ей снежок и вытирай стекло — она радуется.</p>
+      <div class="counters">
+        <span title="Хлопьев в банке">❄ <b id="flakeCount">0</b></span>
+        <span title="Поглаживаний">♡ <b id="patCount">0</b></span>
+        <span title="Веселье гиенки">♪ <b id="funCount">0</b></span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl" id="musicBtn" type="button" aria-pressed="false" title="Музыка из каталога zqwy (клавиша M)">
+        <span class="ctrl-icon" aria-hidden="true">♪</span>
+        <span class="ctrl-text"><b id="musicLabel">МУЗЫКА</b><small>Winter dream · zqwy</small></span>
+      </button>
+      <button class="ctrl small-ctrl" id="windBtn" type="button" aria-pressed="false" title="Шум ветра за окном (клавиша W)">
+        <span class="ctrl-icon" aria-hidden="true">≋</span>
+        <span class="ctrl-text"><b id="windLabel">ВЕТЕР</b><small>тихий шум</small></span>
+      </button>
+      <button class="ctrl small-ctrl" id="resetBtn" type="button" title="Начать наблюдение заново">
+        <span class="ctrl-icon" aria-hidden="true">↺</span>
+        <span class="ctrl-text"><b>ЗАНОВО</b><small>сбросить банку</small></span>
+      </button>
+    </div>
+  </section>
+
+  <p class="footnote">Пробел — погладить · S — снежок гиенке · M — музыка · W — ветер. Никаких проигрышей: просто смотри, как идёт мокрый снег.</p>
+</main>
+
+<audio id="audio" preload="none" loop></audio>
+<script src="js/game.js"></script>
+</body>
+</html>

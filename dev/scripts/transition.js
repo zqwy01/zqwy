@@ -183,6 +183,9 @@
       loaded.add(scriptUrl);
       jobs.push(new Promise((resolve) => {
         const script = document.createElement("script");
+        // The player is an ES module. Without copying `type` the browser would
+        // evaluate it as a classic script and fail on import/import.meta.
+        if (tag.type) script.type = tag.type;
         script.src = scriptUrl;
         script.onload = resolve;
         script.onerror = resolve; // a failed script must not block navigation

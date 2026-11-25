@@ -1,0 +1,1 @@
+import{P}from"../context.js";export function install(t){Object.assign(t,{detectDefaultEngine:function(){try{if("function"!=typeof Promise||"function"!=typeof fetch)return"html5";if(!window.requestAnimationFrame)return"html5";const e=document.createElement("canvas");return e.getContext&&e.getContext("2d")?t.DEFAULT_ENGINE:"html5"}catch{return"html5"}}})}

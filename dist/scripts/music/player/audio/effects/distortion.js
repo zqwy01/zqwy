@@ -1,0 +1,1 @@
+import{P}from"../../context.js";export function install(t){Object.assign(t,{distortionCurveAt:function(n,o){const r=50*t.clamp(Number(o)||0,0,1);return r<.001?n:Math.tanh(n*(1+r))/Math.tanh(1+r)},makeDistortionCurve:function(n){const o=2048,r=new Float32Array(o);for(let e=0;e<o;e++)r[e]=t.distortionCurveAt(2*e/2047-1,n);return r}})}

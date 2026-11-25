@@ -1,0 +1,1 @@
+import{P}from"../../context.js";export function install(t){Object.assign(t,{saturationCurveAt:function(n,r){const a=6*t.clamp(Number(r)||0,0,1);return a<.001?n:Math.tanh(n*(1+a))/Math.tanh(1+a)},makeSaturationCurve:function(n){const r=2048,a=new Float32Array(r);for(let o=0;o<r;o++)a[o]=t.saturationCurveAt(2*o/2047-1,n);return a}})}

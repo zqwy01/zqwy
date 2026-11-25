@@ -196,9 +196,10 @@ HTML/CSS/JS (`terser`, `clean-css-cli`, `html-minifier-terser`).
 - Для подключения на новой странице нужны те же `#siteSearch` /
   `#siteSearchInput`, `#menuButtonContainer`, `scripts/menu.js` и
   `scripts/transition.js`, плюс стили `menu.css`, `menu_logo.css`,
-  `base.css` и `player.css`. Подключение `scripts/player.js` и
-  `styles/player.css` обязательно: только так плеер останется постоянным
-  на всех разделах сайта.
+  `base.css` и `player.css`. Подключение `scripts/player.js` с
+  `type="module"` и `styles/player.css` обязательно: только так плеер останется
+  постоянным на всех разделах сайта. Файл `scripts/player.js` — тонкая точка
+  входа, сама реализация лежит в `scripts/music/player/`.
 
 ## Поиск
 
@@ -409,10 +410,14 @@ SPA-переходы и плеер.
 ## Музыка и универсальный плеер
 
 `dev/music/index.html` — страница `/music/` с каталогом релизов.
-Сам плеер живёт **глобально**: `scripts/player.js` внедряет панель в
-`<body>` вне `.page-content`, поэтому она не уничтожается при SPA-переходах
-и не прерывает воспроизведение при переходе в `links` или любой другой
-раздел. Один и тот же экземпляр панели используется на всех страницах.
+Сам плеер живёт **глобально**: `scripts/player.js` (ES-модуль, точка входа в
+`scripts/music/player/index.js`) внедряет панель в `<body>` вне
+`.page-content`, поэтому она не уничтожается при SPA-переходах и не прерывает
+воспроизведение при переходе в `links` или любой другой раздел. Один и тот же
+экземпляр панели используется на всех страницах. Код разбит по модулям
+(ядро, UI, эффекты, энкодеры, движки, i18n, remix); тяжёлые части — UI FX,
+движки, энкодеры и remix — подгружаются динамически при первом использовании.
+Подробности — `dev/scripts/music/player/README.md`.
 
 - Каталог строится из `src/tracks/`: один релиз = одна папка верхнего
   уровня, треки — все аудиофайлы внутри на любой глубине. Служебные
@@ -781,10 +786,11 @@ lossless без сглаживания; остальные — lossy WebP qualit
   загрузка страничных скриптов, `data-back`, `zqwy:pagechange`.
 - `scripts/hover-glow.js` — акцентные цвета карточек, подсветка за курсором
   на страницах `links` и `game` и на строках `.music-track`.
-- `scripts/player.js` — глобальный постоянный плеер, девять движков (HTML5,
-  WaveSurfer, Peaks, Howler, Waviz, MediaElement.js, AmplitudeJS, APlayer,
-  jPlayer), видимый «Интерфейс движка», компактный `<select>`, переключение
-  форматов, настройки, Media Session, API `window.zqwyPlayer`.
+- `scripts/player.js` + `scripts/music/player/` — глобальный постоянный плеер
+  на ES-модулях: девять движков (HTML5, WaveSurfer, Peaks, Howler, Waviz,
+  MediaElement.js, AmplitudeJS, APlayer, jPlayer), видимый «Интерфейс движка»,
+  компактный `<select>`, переключение форматов, настройки, Media Session, API
+  `window.zqwyPlayer`. `transition.js` сохраняет `type="module"` при SPA-загрузке.
 - `links/index.html` — страница со всеми ссылками; эмодзи заменены на
   `<svg><use href="../assets/icons/links.svg#…"></use></svg>`.
 - `styles/links.css` — стили страницы ссылок, встроенные SVG-иконки

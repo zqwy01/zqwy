@@ -5,9 +5,10 @@ export function install(P) {
   let engineDocBound = false;
   let sectionDocBound = false;
   let controlTipBound = false;
+  let detailsCloseTimer = 0;
   Object.assign(P, {
     bindGraphElements, bindEngineSelect, renderEngines, renderSections, renderDetails,
-    showTooltip, updateStatus, updateActions, decorateActions,
+    hideDetails, showTooltip, updateStatus, updateActions, decorateActions,
     setLoading, hideLoading, showLoadingError,
   });
 
@@ -137,10 +138,40 @@ export function install(P) {
     const trigger = P.els.sectionTrigger;
     if (!menu || !trigger) return;
     menu.hidden = true;
+    menu.classList.remove("is-upward");
+    menu.style.maxHeight = "";
     trigger.setAttribute("aria-expanded", "false");
     if (P.els.sectionFilter) P.els.sectionFilter.value = "";
     if (P.els.sectionEmpty) P.els.sectionEmpty.hidden = true;
     menu.querySelectorAll(".graph-section-option").forEach((option) => { option.hidden = false; });
+  }
+
+  // Keep the section popup inside the toolbar/viewport. It prefers opening
+  // upwards so a long list never spills over the graph scene below; when there
+  // is no room above, the menu scrolls inside the available space instead.
+  function positionSectionMenu() {
+    const menu = P.els.sectionMenu;
+    const trigger = P.els.sectionTrigger;
+    if (!menu || !trigger || menu.hidden) return;
+    menu.classList.remove("is-upward");
+    menu.style.maxHeight = "";
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const toolbar = P.els.sectionSelect?.closest(".graph-toolbar");
+    const toolbarTop = toolbar ? toolbar.getBoundingClientRect().top : 0;
+    const stageTop = P.els.stage?.getBoundingClientRect().top ?? Infinity;
+    const above = Math.max(0, triggerRect.top - Math.max(toolbarTop, 0) - 8);
+    const belowStage = Math.max(0, stageTop - triggerRect.bottom - 8);
+    const belowView = Math.max(0, window.innerHeight - triggerRect.bottom - 8);
+    const wanted = Math.min(320, menu.scrollHeight + 2);
+
+    if (above >= Math.min(wanted, 160)) {
+      menu.classList.add("is-upward");
+      menu.style.maxHeight = `${Math.min(320, above)}px`;
+      return;
+    }
+    const available = belowStage >= 160 ? belowStage : belowView;
+    menu.style.maxHeight = `${Math.min(320, Math.max(160, available))}px`;
   }
 
   function visibleSectionOptions() {
@@ -182,6 +213,7 @@ export function install(P) {
       trigger.setAttribute("aria-expanded", String(open));
       if (open) {
         filterSectionOptions();
+        positionSectionMenu();
         P.els.sectionFilter?.focus();
       }
     });
@@ -192,13 +224,17 @@ export function install(P) {
         menu.hidden = false;
         trigger.setAttribute("aria-expanded", "true");
         filterSectionOptions();
+        positionSectionMenu();
         P.els.sectionFilter?.focus();
       } else if (event.key === "Escape") {
         closeSectionMenu();
       }
     });
 
-    P.els.sectionFilter?.addEventListener("input", filterSectionOptions);
+    P.els.sectionFilter?.addEventListener("input", () => {
+      filterSectionOptions();
+      positionSectionMenu();
+    });
     P.els.sectionFilter?.addEventListener("keydown", (event) => {
       if (event.key === "ArrowDown") {
         event.preventDefault();
@@ -233,6 +269,8 @@ export function install(P) {
       document.addEventListener("click", (event) => {
         if (P.els.sectionSelect && !P.els.sectionSelect.contains(event.target)) closeSectionMenu();
       });
+      window.addEventListener("resize", () => positionSectionMenu(), { passive: true });
+      window.addEventListener("scroll", () => positionSectionMenu(), { passive: true, capture: true });
     }
   }
 
@@ -453,14 +491,38 @@ export function install(P) {
     updateSectionValue();
   }
 
+  // Closing is animated too: keep the content in place while the card slides
+  // out, then hide it. A quick re-open cancels the pending hide.
+  function hideDetails() {
+    const panel = P.els.details;
+    if (!panel || panel.hidden || panel.classList.contains("is-closing")) return;
+    window.clearTimeout(detailsCloseTimer);
+    panel.classList.remove("is-opening");
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      panel.hidden = true;
+      P.els.detailsBody?.replaceChildren();
+      P.updateActions?.();
+      return;
+    }
+    panel.classList.add("is-closing");
+    detailsCloseTimer = window.setTimeout(() => {
+      panel.hidden = true;
+      panel.classList.remove("is-closing");
+      if (P.els.detailsBody && !P.state.selected) P.els.detailsBody.replaceChildren();
+      P.updateActions?.();
+    }, 220);
+  }
+
   function renderDetails() {
     const panel = P.els.details;
     const body = P.els.detailsBody;
     if (!panel || !body) return;
     const node = P.state.nodeById.get(P.state.selected);
-    if (!node) { panel.hidden = true; body.replaceChildren(); return; }
-    // Re-trigger the entrance animation even when switching between notes
-    // while the panel is already open.
+    if (!node) { hideDetails(); return; }
+    // Cancel a pending close and re-trigger the entrance animation even when
+    // switching between notes while the panel is already open.
+    window.clearTimeout(detailsCloseTimer);
+    panel.classList.remove("is-closing");
     panel.hidden = false;
     panel.classList.remove("is-opening");
     void panel.offsetWidth;
@@ -512,6 +574,7 @@ export function install(P) {
       list.append(item);
     }
     body.append(title, meta, excerpt, open, heading, list);
+    P.updateActions?.();
   }
 
   function setLoading(title, detail = "", progress = 8) {
@@ -598,11 +661,15 @@ export function install(P) {
     if (P.els.detailsClose) P.els.detailsClose.dataset.tip = P.t("tip.closeDetails");
     const paused = Boolean(P.settings.paused);
     const walking = Boolean(P.state.walking);
+    const detailsOpen = Boolean(P.els.details)
+      && !P.els.details.hidden
+      && !P.els.details.classList.contains("is-closing");
     const labels = {
       fit: P.t("fit"),
       motion: P.t(paused ? "motion" : "pause"),
       walk: P.t(walking ? "stopWalk" : "walk"),
       reset: P.t("reset"),
+      details: P.t("details"),
       fullscreen: P.t(fullscreen ? "exitFullscreen" : "fullscreen"),
     };
     const icons = {
@@ -610,14 +677,16 @@ export function install(P) {
       motion: paused ? "motion" : "pause",
       walk: walking ? "stopWalk" : "walk",
       reset: "reset",
+      details: "details",
       fullscreen: fullscreen ? "exitFullscreen" : "fullscreen",
     };
-    const active = { motion: paused, walk: walking, fullscreen };
+    const active = { motion: paused, walk: walking, details: detailsOpen, fullscreen };
     const tips = {
       fit: P.t("tip.fit"),
       motion: P.t(paused ? "tip.motion" : "tip.pause"),
       walk: P.t(walking ? "tip.stopWalk" : "tip.walk"),
       reset: P.t("tip.reset"),
+      details: P.t("tip.details"),
       fullscreen: P.t(fullscreen ? "tip.exitFullscreen" : "tip.fullscreen"),
     };
     for (const button of P.els.actions.querySelectorAll("[data-action]")) {

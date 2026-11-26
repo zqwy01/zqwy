@@ -118,6 +118,13 @@
   box-shadow: 0 14px 34px rgba(0, 0, 0, .4);
   animation: graph-menu-in .16s ease both;
 }
+/* The section filter sits directly above the scene: open it upwards so the
+ * list never spills over (or past) the graph. The JS caps its height to the
+ * free space and scrolls the options inside the menu. */
+.graph-section-select-menu.is-upward {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
 .graph-engine-select-menu::-webkit-scrollbar,
 .graph-section-select-menu::-webkit-scrollbar { width: 8px; }
 .graph-engine-select-menu::-webkit-scrollbar-thumb,
@@ -356,6 +363,7 @@
 .graph-stage-actions button:nth-child(3) { animation-delay: .08s; }
 .graph-stage-actions button:nth-child(4) { animation-delay: .12s; }
 .graph-stage-actions button:nth-child(5) { animation-delay: .16s; }
+.graph-stage-actions button:nth-child(6) { animation-delay: .2s; }
 .graph-stage-actions button:hover,
 .graph-stage-actions button:focus-visible {
   border-color: var(--focus-border);
@@ -544,6 +552,21 @@
   from { transform: translateX(12px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+.graph-details.is-closing {
+  animation: graph-details-out .22s cubic-bezier(.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+.graph-details.is-closing .graph-details-body > * {
+  animation: graph-detail-item-out .18s ease both;
+}
+@keyframes graph-details-out {
+  from { transform: translateX(0) scale(1); opacity: 1; filter: blur(0); }
+  to { transform: translateX(34px) scale(.98); opacity: 0; filter: blur(2px); }
+}
+@keyframes graph-detail-item-out {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(14px); opacity: 0; }
+}
 .graph-details-close {
   position: absolute;
   top: 8px;
@@ -715,7 +738,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .graph-details,
+  .graph-details.is-closing,
   .graph-details.is-opening .graph-details-body > *,
+  .graph-details.is-closing .graph-details-body > *,
   .graph-engine-select-menu,
   .graph-section-select-menu,
   .graph-stage-actions button { animation: none; }

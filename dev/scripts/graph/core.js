@@ -399,6 +399,15 @@ export function install(P) {
     P.init();
   }
 
+  function toggleDetails() {
+    const panel = P.els.details;
+    if (!panel) return;
+    const open = !panel.hidden && !panel.classList.contains("is-closing");
+    if (open) { P.setSelection(null); return; }
+    const id = P.state.selected || P.state.nodes[0]?.id;
+    if (id) P.setSelection(id, { focus: true });
+  }
+
   function toggleFullscreen() {
     const stage = P.els.stage;
     if (!stage?.requestFullscreen || !document.exitFullscreen) {
@@ -431,6 +440,7 @@ export function install(P) {
         saveSettings();
       } else if (action === "walk") toggleWalk();
       else if (action === "reset") reset();
+      else if (action === "details") toggleDetails();
       else if (action === "fullscreen") toggleFullscreen();
     });
 

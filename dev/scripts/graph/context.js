@@ -102,6 +102,9 @@ export function initContext(P) {
     ],
     stopWalk: [["rect", { x: 6, y: 6, width: 12, height: 12, rx: 2 }]],
     reset: [["path", { d: "M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4.2h4.2" }]],
+    details: [
+      ["path", { d: "M5 4.5h10L19 8v11.5H5zM15 4.5V8h4M8 12h8M8 16h6" }],
+    ],
     fullscreen: [["path", { d: "M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" }]],
     exitFullscreen: [["path", { d: "M3 8h5V3M21 8h-5V3M3 16h5v5M21 16h-5v5" }]],
   };
@@ -129,6 +132,7 @@ export function initContext(P) {
       "tip.walk": "Автоматически переходить между связанными заметками",
       "tip.stopWalk": "Остановить автоматическую прогулку",
       "tip.reset": "Сбросить поиск, фильтры и выделение",
+      "tip.details": "Показать или скрыть карточку выбранной заметки",
       "tip.fullscreen": "Развернуть сцену графа на весь экран",
       "tip.exitFullscreen": "Выйти из полноэкранного режима",
       "tip.closeDetails": "Закрыть карточку заметки",
@@ -148,7 +152,7 @@ export function initContext(P) {
       open: "Открыть заметку →", neighbours: "Связанные заметки",
       noNeighbours: "Пока нет связей", walking: "прогулка",
       pause: "Пауза", motion: "Движение", walk: "Прогулка", stopWalk: "Остановить",
-      fit: "Вписать", reset: "Сброс",
+      fit: "Вписать", reset: "Сброс", details: "Карточка",
     },
     en: {
       "engine.canvas": "Canvas · physics",
@@ -172,6 +176,7 @@ export function initContext(P) {
       "tip.walk": "Move automatically between connected notes",
       "tip.stopWalk": "Stop the automatic walk",
       "tip.reset": "Clear search, filters and selection",
+      "tip.details": "Show or hide the selected note card",
       "tip.fullscreen": "Expand the graph scene to full screen",
       "tip.exitFullscreen": "Leave full screen",
       "tip.closeDetails": "Close the note card",
@@ -191,7 +196,7 @@ export function initContext(P) {
       open: "Open note →", neighbours: "Connected notes",
       noNeighbours: "No connections yet", walking: "strolling",
       pause: "Pause", motion: "Motion", walk: "Stroll", stopWalk: "Stop",
-      fit: "Fit", reset: "Reset",
+      fit: "Fit", reset: "Reset", details: "Note card",
     },
   };
   P.t = (key, vars) => {

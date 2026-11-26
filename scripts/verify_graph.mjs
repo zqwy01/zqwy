@@ -122,6 +122,7 @@ requireText("wiki/graph/index.html", 'id="graphEngines"', "списка движ
 requireText("wiki/graph/index.html", 'class="graph-engine-select-trigger"', "кнопки выбора движка");
 requireText("wiki/graph/index.html", 'class="graph-stage-actions"', "иконок управления на сцене");
 requireText("wiki/graph/index.html", 'data-action="fullscreen"', "кнопки полноэкранного режима на сцене");
+requireText("wiki/graph/index.html", 'data-action="details"', "кнопки карточки заметки на сцене");
 requireText("wiki/graph/index.html", "data-graph-bootstrap", "раннего списка движков");
 requireText("wiki/graph/index.html", "__zqwyGraphDataPromise", "раннего запроса данных графа");
 requireText("wiki/graph/index.html", 'type="module" async', "неблокирующего входа графа");
@@ -130,11 +131,16 @@ requireText("wiki/graph/index.html", 'id="graphControlTip"', "подсказок
 requireText("scripts/graph/ui.js", "graph-engine-option", "опций с иконками движков");
 requireText("scripts/graph/ui.js", "graph-section-option", "списка разделов с фильтром");
 requireText("scripts/graph/ui.js", "dataset.tip", "описаний кнопок при наведении");
+requireText("scripts/graph/ui.js", "is-upward", "ограничения списка разделов");
+requireText("scripts/graph/ui.js", "is-closing", "анимации закрытия карточки");
 requireText("scripts/graph/core.js", "engineDisabled", "автоотключения движков");
 requireText("scripts/graph/core.js", "__zqwyGraphPendingEngine", "раннего выбора движка");
 requireText("scripts/graph/core.js", "window.__zqwyGraphDataPromise", "переиспользования данных первой загрузки");
+requireText("scripts/graph/core.js", '"details"', "открытия карточки кнопкой управления");
 requireText("styles/graph.css", "graph-control-press", "анимации нажатия кнопок");
 requireText("styles/graph.css", "graph-details-in", "анимации открытия карточки заметки");
+requireText("styles/graph.css", "graph-details-out", "анимации закрытия карточки заметки");
+requireText("styles/graph.css", "graph-section-select-menu.is-upward", "списка разделов внутри панели");
 forbidText("scripts/transition/events.js", "P.initialLoaderTimer = window.setTimeout", "лоадер первой загрузки");
 
 const homePage = path.join(base, "index.html");

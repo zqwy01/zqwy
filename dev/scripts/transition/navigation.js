@@ -11,6 +11,23 @@ export function install(P) {
     let url;
     try { url = new URL(href, window.location.href); } catch { P.navigating = false; return; }
 
+    // A request or an asset preload that never settles used to leave
+    // `page-leaving` (opacity: 0) and the loader on screen forever, after which
+    // every further search was ignored by `if (P.navigating) return`.
+    const controller = new AbortController();
+    let watchdog = 0;
+    let timedOut = false;
+    watchdog = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      P.root.classList.remove("page-leaving");
+      window.location.assign(url.href);
+    }, 15000);
+    const stopWatchdog = () => {
+      if (watchdog) window.clearTimeout(watchdog);
+      watchdog = 0;
+    };
+
     let loaderTimer = 0;
     let loaderShown = false;
     loaderTimer = window.setTimeout(() => {
@@ -26,7 +43,7 @@ export function install(P) {
     if (P.leaveMs) await P.sleep(P.leaveMs);
 
     try {
-      const response = await fetch(url.href, { cache: "no-store" });
+      const response = await fetch(url.href, { cache: "no-store", signal: controller.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const html = await response.text();
       const doc = new DOMParser().parseFromString(html, "text/html");
@@ -65,10 +82,12 @@ export function install(P) {
         if (logo && logo.tagName === "BUTTON") logo.click();
       }
     } catch (error) {
+      if (timedOut) return;
       P.root.classList.remove("page-leaving");
       // Network failure or a malformed page: let the browser do a real load.
       window.location.assign(url.href);
     } finally {
+      stopWatchdog();
       if (loaderTimer) window.clearTimeout(loaderTimer);
       if (loaderShown) P.hideLoader();
       P.loaderActive = false;

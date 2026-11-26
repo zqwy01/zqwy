@@ -6,10 +6,24 @@ export function loadVendorScript(href) {
   if (pending.has(href)) return pending.get(href);
   const promise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
+    let timer = 0;
+    const finish = (callback, error) => {
+      if (timer) window.clearTimeout(timer);
+      callback(error);
+    };
     script.src = href;
     script.async = false;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Не удалось загрузить ${href}`));
+    script.onload = () => finish(resolve);
+    script.onerror = () => finish(reject, new Error(`Не удалось загрузить ${href}`));
+    // A request that never settles fires neither onload nor onerror. Without a
+    // deadline the loading overlay would stay up forever.
+    timer = window.setTimeout(() => {
+      const error = new Error(`Таймаут загрузки ${href}`);
+      error.name = "TimeoutError";
+      error.transient = true;
+      script.remove();
+      finish(reject, error);
+    }, 15000);
     document.head.appendChild(script);
   });
   pending.set(href, promise);

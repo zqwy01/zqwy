@@ -157,6 +157,23 @@ export function svgEl(tag, attrs = {}) {
   return element;
 }
 
+/** Guard a network-dependent promise so a stalled request cannot leave the
+ *  graph spinner or the walk UI waiting forever. Timeouts are marked transient
+ *  so an engine is not permanently disabled for a slow connection. */
+export function withTimeout(promise, ms, message = "Operation timed out") {
+  let timer = 0;
+  const deadline = new Promise((_, reject) => {
+    timer = window.setTimeout(() => {
+      const error = new Error(message);
+      error.name = "TimeoutError";
+      error.transient = true;
+      reject(error);
+    }, ms);
+  });
+  return Promise.race([Promise.resolve(promise), deadline])
+    .finally(() => window.clearTimeout(timer));
+}
+
 export function observeResize(host, callback) {
   if (typeof ResizeObserver === "undefined") {
     window.addEventListener("resize", callback);

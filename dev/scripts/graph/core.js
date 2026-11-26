@@ -1,5 +1,5 @@
 /* Page controller: data, filters, selection, engine lifecycle. */
-import { readPalette } from "./shared.js";
+import { readPalette, withTimeout } from "./shared.js";
 
 const DEFAULT_ENGINE = "d3";
 const FALLBACK_ENGINE = "canvas";
@@ -15,6 +15,11 @@ export function install(P) {
     availableEngines,
   });
 
+  // Bind the pagechange listener at module install time, not inside init():
+  // on SPA entry the module is evaluated while the old URL is still current,
+  // so init() returns early and would otherwise miss the event that follows.
+  bindGlobalEvents();
+
   function isGraphPage() {
     const path = window.location.pathname.replace(/\/index\.html$/, "/");
     return /\/wiki\/graph\/?$/.test(path);
@@ -29,6 +34,7 @@ export function install(P) {
     // Canvas stays available as the permanent fallback even if all others
     // (including the preferred d3 engine) are removed in site settings.
     return P.ENGINES.filter((engine) => engine.id === FALLBACK_ENGINE
+      || disabled[engine.id] === true
       || (disabled[engine.id] !== false && !runtimeDisabled.has(engine.id)));
   }
 
@@ -49,14 +55,22 @@ export function install(P) {
   function disableEngine(id, error) {
     if (!id || id === FALLBACK_ENGINE) return;
     runtimeDisabled.add(id);
-    const site = readSiteSettings();
-    const previous = site.graphEngines && typeof site.graphEngines === "object" ? site.graphEngines : {};
-    if (previous[id] === false) return;
-    try {
-      localStorage.setItem(SITE_SETTINGS_KEY, JSON.stringify({
-        ...site, graphEngines: { ...previous, [id]: false },
-      }));
-    } catch { /* private mode: disable for this session only */ }
+    // A stalled request or an aborted import says nothing about the engine
+    // itself. Hide it for this visit, but do not persist the failure: a slow
+    // network must not silently switch everyone to canvas forever.
+    const transient = Boolean(error?.transient) || error?.name === "AbortError"
+      || /timeout|timed out|abort/i.test(error?.message || "");
+    if (!transient) {
+      const site = readSiteSettings();
+      const previous = site.graphEngines && typeof site.graphEngines === "object" ? site.graphEngines : {};
+      if (previous[id] !== false) {
+        try {
+          localStorage.setItem(SITE_SETTINGS_KEY, JSON.stringify({
+            ...site, graphEngines: { ...previous, [id]: false },
+          }));
+        } catch { /* private mode: disable for this session only */ }
+      }
+    }
     console.warn(`Graph engine "${id}" disabled after a failure:`, error);
     P.state.notice = P.t("engineDisabled", { engine: P.t(`engine.${id}`) });
     P.renderEngines?.();
@@ -122,7 +136,16 @@ export function install(P) {
     // reusing it removes a second round trip on the first, cold load.
     const early = window.__zqwyGraphDataPromise;
     window.__zqwyGraphDataPromise = null;
-    const response = early ? await early : await fetch(P.DATA_URL, { cache: "no-cache" });
+    // On SPA entry the inline <head> bootstrap never runs, so fetch here with
+    // the same deadline. A hung request must reach the retry UI, not hang it.
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 15000);
+    let response;
+    try {
+      response = early ? await early : await fetch(P.DATA_URL, { cache: "no-cache", signal: controller.signal });
+    } finally {
+      window.clearTimeout(timer);
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (!Array.isArray(data.nodes) || !Array.isArray(data.links)) throw new Error("bad graph data");
@@ -191,8 +214,7 @@ export function install(P) {
   function warmEngine(id) {
     const meta = availableEngines().find((engine) => engine.id === id);
     if (!meta) return Promise.resolve();
-    return Promise.resolve()
-      .then(() => meta.load())
+    return withTimeout(Promise.resolve().then(() => meta.load()), 15000, `Таймаут движка ${meta.id}`)
       .catch((error) => { disableEngine(meta.id, error); });
   }
 
@@ -230,10 +252,10 @@ export function install(P) {
 
     try {
       const meta = P.ENGINES.find((engine) => engine.id === id);
-      const module = await meta.load();
+      const module = await withTimeout(Promise.resolve().then(() => meta.load()), 15000, `Таймаут движка ${id}`);
       if (sequence !== P.engineSeq || !P.state.owner) return false;
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || false;
-      const engine = await module.createEngine({
+      const engine = await withTimeout(Promise.resolve().then(() => module.createEngine({
         host: P.els.host,
         palette: readPalette(),
         categories: P.state.graph?.categories || [],
@@ -255,7 +277,7 @@ export function install(P) {
           },
         },
         vendorBase: P.VENDOR_BASE,
-      });
+      })), 15000, `Таймаут инициализации ${id}`);
       if (sequence !== P.engineSeq || !P.state.owner) { engine.destroy?.(); return false; }
       P.state.engine = engine;
       P.settings.engine = id;
@@ -539,7 +561,6 @@ export function install(P) {
     if (P.state.owner || P.state.starting) return;
     P.state.starting = true;
     P.state.owner = true;
-    bindGlobalEvents();
     loadSettings();
     applyUrl();
     applyPendingEngine();

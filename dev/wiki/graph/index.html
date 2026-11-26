@@ -17,7 +17,17 @@
        occupy the browser's connections, so the graph waited several seconds. -->
   <script>
     (function () {
-      window.__zqwyGraphDataPromise = fetch("../../data/note-graph.json", { cache: "no-cache" });
+      var dataController = new AbortController();
+      var dataTimer = window.setTimeout(function () { dataController.abort(); }, 15000);
+      window.__zqwyGraphDataPromise = fetch("../../data/note-graph.json", {
+        cache: "no-cache", signal: dataController.signal,
+      }).then(function (response) {
+        window.clearTimeout(dataTimer);
+        return response;
+      }, function (error) {
+        window.clearTimeout(dataTimer);
+        throw error;
+      });
       window.__zqwyGraphDataPromise.catch(function () {});
 
       function read(key, fallback) {

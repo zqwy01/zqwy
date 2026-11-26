@@ -145,8 +145,12 @@ requireText("scripts/graph/ui.js", "is-upward", "ограничения спис
 requireText("scripts/graph/ui.js", "is-closing", "анимации закрытия карточки");
 requireText("scripts/graph/ui.js", "is-switching", "плавной смены карточки при прогулке");
 requireText("scripts/graph/shared.js", "tweenView", "плавного движения камеры между заметками");
+requireText("scripts/graph/shared.js", "withTimeout", "таймаутов сетевых операций графа");
+requireText("scripts/menu/search.js", "indexPromise", "одного запроса индекса поиска");
+requireText("scripts/transition/navigation.js", "AbortController", "отмены зависшего перехода");
 requireText("scripts/graph/core.js", "switching", "анимации автоматических переходов");
 requireText("scripts/graph/core.js", "engineDisabled", "автоотключения движков");
+requireText("scripts/graph/core.js", "listenersBound", "однократного связывания событий графа");
 requireText("scripts/graph/core.js", "__zqwyGraphPendingEngine", "раннего выбора движка");
 requireText("scripts/graph/core.js", "window.__zqwyGraphDataPromise", "переиспользования данных первой загрузки");
 requireText("scripts/graph/core.js", '"details"', "открытия карточки кнопкой управления");

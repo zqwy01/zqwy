@@ -187,11 +187,13 @@ export function initContext(P) {
   P.lastFocus = null;
   P.prevOverflow = "";
   P.indexCache = null;
+  P.indexPromise = null;
   P.suggestionCache = null;
   P.currentSuggestions = [];
   P.activeSuggestion = -1;
   P.suggestionSeq = 0;
   P.suggestionBlurTimer = 0;
+  P.suggestionTimer = 0;
   P.pageMatches = [];
   // Word-level marks survive until the next search so Enter can walk through
   // every match instead of re-running the same query.

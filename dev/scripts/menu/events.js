@@ -92,7 +92,13 @@ export function bindEvents(P) {
   document.addEventListener("input", (ev) => {
     if (ev.target === P.els.input) {
       P.updateSearchLayout();
-      P.updateSuggestions();
+      // One shared index load is in flight at a time; render suggestions only
+      // after the visitor pauses so typing does not queue a dozen renders.
+      if (P.suggestionTimer) window.clearTimeout(P.suggestionTimer);
+      P.suggestionTimer = window.setTimeout(() => {
+        P.suggestionTimer = 0;
+        P.updateSuggestions();
+      }, 140);
     }
   });
 
@@ -120,6 +126,7 @@ export function bindEvents(P) {
     }
     if (ev.target !== P.els.form) return;
     ev.preventDefault();
+    if (P.suggestionTimer) { window.clearTimeout(P.suggestionTimer); P.suggestionTimer = 0; }
     const query = (P.els.input?.value || "").trim();
     if (!query) {
       P.clearWordHighlights();
@@ -134,7 +141,9 @@ export function bindEvents(P) {
     // No results area on this page: first look right here. Mark every matching
     // word and jump to the first one instead of leaving the page.
     let localIndex = null;
+    P.els.input?.setAttribute("aria-busy", "true");
     try { localIndex = await P.loadIndex(); } catch { /* page search still works */ }
+    finally { P.els.input?.removeAttribute("aria-busy"); }
     const localMatches = P.findPageMatches(query, localIndex);
     if (localMatches.length) {
       P.lastSearchQuery = query;

@@ -156,7 +156,7 @@ export function install(P) {
   function findPageMatches(query, index) {
     const scope = document.querySelector(".page-content") || document.querySelector("main") || document.body;
     if (!scope || !scope.querySelectorAll) return [];
-    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .home-search-area, #search-status, .player-bar, .player-settings, .player-queue, .menu-open-button";
+    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .home-search-area, #search-status, .player-bar, .player-settings, .player-queue, .menu-open-button, .graph-host";
     const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
@@ -333,7 +333,7 @@ export function install(P) {
     if (!variants.phrases.length && !variants.words.length) return 0;
     const scope = document.querySelector(".page-content") || document.querySelector("main") || document.body;
     if (!scope?.querySelectorAll) return 0;
-    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .home-search-area, #search-status, .player-bar, .player-settings, .player-queue, .menu-open-button, mark.zqwy-search-word";
+    const excluded = "script, style, noscript, [hidden], .site-menu, .site-search, .search-results, .home-search-area, #search-status, .player-bar, .player-settings, .player-queue, .menu-open-button, .graph-host, mark.zqwy-search-word";
     const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
@@ -619,12 +619,25 @@ export function install(P) {
     container.appendChild(frag);
   }
 
-  async function loadIndex() {
-    if (P.indexCache) return P.indexCache;
-    const response = await fetch(P.INDEX_URL, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    P.indexCache = await response.json();
-    return P.indexCache;
+  function loadIndex() {
+    if (P.indexCache) return Promise.resolve(P.indexCache);
+    // Typing must not start a new 350 KB download for every keystroke, and a
+    // single stalled request must not keep "Searching…" on screen forever.
+    if (!P.indexPromise) {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), 12000);
+      P.indexPromise = fetch(P.INDEX_URL, { cache: "force-cache", signal: controller.signal })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          P.indexCache = await response.json();
+          return P.indexCache;
+        })
+        .finally(() => {
+          window.clearTimeout(timer);
+          P.indexPromise = null;
+        });
+    }
+    return P.indexPromise;
   }
 
   async function performSearch(query) {

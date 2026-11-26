@@ -47,8 +47,6 @@
           </linearGradient>
         </defs>
 
-        <ellipse class="ground-shadow" cx="130" cy="288" rx="74" ry="10"/>
-
         <g class="stem-group">
           <path class="stem-line" d="M130 252 C126 216 134 184 130 154"/>
           <path class="leaf leaf-left" d="M129 212 C112 217 100 207 100 193 C113 191 124 199 129 212 Z"/>
@@ -114,13 +112,16 @@
         <path class="can-spout" d="M32 36 L8 29 L4 38 L30 52 Z"/>
         <path class="can-spout-tip" d="M8 29 L2 22 L0 31 L4 38 Z"/>
         <path class="can-line" d="M38 43 H87 M39 52 H86"/>
-        <path class="drop d1" d="M5 47 q-4 7 0 9 q4 -2 0 -9z"/>
-        <path class="drop d2" d="M13 51 q-3 5 0 7 q3 -2 0 -7z"/>
       </svg>
     </button>
   </section>
 
   <section class="panel" aria-label="Управление цветочком">
+    <div class="status-line">
+      <span class="status-flower" aria-hidden="true">✿</span>
+      <p class="mood" id="moodText">настроение: тихо радуется</p>
+    </div>
+
     <div class="panel-main">
       <div class="meters">
         <div class="meter-row">
@@ -139,7 +140,6 @@
           <b class="meter-value" id="scentValue">0%</b>
         </div>
       </div>
-      <p class="mood" id="moodText">настроение: тихо радуется</p>
       <p class="hint" id="hint">Гладь цветочек (◕ᴗ◕✿), нюхай его аромат, лови лепестки, дразни и заставляй танцевать — он умеет и радоваться, и злиться. Проигрышей нет.</p>
       <div class="counters">
         <span title="Поглаживаний">♡ <b id="petCount">0</b></span>

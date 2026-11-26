@@ -9,6 +9,7 @@
  * Output:  dev/wiki/zqwy/index.html      (notes landing, SPA-compatible)
  *          dev/wiki/zqwy/<slug>.html     (one page per note)
  *          dev/data/wiki-notes.json      (metadata for build_search_index.mjs)
+ *          dev/data/note-graph.json      (nodes/links for the graph page)
  *
  * Notes are grouped by directory path inside src/notes/ and shown as a
  * collapsible tree on the landing page so folders/categories can be expanded.
@@ -21,12 +22,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSafe } from "./lib/write-file-smb-safe.mjs";
+import { buildNoteGraph } from "./lib/note-graph.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, "..");
 const NOTES_DIR = path.join(PROJECT, "src", "notes");
 const OUT_DIR = path.join(PROJECT, "dev", "wiki", "zqwy");
 const META_FILE = path.join(PROJECT, "dev", "data", "wiki-notes.json");
+const GRAPH_FILE = path.join(PROJECT, "dev", "data", "note-graph.json");
 
 // Plain-text notes sometimes arrive as .txt or with no extension at all
 // (e.g. "Панорамирование"). Convert them to .md in place so the walk below —
@@ -186,6 +189,9 @@ function parseNote(file) {
     relative,
     section,
     text: body.replace(/[#*`\[\]()>]/g, " ").replace(/\s+/g, " ").trim(),
+    // Only the graph builder needs the untouched source (for [[links]] and
+    // backticked filenames); it is never written into the public metadata.
+    rawBody: body,
     html: markdown(body),
   };
 }
@@ -237,8 +243,7 @@ function shell({ title, description, body, depth, isIndex = false }) {
       <header class="home-head notes-head">
         <h1 class="home-title">zqwy notes</h1>
         <p class="home-heading" data-i18n="notesHeading">Заметки в формате markdown, собранные из src/notes/.</p>
-${isIndex ? "" : `        <a class="notes-back" href="${base}wiki/zqwy/"><span aria-hidden="true">←</span> <span data-i18n="notesBack">Назад к заметкам</span></a>\n`}        <p class="home-heading blog-hint" data-i18n="blogHeading">Блог · хронология</p>
-        <p class="home-heading blog-hint dim" data-i18n="blogHint">Записи расположены по датам — от новых к старым.</p>
+${isIndex ? "" : `        <a class="notes-back" href="${base}wiki/zqwy/"><span aria-hidden="true">←</span> <span data-i18n="notesBack">Назад к заметкам</span></a>\n`}        <a class="notes-graph-link" href="${base}wiki/graph/"><span aria-hidden="true">✦</span> <span data-i18n="notesGraphLink">Граф заметок</span></a>
       </header>
       <article class="notes-article">
 ${body}
@@ -280,12 +285,36 @@ function sortedNotes(node) {
     a.relative.localeCompare(b.relative, "ru"));
 }
 
+// Small, meaning-based badges for the note directories. Unknown folders get
+// a plain folder icon instead of an empty glyph.
+const FOLDER_ICONS = {
+  aesthics: "🎨",
+  bio: "🧬",
+  dev: "💻",
+  genres: "🎭",
+  job: "💼",
+  linux: "🐧",
+  messangers: "💬",
+  music: "🎵",
+  music_albums: "💿",
+  notes: "📝",
+  phi: "🤔",
+  rhymes: "✍️",
+  sound_design: "🎚️",
+  tiddly: "🧷",
+  updates: "🗓️",
+  zemic: "📜",
+};
+function folderIcon(name) {
+  return FOLDER_ICONS[String(name).toLowerCase()] || "📁";
+}
+
 function renderTree(node, depth = 0) {
   const pad = "  ".repeat(depth);
   let html = "";
   for (const child of sortedFolders(node)) {
     html += `${pad}<details class="notes-folder">\n`;
-    html += `${pad}  <summary><span class="notes-folder-name">${escapeHtml(child.name)}</span></summary>\n`;
+    html += `${pad}  <summary><span class="notes-folder-icon" aria-hidden="true">${folderIcon(child.name)}</span><span class="notes-folder-name">${escapeHtml(child.name)}</span></summary>\n`;
     html += `${pad}  <div class="notes-folder-body">\n`;
     html += renderTree(child, depth + 2);
     html += `${pad}  </div>\n`;
@@ -337,7 +366,17 @@ const previewsHtml = orderedNotes.map((note) => `        <section class="note-pr
 ${note.html.split("\n").map((line) => `          ${line}`).join("\n")}
         </section>`).join("\n");
 
-const indexBody = `${treeHtml}\n${previewsHtml}`.trim();
+// The blog title belongs where the chronological feed actually starts —
+// after the category tree, not in the shared page header (and not on every
+// individual note page).
+const blogHeadingHtml = notes.length
+  ? `        <header class="blog-head">
+          <p class="home-heading blog-hint" data-i18n="blogHeading">Блог · хронология</p>
+          <p class="home-heading blog-hint dim" data-i18n="blogHint">Записи расположены по датам — от новых к старым.</p>
+        </header>`
+  : "";
+
+const indexBody = `${treeHtml}\n${blogHeadingHtml}\n${previewsHtml}`.trim();
 
 writeFileSafe(path.join(OUT_DIR, "index.html"), shell({
   title: "notes",
@@ -382,4 +421,11 @@ writeFileSafe(META_FILE, `${JSON.stringify({
   })),
 }, null, 2)}\n`);
 
+// Graph data is derived from the same parse, so links always point at pages
+// that actually exist in this build (no stale slugs after renames).
+const graph = buildNoteGraph(notes);
+fs.mkdirSync(path.dirname(GRAPH_FILE), { recursive: true });
+writeFileSafe(GRAPH_FILE, `${JSON.stringify(graph, null, 2)}\n`);
+
 console.log(`Wiki notes: ${notes.length} файлов, ${folderCount} папок → ${path.relative(PROJECT, OUT_DIR)}`);
+console.log(`Note graph: ${graph.stats.nodes} узлов, ${graph.stats.links} связей → ${path.relative(PROJECT, GRAPH_FILE)}`);

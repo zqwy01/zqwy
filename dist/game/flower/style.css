@@ -3,14 +3,14 @@
    petals, call the sun, water the pot. Opened in its own tab, so it may be
    softer and warmer than the strictly black-and-white site. */
 :root {
-  --ink: #4d3b42;
-  --muted: #8b767d;
-  --paper: #fffaf7;
-  --pink: #f7a9bc;
-  --pink-deep: #d9768f;
-  --mint: #9ed3ab;
-  --gold: #f4c96f;
-  --line: #ecd9db;
+  --ink: #4a3840;
+  --muted: #746169;
+  --paper: #fffdfb;
+  --pink: #f8b3c4;
+  --pink-deep: #c96682;
+  --mint: #a8d9b4;
+  --gold: #f2cf84;
+  --line: #f0dfe2;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -20,8 +20,8 @@ html, body { margin: 0; min-height: 100%; }
 
 body {
   background:
-    radial-gradient(90% 60% at 50% -10%, #ffe9e4 0%, transparent 70%),
-    linear-gradient(180deg, #fff6f1 0%, #f3eceb 100%);
+    radial-gradient(90% 60% at 50% -10%, #fff0e9 0%, transparent 72%),
+    linear-gradient(180deg, #fffdfa 0%, #fdf5f3 100%);
   color: var(--ink);
   font-family: var(--font);
   line-height: 1.45;
@@ -35,7 +35,7 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(60% 40% at 85% 15%, rgba(244, 201, 111, .13), transparent 70%);
+  background: radial-gradient(60% 40% at 85% 15%, rgba(242, 207, 132, .16), transparent 72%);
 }
 
 .app {
@@ -89,17 +89,18 @@ body {
   border-radius: 26px;
   overflow: hidden;
   isolation: isolate;
-  background: linear-gradient(180deg, #fff8f3 0%, #fdeef0 48%, #e8f4e6 100%);
-  box-shadow: 0 22px 60px rgba(120, 86, 95, .16), inset 0 1px rgba(255, 255, 255, .9);
+  background: linear-gradient(180deg, #fffbf7 0%, #fff0f2 48%, #edf8ea 100%);
+  box-shadow: 0 20px 50px rgba(126, 91, 101, .12), inset 0 1px rgba(255, 255, 255, .95);
 }
 
-/* Садик подстраивается под время суток: ночью не «выключается», а меняет свет. */
+/* Садик подстраивается под время суток, но остаётся светлым и уютным:
+   ночь — это мягкий лавандовый полумрак, а не чёрная сцена. */
 .garden[data-daypart="evening"] {
-  background: linear-gradient(180deg, #fff1ec 0%, #f9dfe6 48%, #e7eee4 100%);
+  background: linear-gradient(180deg, #fff7ee 0%, #ffeef0 48%, #edf4e8 100%);
 }
 .garden[data-daypart="night"] {
-  background: linear-gradient(180deg, #282740 0%, #44354c 55%, #2d403d 100%);
-  box-shadow: 0 22px 60px rgba(58, 48, 72, .3), inset 0 1px rgba(255, 255, 255, .22);
+  background: linear-gradient(180deg, #f3f1ff 0%, #ece7f7 52%, #e9f3ed 100%);
+  box-shadow: 0 20px 50px rgba(112, 101, 139, .14), inset 0 1px rgba(255, 255, 255, .95);
 }
 .garden[data-daypart="night"]::before {
   content: '';
@@ -108,21 +109,21 @@ body {
   z-index: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(2px 2px at 14% 16%, rgba(255, 255, 255, .9), transparent),
-    radial-gradient(2px 2px at 34% 9%, rgba(255, 255, 255, .7), transparent),
-    radial-gradient(2px 2px at 62% 14%, rgba(255, 255, 255, .85), transparent),
-    radial-gradient(2px 2px at 84% 8%, rgba(255, 255, 255, .75), transparent),
-    radial-gradient(2px 2px at 72% 28%, rgba(255, 255, 255, .6), transparent),
-    radial-gradient(2px 2px at 46% 24%, rgba(255, 255, 255, .55), transparent);
+    radial-gradient(2px 2px at 14% 16%, rgba(255, 255, 255, .95), transparent),
+    radial-gradient(2px 2px at 34% 9%, rgba(255, 255, 255, .8), transparent),
+    radial-gradient(2px 2px at 62% 14%, rgba(255, 255, 255, .9), transparent),
+    radial-gradient(2px 2px at 84% 8%, rgba(255, 255, 255, .8), transparent),
+    radial-gradient(2px 2px at 72% 28%, rgba(255, 255, 255, .68), transparent),
+    radial-gradient(2px 2px at 46% 24%, rgba(255, 255, 255, .62), transparent);
 }
-.garden[data-daypart="night"] .hills { filter: brightness(.66) saturate(.75); }
-.garden[data-daypart="night"] .cloud { opacity: .22; }
-.garden[data-daypart="night"] .sun-rays { opacity: .3; }
+.garden[data-daypart="night"] .hills { filter: brightness(.94) saturate(.88); }
+.garden[data-daypart="night"] .cloud { opacity: .32; }
+.garden[data-daypart="night"] .sun-rays { opacity: .38; }
 .garden[data-daypart="night"] .sun-core {
-  background: radial-gradient(circle at 36% 34%, #fffdf4 0%, #e9e6d8 62%, #bdb9c9 100%);
-  box-shadow: 0 0 30px rgba(223, 220, 255, .5), inset 0 -3px 8px rgba(90, 80, 110, .2);
+  background: radial-gradient(circle at 36% 34%, #ffffff 0%, #f1eedb 62%, #d3cee0 100%);
+  box-shadow: 0 0 30px rgba(226, 220, 255, .55), inset 0 -3px 8px rgba(126, 114, 148, .14);
 }
-.garden[data-daypart="night"] .flower-hint { color: #f7e6ec; }
+.garden[data-daypart="night"] .flower-hint { color: var(--muted); }
 
 #sky {
   position: absolute;
@@ -298,8 +299,6 @@ body {
   transform-origin: 50% 100%;
   animation: flower-breathe 3.8s ease-in-out infinite;
 }
-.ground-shadow { fill: rgba(105, 78, 84, .13); }
-
 .stem-line { fill: none; stroke: #74b67e; stroke-width: 10; stroke-linecap: round; }
 .leaf { fill: #9bd3a2; }
 .leaf-right { fill: #86c493; }
@@ -374,46 +373,59 @@ body {
 
 .can {
   position: absolute;
-  left: 62%; right: auto; bottom: 9%;
+  /* Лейка держится над чашечкой: носник выше цветка, поэтому струя
+     действительно попадает в растение и на всех отношениях сторон. */
+  left: 62%; right: auto; bottom: 34%;
   z-index: 6;
   width: clamp(78px, 10vw, 118px);
   padding: 0;
   border: 0;
   background: none;
-  transform: rotate(-10deg);
+  transform: rotate(-16deg);
   cursor: pointer;
-  filter: drop-shadow(0 7px 8px rgba(80, 110, 95, .18));
+  filter: drop-shadow(0 7px 8px rgba(80, 110, 95, .14));
   transition: transform .2s ease;
 }
-.can:hover, .can:focus-visible { transform: rotate(-15deg) translateY(-3px); }
+.can:hover, .can:focus-visible { transform: rotate(-22deg) translateY(-3px); }
 .can.is-pouring { animation: pour .65s ease; }
 .can-body { fill: #a7d9b6; stroke: #7dba91; stroke-width: 3; }
 .can-handle { fill: none; stroke: #7dba91; stroke-width: 6; stroke-linecap: round; }
 .can-spout { fill: #9fd0ae; stroke: #7dba91; stroke-width: 3; stroke-linejoin: round; }
 .can-spout-tip { fill: #8cc49f; }
 .can-line { fill: none; stroke: rgba(255, 255, 255, .55); stroke-width: 2; }
-.drop { fill: #8cc9e2; opacity: .85; }
-.can:not(.is-pouring) .drop { opacity: 0; }
 
 /* ── панель ──────────────────────────────────────────────────────── */
 
 .panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 22px;
+  gap: 16px 22px;
   align-items: center;
   margin-top: 16px;
   padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: rgba(255, 250, 247, .82);
-  box-shadow: 0 12px 30px rgba(120, 86, 95, .08);
+  background: rgba(255, 253, 251, .94);
+  box-shadow: 0 12px 30px rgba(126, 91, 101, .07);
 }
+/* Статус вынесен в отдельную широкую строку: раньше он прятался между
+   шкалами мелким шрифтом и его почти нельзя было прочитать. */
+.status-line {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border: 1px solid #f6dbe2;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #fff1f4 0%, #fffaf4 100%);
+}
+.status-flower { color: var(--pink-deep); font-size: 1.25rem; line-height: 1; }
 .panel-main { min-width: 0; }
 
 .meters { display: grid; gap: 9px; }
 .meter-row { display: grid; grid-template-columns: 86px minmax(80px, 1fr) 42px; align-items: center; gap: 10px; }
-.meter-label { color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .12em; }
+.meter-label { color: var(--muted); font-size: .74rem; font-weight: 700; letter-spacing: .11em; }
 .meter {
   position: relative;
   display: block;
@@ -434,9 +446,15 @@ body {
 .scent-fill { background: linear-gradient(90deg, #f9d7e4, #ec8fb2); }
 .meter-value { font-variant-numeric: tabular-nums; font-size: .82rem; text-align: right; }
 
-.mood { margin: 10px 0 0; color: var(--pink-deep); font-size: .78rem; font-weight: 600; }
-.mood.is-grumpy { color: #c85353; }
-.hint { margin: 8px 0 10px; color: var(--muted); font-size: .84rem; }
+.mood {
+  margin: 0;
+  color: #a94d69;
+  font-size: clamp(1rem, 0.94rem + 0.3vw, 1.18rem);
+  font-weight: 700;
+  letter-spacing: .015em;
+}
+.mood.is-grumpy { color: #c15353; }
+.hint { margin: 8px 0 10px; color: var(--muted); font-size: .9rem; }
 .counters { display: flex; flex-wrap: wrap; gap: 18px; color: var(--pink-deep); font-size: .9rem; }
 .counters b { color: var(--ink); font-variant-numeric: tabular-nums; }
 
@@ -462,8 +480,8 @@ body {
 .ctrl:hover, .ctrl:focus-visible { border-color: #f2a7b9; background: #fff5f7; transform: translateY(-1px); }
 .ctrl-icon { display: grid; place-items: center; width: 26px; color: var(--pink-deep); font-size: 1.3rem; }
 .ctrl-text { display: grid; min-width: 0; }
-.ctrl-text b { font-size: .72rem; letter-spacing: .08em; white-space: nowrap; }
-.ctrl-text small { color: var(--muted); font-size: .68rem; white-space: nowrap; }
+.ctrl-text b { font-size: .78rem; letter-spacing: .07em; white-space: nowrap; }
+.ctrl-text small { color: var(--muted); font-size: .7rem; white-space: nowrap; }
 .small-ctrl { grid-column: span 1; }
 #soundBtn[aria-pressed="false"] { opacity: .62; }
 
@@ -525,15 +543,15 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1) rotate(var(--r, 0deg)); }
 }
 @keyframes pour {
-  0%, 100% { transform: rotate(-10deg); }
-  35% { transform: rotate(-26deg) translateY(3px); }
-  70% { transform: rotate(-20deg); }
+  0%, 100% { transform: rotate(-16deg); }
+  35% { transform: rotate(-34deg) translateY(3px); }
+  70% { transform: rotate(-26deg); }
 }
 
 @media (max-width: 760px) {
   .panel { grid-template-columns: 1fr; gap: 16px; }
   .controls { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .can { left: 58%; bottom: 7%; }
+  .can { left: 58%; bottom: 30%; }
   .sun { left: 4%; }
   .brand .kaomoji { display: none; }
 }

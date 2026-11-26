@@ -330,6 +330,7 @@ const PAGES = [
   { title: "Ссылки", path: "./links/", text: "Все ссылки: соцсети, музыкальные площадки", tags: ["ссылки", "контакты"], keywords: ["links", "ссылки", "соцсети", "платформы"] },
   { title: "Wiki", path: "./wiki/tiddlywiki/", text: "Текстовая информация в формате markdown", tags: ["вики", "текст"], keywords: ["wiki", "вики", "markdown", "tiddlywiki"] },
   { title: "ZQWY notes", path: "./wiki/zqwy/", text: "Заметки zqwy в формате markdown из src/notes/", tags: ["заметки", "вики"], keywords: ["zqwy", "заметки", "notes", "markdown"] },
+  { title: "Граф заметок", path: "./wiki/graph/", text: "Интерактивный граф связей между заметками: несколько движков, поиск, фильтры и прогулка по заметкам", tags: ["граф", "заметки"], keywords: ["graph", "граф", "заметки", "notes", "связи", "констелляция", "визуализация", "движки"] },
   { title: "TiddlyWiki", path: "./wiki/tiddlywiki/", text: "База знаний TiddlyWiki", tags: ["вики"], keywords: ["tiddlywiki", "тиддливики"] },
   { title: "Obsidian", path: "./wiki/obsidian/", text: "База знаний Obsidian", tags: ["вики"], keywords: ["obsidian", "обсидиан"] },
   { title: "Logseq", path: "./wiki/logseq/", text: "База знаний Logseq", tags: ["вики"], keywords: ["logseq", "логсек"] },

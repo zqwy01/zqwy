@@ -163,6 +163,9 @@ export function bindEvents(P) {
     else window.location.assign(target.href);
   });
 
+  const isTypingTarget = (target) => target instanceof Element &&
+    !!target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]');
+
   document.addEventListener("keydown", (ev) => {
     // Navigate the prefix list while the search field has focus.
     if (P.els.input && ev.target === P.els.input && P.els.suggestions && !P.els.suggestions.hidden) {
@@ -210,6 +213,23 @@ export function bindEvents(P) {
       }
       return;
     }
+    // Finder-style "type to search": a plain character typed anywhere on the
+    // page scrolls to the search field, focuses it and keeps the character.
+    if (P.els.input && !isTypingTarget(ev.target) && !ev.ctrlKey && !ev.metaKey && !ev.altKey &&
+        ev.key && ev.key.length === 1 && /[\p{L}\p{N}]/u.test(ev.key)) {
+      ev.preventDefault();
+      const input = P.els.input;
+      if (P.els.hasMenu && P.els.menu.classList.contains("is-open")) P.closeMenu();
+      input.scrollIntoView({ block: "center", behavior: "smooth" });
+      input.focus({ preventScroll: true });
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      input.setRangeText(ev.key, start, end, "end");
+      // The shared input listener updates results and suggestions.
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+
     if (ev.key === "Escape" && P.els.hasMenu && P.els.menu.classList.contains("is-open")) P.closeMenu();
   });
 

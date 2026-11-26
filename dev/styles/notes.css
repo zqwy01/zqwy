@@ -35,46 +35,64 @@
 .notes-graph-link:hover,
 .notes-graph-link:focus-visible { border-color: var(--focus-border); background: var(--bg-elevated-2); transform: translateY(-2px); }
 .notes-graph-link span[aria-hidden] { color: var(--muted); }
-.notes-head .blog-hint { margin-top: 4px; }
-.notes-head .blog-hint.dim { color: var(--muted); font-size: var(--fs-sm); }
-.notes-tree { display: flex; flex-direction: column; gap: 8px; margin: 0 0 22px; }
+/* The blog heading is injected after the category tree, where the dated feed
+   actually begins. Keep it visually separate from the notes navigation. */
+.blog-head { margin: 6px 0 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+.blog-head .blog-hint { margin: 0 0 4px; font-size: var(--fs-md); font-weight: 600; }
+.blog-head .blog-hint.dim { color: var(--muted); font-size: var(--fs-sm); font-weight: 400; }
+
+.notes-tree {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 12px;
+  margin: 4px 0 22px;
+}
 .notes-folder {
+  width: fit-content;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg-elevated);
 }
 .notes-folder > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  padding: 10px 14px;
+  padding: 7px 11px;
+  border-radius: inherit;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text);
   list-style: none;
   user-select: none;
+  transition: background-color .18s ease, border-color .18s ease;
 }
 .notes-folder > summary::-webkit-details-marker { display: none; }
 .notes-folder > summary::before {
   content: "▸";
   display: inline-block;
-  width: 1em;
-  margin-right: 4px;
   color: var(--muted);
   transition: transform 0.15s ease;
 }
+.notes-folder-icon { font-size: 1.05em; line-height: 1; }
 .notes-folder[open] > summary::before { transform: rotate(90deg); }
-.notes-folder[open] > summary { border-bottom: 1px solid var(--border); }
+.notes-folder[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .notes-folder > summary:hover,
 .notes-folder > summary:focus-visible { background: var(--bg-elevated-2); }
 .notes-folder-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 12px 16px;
+  gap: 6px;
+  padding: 8px;
+  min-width: min(220px, 100%);
 }
 .note-tree-link {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-elevated);

@@ -83,6 +83,7 @@
   var petals = [];
   var sparks = [];
   var scents = [];
+  var drops = [];
   var W = 1, H = 1, dpr = 1;
   var lastFrame = 0, uiTick = 0, spawnTimer = 1.4, waterCooldown = 0, idleTimer = 16;
   var scentTimer = 3.2, daypartTimer = 0, lastDaypart = '';
@@ -191,6 +192,27 @@
       scents[k].x *= sx;
       scents[k].y *= sy;
     }
+    for (var d = 0; d < drops.length; d++) {
+      drops[d].x0 *= sx;
+      drops[d].x1 *= sx;
+      drops[d].y0 *= sy;
+      drops[d].y1 *= sy;
+    }
+    placeCan();
+  }
+
+  /* Держим носник лейки чуть выше чашечки. Считаем от реального положения
+   * цветка, поэтому струя попадает и в 16×9, и в 9×16, и при любом размере. */
+  function placeCan() {
+    var g = garden.getBoundingClientRect();
+    var head = flowerBtn.querySelector('.flower-svg') || flowerBtn;
+    var headRect = head.getBoundingClientRect();
+    var headFromBottom = g.bottom - (headRect.top + headRect.height * 0.4);
+    var canH = canBtn.offsetHeight || canBtn.getBoundingClientRect().height;
+    var tipOffset = canH * 0.37; // носник в SVG находится примерно на 37% высоты
+    var gap = clamp(W * 0.035, 22, 38);
+    var bottom = clamp(headFromBottom - canH + tipOffset + gap, 24, g.height * 0.72);
+    canBtn.style.bottom = bottom.toFixed(1) + 'px';
   }
 
   function spawnPetal(x, y) {
@@ -256,6 +278,35 @@
     return { x: r.left + r.width / 2 - g.left, y: r.top + r.height / 2 - g.top };
   }
 
+  /* Капли берут старт у настоящего носника лейки и летят по дуге в чашечку.
+   * Координаты считаются от SVG-элементов, поэтому попадание сохраняется и
+   * в 16×9, и в 9×16, и после изменения размера окна. */
+  function pourDrops() {
+    var tip = canBtn.querySelector('.can-spout-tip') || canBtn;
+    var head = flowerBtn.querySelector('.flower-svg') || flowerBtn;
+    var start = centerIn(tip);
+    var headRect = head.getBoundingClientRect();
+    var gRect = garden.getBoundingClientRect();
+    var targetX = headRect.left - gRect.left + headRect.width / 2;
+    var targetY = headRect.top - gRect.top + headRect.height * 0.38;
+    var colors = ['#8cc9e2', '#a8dbeb', '#c7ecf5'];
+    for (var i = 0; i < 16; i++) {
+      drops.push({
+        x0: start.x + rnd(-3, 3),
+        y0: start.y + rnd(-2, 2),
+        x1: targetX + rnd(-24, 24),
+        y1: targetY + rnd(-10, 10),
+        delay: i * 0.032,
+        t: 0,
+        dur: rnd(0.4, 0.56),
+        arc: rnd(8, 26),
+        r: rnd(2.4, 4.1),
+        color: pick(colors)
+      });
+    }
+    if (drops.length > 60) drops.splice(0, drops.length - 60);
+  }
+
   function draw(t) {
     ctx.clearRect(0, 0, W, H);
 
@@ -274,6 +325,21 @@
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.4;
       ctx.stroke();
+      ctx.restore();
+    }
+
+    for (var d = drops.length - 1; d >= 0; d--) {
+      var drop = drops[d];
+      if (drop.delay > 0) continue;
+      var u = clamp(drop.t / drop.dur, 0, 1);
+      var dx = drop.x0 + (drop.x1 - drop.x0) * u;
+      var dy = drop.y0 + (drop.y1 - drop.y0) * u - drop.arc * Math.sin(Math.PI * u);
+      ctx.save();
+      ctx.globalAlpha = u > 0.85 ? (1 - u) / 0.15 * 0.9 : 0.9;
+      ctx.fillStyle = drop.color;
+      ctx.beginPath();
+      ctx.ellipse(dx, dy, drop.r * 0.72, drop.r * 1.2, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
 
@@ -463,11 +529,9 @@
   function water() {
     if (waterCooldown > 0) return;
     waterCooldown = 0.45;
-    var c = centerIn(canBtn);
     var f = centerIn(flowerBtn);
-    // Небольшой поток из носника, и основной: капли падают прямо на чашечку.
-    burst(c.x - 24, c.y - 6, 'drop', 4);
-    burst(f.x + rnd(-16, 16), f.y - 28, 'drop', 14);
+    // Капли летят из носника по дуге и попадают в чашечку, а не под лейку.
+    pourDrops();
     canBtn.classList.add('is-pouring');
     window.setTimeout(function () { canBtn.classList.remove('is-pouring'); }, 660);
     state.sun = clamp(state.sun - 3, 0, 100);
@@ -531,6 +595,7 @@
     petals.length = 0;
     sparks.length = 0;
     scents.length = 0;
+    drops.length = 0;
     state.joy = 8;
     state.sun = 65;
     state.aroma = 0;
@@ -716,6 +781,15 @@
       a.y += a.vy * dt;
       a.life -= dt;
       if (a.life <= 0) scents.splice(k, 1);
+    }
+    for (var d = drops.length - 1; d >= 0; d--) {
+      var drop = drops[d];
+      if (drop.delay > 0) { drop.delay -= dt; continue; }
+      drop.t += dt;
+      if (drop.t >= drop.dur) {
+        if (Math.random() < 0.4) burst(drop.x1, drop.y1, 'drop', 1);
+        drops.splice(d, 1);
+      }
     }
 
     if (now - uiTick > 120) {

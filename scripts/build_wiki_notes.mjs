@@ -14,187 +14,31 @@
  * Notes are grouped by directory path inside src/notes/ and shown as a
  * collapsible tree on the landing page so folders/categories can be expanded.
  *
- * No markdown dependency is used: the small converter below handles the
- * subset needed for notes — headings, lists, code fences, paragraphs and
- * inline emphasis/code/links. Run automatically from scripts/build_dist.sh.
+ * No markdown dependency is used: the small converter in lib/notes-source.mjs
+ * handles the subset needed for notes — headings, lists, code fences,
+ * paragraphs and inline emphasis/code/links. Run automatically from
+ * scripts/build_dist.sh.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSafe } from "./lib/write-file-smb-safe.mjs";
 import { buildNoteGraph } from "./lib/note-graph.mjs";
+import {
+  NOTES_DIR,
+  normalizeNotes,
+  walkNotes as walk,
+  escapeHtml,
+  parseNote,
+  sectionLabel,
+  noteCategory,
+} from "./lib/notes-source.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, "..");
-const NOTES_DIR = path.join(PROJECT, "src", "notes");
 const OUT_DIR = path.join(PROJECT, "dev", "wiki", "zqwy");
 const META_FILE = path.join(PROJECT, "dev", "data", "wiki-notes.json");
 const GRAPH_FILE = path.join(PROJECT, "dev", "data", "note-graph.json");
-
-// Plain-text notes sometimes arrive as .txt or with no extension at all
-// (e.g. "Панорамирование"). Convert them to .md in place so the walk below —
-// and every subsequent build — sees them. Other formats (.tid, .meta, ...)
-// are left untouched, and an existing .md note is never overwritten.
-function normalizeNotes(dir) {
-  if (!fs.existsSync(dir)) return 0;
-  let converted = 0;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      converted += normalizeNotes(full);
-      continue;
-    }
-    if (!entry.isFile() || entry.name.startsWith(".")) continue;
-    const ext = path.extname(entry.name).toLowerCase();
-    if (ext !== "" && ext !== ".txt") continue;
-    const target = ext ? `${full.slice(0, -ext.length)}.md` : `${full}.md`;
-    if (fs.existsSync(target)) continue;
-    let content;
-    try { content = fs.readFileSync(full, "utf8"); } catch { continue; }
-    if (content.includes("\0")) continue;
-    writeFileSafe(target, content);
-    fs.rmSync(full, { force: true });
-    converted += 1;
-  }
-  return converted;
-}
-
-function walk(dir) {
-  if (!fs.existsSync(dir)) return [];
-  const files = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) files.push(...walk(full));
-    else if (entry.isFile() && entry.name.toLowerCase().endsWith(".md")) files.push(full);
-  }
-  return files.sort();
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function safeUrl(value) {
-  const url = String(value || "").trim();
-  if (/^(https?:\/\/|mailto:|\/|\.{1,2}\/|#)/i.test(url)) return escapeHtml(url);
-  return "#";
-}
-
-function inline(value) {
-  return escapeHtml(value)
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-      (match, text, url) => `<a href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${text}</a>`);
-}
-
-function markdown(value) {
-  const lines = String(value || "").replace(/\r\n?/g, "\n").split("\n");
-  const out = [];
-  let paragraph = [];
-  let list = [];
-  let code = [];
-  let inCode = false;
-
-  const flushParagraph = () => {
-    // Markdown treats a single newline as a soft break inside the same
-    // paragraph. Keep those line breaks explicitly: joining lines with a
-    // space loses hand-written formatting (and the minifier collapses a bare
-    // newline during the site build).
-    if (paragraph.length) out.push(`<p>${paragraph.map(inline).join("<br>\n")}</p>`);
-    paragraph = [];
-  };
-  const flushList = () => {
-    if (list.length) out.push(`<ul>${list.map((item) => `<li>${inline(item)}</li>`).join("")}</ul>`);
-    list = [];
-  };
-  const flushCode = () => {
-    if (code.length) out.push(`<pre><code>${escapeHtml(code.join("\n"))}</code></pre>`);
-    code = [];
-  };
-
-  for (const line of lines) {
-    if (/^\s*```/.test(line)) {
-      if (inCode) { flushCode(); inCode = false; } else { flushParagraph(); flushList(); inCode = true; }
-      continue;
-    }
-    if (inCode) { code.push(line); continue; }
-
-    const heading = /^(#{1,4})\s+(.*)$/.exec(line);
-    if (heading) {
-      flushParagraph(); flushList();
-      const level = Math.min(heading[1].length + 1, 5); // h1 in markdown becomes page h2
-      out.push(`<h${level}>${inline(heading[2])}</h${level}>`);
-      continue;
-    }
-    if (/^\s*[-*+]\s+/.test(line)) {
-      flushParagraph();
-      list.push(line.replace(/^\s*[-*+]\s+/, ""));
-      continue;
-    }
-    if (!line.trim()) {
-      flushParagraph(); flushList();
-      continue;
-    }
-    flushList();
-    paragraph.push(line.trim());
-  }
-  flushParagraph(); flushList(); flushCode();
-  return out.join("\n");
-}
-
-function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "note";
-}
-
-function sectionOf(relative) {
-  const dir = path.posix.dirname(String(relative || "").replace(/\\/g, "/"));
-  return dir === "." ? "" : dir;
-}
-
-function sectionLabel(section) {
-  return section ? section.split("/").join(" / ") : "Общие";
-}
-
-function noteCategory(section) {
-  return section ? `Заметки / ${section.split("/").join(" / ")}` : "Заметки";
-}
-
-function parseNote(file) {
-  const raw = fs.readFileSync(file, "utf8");
-  // A date in the YAML front matter wins; otherwise use the file's mtime so
-  // the blog timeline still has a stable newest-first order.
-  const dateMatch = /(?:^|\n)\s*date:\s*(\d{4}-\d{2}-\d{2})/.exec(raw);
-  const date = dateMatch ? dateMatch[1] : new Date(fs.statSync(file).mtimeMs).toISOString().slice(0, 10);
-  const firstHeading = /^#\s+(.+)$/m.exec(raw);
-  const title = (firstHeading?.[1] || path.basename(file, ".md")).trim();
-  const body = firstHeading ? raw.replace(/^#\s+.+\n?/m, "") : raw;
-  const relative = path.relative(NOTES_DIR, file).replace(/\\/g, "/");
-  const section = sectionOf(relative);
-  const baseSlug = slugify(path.basename(file, ".md"));
-  const slug = section ? `${slugify(section.replace(/\//g, "-"))}-${baseSlug}` : baseSlug;
-  return {
-    title,
-    slug,
-    date,
-    relative,
-    section,
-    text: body.replace(/[#*`\[\]()>]/g, " ").replace(/\s+/g, " ").trim(),
-    // Only the graph builder needs the untouched source (for [[links]] and
-    // backticked filenames); it is never written into the public metadata.
-    rawBody: body,
-    html: markdown(body),
-  };
-}
 
 function shell({ title, description, body, depth, isIndex = false }) {
   const base = "../".repeat(depth);
@@ -341,7 +185,7 @@ function countFolders(node) {
 
 const normalized = normalizeNotes(NOTES_DIR);
 if (normalized) console.log(`Нормализовано заметок: ${normalized} → .md`);
-const notes = walk(NOTES_DIR).map(parseNote);
+const notes = walk(NOTES_DIR).map((file) => parseNote(file, NOTES_DIR));
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // Drop pages from notes that have since been removed or renamed.

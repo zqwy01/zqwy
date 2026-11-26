@@ -11,6 +11,8 @@
     "index": "node scripts/build_search_index.mjs",
     "version-info": "node scripts/build_version.mjs",
     "notes": "node scripts/build_wiki_notes.mjs",
+    "fetch:tiddlywiki": "node scripts/fetch_tiddlywiki.mjs",
+    "wiki:tiddlywiki": "node scripts/build_tiddlywiki.mjs",
     "test": "node --test scripts/lib/*.test.mjs",
     "verify:graph": "node scripts/verify_graph.mjs",
     "serve:dev": "python3 -m http.server 8080",

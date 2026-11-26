@@ -127,6 +127,18 @@ if [[ -f "$PROJECT_DIR/scripts/build_wiki_notes.mjs" ]]; then
     echo
 fi
 
+# TiddlyWiki: движок скачивается в игнорируемый .cache/ (только для сборки),
+# заметки из src/notes/ превращаются в tiddlers и собираются в один index.html.
+# SKIP_TIDDLYWIKI=1 отключает шаг, например в офлайн-окружении без кэша.
+if [[ -f "$PROJECT_DIR/scripts/build_tiddlywiki.mjs" && "${SKIP_TIDDLYWIKI:-0}" != "1" ]]; then
+    echo "Обновление TiddlyWiki (заметки → tiddlers)..."
+    node "$PROJECT_DIR/scripts/build_tiddlywiki.mjs"
+    echo
+else
+    echo "Пропуск TiddlyWiki: SKIP_TIDDLYWIKI=1 или генератор не найден."
+    echo
+fi
+
 # Граф заметок строится тем же генератором (dev/data/note-graph.json).
 # Проверяем сразу, чтобы сборка не продолжалась с пустыми/битыми данными.
 if [[ -f "$PROJECT_DIR/scripts/verify_graph.mjs" ]]; then
@@ -240,6 +252,17 @@ for file in "${files[@]}"; do
     # шаблонные строки, инлайн-скрипты и шейдеры, поэтому копируем их как есть.
     if [[ "$relative_path" == game/* ]]; then
         echo "ПРОПУСК (игры): $relative_path"
+        total_before_lines=$((total_before_lines + before_lines))
+        total_after_lines=$((total_after_lines + before_lines))
+        processed_files=$((processed_files + 1))
+        continue
+    fi
+
+    # TiddlyWiki — готовый одностраничник со встроенным JS и JSON-хранилищем
+    # tiddlers. html-minifier-terser ломает его встроенные скрипты, поэтому
+    # файл попадает в сборку без изменений.
+    if [[ "$relative_path" == wiki/tiddlywiki/* ]]; then
+        echo "ПРОПУСК (TiddlyWiki): $relative_path"
         total_before_lines=$((total_before_lines + before_lines))
         total_after_lines=$((total_after_lines + before_lines))
         processed_files=$((processed_files + 1))

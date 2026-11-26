@@ -2,11 +2,15 @@
 import { readPalette } from "./shared.js";
 
 const DEFAULT_ENGINE = "canvas";
+const SITE_SETTINGS_KEY = "zqwy.site.settings.v1";
 const KIND_IDS = ["reference", "series", "similar"];
 
 export function install(P) {
+  const prefetched = new Set();
+
   Object.assign(P, {
     init, destroy, retry, selectEngine, setSelection, applyFilters, stopWalk, syncUrl,
+    availableEngines,
   });
 
   function isGraphPage() {
@@ -14,10 +18,21 @@ export function install(P) {
     return /\/wiki\/graph\/?$/.test(path);
   }
 
+  function availableEngines() {
+    let disabled = {};
+    try {
+      const site = JSON.parse(localStorage.getItem(SITE_SETTINGS_KEY) || "null") || {};
+      if (site.graphEngines && typeof site.graphEngines === "object") disabled = site.graphEngines;
+    } catch { /* broken site settings: keep every engine available */ }
+    // Canvas is the permanent fallback and cannot be removed from the list.
+    return P.ENGINES.filter((engine) => engine.id === DEFAULT_ENGINE || disabled[engine.id] !== false);
+  }
+
   function loadSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(P.SETTINGS_KEY) || "null") || {};
-      P.settings.engine = P.ENGINES.some((engine) => engine.id === saved.engine) ? saved.engine : DEFAULT_ENGINE;
+      P.settings.engine = availableEngines().some((engine) => engine.id === saved.engine)
+        ? saved.engine : DEFAULT_ENGINE;
       P.settings.section = typeof saved.section === "string" ? saved.section : "";
       P.settings.paused = Boolean(saved.paused);
       for (const kind of KIND_IDS) {
@@ -32,7 +47,7 @@ export function install(P) {
   function applyUrl() {
     const params = new URLSearchParams(window.location.search);
     const engine = params.get("engine");
-    if (engine && P.ENGINES.some((item) => item.id === engine)) P.settings.engine = engine;
+    if (engine && availableEngines().some((item) => item.id === engine)) P.settings.engine = engine;
     if (params.has("section")) P.settings.section = params.get("section") || "";
     P.state.pendingFocus = params.get("note") || null;
     const query = params.get("gq") || "";
@@ -125,18 +140,38 @@ export function install(P) {
     P.updateActions();
   }
 
-  // Import the default engine while the JSON is still arriving. Dynamic imports
+  // Import one engine module while the JSON is still arriving. Dynamic imports
   // are cached by URL, so selectEngine() below reuses this in-flight module.
   function warmEngine(id) {
-    const meta = P.ENGINES.find((engine) => engine.id === id);
+    const meta = availableEngines().find((engine) => engine.id === id);
     if (!meta) return Promise.resolve();
     return Promise.resolve()
       .then(() => meta.load())
       .catch((error) => { console.warn("Graph engine preload failed:", error); });
   }
 
+  // The graph is interactive already: bring in the remaining engine modules
+  // one at a time, strictly during idle time. Disabled engines are never touched.
+  function prefetchEngines() {
+    if (!P.state.owner) return;
+    const queue = availableEngines()
+      .filter((engine) => engine.id !== P.settings.engine && !prefetched.has(engine.id));
+    const loadNext = () => {
+      if (!P.state.owner || !queue.length) return;
+      const meta = queue.shift();
+      prefetched.add(meta.id);
+      void warmEngine(meta.id);
+      schedule(loadNext);
+    };
+    const schedule = (callback) => {
+      if (window.requestIdleCallback) window.requestIdleCallback(callback, { timeout: 2500 });
+      else window.setTimeout(callback, 1400);
+    };
+    schedule(loadNext);
+  }
+
   async function selectEngine(id) {
-    if (!P.state.owner || !P.ENGINES.some((engine) => engine.id === id)) return false;
+    if (!P.state.owner || !availableEngines().some((engine) => engine.id === id)) return false;
     if (P.settings.engine === id && P.state.engine) return true;
     const sequence = ++P.engineSeq;
     stopWalk();
@@ -191,6 +226,8 @@ export function install(P) {
       P.renderEngines();
       P.updateStatus();
       P.hideLoading?.();
+      prefetched.add(id);
+      prefetchEngines();
       saveSettings();
       syncUrl();
       return true;
@@ -313,16 +350,17 @@ export function install(P) {
   }
 
   function toggleFullscreen() {
-    const page = document.querySelector(".graph-page");
-    if (!page?.requestFullscreen || !document.exitFullscreen) {
+    const stage = P.els.stage;
+    if (!stage?.requestFullscreen || !document.exitFullscreen) {
       P.els.status.textContent = P.t("fullscreenUnsupported");
       return;
     }
-    if (document.fullscreenElement === page) {
+    if (document.fullscreenElement === stage) {
       void document.exitFullscreen();
       return;
     }
-    void page.requestFullscreen().catch(() => {
+    // Only the scene goes fullscreen; the rest of the page stays as it was.
+    void stage.requestFullscreen().catch(() => {
       P.els.status.textContent = P.t("fullscreenUnsupported");
     });
   }
@@ -370,6 +408,7 @@ export function install(P) {
       }, 140);
     });
     P.els.detailsClose?.addEventListener("click", () => P.setSelection(null));
+    P.els.stageExit?.addEventListener("click", () => toggleFullscreen());
     P.els.loadingRetry?.addEventListener("click", () => P.retry?.());
   }
 
@@ -387,7 +426,11 @@ export function install(P) {
         P.els.search?.focus();
         return;
       }
-      if (event.key === "Escape" && !typing) { P.setSelection(null); return; }
+      if (event.key === "Escape" && !typing) {
+        // Let the browser handle fullscreen exit on the first Escape press.
+        if (!document.fullscreenElement) P.setSelection(null);
+        return;
+      }
       if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === " ") {
         const button = P.els.actions?.querySelector('[data-action="motion"]');
@@ -414,7 +457,9 @@ export function install(P) {
     });
 
     document.addEventListener("fullscreenchange", () => {
-      if (P.state.owner) P.updateActions();
+      if (!P.state.owner) return;
+      P.updateActions();
+      if (document.fullscreenElement === P.els.stage) P.state.engine?.fit?.();
     });
 
     P.themeObserver = new MutationObserver(() => {
@@ -438,8 +483,8 @@ export function install(P) {
     // very first data request fails.
     bindPageEvents();
     try {
-      // Data and the default engine module travel in parallel; neither waits
-      // for the other. The overlay reports whichever one is still pending.
+      // Data and exactly one engine module travel in parallel; neither waits
+      // for the other. Other engines are prefetched later, during idle time.
       const jobs = [];
       if (!P.state.graph) jobs.push(fetchData());
       jobs.push(warmEngine(P.settings.engine));
@@ -466,7 +511,7 @@ export function install(P) {
     stopWalk();
     if (P.timers.search) { window.clearTimeout(P.timers.search); P.timers.search = 0; }
     P.state.engine?.destroy?.();
-    if (document.fullscreenElement) void document.exitFullscreen();
+    if (document.fullscreenElement === P.els.stage) void document.exitFullscreen();
     P.state.engine = null;
     P.state.signature = "";
     P.state.owner = false;

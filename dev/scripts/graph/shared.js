@@ -91,6 +91,58 @@ export function edgeWidth(kind, weight) {
   return 0.7 + Math.min(0.8, Number(weight) || 0);
 }
 
+/** Deterministic starting positions grouped by category. Engines with their
+  * own physics use these as seeds; purely manual engines render them as-is. */
+export function seedPositions(nodes, categories, width, height) {
+  const groups = new Map();
+  for (const node of nodes || []) {
+    if (!groups.has(node.category)) groups.set(node.category, []);
+    groups.get(node.category).push(node);
+  }
+  const entries = [...groups.entries()];
+  entries.forEach(([category, list], index) => {
+    const center = -Math.PI / 2 + (index / Math.max(1, entries.length)) * Math.PI * 2;
+    list.forEach((node, position) => {
+      const ring = Math.floor(position / 9);
+      const slot = position % 9;
+      const angle = center + (slot - 4) * 0.13 + (hash01(`${category}${position}`) - 0.5) * 0.06;
+      const radius = 150 + ring * 70 + hash01(node.id) * 25;
+      node.x = width / 2 + Math.cos(angle) * radius;
+      node.y = height / 2 + Math.sin(angle) * radius;
+    });
+  });
+  separateNodes(nodes || [], 8, 3);
+}
+
+/** Push overlapping balls apart so nodes never sit on top of each other.
+  * Fixed (dragged/pinned) nodes stay put and absorb no displacement. */
+export function separateNodes(nodes, padding = 7, iterations = 2) {
+  for (let pass = 0; pass < iterations; pass += 1) {
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        const a = nodes[i]; const b = nodes[j];
+        const min = (Number(a.radius) || nodeRadius(a)) + (Number(b.radius) || nodeRadius(b)) + padding;
+        let dx = b.x - a.x; let dy = b.y - a.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance >= min) continue;
+        if (distance < 0.001) {
+          const angle = (hash01(a.id) - hash01(b.id)) * Math.PI * 2;
+          dx = Math.cos(angle) * 0.001;
+          dy = Math.sin(angle) * 0.001;
+          distance = 0.001;
+        }
+        const shift = (min - distance) / distance;
+        const aFixed = a.fx != null; const bFixed = b.fx != null;
+        if (aFixed && bFixed) continue;
+        const aPart = aFixed ? 0 : bFixed ? 1 : 0.5;
+        const bPart = bFixed ? 0 : aFixed ? 1 : 0.5;
+        a.x -= dx * shift * aPart; a.y -= dy * shift * aPart;
+        b.x += dx * shift * bPart; b.y += dy * shift * bPart;
+      }
+    }
+  }
+}
+
 export function shorten(value, max = 26) {
   const text = String(value || "");
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;

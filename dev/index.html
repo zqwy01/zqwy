@@ -120,6 +120,20 @@
                           <legend data-i18n="search">Поиск</legend>
                           <label><input type="checkbox" name="rememberQuery"> <span data-i18n="rememberQuery">Запоминать последний запрос</span></label>
                         </fieldset>
+                        <fieldset class="settings-group graph-engine-settings">
+                          <legend data-i18n="siteGraphEngines">Граф · движки</legend>
+                          <p class="catalog-hint" data-i18n="graphEngineHint">Снимите галочку, чтобы убрать движок из списка и не загружать его библиотеку.</p>
+                          <label><input type="checkbox" value="canvas" data-graph-engine="canvas" checked disabled> <span data-i18n="graphEngineCanvas">Canvas · физика (резервный)</span></label>
+                          <label><input type="checkbox" value="d3" data-graph-engine="d3" checked> <span data-i18n="graphEngineD3">D3 · force</span></label>
+                          <label><input type="checkbox" value="cytoscape" data-graph-engine="cytoscape" checked> <span data-i18n="graphEngineCytoscape">Cytoscape</span></label>
+                          <label><input type="checkbox" value="orbit" data-graph-engine="orbit" checked> <span data-i18n="graphEngineOrbit">Орбиты</span></label>
+                          <label><input type="checkbox" value="sigma" data-graph-engine="sigma" checked> <span data-i18n="graphEngineSigma">Sigma.js</span></label>
+                          <label><input type="checkbox" value="vis" data-graph-engine="vis" checked> <span data-i18n="graphEngineVis">vis.js · Network</span></label>
+                          <label><input type="checkbox" value="joint" data-graph-engine="joint" checked> <span data-i18n="graphEngineJoint">JointJS</span></label>
+                          <label><input type="checkbox" value="force-graph" data-graph-engine="force-graph" checked> <span data-i18n="graphEngineForceGraph">force-graph</span></label>
+                          <label><input type="checkbox" value="springy" data-graph-engine="springy" checked> <span data-i18n="graphEngineSpringy">Springy</span></label>
+                          <label><input type="checkbox" value="force3d" data-graph-engine="force3d" checked> <span data-i18n="graphEngineForce3D">3d-force-graph</span></label>
+                        </fieldset>
                         <fieldset class="settings-group">
                           <legend data-i18n="language">Язык</legend>
                           <label><input type="radio" name="language" value="ru" checked> <span data-i18n="languageRu">Русский</span></label>

@@ -13,6 +13,12 @@ export function initContext(P) {
     { id: "d3", mark: "⌁", load: () => import("./engines/d3-force.js") },
     { id: "cytoscape", mark: "◈", load: () => import("./engines/cytoscape.js") },
     { id: "orbit", mark: "✧", load: () => import("./engines/orbit.js") },
+    { id: "sigma", mark: "⬡", load: () => import("./engines/sigma.js") },
+    { id: "vis", mark: "◇", load: () => import("./engines/vis.js") },
+    { id: "joint", mark: "▣", load: () => import("./engines/jointjs.js") },
+    { id: "force-graph", mark: "◍", load: () => import("./engines/force-graph.js") },
+    { id: "springy", mark: "∿", load: () => import("./engines/springy.js") },
+    { id: "force3d", mark: "✦", load: () => import("./engines/3d-force-graph.js") },
   ];
 
   // Small inline SVG glyphs: [tag, attributes]. No external icon font or CDN.
@@ -44,6 +50,44 @@ export function initContext(P) {
       ["circle", { cx: 4.1, cy: 15.5, r: 1.7 }],
       ["circle", { cx: 19.4, cy: 8.2, r: 1.7 }],
     ],
+    sigma: [
+      ["path", { d: "M6 3.5h12L10.5 12 18 20.5H6l7.5-8.5z" }],
+      ["circle", { cx: 6, cy: 20.5, r: 1.6, fill: "currentColor", stroke: "none" }],
+    ],
+    vis: [
+      ["circle", { cx: 5, cy: 6, r: 2.1 }],
+      ["circle", { cx: 19, cy: 7, r: 2.1 }],
+      ["circle", { cx: 8, cy: 19, r: 2.1 }],
+      ["circle", { cx: 18, cy: 17.5, r: 2.1 }],
+      ["path", { d: "M6.8 6.7 17.2 6.9M6.1 7.7 7.6 17.2M10 18.4l6.2-1M17.1 9v6.6" }],
+    ],
+    joint: [
+      ["rect", { x: 3.5, y: 3.5, width: 7, height: 7, rx: 1.2 }],
+      ["rect", { x: 13.5, y: 13.5, width: 7, height: 7, rx: 1.2 }],
+      ["path", { d: "M10.5 7h4a2 2 0 0 1 2 2v4.5" }],
+      ["circle", { cx: 7, cy: 7, r: 1.4, fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: 17, cy: 17, r: 1.4, fill: "currentColor", stroke: "none" }],
+    ],
+    "force-graph": [
+      ["circle", { cx: 12, cy: 12, r: 2.8 }],
+      ["circle", { cx: 5, cy: 5.5, r: 2 }],
+      ["circle", { cx: 19.5, cy: 6.5, r: 2 }],
+      ["circle", { cx: 6.5, cy: 19.5, r: 2 }],
+      ["circle", { cx: 18.5, cy: 18.5, r: 2 }],
+      ["path", { d: "M6.6 6.9 10 10M14 10l3.7-2.4M10 14l-2.4 3.7M14 14l2.8 2.8" }],
+    ],
+    springy: [
+      ["path", { d: "M3 13c2.2-6 4.4 6 6.6 0s4.4 6 6.6 0 3.4 2.6 4.8 0" }],
+      ["circle", { cx: 3, cy: 13, r: 1.4, fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: 21, cy: 13, r: 1.4, fill: "currentColor", stroke: "none" }],
+    ],
+    force3d: [
+      ["circle", { cx: 12, cy: 12, r: 3 }],
+      ["ellipse", { cx: 12, cy: 12, rx: 9.5, ry: 4.2, transform: "rotate(-24 12 12)" }],
+      ["ellipse", { cx: 12, cy: 12, rx: 9.5, ry: 4.2, transform: "rotate(62 12 12)" }],
+      ["circle", { cx: 4.3, cy: 15.6, r: 1.5, fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: 19.2, cy: 7.8, r: 1.5, fill: "currentColor", stroke: "none" }],
+    ],
   };
 
   // Icons for the action buttons. The motion/fullscreen icons are swapped by
@@ -68,6 +112,12 @@ export function initContext(P) {
       "engine.d3": "D3 · force",
       "engine.cytoscape": "Cytoscape",
       "engine.orbit": "Орбиты",
+      "engine.sigma": "Sigma.js",
+      "engine.vis": "vis.js · Network",
+      "engine.joint": "JointJS",
+      "engine.force-graph": "force-graph",
+      "engine.springy": "Springy",
+      "engine.force3d": "3d-force-graph",
       allSections: "— все разделы —",
       loading: "Загрузка данных графа…",
       loadingEngine: "Загрузка движка…",
@@ -92,6 +142,12 @@ export function initContext(P) {
       "engine.d3": "D3 · force",
       "engine.cytoscape": "Cytoscape",
       "engine.orbit": "Orbits",
+      "engine.sigma": "Sigma.js",
+      "engine.vis": "vis.js · Network",
+      "engine.joint": "JointJS",
+      "engine.force-graph": "force-graph",
+      "engine.springy": "Springy",
+      "engine.force3d": "3d-force-graph",
       allSections: "— all sections —",
       loading: "Loading graph data…",
       loadingEngine: "Loading engine…",

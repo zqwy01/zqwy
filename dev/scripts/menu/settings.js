@@ -26,13 +26,23 @@ export function install(P) {
 
   function saveSettings(extra = {}, silent = false) {
     const base = P.readSettings() || {};
+    const form = P.els.settingsForm;
+    const graphEngines = form
+      ? {}
+      : (base.graphEngines && typeof base.graphEngines === "object" ? { ...base.graphEngines } : {});
+    // The settings form only exists on the home page. Pages without it must
+    // preserve the previously saved engine list instead of clearing it.
+    form?.querySelectorAll("input[data-graph-engine]").forEach((input) => {
+      graphEngines[input.dataset.graphEngine || input.value] = input.checked;
+    });
     const settings = {
       ...base,
-      theme: P.els.settingsForm?.querySelector('input[name="theme"]:checked')?.value || base.theme || "dark",
-      rememberQuery: P.els.settingsForm
-        ? !!P.els.settingsForm.querySelector('input[name="rememberQuery"]')?.checked
+      theme: form?.querySelector('input[name="theme"]:checked')?.value || base.theme || "dark",
+      rememberQuery: form
+        ? !!form.querySelector('input[name="rememberQuery"]')?.checked
         : !!base.rememberQuery,
-      language: P.els.settingsForm?.querySelector('input[name="language"]:checked')?.value || base.language || "ru",
+      language: form?.querySelector('input[name="language"]:checked')?.value || base.language || "ru",
+      graphEngines,
       ...extra,
     };
     try { localStorage.setItem(P.SETTINGS_KEY, JSON.stringify(settings)); } catch {}
@@ -55,6 +65,11 @@ export function install(P) {
       if (remember) remember.checked = !!settings.rememberQuery;
       const langRadio = P.els.settingsForm.querySelector(`input[name="language"][value="${effectiveLanguage}"]`);
       if (langRadio) langRadio.checked = true;
+      const graphEngines = settings.graphEngines || {};
+      P.els.settingsForm.querySelectorAll("input[data-graph-engine]").forEach((input) => {
+        const id = input.dataset.graphEngine || input.value;
+        if (!input.disabled) input.checked = graphEngines[id] !== false;
+      });
       if (P.els.input && settings.rememberQuery && settings.lastQuery) P.els.input.value = settings.lastQuery;
     }
   }}

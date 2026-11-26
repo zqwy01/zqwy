@@ -203,7 +203,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
         .strength((link) => 0.08 + (Number(link.weight) || 0) * 0.18))
       .force("charge", d3.forceManyBody().strength(-260).distanceMax(650))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide((node) => nodeRadius(node) + 8))
+      .force("collide", d3.forceCollide((node) => nodeRadius(node) + 8).iterations(2))
       .alphaDecay(0.035)
       .on("tick", renderTick);
 

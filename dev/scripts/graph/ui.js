@@ -12,7 +12,7 @@ export function install(P) {
     const ids = {
       engines: "graphEngines", kinds: "graphKinds", search: "graphSearch",
       section: "graphSection", actions: "graphActions", host: "graphHost",
-      stage: "graphStage", tooltip: "graphTooltip", empty: "graphEmpty",
+      stage: "graphStage", stageExit: "graphStageExit", tooltip: "graphTooltip", empty: "graphEmpty",
       details: "graphDetails", detailsBody: "graphDetailsBody",
       detailsClose: "graphDetailsClose", status: "graphStatus",
       loading: "graphLoading", loadingTitle: "graphLoadingTitle",
@@ -29,7 +29,7 @@ export function install(P) {
   function renderEngines() {
     if (!P.els.engines) return;
     P.els.engines.replaceChildren();
-    for (const meta of P.ENGINES) {
+    for (const meta of (P.availableEngines?.() || P.ENGINES)) {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.engine = meta.id;
@@ -253,7 +253,11 @@ export function install(P) {
   function updateActions() {
     if (P.els.loadingRetry) P.els.loadingRetry.textContent = P.t("retry");
     if (!P.els.actions) return;
-    const fullscreen = document.fullscreenElement === document.querySelector(".graph-page");
+    const fullscreen = Boolean(P.els.stage) && document.fullscreenElement === P.els.stage;
+    if (P.els.stageExit) {
+      P.els.stageExit.title = P.t("exitFullscreen");
+      P.els.stageExit.setAttribute("aria-label", P.t("exitFullscreen"));
+    }
     const paused = Boolean(P.settings.paused);
     const walking = Boolean(P.state.walking);
     const labels = {

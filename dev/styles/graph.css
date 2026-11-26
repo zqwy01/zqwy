@@ -26,8 +26,14 @@
   align-items: flex-end;
   gap: 14px;
 }
-/* Row 1: all buttons. Row 2: search. Row 3: filters. */
-.graph-toolbar-row-buttons { align-items: flex-end; }
+/* Row 1: engine buttons form one column, action buttons the next one.
+ * Row 2: search. Row 3: filters. */
+.graph-toolbar-row-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  align-items: start;
+  gap: 18px;
+}
 .graph-toolbar-row-search { padding-top: 10px; border-top: 1px solid var(--border); }
 .graph-toolbar-row-search .graph-search-field { flex: 1 1 100%; max-width: none; }
 .graph-toolbar-row-filters {
@@ -52,8 +58,18 @@
   letter-spacing: 0.05em;
 }
 .graph-engine-list,
-.graph-kind-list,
 .graph-action-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+/* Ten engines are a tall column; keep the toolbar usable on short screens. */
+.graph-engine-list {
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.graph-kind-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -384,31 +400,42 @@
   to { r: 30; opacity: 0; }
 }
 
-/* Full screen keeps the toolbar reachable and gives the rest to the stage. */
-.graph-page:fullscreen {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Full screen applies to the graph scene only, not to the whole page. */
+.graph-stage:fullscreen {
   width: 100vw;
   height: 100vh;
-  max-height: 100vh;
-  overflow: auto;
-  padding: 12px;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: var(--bg);
 }
-.graph-page:fullscreen::backdrop { background: var(--bg); }
-.graph-page:fullscreen .graph-head { display: none; }
-.graph-page:fullscreen .graph-workspace {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 260px;
-  margin-top: 0;
+.graph-stage:fullscreen::backdrop { background: var(--bg); }
+.graph-stage-exit {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated-2);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: 1;
+  cursor: pointer;
 }
-.graph-page:fullscreen .graph-stage { flex: 1 1 auto; height: auto; min-height: 260px; }
+.graph-stage:fullscreen .graph-stage-exit { display: inline-flex; }
 
 @media (max-width: 700px) {
   .graph-stage { height: 58vh; min-height: 380px; }
+  .graph-toolbar-row-buttons { grid-template-columns: minmax(0, 1fr); }
   .graph-field { flex-basis: 100%; }
   .graph-engine-label { display: none; }
   .graph-engine-list button { padding: 9px 12px; }

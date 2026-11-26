@@ -25,6 +25,14 @@ depends on a CDN at runtime.
 | `d3-timer.min.js` | D3 timer (d3-force dependency) | 3.0.1 | ISC |
 | `d3-force.min.js` | D3 force layout for the graph engine | 3.0.0 | ISC |
 | `cytoscape.min.js` | Cytoscape.js graph engine | 3.30.4 | MIT |
+| `sigma.min.js` | Sigma.js 1.x renderer | 1.0.3 | MIT |
+| `vis-network.min.js` | vis-network standalone UMD | 9.1.9 | Apache-2.0 / MIT |
+| `force-graph.min.js` | vasturiano/force-graph | 1.48.0 | MIT |
+| `3d-force-graph.min.js` | vasturiano/3d-force-graph (Three.js bundled) | 1.73.0 | MIT |
+| `springy.js` | Springy force layout | 2.7.1 | MIT |
+| `underscore-min.js` | Underscore (JointJS dependency) | 1.13.6 | MIT |
+| `backbone-min.js` | Backbone (JointJS dependency) | 1.6.0 | MIT |
+| `joint.min.js` | JointJS | 3.7.4 | MPL-2.0 |
 
 The three stylesheets above are loaded lazily together with their libraries:
 they make APlayer, MediaElement.js and jPlayer render their own recognizable

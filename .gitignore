@@ -16,6 +16,14 @@ dev/styles/*
 dev/vendor/*
 !dev/vendor/d3-*.min.js
 !dev/vendor/cytoscape.min.js
+!dev/vendor/sigma.min.js
+!dev/vendor/vis-network.min.js
+!dev/vendor/force-graph.min.js
+!dev/vendor/3d-force-graph.min.js
+!dev/vendor/springy.js
+!dev/vendor/joint.min.js
+!dev/vendor/underscore-min.js
+!dev/vendor/backbone-min.js
 # Локальные заметки bio/job и их копия в сборке
 src/notes/bio/job/
 dist/src/notes/bio/job/

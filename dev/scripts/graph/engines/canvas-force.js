@@ -2,7 +2,7 @@
  * Fast, glowy, and the default. Nodes can be dragged and pinned. */
 import {
   observeResize, withAlpha, categoryColors, nodeColor, nodeRadius,
-  edgeWidth, shorten, hash01,
+  edgeWidth, shorten, hash01, separateNodes,
 } from "../shared.js";
 
 export function createEngine({ host, palette, categories, reducedMotion, callbacks }) {
@@ -120,6 +120,8 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
         node.vx = 0; node.vy = 0;
       }
     }
+    // Hard separation keeps circles from overlapping even while dragging.
+    separateNodes(nodes, 5, 2);
     alpha *= 0.986;
   }
 

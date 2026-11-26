@@ -588,6 +588,16 @@ body.menu-is-open {
 .settings-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .settings-group input[type="radio"],
 .settings-group input[type="checkbox"] { accent-color: var(--text); }
+.graph-engine-settings .catalog-hint { grid-column: 1 / -1; margin: 0; }
+.graph-engine-settings label { font-size: var(--fs-sm); min-width: 0; }
+.graph-engine-settings label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 560px) {
+  .graph-engine-settings {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+  }
+}
 .settings-actions { display: flex; gap: 8px; }
 .menu-action-btn {
   border: 1px solid var(--border);

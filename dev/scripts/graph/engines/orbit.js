@@ -3,7 +3,7 @@
  * grouped by folder. Nice for screenshots, low-power devices and calm mode. */
 import {
   svgEl, observeResize, categoryColors, nodeColor, nodeRadius,
-  edgeWidth, shorten,
+  edgeWidth, shorten, separateNodes,
 } from "../shared.js";
 
 export function createEngine({ host, palette, categories, reducedMotion, callbacks }) {
@@ -65,9 +65,19 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
           y: height / 2 + Math.sin(angle) * radius,
         };
         positions.set(node.id, point);
+        point.id = node.id;
         node.x = point.x; node.y = point.y;
       });
     });
+    // Static rings still need breathing room: nudge touching balls apart.
+    const points = [...positions.values()];
+    if (points.length) {
+      separateNodes(points, 7, 3);
+      for (const point of points) {
+        const node = (allNodes || []).find((item) => item.id === point.id);
+        if (node) { node.x = point.x; node.y = point.y; }
+      }
+    }
   }
 
   function applyHighlight() {

@@ -98,6 +98,39 @@
         <a class="notes-back" href="../zqwy/"><span aria-hidden="true">←</span> <span data-i18n="notesBack">Назад к заметкам</span></a>
       </header>
 
+      <section class="graph-workspace">
+        <div class="graph-stage" id="graphStage">
+          <div class="graph-host" id="graphHost" role="application" aria-label="Граф заметок"></div>
+          <div class="graph-stage-actions" id="graphActions" role="group" aria-label="Действия" data-i18n-aria-label="graphActions">
+            <button type="button" data-action="fit" title="Вписать" aria-label="Вписать"></button>
+            <button type="button" data-action="motion" title="Пауза" aria-label="Пауза"></button>
+            <button type="button" data-action="walk" title="Прогулка" aria-label="Прогулка"></button>
+            <button type="button" data-action="reset" title="Сброс" aria-label="Сброс"></button>
+            <button type="button" data-action="details" title="Карточка" aria-label="Карточка"></button>
+            <button type="button" data-action="fullscreen" title="Полный экран" aria-label="Полный экран"></button>
+          </div>
+          <button type="button" class="graph-stage-exit" id="graphStageExit" title="Свернуть" aria-label="Свернуть">×</button>
+          <div class="graph-loading" id="graphLoading" role="status" aria-live="polite">
+            <div class="graph-loading-card">
+              <span class="graph-loading-ring" aria-hidden="true"></span>
+              <strong class="graph-loading-title" id="graphLoadingTitle">Загрузка графа…</strong>
+              <span class="graph-loading-detail" id="graphLoadingDetail"></span>
+              <span class="graph-loading-track" aria-hidden="true"><span class="graph-loading-fill" id="graphLoadingFill"></span></span>
+              <button type="button" class="graph-loading-retry" id="graphLoadingRetry" hidden>Повторить</button>
+            </div>
+          </div>
+          <div class="graph-tooltip" id="graphTooltip" hidden></div>
+          <div class="graph-control-tip" id="graphControlTip" role="tooltip" hidden></div>
+          <div class="graph-empty" id="graphEmpty" hidden>Заметки или данные графа не найдены. Запустите <code>npm run notes</code>.</div>
+          <aside class="graph-details" id="graphDetails" aria-label="Заметка" hidden>
+            <button type="button" class="graph-details-close" id="graphDetailsClose" aria-label="Закрыть">×</button>
+            <div class="graph-details-body" id="graphDetailsBody"></div>
+          </aside>
+        </div>
+        <p class="graph-status" id="graphStatus" aria-live="polite">Загрузка графа…</p>
+        <noscript><p class="graph-status">Для графа нужен JavaScript. Обычный список заметок: <a href="../zqwy/">../zqwy/</a>.</p></noscript>
+      </section>
+
       <section class="graph-toolbar" id="graphToolbar" aria-label="Настройки графа">
         <div class="graph-toolbar-row graph-toolbar-row-buttons">
           <fieldset class="graph-group graph-engines-group">
@@ -271,39 +304,6 @@
             </div>
           </fieldset>
         </div>
-      </section>
-
-      <section class="graph-workspace">
-        <div class="graph-stage" id="graphStage">
-          <div class="graph-host" id="graphHost" role="application" aria-label="Граф заметок"></div>
-          <div class="graph-stage-actions" id="graphActions" role="group" aria-label="Действия" data-i18n-aria-label="graphActions">
-            <button type="button" data-action="fit" title="Вписать" aria-label="Вписать"></button>
-            <button type="button" data-action="motion" title="Пауза" aria-label="Пауза"></button>
-            <button type="button" data-action="walk" title="Прогулка" aria-label="Прогулка"></button>
-            <button type="button" data-action="reset" title="Сброс" aria-label="Сброс"></button>
-            <button type="button" data-action="details" title="Карточка" aria-label="Карточка"></button>
-            <button type="button" data-action="fullscreen" title="Полный экран" aria-label="Полный экран"></button>
-          </div>
-          <button type="button" class="graph-stage-exit" id="graphStageExit" title="Свернуть" aria-label="Свернуть">×</button>
-          <div class="graph-loading" id="graphLoading" role="status" aria-live="polite">
-            <div class="graph-loading-card">
-              <span class="graph-loading-ring" aria-hidden="true"></span>
-              <strong class="graph-loading-title" id="graphLoadingTitle">Загрузка графа…</strong>
-              <span class="graph-loading-detail" id="graphLoadingDetail"></span>
-              <span class="graph-loading-track" aria-hidden="true"><span class="graph-loading-fill" id="graphLoadingFill"></span></span>
-              <button type="button" class="graph-loading-retry" id="graphLoadingRetry" hidden>Повторить</button>
-            </div>
-          </div>
-          <div class="graph-tooltip" id="graphTooltip" hidden></div>
-          <div class="graph-control-tip" id="graphControlTip" role="tooltip" hidden></div>
-          <div class="graph-empty" id="graphEmpty" hidden>Заметки или данные графа не найдены. Запустите <code>npm run notes</code>.</div>
-          <aside class="graph-details" id="graphDetails" aria-label="Заметка" hidden>
-            <button type="button" class="graph-details-close" id="graphDetailsClose" aria-label="Закрыть">×</button>
-            <div class="graph-details-body" id="graphDetailsBody"></div>
-          </aside>
-        </div>
-        <p class="graph-status" id="graphStatus" aria-live="polite">Загрузка графа…</p>
-        <noscript><p class="graph-status">Для графа нужен JavaScript. Обычный список заметок: <a href="../zqwy/">../zqwy/</a>.</p></noscript>
       </section>
     </div>
   </main>

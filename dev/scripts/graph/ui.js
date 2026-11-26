@@ -60,7 +60,60 @@ export function install(P) {
     const menu = root?.querySelector(".graph-engine-select-menu");
     if (!trigger || !menu) return;
     menu.hidden = true;
+    resetPopup(menu);
     trigger.setAttribute("aria-expanded", "false");
+  }
+
+  // Both pickers now sit below the graph, so their menus are pinned to the
+  // viewport and open towards whichever side has room. Only `list` scrolls for
+  // the section picker; the engine menu scrolls as a whole.
+  function resetPopup(menu) {
+    menu.style.removeProperty("left");
+    menu.style.removeProperty("width");
+    menu.style.removeProperty("top");
+    menu.style.removeProperty("bottom");
+    menu.style.removeProperty("max-height");
+    menu.style.removeProperty("position");
+    menu.classList.remove("is-upward");
+    delete menu.dataset.nudged;
+  }
+
+  function placePopup(menu, trigger, list) {
+    if (!menu || !trigger || menu.hidden) return;
+    resetPopup(menu);
+    if (list) list.style.removeProperty("max-height");
+
+    let rect = trigger.getBoundingClientRect();
+    const below = Math.max(0, window.innerHeight - rect.bottom - 12);
+    const above = Math.max(0, rect.top - 12);
+    const offscreen = rect.top < 12 || rect.bottom > window.innerHeight - 12;
+    // Bring the trigger into view once instead of showing a one-line sliver or
+    // pinning the menu to the wrong side of an off-screen control.
+    if ((offscreen || Math.max(below, above) < 160) && !menu.dataset.nudged) {
+      menu.dataset.nudged = "1";
+      trigger.scrollIntoView({ block: "center", behavior: "auto" });
+      placePopup(menu, trigger, list);
+      return;
+    }
+
+    const downward = below >= 160 || below >= above;
+    const room = Math.min(320, downward ? below : above);
+    const chrome = list ? Math.max(0, menu.offsetHeight - list.offsetHeight) : 0;
+    if (list) list.style.maxHeight = `${Math.round(Math.max(64, room - chrome))}px`;
+    else menu.style.maxHeight = `${Math.round(room)}px`;
+
+    rect = trigger.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.left = `${Math.round(rect.left)}px`;
+    menu.style.width = `${Math.round(rect.width)}px`;
+    if (downward) {
+      menu.style.top = `${Math.round(rect.bottom + 6)}px`;
+      menu.style.bottom = "auto";
+    } else {
+      menu.style.top = "auto";
+      menu.style.bottom = `${Math.round(window.innerHeight - rect.top + 6)}px`;
+      menu.classList.add("is-upward");
+    }
   }
 
   // Native <select> options cannot render SVG, so this is a small listbox with
@@ -81,6 +134,7 @@ export function install(P) {
       menu.hidden = !open;
       trigger.setAttribute("aria-expanded", String(open));
       if (open) {
+        placePopup(menu, trigger);
         (menu.querySelector('[aria-selected="true"]') || menu.querySelector(".graph-engine-option"))?.focus();
       }
     });
@@ -101,6 +155,7 @@ export function install(P) {
         if (menu.hidden) {
           menu.hidden = false;
           trigger.setAttribute("aria-expanded", "true");
+          placePopup(menu, trigger);
           selected()?.focus();
           return;
         }
@@ -117,6 +172,7 @@ export function install(P) {
           event.preventDefault();
           menu.hidden = false;
           trigger.setAttribute("aria-expanded", "true");
+          placePopup(menu, trigger);
           selected()?.focus();
         }
       }
@@ -129,6 +185,16 @@ export function install(P) {
       document.addEventListener("click", (event) => {
         if (P.els.engines && !P.els.engines.contains(event.target)) closeEngineMenu();
       });
+      window.addEventListener("resize", () => {
+        const menu = P.els.engines?.querySelector(".graph-engine-select-menu");
+        const trigger = P.els.engines?.querySelector(".graph-engine-select-trigger");
+        if (menu && !menu.hidden) placePopup(menu, trigger);
+      }, { passive: true });
+      window.addEventListener("scroll", (event) => {
+        const menu = P.els.engines?.querySelector(".graph-engine-select-menu");
+        if (!menu || menu.hidden || menu.contains(event.target)) return;
+        placePopup(menu, P.els.engines?.querySelector(".graph-engine-select-trigger"));
+      }, { passive: true, capture: true });
     }
   }
 
@@ -140,14 +206,7 @@ export function install(P) {
     const trigger = P.els.sectionTrigger;
     if (!menu || !trigger) return;
     menu.hidden = true;
-    menu.classList.remove("is-upward");
-    menu.style.removeProperty("left");
-    menu.style.removeProperty("width");
-    menu.style.removeProperty("bottom");
-    menu.style.removeProperty("top");
-    menu.style.removeProperty("max-height");
-    menu.style.removeProperty("position");
-    delete menu.dataset.nudged;
+    resetPopup(menu);
     if (P.els.sectionOptions) P.els.sectionOptions.style.removeProperty("max-height");
     trigger.setAttribute("aria-expanded", "false");
     if (P.els.sectionFilter) P.els.sectionFilter.value = "";
@@ -155,55 +214,10 @@ export function install(P) {
     menu.querySelectorAll(".graph-section-option").forEach((option) => { option.hidden = false; });
   }
 
-  // Keep the section popup above the trigger and inside the viewport. Only the
-  // option list scrolls, so the search field never disappears mid-scroll and
-  // the menu can never spill over the graph scene below.
+  // The section picker sits below the scene now, so its list opens downwards
+  // by default. Only the options scroll; the search field stays in place.
   function positionSectionMenu() {
-    const menu = P.els.sectionMenu;
-    const trigger = P.els.sectionTrigger;
-    const options = P.els.sectionOptions;
-    if (!menu || !trigger || !options || menu.hidden) return;
-
-    menu.classList.remove("is-upward");
-    menu.style.removeProperty("left");
-    menu.style.removeProperty("width");
-    menu.style.removeProperty("bottom");
-    menu.style.removeProperty("top");
-    menu.style.removeProperty("max-height");
-    menu.style.removeProperty("position");
-    options.style.removeProperty("max-height");
-
-    let rect = trigger.getBoundingClientRect();
-    const viewRoom = Math.max(0, rect.top - 14);
-    // If the toolbar is nearly off-screen, bring the trigger into view once so
-    // the popup has useful height instead of a one-line sliver.
-    if (viewRoom < 150 && !menu.dataset.nudged) {
-      menu.dataset.nudged = "1";
-      trigger.scrollIntoView({ block: "center", behavior: "auto" });
-      positionSectionMenu();
-      return;
-    }
-
-    const toolbar = P.els.sectionSelect?.closest(".graph-toolbar");
-    const toolbarTop = toolbar ? toolbar.getBoundingClientRect().top : 0;
-    const stageTop = P.els.stage?.getBoundingClientRect().top ?? Infinity;
-    rect = trigger.getBoundingClientRect();
-    const toolbarRoom = Math.max(0, rect.top - Math.max(toolbarTop, 8) - 6);
-    const room = toolbarRoom >= 150 && stageTop >= rect.bottom ? toolbarRoom : viewRoom;
-
-    // Measure the fixed chrome (search field, padding and border) and give all
-    // remaining space to the scrollable option list.
-    const chrome = Math.max(0, menu.offsetHeight - options.offsetHeight);
-    const listMax = Math.max(64, Math.min(320 - chrome, room - chrome));
-    options.style.maxHeight = `${Math.round(listMax)}px`;
-
-    menu.style.position = "fixed";
-    menu.style.top = "auto";
-    menu.style.left = `${Math.round(rect.left)}px`;
-    menu.style.width = `${Math.round(rect.width)}px`;
-    menu.style.bottom = `${Math.round(window.innerHeight - rect.top + 6)}px`;
-    menu.style.maxHeight = "none";
-    menu.classList.add("is-upward");
+    placePopup(P.els.sectionMenu, P.els.sectionTrigger, P.els.sectionOptions);
   }
 
   function visibleSectionOptions() {

@@ -323,6 +323,8 @@
 .graph-field select:focus-visible { outline: 2px solid var(--focus-border); outline-offset: 1px; }
 
 .graph-workspace { margin-top: 14px; }
+/* Controls live below the scene so the graph is the first thing you see. */
+.graph-workspace + .graph-toolbar { margin-top: 14px; }
 .graph-stage {
   position: relative;
   height: clamp(420px, 68vh, 860px);

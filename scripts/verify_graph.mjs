@@ -110,6 +110,15 @@ function requireText(relative, needle, label) {
   }
 }
 
+function requireOrder(relative, first, second, label) {
+  const file = path.join(base, relative);
+  if (!fs.existsSync(file)) return;
+  const text = fs.readFileSync(file, "utf8");
+  if (text.indexOf(first) < 0 || text.indexOf(second) < text.indexOf(first)) {
+    problems.push(`нет ${label} в ${target}/${relative}`);
+  }
+}
+
 function forbidText(relative, needle, label) {
   const file = path.join(base, relative);
   if (!fs.existsSync(file)) return;
@@ -128,6 +137,7 @@ requireText("wiki/graph/index.html", "__zqwyGraphDataPromise", "раннего �
 requireText("wiki/graph/index.html", 'type="module" async', "неблокирующего входа графа");
 requireText("wiki/graph/index.html", 'id="graphSectionFilter"', "фильтра разделов");
 requireText("wiki/graph/index.html", 'id="graphControlTip"', "подсказок кнопок управления");
+requireOrder("wiki/graph/index.html", "graph-workspace", "graph-toolbar", "панели управления после графа");
 requireText("scripts/graph/ui.js", "graph-engine-option", "опций с иконками движков");
 requireText("scripts/graph/ui.js", "graph-section-option", "списка разделов с фильтром");
 requireText("scripts/graph/ui.js", "dataset.tip", "описаний кнопок при наведении");

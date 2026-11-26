@@ -120,8 +120,8 @@ HTML/CSS/JS (`terser`, `clean-css-cli`, `html-minifier-terser`).
   становится tiddler с тегами `Заметки`, категорией и полями `source`, `date`,
   `slug`; `[[ссылки]]` между заметками переводятся в заголовки tiddlers.
   Вики по умолчанию использует тёмную палитру `$:/palettes/ContrastDark`,
-  заголовок `ZQWY wiki`, а в каждой заметке через `ViewTemplate` показывается
-  кнопка «← ZQWY · на главную» (`../../` — возврат в основной портал).
+  заголовок `ZQWY wiki`, а в панели `tc-page-controls` рядом с Home/Reload
+  показывается кнопка «← ZQWY» (`../../` — возврат в основной портал).
 - Временная вики живёт в `.cache/tiddlywiki/zqwy-wiki/`; CLI TiddlyWiki
   (`--build index`) собирает один интерактивный файл
   `dev/wiki/tiddlywiki/index.html`. Он копируется в `dist/wiki/tiddlywiki/` и

@@ -176,36 +176,27 @@ export function buildTiddlyWiki() {
   // заголовок tiddler, и `\n` в конце ломает поиск палитры.
   writeTiddler("$__palette.tid", { title: "$:/palette" }, "$:/palettes/ContrastDark", { keepNewline: false });
 
-  // Кнопка возврата в основной портал. ViewTemplate вставляет этот tiddler в
-  // каждую заметку, поэтому навигация доступна даже без меню сайта.
+  // Кнопка возврата в основной портал живёт в стандартной панели
+  // tc-page-controls наряду с Home/Search/etc., а не поверх заметок.
   writeTiddler("$__zqwy_BackToSite.tid", {
     title: BACK_TITLE,
     type: "text/vnd.tiddlywiki",
-    tags: "$:/tags/ViewTemplate",
-  }, '<div class="zqwy-back-to-site"><a href="../../" title="Вернуться на главную ZQWY">← ZQWY · на главную</a></div>');
+    tags: "$:/tags/PageControls",
+    caption: "← ZQWY",
+    description: "Вернуться на главную ZQWY",
+  }, '<a class="tc-btn-invisible zqwy-back-to-site" href="../../" title="Вернуться на главную ZQWY" aria-label="Вернуться на главную ZQWY">← ZQWY</a>');
 
   writeTiddler("$__zqwy_Styles.tid", {
     title: "$:/zqwy/Styles",
     type: "text/css",
     tags: "$:/tags/Stylesheet",
-  }, `.zqwy-back-to-site {
-  position: fixed;
-  left: 12px;
-  bottom: 12px;
-  z-index: 1000;
-}
-.zqwy-back-to-site a {
-  display: inline-block;
-  padding: 5px 11px;
-  border: 1px solid rgba(255,255,255,0.45);
-  border-radius: 4px;
-  background: rgba(0,0,0,0.75);
-  color: #fff;
-  font-size: 0.85em;
+  }, `.tc-page-controls a.zqwy-back-to-site {
+  margin-right: 0.5em;
   text-decoration: none;
+  white-space: nowrap;
 }
-.zqwy-back-to-site a:hover {
-  background: rgba(255,255,255,0.18);
+.tc-page-controls a.zqwy-back-to-site:hover {
+  text-decoration: underline;
 }`);
 
   console.log(`TiddlyWiki: ${records.length} заметок → ${path.relative(PROJECT, WIKI_DIR)}/`);

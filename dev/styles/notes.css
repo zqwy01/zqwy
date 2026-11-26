@@ -119,7 +119,11 @@
 .notes-article > p,
 .notes-article > ul,
 .notes-article > ol,
-.notes-article > pre {
+.notes-article > pre,
+.note-i18n-body > p,
+.note-i18n-body > ul,
+.note-i18n-body > ol,
+.note-i18n-body > pre {
   max-inline-size: clamp(60ch, 80vw, 110ch);
 }
 .note-header h2,

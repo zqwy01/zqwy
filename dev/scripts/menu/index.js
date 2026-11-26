@@ -7,6 +7,7 @@
 import { P, initContext } from "./context.js";
 import { install as install_0 } from "./build-info.js";
 import { bindEvents } from "./events.js";
+import { install as install_1 } from "./note-i18n.js";
 import { install as install_2 } from "./i18n.js";
 import { install as install_3 } from "./init.js";
 import { install as install_4 } from "./search.js";
@@ -22,4 +23,5 @@ install_5(P);
 install_6(P);
 install_7(P);
 initContext(P);
+install_1(P);
 bindEvents(P);

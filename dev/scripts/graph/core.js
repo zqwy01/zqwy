@@ -164,8 +164,12 @@ export function install(P) {
 
   function matchQuery(node, query) {
     if (!query) return true;
-    return `${node.title} ${node.section} ${node.categoryLabel} ${node.excerpt || ""}`
-      .toLowerCase().includes(query);
+    return [
+      P.nodeText(node, "title"),
+      P.nodeText(node, "section"),
+      P.nodeText(node, "categoryLabel"),
+      P.nodeText(node, "excerpt"),
+    ].join(" ").toLowerCase().includes(query);
   }
 
   function highlight() {
@@ -197,7 +201,9 @@ export function install(P) {
     if (signature !== state.signature) {
       state.signature = signature;
       state.engine.setData({
-        nodes,
+        // Engines read `title` directly for labels; give them the active
+        // locale while keeping RU ids/paths untouched for navigation.
+        nodes: nodes.map((node) => ({ ...node, title: P.nodeText(node, "title") })),
         links,
         allNodes: state.allNodes,
         categories: state.graph.categories || [],
@@ -538,6 +544,10 @@ export function install(P) {
       P.renderEngines();
       P.renderSections();
       P.renderDetails();
+      // Engine labels are baked into setData(); force one rebuild so nodes
+      // and tooltips pick up translated titles.
+      P.state.signature = "";
+      applyFilters();
       P.updateActions();
       P.updateStatus();
     });

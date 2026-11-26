@@ -1,0 +1,164 @@
+{
+  "titles": {
+    "aesthics/folk.md": {
+      "en": "Aesthetics: Indie Folk",
+      "de": "Ästhetik: Indie-Folk"
+    },
+    "bio/job/00. Профиль и персона.md": {
+      "en": "Profile and Persona",
+      "de": "Profil und Persona"
+    },
+    "bio/job/01. Позиционирование и роли.md": {
+      "en": "Positioning and Roles",
+      "de": "Positionierung und Rollen"
+    },
+    "bio/job/02. Портфолио и резюме.md": {
+      "en": "Portfolio and Résumé",
+      "de": "Portfolio und Lebenslauf"
+    },
+    "bio/job/03. Каналы поиска и география.md": {
+      "en": "Search Channels and Geography",
+      "de": "Suchkanäle und Geografie"
+    },
+    "bio/job/04. Что прислать на следующем этапе.md": {
+      "en": "What to Send at the Next Stage",
+      "de": "Was in der nächsten Phase zu senden ist"
+    },
+    "bio/job/05. Ответы и новый план.md": {
+      "en": "Replies and a New Plan",
+      "de": "Antworten und ein neuer Plan"
+    },
+    "bio/job/06. UK и Канада — комфорт, масштаб, культура.md": {
+      "en": "UK and Canada — Comfort, Scale, Culture",
+      "de": "UK und Kanada — Komfort, Größe, Kultur"
+    },
+    "bio/job/07. Масштаб страны, дом и ферма.md": {
+      "en": "Country Scale, House and Farm",
+      "de": "Landesgröße, Haus und Hof"
+    },
+    "bio/job/08. Расширенный список крупных стран.md": {
+      "en": "Extended List of Large Countries",
+      "de": "Erweiterte Liste großer Länder"
+    },
+    "bio/job/09. Визы как юридическая операция.md": {
+      "en": "Visas as a Legal Operation",
+      "de": "Visa als rechtlicher Vorgang"
+    },
+    "bio/job/10. Единая формула.md": {
+      "en": "A Single Formula",
+      "de": "Eine einzige Formel"
+    },
+    "bio/job/11. Вторая волна ответов.md": {
+      "en": "Second Wave of Replies",
+      "de": "Zweite Welle der Antworten"
+    },
+    "bio/job/summary/domix.md": {
+      "en": "Domix",
+      "de": "Domix"
+    },
+    "bio/job/summary/domix_resume.md": {
+      "en": "Domix — Résumé",
+      "de": "Domix — Lebenslauf"
+    },
+    "bio/job/summary/resume.md": {
+      "en": "Résumé",
+      "de": "Lebenslauf"
+    },
+    "bio/job/summary/summary.md": {
+      "en": "Summary",
+      "de": "Zusammenfassung"
+    },
+    "bio/whoami.md": {
+      "en": "Source: [removed]",
+      "de": "Quelle: [entfernt]"
+    },
+    "linux/ubuntu_studio.md": {
+      "en": "Ubuntu Studio",
+      "de": "Ubuntu Studio"
+    },
+    "messangers/deltachat.md": {
+      "en": "Delta Chat",
+      "de": "Delta Chat"
+    },
+    "music_albums/death_to_capital.md": {
+      "en": "Crises, Sudden Spikes, Emotional Outbursts",
+      "de": "Krisen, plötzliche Ausschläge, emotionale Ausbrüche"
+    },
+    "music_albums/Why Not.md": {
+      "en": "Why Not",
+      "de": "Warum nicht"
+    },
+    "music/effects.md": {
+      "en": "List of Music Effects",
+      "de": "Liste der Musikeffekte"
+    },
+    "phi/author.md": {
+      "en": "Authorship",
+      "de": "Urheberschaft"
+    },
+    "phi/factory.md": {
+      "en": "AI Production",
+      "de": "KI-Produktion"
+    },
+    "phi/oncology_in_russia.md": {
+      "en": "Oncology in Russia",
+      "de": "Onkologie in Russland"
+    },
+    "phi/soc.md": {
+      "en": "Socialization",
+      "de": "Sozialisation"
+    },
+    "phi/sound_but_text.md": {
+      "en": "Sound as Text",
+      "de": "Klang als Text"
+    },
+    "rhymes/bedolapa.md": {
+      "en": "The Poor Fellow",
+      "de": "Der arme Kerl"
+    },
+    "rhymes/whisper.md": {
+      "en": "Whisper for an Ear",
+      "de": "Flüstern für ein Ohr"
+    },
+    "sound_design/Панорамирование.md": {
+      "en": "Panning",
+      "de": "Panoramierung"
+    },
+    "updates/1.1.md": {
+      "en": "Update 1.1",
+      "de": "Update 1.1"
+    },
+    "zemic/00. Ветвь Лабиринта.md": {
+      "en": "Branch of the Labyrinth",
+      "de": "Zweig des Labyrinths"
+    },
+    "zemic/01.1 Пробуждение у Скрижали.md": {
+      "en": "At the Tablet",
+      "de": "An der Tafel"
+    },
+    "zemic/01.2 Скрижаль.md": {
+      "en": "The Tablet",
+      "de": "Die Tafel"
+    }
+  },
+  "sections": {
+    "": { "en": "General", "de": "Allgemein" },
+    "aesthics": { "en": "Aesthetics", "de": "Ästhetik" },
+    "bio": { "en": "Bio", "de": "Bio" },
+    "bio/job": { "en": "Work", "de": "Arbeit" },
+    "bio/job/summary": { "en": "Summary", "de": "Zusammenfassung" },
+    "dev": { "en": "Dev", "de": "Entwicklung" },
+    "genres": { "en": "Genres", "de": "Genres" },
+    "linux": { "en": "Linux", "de": "Linux" },
+    "messangers": { "en": "Messengers", "de": "Messenger" },
+    "music": { "en": "Music", "de": "Musik" },
+    "music_albums": { "en": "Music Albums", "de": "Musikalben" },
+    "notes": { "en": "Notes", "de": "Notizen" },
+    "phi": { "en": "Philosophy", "de": "Philosophie" },
+    "rhymes": { "en": "Rhymes", "de": "Reime" },
+    "sound_design": { "en": "Sound Design", "de": "Sounddesign" },
+    "tiddly": { "en": "TiddlyWiki", "de": "TiddlyWiki" },
+    "updates": { "en": "Updates", "de": "Aktualisierungen" },
+    "zemic": { "en": "Zemic", "de": "Zemic" }
+  }
+}

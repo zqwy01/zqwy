@@ -486,8 +486,9 @@ export function install(P) {
     all.value = "";
     all.textContent = P.t("allSections");
     select.append(all);
+    const lang = document.documentElement.lang;
     const categories = [...(P.state.graph?.categories || [])]
-      .sort((a, b) => a.label.localeCompare(b.label, "ru"));
+      .sort((a, b) => P.categoryText(a).localeCompare(P.categoryText(b), lang));
     const counts = new Map();
     for (const node of P.state.allNodes) {
       counts.set(node.category, (counts.get(node.category) || 0) + 1);
@@ -496,7 +497,7 @@ export function install(P) {
     for (const category of categories) {
       const option = document.createElement("option");
       option.value = category.id;
-      option.textContent = category.label;
+      option.textContent = P.categoryText(category);
       select.append(option);
     }
     select.value = categories.some((category) => category.id === current) ? current : "";
@@ -512,7 +513,7 @@ export function install(P) {
       { id: "", label: P.t("allSections"), color: "", count: P.state.allNodes.length },
       ...categories.map((category) => ({
         id: category.id,
-        label: category.label,
+        label: P.categoryText(category),
         color: colors.get(category.id) || "",
         count: counts.get(category.id) || 0,
       })),
@@ -576,17 +577,17 @@ export function install(P) {
     const panel = P.els.details;
     if (!panel || !body || !node) return;
     panel.scrollTop = 0;
-    panel.setAttribute("aria-label", node.title);
+    panel.setAttribute("aria-label", P.nodeText(node, "title"));
     body.replaceChildren();
 
     const title = document.createElement("h2");
-    title.textContent = node.title;
+    title.textContent = P.nodeText(node, "title");
     const meta = document.createElement("p");
     meta.className = "graph-detail-meta";
-    meta.textContent = `${node.categoryLabel || P.t("general")} · ${node.date || "—"} · ${node.degree} ${P.t("links")}`;
+    meta.textContent = `${P.nodeText(node, "categoryLabel", P.t("general"))} · ${node.date || "—"} · ${node.degree} ${P.t("links")}`;
     const excerpt = document.createElement("p");
     excerpt.className = "graph-detail-excerpt";
-    excerpt.textContent = node.excerpt || "";
+    excerpt.textContent = P.nodeText(node, "excerpt");
 
     const open = document.createElement("a");
     open.className = "graph-detail-open";
@@ -612,7 +613,7 @@ export function install(P) {
       const item = document.createElement("li");
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = P.state.nodeById.get(id).title;
+      button.textContent = P.nodeText(P.state.nodeById.get(id), "title");
       const kind = document.createElement("span");
       kind.className = "graph-neighbour-kind";
       kind.textContent = P.t(link.kind);
@@ -708,9 +709,9 @@ export function install(P) {
     if (!node || !point) { tooltip.hidden = true; return; }
     tooltip.replaceChildren();
     const title = document.createElement("strong");
-    title.textContent = node.title;
+    title.textContent = P.nodeText(node, "title");
     const meta = document.createElement("small");
-    meta.textContent = `${node.categoryLabel} · ${node.degree} ${P.t("links")}`;
+    meta.textContent = `${P.nodeText(node, "categoryLabel")} · ${node.degree} ${P.t("links")}`;
     tooltip.append(title, meta);
     tooltip.hidden = false;
     const width = P.els.stage?.clientWidth || 800;
@@ -729,7 +730,7 @@ export function install(P) {
     ];
     if (P.state.walking) pieces.push(P.t("walking"));
     const selected = P.state.nodeById.get(P.state.selected);
-    if (selected) pieces.push(`${P.t("selected")}: ${selected.title}`);
+    if (selected) pieces.push(`${P.t("selected")}: ${P.nodeText(selected, "title")}`);
     if (P.state.notice) pieces.push(P.state.notice);
     P.els.status.textContent = pieces.join(" · ");
   }

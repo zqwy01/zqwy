@@ -19,8 +19,8 @@ export function initContext(P) {
   P.baseRelativeUrl = (path) => new URL(path, P.SITE_ROOT).href;
   P.systemQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
 
-  /* Site chrome is translated into RU/EN/DE. Search data stays multilingual
-     regardless of this setting — the switch only translates the interface. */
+  /* Site chrome and note content are translated into RU/EN/DE. The search
+     index always covers all three languages, regardless of the UI setting. */
   P.LANGUAGES = ["ru", "en", "de"];
   P.I18N = {
     ru: {

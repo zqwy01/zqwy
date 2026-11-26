@@ -258,6 +258,19 @@ export function initContext(P) {
     return text;
   };
 
+  // Note data keeps stable RU ids/slugs; labels are looked up per UI language.
+  P.nodeText = (node, field, fallback = "") => {
+    const value = document.documentElement.lang;
+    const lang = ["ru", "en", "de"].includes(value) ? value : "ru";
+    const map = node?.[`${field}I18n`];
+    return map?.[lang] || map?.ru || node?.[field] || fallback;
+  };
+  P.categoryText = (category, fallback = "") => {
+    const value = document.documentElement.lang;
+    const lang = ["ru", "en", "de"].includes(value) ? value : "ru";
+    return category?.labelI18n?.[lang] || category?.labelI18n?.ru || category?.label || fallback;
+  };
+
   P.settings = {
     engine: "d3",
     section: "",

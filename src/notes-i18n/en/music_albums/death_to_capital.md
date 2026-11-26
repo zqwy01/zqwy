@@ -1,0 +1,1 @@
+# Crises, sudden spikes, emotional outbursts. The death of capital is not the only reasonable case for something like this — it could just as well be Death to Social, and so on. The point is that it leads to a vision of a utopian future, a dystopian future

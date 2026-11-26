@@ -1,0 +1,1 @@
+# Krisen, plötzliche Ausschläge, emotionale Ausbrüche. Der Tod des Kapitals ist nicht der einzige vernünftige Anlass für etwas Derartiges – es könnte genauso gut „Death to Social“ sein und so weiter. Die Essenz ist, dass dies zu einer Vision einer utopischen Zukunft führt – einer dystopischen Zukunft

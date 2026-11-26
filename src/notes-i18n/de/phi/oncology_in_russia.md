@@ -1,0 +1,5 @@
+Damit das Bild ehrlich ist.
+
+Der Onkologie sind die zweckgebundenen Mittel entzogen worden. Die 140 Mrd. Rubel pro Jahr, die gesetzlich für die Krebsversorgung festgelegt waren, sind aus dem Haushalt verschwunden – stattdessen 3,9 Mrd. für Ausrüstung. Der Ausgleich über OMS (Pflichtkrankenversicherung) ist ein Versprechen des Gesundheitsministeriums ohne einen Mechanismus, der garantieren würde, dass das Geld tatsächlich bei Onkologiepatienten ankommt. Eine zweckgebundene Haushaltslinie bot diese Garantie; der allgemeine Topf nicht.
+Bei der Filterung gab es einen Anstieg. Die Ausgaben für ASBI (automatisierte Blocksysteme) und Sperren haben sich verdoppelt: von ~32 Mrd. für 2027–2029 auf ~60 Mrd., dazu 2,27 Mrd. für ein KI-System zur Filterung des Datenverkehrs und 10,2 Mrd. für neue TSPU (Systeme zur Abwehr von Informationsbedrohungen) im Jahr 2026. Das ist eine direkte Erhöhung.
+Diese Prozesse laufen gleichzeitig im selben Haushalt ab. Das Onkologieprogramm um 141 Mrd. zu kürzen und die Filterung um 28 Mrd. zu erhöhen, konnte nur eine bewusste Prioritätenentscheidung sein – der Haushaltsprozess macht das nicht von selbst.

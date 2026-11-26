@@ -9,6 +9,10 @@ export function install(P) {
     return String(value || "")
       .toLowerCase()
       .replace(/ё/g, "е")
+      .replace(/ä/g, "a")
+      .replace(/ö/g, "o")
+      .replace(/ü/g, "u")
+      .replace(/ß/g, "ss")
       .replace(/[_-]+/g, " ")
       .replace(/[^a-zа-я0-9\s]/gi, " ")
       .replace(/\s+/g, " ")
@@ -226,10 +230,13 @@ export function install(P) {
     for (let i = 0; i < src.length; i++) {
       let ch = src[i].toLowerCase();
       if (ch === "ё") ch = "е";
+      else if (ch === "ä") ch = "a";
+      else if (ch === "ö") ch = "o";
+      else if (ch === "ü") ch = "u";
+      else if (ch === "ß") ch = "ss";
       if (/[a-zа-я0-9]/.test(ch)) {
         if (pendingSpace >= 0) { text += " "; map.push(pendingSpace); pendingSpace = -1; }
-        text += ch;
-        map.push(i);
+        for (const mapped of ch) { text += mapped; map.push(i); }
       } else if (pendingSpace < 0) {
         // '_' and '-' act like spaces; runs of separators collapse to one.
         pendingSpace = i;

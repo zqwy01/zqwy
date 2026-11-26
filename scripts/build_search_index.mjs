@@ -157,6 +157,10 @@ function normalizeWord(value) {
   return String(value || "")
     .toLowerCase()
     .replace(/ё/g, "е")
+    .replace(/ä/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ß/g, "ss")
     .replace(/[^a-zа-я0-9]+/gi, " ")
     .trim();
 }
@@ -317,7 +321,21 @@ function collectNotes() {
   if (!fs.existsSync(NOTES_FILE)) return [];
   try {
     const data = JSON.parse(fs.readFileSync(NOTES_FILE, "utf8"));
-    return Array.isArray(data?.notes) ? data.notes : [];
+    const notes = Array.isArray(data?.notes) ? data.notes : [];
+    // One result per note (stable path/dedupe key), with translated titles and
+    // bodies folded into the searchable fields. The visible title stays the
+    // canonical one so results do not change when the UI language changes.
+    return notes.map((note) => {
+      const extraTitles = ["en", "de"].map((lang) => note.titleI18n?.[lang]).filter(Boolean);
+      const extraTexts = ["en", "de"].map((lang) => note.textI18n?.[lang]).filter(Boolean);
+      const extraSections = ["en", "de"].map((lang) => note.sectionI18n?.[lang]).filter(Boolean);
+      return {
+        ...note,
+        alias: [note.alias, ...extraTitles].filter(Boolean).join(" "),
+        text: [note.text, ...extraTexts].join(" "),
+        keywords: [...(note.keywords || []), ...extraTitles, ...extraSections],
+      };
+    });
   } catch { return []; }
 }
 

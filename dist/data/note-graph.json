@@ -1,916 +1,2564 @@
 {
-  "generatedAt": "2026-11-26T14:38:40.881Z",
+  "generatedAt": "2026-11-26T16:58:33.405Z",
   "nodes": [
     {
       "id": "aesthics-folk",
       "title": "folk",
+      "titleI18n": {
+        "ru": "folk",
+        "en": "Aesthetics: Indie Folk",
+        "de": "Ästhetik: Indie-Folk"
+      },
       "path": "./wiki/zqwy/aesthics-folk.html",
       "section": "aesthics",
+      "sectionI18n": {
+        "ru": "aesthics",
+        "en": "Aesthetics",
+        "de": "Ästhetik"
+      },
       "category": "aesthics",
       "categoryLabel": "aesthics",
+      "categoryLabelI18n": {
+        "ru": "aesthics",
+        "en": "Aesthetics",
+        "de": "Ästhetik"
+      },
       "date": "2026-11-24",
       "chars": 1535,
       "excerpt": "Эстетика: Инди-Фолк; Слушать: Леонарда Коэна; Читать: Унесённые Ветром; Спорить: Навсегда ли потеряна культура, на которой и была построена прекрасная, но и в чём-то ужасная современность Для которых мылые случаи неприемлемы чем гигантские Ведь действительно: ",
+      "excerptI18n": {
+        "ru": "Эстетика: Инди-Фолк; Слушать: Леонарда Коэна; Читать: Унесённые Ветром; Спорить: Навсегда ли потеряна культура, на которой и была построена прекрасная, но и в чём-то ужасная современность Для которых мылые случаи неприемлемы чем гигантские Ведь действительно: ",
+        "en": "Aesthetics: Indie Folk; Listen to: Leonard Cohen; Read: Gone with the Wind; Debate: Is the culture on which the beautiful, yet in some ways terrible modernity was built lost forever? For those for whom small occurrences are more acceptable than gigantic ones I",
+        "de": "Ästhetik: Indie-Folk; Hören: Leonard Cohen; Lesen: Vom Winde verweht; Streiten: Ist die Kultur, auf der die schöne, aber in mancher Hinsicht schreckliche Moderne errichtet wurde, für immer verloren? Für jene, denen kleine Vorkommnisse akzeptabler sind als giga"
+      },
       "degree": 4
     },
     {
       "id": "bio-job-00-профиль-и-персона",
       "title": "Профиль и персона: что уже известно из проекта",
+      "titleI18n": {
+        "ru": "Профиль и персона: что уже известно из проекта",
+        "en": "Profile and Persona",
+        "de": "Profil und Persona"
+      },
       "path": "./wiki/zqwy/bio-job-00-профиль-и-персона.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 4720,
       "excerpt": "date: 2026-11-24 Рабочая сводка, собранная 24 ноября 2026 года из репозитория zqwy . Источники — только файлы проекта; формальное образование, возраст, работодатель и точный город в репозитории не указаны. Самоописание - src/notes/tiddly/notes/Kto ya_ Ili zhe ",
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Рабочая сводка, собранная 24 ноября 2026 года из репозитория zqwy . Источники — только файлы проекта; формальное образование, возраст, работодатель и точный город в репозитории не указаны. Самоописание - src/notes/tiddly/notes/Kto ya_ Ili zhe ",
+        "en": "date: 2026-11-24 Working summary compiled on 24 November 2026 from the zqwy repository. Sources are project files only; formal education, age, employer and exact city are not specified in the repository. Self-description - src/notes/tiddly/notes/Kto ya_ Ili zh",
+        "de": "date: 2026-11-24 Arbeitsstand vom 24. November 2026, erstellt aus dem Repository zqwy . Quellen sind ausschließlich Projektdateien; formale Ausbildung, Alter, Arbeitgeber und genaue Stadt sind im Repository nicht vermerkt. Selbstbeschreibung - src/notes/tiddly"
+      },
       "degree": 13
     },
     {
       "id": "bio-job-01-позиционирование-и-роли",
       "title": "Позиционирование: T-профиль вместо «универсала»",
+      "titleI18n": {
+        "ru": "Позиционирование: T-профиль вместо «универсала»",
+        "en": "Positioning and Roles",
+        "de": "Positionierung und Rollen"
+      },
       "path": "./wiki/zqwy/bio-job-01-позиционирование-и-роли.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 3572,
       "excerpt": "date: 2026-11-24 Географическая поправка: проект «дом, земля, ферма, животные и масштаб всей страны» меняет приоритет направлений — см. 07. Масштаб страны, дом и ферма.md . Раздел «Географическая поправка» ниже отражает более ранний этап. Главное решение Не ис",
-      "degree": 10
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Географическая поправка: проект «дом, земля, ферма, животные и масштаб всей страны» меняет приоритет направлений — см. 07. Масштаб страны, дом и ферма.md . Раздел «Географическая поправка» ниже отражает более ранний этап. Главное решение Не ис",
+        "en": "date: 2026-11-24 Geographic update: the \"house, land, farm, animals, country-wide scale\" project changes the priority of directions — see 07. Масштаб страны, дом и ферма.md . The \"Geographic update\" section below reflects an earlier stage. The key decision Don",
+        "de": "date: 2026-11-24 Geografische Korrektur: Das Projekt „Haus, Land, Hof, Tiere und Maßstab des ganzen Landes\" verschiebt die Priorität der Richtungen — siehe 07. Масштаб страны, дом и ферма.md . Der Abschnitt „Geografische Korrektur\" unten spiegelt eine frühere "
+      },
+      "degree": 12
     },
     {
       "id": "bio-job-02-портфолио-и-резюме",
       "title": "Портфолио и резюме: что показывать и что починить",
+      "titleI18n": {
+        "ru": "Портфолио и резюме: что показывать и что починить",
+        "en": "Portfolio and Résumé",
+        "de": "Portfolio und Lebenslauf"
+      },
       "path": "./wiki/zqwy/bio-job-02-портфолио-и-резюме.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 3680,
       "excerpt": "date: 2026-11-24 Три кейса, которые стоит вынести в публичный GitHub 1. Поиск по личному порталу - Что показывать: единый индекс на 445 записей 11 страниц, 39 ссылок, 10 игр, 40 релизов, 296 треков, 49 заметок , 51 группа синонимов, RU/EN словари, транслитерац",
-      "degree": 9
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Три кейса, которые стоит вынести в публичный GitHub 1. Поиск по личному порталу - Что показывать: единый индекс на 445 записей 11 страниц, 39 ссылок, 10 игр, 40 релизов, 296 треков, 49 заметок , 51 группа синонимов, RU/EN словари, транслитерац",
+        "en": "date: 2026-11-24 Three case studies worth putting on public GitHub 1. Search for the personal portal - What to show: a unified index of 445 records 11 pages, 39 links, 10 games, 40 releases, 296 tracks, 49 notes , 51 synonym groups, RU/EN dictionaries, transli",
+        "de": "date: 2026-11-24 Drei Cases für ein öffentliches GitHub 1. Suche im eigenen Portal - Zu zeigen: ein gemeinsamer Index mit 445 Einträgen 11 Seiten, 39 Links, 10 Spiele, 40 Releases, 296 Titel, 49 Notizen , 51 Synonymgruppen, RU/EN-Wörterbücher, Transliteration,"
+      },
+      "degree": 11
     },
     {
       "id": "bio-job-03-каналы-поиска-и-география",
       "title": "Каналы поиска и география",
+      "titleI18n": {
+        "ru": "Каналы поиска и география",
+        "en": "Search Channels and Geography",
+        "de": "Suchkanäle und Geografie"
+      },
       "path": "./wiki/zqwy/bio-job-03-каналы-поиска-и-география.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 3592,
       "excerpt": "date: 2026-11-24 Обновление 24.11.2026: нужна крупная страна, дом с землёй и животные, умеренный климат, без легализованного каннабиса; алкоголь не фильтр. Актуальная география — в 07. Масштаб страны, дом и ферма.md ; сравнение цен и законодательства — в 06. U",
-      "degree": 11
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Обновление 24.11.2026: нужна крупная страна, дом с землёй и животные, умеренный климат, без легализованного каннабиса; алкоголь не фильтр. Актуальная география — в 07. Масштаб страны, дом и ферма.md ; сравнение цен и законодательства — в 06. U",
+        "en": "date: 2026-11-24 Update of 24 November 2026: what's needed is a large country, a house with land and animals, a temperate climate, no legalised cannabis; alcohol is not a filter. Current geography is in 07. Масштаб страны, дом и ферма.md ; a comparison of cost",
+        "de": "date: 2026-11-24 Update vom 24.11.2026: Gesucht sind ein großes Land, ein Haus mit Grundstück und Tieren, ein gemäßigtes Klima, keine legalisierte Cannabis-Nutzung; Alkohol ist kein Ausschlusskriterium. Aktuelle Geografie: 07. Масштаб страны, дом и ферма.md ; "
+      },
+      "degree": 12
     },
     {
       "id": "bio-job-04-что-прислать-на-следующем-этапе",
       "title": "Что прислать на следующем этапе",
+      "titleI18n": {
+        "ru": "Что прислать на следующем этапе",
+        "en": "What to Send at the Next Stage",
+        "de": "Was in der nächsten Phase zu senden ist"
+      },
       "path": "./wiki/zqwy/bio-job-04-что-прислать-на-следующем-этапе.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 3199,
       "excerpt": "date: 2026-11-24 Обновление 24.11.2026: первые ответы уже получены — см. 05. Ответы и новый план.md . Заполнение было отложено по просьбе автора и теперь снова открыто: автор сообщил готовность предоставить больше информации. Пункты ниже — полный список; для с",
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Обновление 24.11.2026: первые ответы уже получены — см. 05. Ответы и новый план.md . Заполнение было отложено по просьбе автора и теперь снова открыто: автор сообщил готовность предоставить больше информации. Пункты ниже — полный список; для с",
+        "en": "date: 2026-11-24 Update of 24 November 2026: the first replies have already arrived — see 05. Ответы и новый план.md . Filling this in was postponed at the author's request and is now open again: the author has said they are ready to provide more information. ",
+        "de": "date: 2026-11-24 Update vom 24.11.2026: Die ersten Antworten sind bereits eingegangen — siehe 05. Ответы и новый план.md . Das Ausfüllen wurde auf Wunsch des Autors verschoben und ist jetzt wieder offen: Der Autor hat zugesagt, weitere Informationen zu liefern"
+      },
       "degree": 12
     },
     {
       "id": "bio-job-05-ответы-и-новый-план",
       "title": "Ответы автора и уточнённый план",
+      "titleI18n": {
+        "ru": "Ответы автора и уточнённый план",
+        "en": "Replies and a New Plan",
+        "de": "Antworten und ein neuer Plan"
+      },
       "path": "./wiki/zqwy/bio-job-05-ответы-и-новый-план.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 4154,
       "excerpt": "date: 2026-11-24 Дополнение 24.11.2026: сравнение UK и Канады — в 06. UK и Канада — комфорт, масштаб, культура.md . Последнее уточнение: важен масштаб всей страны, а не города; нужны дом, земля и животные; алкоголь снят как фильтр. Актуальная расстановка — в 0",
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Дополнение 24.11.2026: сравнение UK и Канады — в 06. UK и Канада — комфорт, масштаб, культура.md . Последнее уточнение: важен масштаб всей страны, а не города; нужны дом, земля и животные; алкоголь снят как фильтр. Актуальная расстановка — в 0",
+        "en": "date: 2026-11-24 Supplement dated 24.11.2026: the UK–Canada comparison is in 06. UK и Канада — комфорт, масштаб, культура.md . Latest refinement: what matters is the scale of the whole country, not the city; a house, land and animals are needed; alcohol is no ",
+        "de": "date: 2026-11-24 Ergänzung vom 24.11.2026: Der Vergleich zwischen UK und Kanada steht in 06. UK и Канада — комфорт, масштаб, культура.md . Letzte Präzisierung: Entscheidend ist die Größe des ganzen Landes, nicht der Stadt; Haus, Land und Tiere sind nötig; Alko"
+      },
       "degree": 11
     },
     {
       "id": "bio-job-06-uk-и-канада-комфорт-масштаб-культура",
       "title": "UK и Канада: комфорт, масштаб, бытовая культура",
+      "titleI18n": {
+        "ru": "UK и Канада: комфорт, масштаб, бытовая культура",
+        "en": "UK and Canada — Comfort, Scale, Culture",
+        "de": "UK und Kanada — Komfort, Größe, Kultur"
+      },
       "path": "./wiki/zqwy/bio-job-06-uk-и-канада-комфорт-масштаб-культура.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 5310,
       "excerpt": "date: 2026-11-24 Важно: после уточнения фильтров «нужна крупная страна, дом с землёй и животные», «алкоголь не фильтр» итоговая расстановка изменена — см. 07. Масштаб страны, дом и ферма.md . Ниже сравнение остаётся полезным для цен, климата и законодательства",
-      "degree": 10
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Важно: после уточнения фильтров «нужна крупная страна, дом с землёй и животные», «алкоголь не фильтр» итоговая расстановка изменена — см. 07. Масштаб страны, дом и ферма.md . Ниже сравнение остаётся полезным для цен, климата и законодательства",
+        "en": "date: 2026-11-24 Important: after the filters were refined \"a large country, a house with land and animals are needed\", \"alcohol is not a filter\" , the final ranking has changed — see 07. Масштаб страны, дом и ферма.md . The comparison below remains useful for",
+        "de": "date: 2026-11-24 Wichtig: Nach der Präzisierung der Filter „ein großes Land, ein Haus mit Land und Tieren nötig\", „Alkohol ist kein Filter\" hat sich die endgültige Einordnung geändert — siehe 07. Масштаб страны, дом и ферма.md . Der Vergleich unten bleibt für "
+      },
+      "degree": 8
     },
     {
       "id": "bio-job-07-масштаб-страны-дом-и-ферма",
       "title": "Масштаб страны, собственный дом и ферма",
+      "titleI18n": {
+        "ru": "Масштаб страны, собственный дом и ферма",
+        "en": "Country Scale, House and Farm",
+        "de": "Landesgröße, Haus und Hof"
+      },
       "path": "./wiki/zqwy/bio-job-07-масштаб-страны-дом-и-ферма.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 4730,
       "excerpt": "date: 2026-11-24 Дополнение 24.11.2026: список направлений расширен — США, Монголия, Гренландия, северный Китай и другие разобраны в 08. Расширенный список крупных стран.md . Ниже остаётся логика фильтров и разбор Австралии/Канады/UK. Уточнение фильтров от авт",
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Дополнение 24.11.2026: список направлений расширен — США, Монголия, Гренландия, северный Китай и другие разобраны в 08. Расширенный список крупных стран.md . Ниже остаётся логика фильтров и разбор Австралии/Канады/UK. Уточнение фильтров от авт",
+        "en": "date: 2026-11-24 Supplement dated 24.11.2026: the list of destinations has been expanded — the USA, Mongolia, Greenland, northern China and others are covered in 08. Расширенный список крупных стран.md . The filter logic and the breakdown of Australia/Canada/U",
+        "de": "date: 2026-11-24 Ergänzung vom 24.11.2026: Die Liste der Ziele wurde erweitert — die USA, die Mongolei, Grönland, Nordchina und andere werden in 08. Расширенный список крупных стран.md behandelt. Die Filterlogik und die Betrachtung von Australien/Kanada/UK ble"
+      },
       "degree": 11
     },
     {
       "id": "bio-job-08-расширенный-список-крупных-стран",
       "title": "Расширенный список крупных стран",
+      "titleI18n": {
+        "ru": "Расширенный список крупных стран",
+        "en": "Extended List of Large Countries",
+        "de": "Erweiterte Liste großer Länder"
+      },
       "path": "./wiki/zqwy/bio-job-08-расширенный-список-крупных-стран.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 7801,
       "excerpt": "date: 2026-11-24 Исключено автором 24.11.2026: Монголия «не моё совсем» и Китай «слишком не ecology» . Разделы ниже сохранены как история выбора. Формулировка про США исправлена: иммиграция сложная, но не невозможная. Рынок Гренландии разобран подробнее ниже. ",
-      "degree": 9
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Исключено автором 24.11.2026: Монголия «не моё совсем» и Китай «слишком не ecology» . Разделы ниже сохранены как история выбора. Формулировка про США исправлена: иммиграция сложная, но не невозможная. Рынок Гренландии разобран подробнее ниже. ",
+        "en": "date: 2026-11-24 Excluded by the author on 24.11.2026: Mongolia \"not for me at all\" and China \"too not ecology\" . The sections below are kept as a record of the decision-making. The wording about the USA has been corrected: immigration is difficult, but not im",
+        "de": "date: 2026-11-24 Vom Autoren am 24.11.2026 ausgeschlossen: die Mongolei „gar nicht meins\" und China „zu sehr nicht ecology\" . Die Abschnitte unten bleiben als Verlauf der Entscheidung erhalten. Die Formulierung zu den USA wurde korrigiert: Einwanderung ist sch"
+      },
+      "degree": 10
     },
     {
       "id": "bio-job-09-визы-как-юридическая-операция",
       "title": "Визы как юридическая операция",
+      "titleI18n": {
+        "ru": "Визы как юридическая операция",
+        "en": "Visas as a Legal Operation",
+        "de": "Visa als rechtlicher Vorgang"
+      },
       "path": "./wiki/zqwy/bio-job-09-визы-как-юридическая-операция.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 7055,
       "excerpt": "date: 2026-11-24 Итоговая сборка всех факторов — в 10. Единая формула.md . Уточнение автора: перечисление виз «H-1B, EB-2, O-1» не исчерпывает вопроса. Суть не в списке, а в том, что каждая виза — это юридическая конструкция со своей процедурой доказательства ",
-      "degree": 10
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Итоговая сборка всех факторов — в 10. Единая формула.md . Уточнение автора: перечисление виз «H-1B, EB-2, O-1» не исчерпывает вопроса. Суть не в списке, а в том, что каждая виза — это юридическая конструкция со своей процедурой доказательства ",
+        "en": "date: 2026-11-24 The final synthesis of all factors is in 10. Единая формула.md . The author's clarification: merely listing visas \"H-1B, EB-2, O-1\" doesn't exhaust the question. The point isn't the list, but that every visa is a legal construct with its own e",
+        "de": "date: 2026-11-24 Die abschließende Zusammenführung aller Faktoren steht in 10. Единая формула.md . Präzisierung des Autoren: Das bloße Aufzählen von Visa „H-1B, EB-2, O-1\" erschöpft die Frage nicht. Es geht nicht um die Liste, sondern darum, dass jedes Visum e"
+      },
+      "degree": 11
     },
     {
       "id": "bio-job-10-единая-формула",
       "title": "Единая формула",
+      "titleI18n": {
+        "ru": "Единая формула",
+        "en": "A Single Formula",
+        "de": "Eine einzige Formel"
+      },
       "path": "./wiki/zqwy/bio-job-10-единая-формула.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 4358,
       "excerpt": "date: 2026-11-24 Позиция автора: работа — самое интересное; образование тоже подходит, но его цель — организовать что-то в отрасли, а обучение — постоянный процесс. Репозиторий — открытый хаб всего созданного, узел, вокруг которого настраивается сеть и связь. ",
-      "degree": 10
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Позиция автора: работа — самое интересное; образование тоже подходит, но его цель — организовать что-то в отрасли, а обучение — постоянный процесс. Репозиторий — открытый хаб всего созданного, узел, вокруг которого настраивается сеть и связь. ",
+        "en": "date: 2026-11-24 Author's position: work is the most interesting thing; education fits too, but its goal is to organise something in the industry, while learning is a continuous process. The repository is an open hub of everything created, a node around which ",
+        "de": "date: 2026-11-24 Haltung des Autors: Arbeit ist das Interessanteste; Bildung passt ebenfalls, doch ihr Ziel ist es, etwas in der Branche zu organisieren, während Lernen ein dauerhafter Prozess ist. Das Repository ist ein offener Hub alles Erschaffenen, ein Kno"
+      },
+      "degree": 12
     },
     {
       "id": "bio-job-11-вторая-волна-ответов",
       "title": "Вторая волна ответов",
+      "titleI18n": {
+        "ru": "Вторая волна ответов",
+        "en": "Second Wave of Replies",
+        "de": "Zweite Welle der Antworten"
+      },
       "path": "./wiki/zqwy/bio-job-11-вторая-волна-ответов.html",
       "section": "bio/job",
+      "sectionI18n": {
+        "ru": "bio / job",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      },
       "date": "2026-11-24",
       "chars": 3315,
       "excerpt": "date: 2026-11-24 Ответы автора на уточнённый чек-лист из 04 . Часть вопросов закрыта, часть заменена уточнением. Главное — жёсткий фильтр по типу роли раздел 7 . 1. Роль: прямого выбора нет, но есть принцип Автор: обожает компьютеры и технологии, computer scie",
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Ответы автора на уточнённый чек-лист из 04 . Часть вопросов закрыта, часть заменена уточнением. Главное — жёсткий фильтр по типу роли раздел 7 . 1. Роль: прямого выбора нет, но есть принцип Автор: обожает компьютеры и технологии, computer scie",
+        "en": "date: 2026-11-24 The author's answers to the refined checklist in 04 . Some questions are closed, others replaced by a clarification. The main point is the hard filter by role type section 7 . 1. Role: no direct choice, but a principle Author: loves computers ",
+        "de": "date: 2026-11-24 Antworten des Autors auf die präzisierte Checkliste aus 04 . Manche Fragen sind geklärt, andere durch eine Präzisierung ersetzt. Das Wichtigste ist der harte Filter nach Rolleart Abschnitt 7 . 1. Rolle: keine direkte Wahl, aber ein Prinzip Aut"
+      },
+      "degree": 12
+    },
+    {
+      "id": "bio-job-summary-domix",
+      "title": "domix",
+      "titleI18n": {
+        "ru": "domix",
+        "en": "Domix",
+        "de": "Domix"
+      },
+      "path": "./wiki/zqwy/bio-job-summary-domix.html",
+      "section": "bio/job/summary",
+      "sectionI18n": {
+        "ru": "bio / job / summary",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "category": "bio",
+      "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "date": "2026-11-26",
+      "chars": 7586,
+      "excerpt": "0. Видеонаблюдение Hikvision/ТСД/Принтер/Цветные принтеры/Термопринтер/сканер отпечатков пальцев из железяк вроде бы всё, но точно не помню. Нужно бы списко чтобы глазами пробежаться и вспомнить. 1. Соотвстенно создание и поддержание сводной таблицы всего обор",
+      "excerptI18n": {
+        "ru": "0. Видеонаблюдение Hikvision/ТСД/Принтер/Цветные принтеры/Термопринтер/сканер отпечатков пальцев из железяк вроде бы всё, но точно не помню. Нужно бы списко чтобы глазами пробежаться и вспомнить. 1. Соотвстенно создание и поддержание сводной таблицы всего обор",
+        "en": "0. Hikvision CCTV / handheld terminals / printers / colour printers / thermal printer / fingerprint scanner I think that's all the hardware, but I don't remember exactly. I should make a list to skim through and jog my memory. 1. So, creating and maintaining a",
+        "de": "0. Hikvision-Videoüberwachung / Handheld-Terminals / Drucker / Farbdrucker / Thermodrucker / Fingerabdruckscanner Das dürfte die ganze Hardware sein, aber ich weiß es nicht genau. Ich sollte eine Liste machen, um sie durchzugehen und mich zu erinnern. 1. Also:"
+      },
       "degree": 11
+    },
+    {
+      "id": "bio-job-summary-domix-resume",
+      "title": "domix_resume",
+      "titleI18n": {
+        "ru": "domix_resume",
+        "en": "Domix — Résumé",
+        "de": "Domix — Lebenslauf"
+      },
+      "path": "./wiki/zqwy/bio-job-summary-domix-resume.html",
+      "section": "bio/job/summary",
+      "sectionI18n": {
+        "ru": "bio / job / summary",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "category": "bio",
+      "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "date": "2026-11-26",
+      "chars": 6097,
+      "excerpt": "ариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/ф",
+      "excerptI18n": {
+        "ru": "ариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/ф",
+        "en": "Option A. Résumé block short Domix LLC — System Administrator, separate subdivision Lyubertsy April 2023 – August 2024 Responsibilities: Administering 3 servers Supermicro, Dell; bare metal, Hyper-V and a Linux server on Debian: DNS, DHCP, SMB/file shares. Mai",
+        "de": "Variante A. Block für den Lebenslauf kurz Domix LLC — Systemadministrator, separate Niederlassung Ljuberzy April 2023 – August 2024 Aufgaben: Administration von 3 Servern Supermicro, Dell; Bare Metal, Hyper-V und eines Linux-Servers mit Debian: DNS, DHCP, SMB/"
+      },
+      "degree": 3
+    },
+    {
+      "id": "bio-job-summary-resume",
+      "title": "Синицын Артём Валерьевич",
+      "titleI18n": {
+        "ru": "Синицын Артём Валерьевич",
+        "en": "Résumé",
+        "de": "Lebenslauf"
+      },
+      "path": "./wiki/zqwy/bio-job-summary-resume.html",
+      "section": "bio/job/summary",
+      "sectionI18n": {
+        "ru": "bio / job / summary",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "category": "bio",
+      "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "date": "2026-11-26",
+      "chars": 7225,
+      "excerpt": "Системный администратор / DevOps-инженер / Инженер по сопровождению Город · Готовность к переезду/удалённой работе · Формат занятости Контакты - Email предпочтительный способ связи : zqwymusic@gmail.com mailto:zqwymusic@gmail.com - Все контакты и площадки: zqw",
+      "excerptI18n": {
+        "ru": "Системный администратор / DevOps-инженер / Инженер по сопровождению Город · Готовность к переезду/удалённой работе · Формат занятости Контакты - Email предпочтительный способ связи : zqwymusic@gmail.com mailto:zqwymusic@gmail.com - Все контакты и площадки: zqw",
+        "en": "System Administrator / DevOps Engineer / Support Engineer City · Willingness to relocate / work remotely · Employment type Contacts - Email preferred contact method : zqwymusic@gmail.com mailto:zqwymusic@gmail.com - All contacts and platforms: zqwy01.github.io",
+        "de": "Systemadministrator / DevOps-Ingenieur / Support-Ingenieur Stadt · Bereitschaft zum Umzug / Remote-Arbeit · Beschäftigungsform Kontakte - E-Mail bevorzugte Kontaktmöglichkeit : zqwymusic@gmail.com mailto:zqwymusic@gmail.com - Alle Kontakte und Plattformen: zqw"
+      },
+      "degree": 14
+    },
+    {
+      "id": "bio-job-summary-summary",
+      "title": "hardskill",
+      "titleI18n": {
+        "ru": "hardskill",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "path": "./wiki/zqwy/bio-job-summary-summary.html",
+      "section": "bio/job/summary",
+      "sectionI18n": {
+        "ru": "bio / job / summary",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "category": "bio",
+      "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "date": "2026-11-26",
+      "chars": 4453,
+      "excerpt": "Computer Science. Прикладная область системного/сетевого администрирование/devops. Универсализация это интересно. Исследование по теме: Информатика, начиная с 12-лет С чем я знаком, работал: Взаимодействовал с множеством ОС. Мой стационарный выбор - Ubuntu Stu",
+      "excerptI18n": {
+        "ru": "Computer Science. Прикладная область системного/сетевого администрирование/devops. Универсализация это интересно. Исследование по теме: Информатика, начиная с 12-лет С чем я знаком, работал: Взаимодействовал с множеством ОС. Мой стационарный выбор - Ubuntu Stu",
+        "en": "Computer Science. Applied area: system/network administration / DevOps. Versatility is interesting. Research topic: Computer science starting at age 12 What I am familiar with, have worked with: Worked with many operating systems. My fixed choice is Ubuntu Stu",
+        "de": "Computer Science. Anwendungsbereich: System-/Netzwerkadministration / DevOps. Vielseitigkeit ist interessant. Forschungsthema: Informatik ab 12 Jahren Womit ich vertraut bin, womit ich gearbeitet habe: Mit vielen Betriebssystemen gearbeitet. Meine feste Wahl: "
+      },
+      "degree": 8
     },
     {
       "id": "bio-whoami",
       "title": "Исходник: [удалено].",
+      "titleI18n": {
+        "ru": "Исходник: [удалено].",
+        "en": "Source: [removed]",
+        "de": "Quelle: [entfernt]"
+      },
       "path": "./wiki/zqwy/bio-whoami.html",
       "section": "bio",
+      "sectionI18n": {
+        "ru": "bio",
+        "en": "Bio",
+        "de": "Bio"
+      },
       "category": "bio",
       "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Bio",
+        "de": "Bio"
+      },
       "date": "2026-11-24",
       "chars": 402,
       "excerpt": "date: 2026-11-24 Дословная выдержка из src/notes/tiddly/notes/Kto ya_ Ili zhe moyo rezyume..tid:33-38 . Сохранена как первичный источник самоописания; аналитическая разборка — в 00. Профиль и персона.md . «Как системный администратор, DevOps, музыкант, фотогра",
+      "excerptI18n": {
+        "ru": "date: 2026-11-24 Дословная выдержка из src/notes/tiddly/notes/Kto ya_ Ili zhe moyo rezyume..tid:33-38 . Сохранена как первичный источник самоописания; аналитическая разборка — в 00. Профиль и персона.md . «Как системный администратор, DevOps, музыкант, фотогра",
+        "en": "date: 2026-11-24 Verbatim excerpt from src/notes/tiddly/notes/Kto ya_ Ili zhe moyo rezyume..tid:33-38 . Preserved as the primary source of self-description; analytical breakdown in 00. Профиль и персона.md . \"As a system administrator, DevOps, musician, photog",
+        "de": "date: 2026-11-24 Wörtlicher Auszug aus src/notes/tiddly/notes/Kto ya_ Ili zhe moyo rezyume..tid:33-38 . Als primäre Quelle der Selbstbeschreibung bewahrt; analytische Aufarbeitung in 00. Профиль и персона.md . „Als Systemadministrator, DevOps, Musiker, Fotogra"
+      },
       "degree": 2
     },
     {
       "id": "dev-cline",
       "title": "cline",
+      "titleI18n": {
+        "ru": "cline",
+        "en": "cline",
+        "de": "cline"
+      },
       "path": "./wiki/zqwy/dev-cline.html",
       "section": "dev",
+      "sectionI18n": {
+        "ru": "dev",
+        "en": "Dev",
+        "de": "Entwicklung"
+      },
       "category": "dev",
       "categoryLabel": "dev",
+      "categoryLabelI18n": {
+        "ru": "dev",
+        "en": "Dev",
+        "de": "Entwicklung"
+      },
       "date": "2026-11-24",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 1
     },
     {
       "id": "dev-opencode",
       "title": "opencode",
+      "titleI18n": {
+        "ru": "opencode",
+        "en": "opencode",
+        "de": "opencode"
+      },
       "path": "./wiki/zqwy/dev-opencode.html",
       "section": "dev",
+      "sectionI18n": {
+        "ru": "dev",
+        "en": "Dev",
+        "de": "Entwicklung"
+      },
       "category": "dev",
       "categoryLabel": "dev",
+      "categoryLabelI18n": {
+        "ru": "dev",
+        "en": "Dev",
+        "de": "Entwicklung"
+      },
       "date": "2026-11-24",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 1
     },
     {
       "id": "genres-folk",
       "title": "folk",
+      "titleI18n": {
+        "ru": "folk",
+        "en": "folk",
+        "de": "folk"
+      },
       "path": "./wiki/zqwy/genres-folk.html",
       "section": "genres",
+      "sectionI18n": {
+        "ru": "genres",
+        "en": "Genres",
+        "de": "Genres"
+      },
       "category": "genres",
       "categoryLabel": "genres",
+      "categoryLabelI18n": {
+        "ru": "genres",
+        "en": "Genres",
+        "de": "Genres"
+      },
       "date": "2026-11-24",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "linux-ubuntu-studio",
       "title": "ubuntu_studio",
+      "titleI18n": {
+        "ru": "ubuntu_studio",
+        "en": "Ubuntu Studio",
+        "de": "Ubuntu Studio"
+      },
       "path": "./wiki/zqwy/linux-ubuntu-studio.html",
       "section": "linux",
+      "sectionI18n": {
+        "ru": "linux",
+        "en": "Linux",
+        "de": "Linux"
+      },
       "category": "linux",
       "categoryLabel": "linux",
+      "categoryLabelI18n": {
+        "ru": "linux",
+        "en": "Linux",
+        "de": "Linux"
+      },
       "date": "2026-11-24",
       "chars": 3170,
       "excerpt": "Ubuntu 26.10: стоит ли обновляться с LTS? Личный опыт и выводы Появление Ubuntu 26.10 «Stonking Stingray» всего через полгода после LTS-релиза 26.04 неизбежно вызывает вопрос: стоит ли переходить на промежуточную версию? Я протестировал её в работе и готов под",
-      "degree": 3
+      "excerptI18n": {
+        "ru": "Ubuntu 26.10: стоит ли обновляться с LTS? Личный опыт и выводы Появление Ubuntu 26.10 «Stonking Stingray» всего через полгода после LTS-релиза 26.04 неизбежно вызывает вопрос: стоит ли переходить на промежуточную версию? Я протестировал её в работе и готов под",
+        "en": "Ubuntu 26.10: Is It Worth Upgrading from LTS? Personal Experience and Conclusions The release of Ubuntu 26.10 \"Stonking Stingray\" just six months after the 26.04 LTS release inevitably raises the question: is it worth switching to an interim version? I tested ",
+        "de": "Ubuntu 26.10: Lohnt sich das Upgrade von LTS? Persönliche Erfahrungen und Fazit Das Erscheinen von Ubuntu 26.10 „Stonking Stingray\" nur ein halbes Jahr nach dem LTS-Release 26.04 wirft zwangsläufig die Frage auf: Lohnt der Wechsel auf eine Zwischenversion? Ich"
+      },
+      "degree": 2
     },
     {
       "id": "messangers-deltachat",
       "title": "deltachat",
+      "titleI18n": {
+        "ru": "deltachat",
+        "en": "Delta Chat",
+        "de": "Delta Chat"
+      },
       "path": "./wiki/zqwy/messangers-deltachat.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-24",
       "chars": 4102,
       "excerpt": "Delta Chat — это мессенджер, который работает поверх обычной электронной почты, превращая письма в чаты. Его главное преимущество в том, что для регистрации не нужен номер телефона, а переписка защищена сквозным шифрованием. Вот пошаговая инструкция, как устан",
+      "excerptI18n": {
+        "ru": "Delta Chat — это мессенджер, который работает поверх обычной электронной почты, превращая письма в чаты. Его главное преимущество в том, что для регистрации не нужен номер телефона, а переписка защищена сквозным шифрованием. Вот пошаговая инструкция, как устан",
+        "en": "Delta Chat is a messenger that runs on top of ordinary email, turning messages into chats. Its main advantage is that no phone number is needed to sign up, and conversations are protected by end-to-end encryption. Here is a step-by-step guide to installing and",
+        "de": "Delta Chat ist ein Messenger, der auf normaler E-Mail aufbaut und Nachrichten in Chats verwandelt. Sein größter Vorteil: Zur Registrierung ist keine Telefonnummer nötig, und die Unterhaltungen sind Ende-zu-Ende-verschlüsselt. Hier ist eine Schritt-für-Schritt-"
+      },
       "degree": 11
     },
     {
       "id": "messangers-discord",
       "title": "discord",
+      "titleI18n": {
+        "ru": "discord",
+        "en": "discord",
+        "de": "discord"
+      },
       "path": "./wiki/zqwy/messangers-discord.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 9
     },
     {
       "id": "messangers-jabber",
       "title": "jabber",
+      "titleI18n": {
+        "ru": "jabber",
+        "en": "jabber",
+        "de": "jabber"
+      },
       "path": "./wiki/zqwy/messangers-jabber.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-matrix",
       "title": "matrix",
+      "titleI18n": {
+        "ru": "matrix",
+        "en": "matrix",
+        "de": "matrix"
+      },
       "path": "./wiki/zqwy/messangers-matrix.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-simplex",
       "title": "simplex",
+      "titleI18n": {
+        "ru": "simplex",
+        "en": "simplex",
+        "de": "simplex"
+      },
       "path": "./wiki/zqwy/messangers-simplex.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-skype",
       "title": "skype",
+      "titleI18n": {
+        "ru": "skype",
+        "en": "skype",
+        "de": "skype"
+      },
       "path": "./wiki/zqwy/messangers-skype.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-summary",
       "title": "summary",
+      "titleI18n": {
+        "ru": "summary",
+        "en": "summary",
+        "de": "summary"
+      },
       "path": "./wiki/zqwy/messangers-summary.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-talk",
       "title": "talk",
+      "titleI18n": {
+        "ru": "talk",
+        "en": "talk",
+        "de": "talk"
+      },
       "path": "./wiki/zqwy/messangers-talk.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-teamspeak",
       "title": "teamspeak",
+      "titleI18n": {
+        "ru": "teamspeak",
+        "en": "teamspeak",
+        "de": "teamspeak"
+      },
       "path": "./wiki/zqwy/messangers-teamspeak.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "messangers-telegram",
       "title": "telegram",
+      "titleI18n": {
+        "ru": "telegram",
+        "en": "telegram",
+        "de": "telegram"
+      },
       "path": "./wiki/zqwy/messangers-telegram.html",
       "section": "messangers",
+      "sectionI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "category": "messangers",
       "categoryLabel": "messangers",
+      "categoryLabelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      },
       "date": "2026-11-25",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "music-effects",
       "title": "Список музыкальных эффектов",
+      "titleI18n": {
+        "ru": "Список музыкальных эффектов",
+        "en": "List of Music Effects",
+        "de": "Liste der Musikeffekte"
+      },
       "path": "./wiki/zqwy/music-effects.html",
       "section": "music",
+      "sectionI18n": {
+        "ru": "music",
+        "en": "Music",
+        "de": "Musik"
+      },
       "category": "music",
       "categoryLabel": "music",
+      "categoryLabelI18n": {
+        "ru": "music",
+        "en": "Music",
+        "de": "Musik"
+      },
       "date": "2026-11-25",
       "chars": 6340,
       "excerpt": "Вот структурированный список основных музыкальных эффектов, сгруппированных по их назначению. Этот перечень охватывает как традиционные студийные обработчики, так и креативные инструменты звукового дизайна. 🎛️ Динамическая обработка Эти эффекты управляют гром",
+      "excerptI18n": {
+        "ru": "Вот структурированный список основных музыкальных эффектов, сгруппированных по их назначению. Этот перечень охватывает как традиционные студийные обработчики, так и креативные инструменты звукового дизайна. 🎛️ Динамическая обработка Эти эффекты управляют гром",
+        "en": "Here is a structured list of the main musical effects, grouped by purpose. This overview covers both traditional studio processors and creative sound-design tools. 🎛️ Dynamic Processing These effects control the loudness and dynamic range of a signal, making ",
+        "de": "Hier ist eine strukturierte Liste der wichtigsten Musikeffekte, gruppiert nach ihrer Funktion. Sie umfasst sowohl klassische Studio-Prozessoren als auch kreative Werkzeuge des Sound-Designs. 🎛️ Dynamikbearbeitung Diese Effekte steuern Lautstärke und Dynamikum"
+      },
       "degree": 4
     },
     {
       "id": "music-albums-why-not",
       "title": "Why Not",
+      "titleI18n": {
+        "ru": "Why Not",
+        "en": "Why Not",
+        "de": "Warum nicht?"
+      },
       "path": "./wiki/zqwy/music-albums-why-not.html",
       "section": "music_albums",
+      "sectionI18n": {
+        "ru": "music_albums",
+        "en": "Music Albums",
+        "de": "Musikalben"
+      },
       "category": "music_albums",
       "categoryLabel": "music_albums",
+      "categoryLabelI18n": {
+        "ru": "music_albums",
+        "en": "Music Albums",
+        "de": "Musikalben"
+      },
       "date": "2025-08-07",
-      "chars": 2476,
-      "excerpt": "--- title: description: icon: FasQuestion tags: - cinematic - orchestral - ambient - neoclassical - someone - zqwy_music date: 2025-08-07 cssclasses: aliases: author: ZQWY cover: genre: - neoclassical instrument: - organ - flute - piano epocha: 18st multi_url:",
+      "chars": 2168,
+      "excerpt": "Почему нет? Некто задаётся этим вопросом Множество исходов конца, но апокалипсис не случился Бесконечное повторение, цикл жизни и смерти Души переходили из одного мира в другой и в конечном счёте почему бы не создать новый мир? Почему нет? Ведь это не может су",
+      "excerptI18n": {
+        "ru": "Почему нет? Некто задаётся этим вопросом Множество исходов конца, но апокалипсис не случился Бесконечное повторение, цикл жизни и смерти Души переходили из одного мира в другой и в конечном счёте почему бы не создать новый мир? Почему нет? Ведь это не может су",
+        "en": "Why not? Someone asks this question Many ways the end could have played out, but the apocalypse never happened Endless repetition, the cycle of life and death Souls passed from one world to another, and eventually — why not create a new world? Why not? After a",
+        "de": "Warum nicht? Jemand stellt sich diese Frage Viele mögliche Enden, doch die Apokalypse blieb aus Endlose Wiederholung, der Kreislauf von Leben und Tod Die Seelen wanderten von einer Welt in die nächste, und schließlich: warum nicht eine neue Welt erschaffen? Wa"
+      },
       "degree": 3
     },
     {
       "id": "music-albums-death-to-capital",
       "title": "Кризисы, резкие всплески, эмциональные выпады. Смерть капитала не единственный резонный случай для подобного, это может быть и Death To Social и так далее. Суть в том, что это приводит к зрению в утопичное будущее dystopian future",
+      "titleI18n": {
+        "ru": "Кризисы, резкие всплески, эмциональные выпады. Смерть капитала не единственный резонный случай для подобного, это может быть и Death To Social и так далее. Суть в том, что это приводит к зрению в утопичное будущее dystopian future",
+        "en": "Crises, Sudden Spikes, Emotional Outbursts",
+        "de": "Krisen, plötzliche Ausschläge, emotionale Ausbrüche"
+      },
       "path": "./wiki/zqwy/music-albums-death-to-capital.html",
       "section": "music_albums",
+      "sectionI18n": {
+        "ru": "music_albums",
+        "en": "Music Albums",
+        "de": "Musikalben"
+      },
       "category": "music_albums",
       "categoryLabel": "music_albums",
+      "categoryLabelI18n": {
+        "ru": "music_albums",
+        "en": "Music Albums",
+        "de": "Musikalben"
+      },
       "date": "2026-11-24",
       "chars": 0,
       "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 1
     },
     {
       "id": "phi-author",
       "title": "author",
+      "titleI18n": {
+        "ru": "author",
+        "en": "Authorship",
+        "de": "Urheberschaft"
+      },
       "path": "./wiki/zqwy/phi-author.html",
       "section": "phi",
+      "sectionI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "category": "phi",
       "categoryLabel": "phi",
+      "categoryLabelI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "date": "2026-11-25",
       "chars": 1848,
       "excerpt": "Приватизация — это когда достижения конкретных людей, находящиеся во владении государства, воруют частные компании. Национализация — это когда достижения конкретных людей, находящиеся во владении частной компании, ворует государство. Социализация — это когда д",
-      "degree": 4
+      "excerptI18n": {
+        "ru": "Приватизация — это когда достижения конкретных людей, находящиеся во владении государства, воруют частные компании. Национализация — это когда достижения конкретных людей, находящиеся во владении частной компании, ворует государство. Социализация — это когда д",
+        "en": "Privatization is when private companies steal the achievements of specific people that are held in the ownership of the state. Nationalization is when the state steals the achievements of specific people that are held in the ownership of a private company. Soc",
+        "de": "Privatisierung ist, wenn private Unternehmen die Errungenschaften bestimmter Menschen stehlen, die sich im Besitz des Staates befinden. Verstaatlichung ist, wenn der Staat die Errungenschaften bestimmter Menschen stiehlt, die sich im Besitz eines privaten Unte"
+      },
+      "degree": 5
     },
     {
       "id": "phi-factory",
       "title": "factory",
+      "titleI18n": {
+        "ru": "factory",
+        "en": "AI Production",
+        "de": "KI-Produktion"
+      },
       "path": "./wiki/zqwy/phi-factory.html",
       "section": "phi",
+      "sectionI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "category": "phi",
       "categoryLabel": "phi",
+      "categoryLabelI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "date": "2026-11-25",
       "chars": 281,
       "excerpt": "ии производство самое печальное что это увеличивает стоимость товара на каждом этапе производства, а вот качество остаётся таким же или даже хуже, поэтому конечный потребитель остаётся обманутым и поэтому тоже приходится уже изобретать инструмент для того чтоб",
+      "excerptI18n": {
+        "ru": "ии производство самое печальное что это увеличивает стоимость товара на каждом этапе производства, а вот качество остаётся таким же или даже хуже, поэтому конечный потребитель остаётся обманутым и поэтому тоже приходится уже изобретать инструмент для того чтоб",
+        "en": "AI production the saddest thing is that it raises the cost of a product at every stage of production, while quality stays the same or even gets worse, so the end consumer is left deceived and therefore has to invent a tool to filter all of this out",
+        "de": "KI-Produktion das Traurigste daran ist, dass sie den Preis eines Produkts in jeder Produktionsstufe erhöht, während die Qualität gleich bleibt oder sogar schlechter wird – der Endverbraucher bleibt also getäuscht und muss deshalb wiederum ein Werkzeug erfinden"
+      },
       "degree": 2
     },
     {
       "id": "phi-oncology-in-russia",
       "title": "oncology_in_russia",
+      "titleI18n": {
+        "ru": "oncology_in_russia",
+        "en": "Oncology in Russia",
+        "de": "Onkologie in Russland"
+      },
       "path": "./wiki/zqwy/phi-oncology-in-russia.html",
       "section": "phi",
+      "sectionI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "category": "phi",
       "categoryLabel": "phi",
+      "categoryLabelI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "date": "2026-11-25",
       "chars": 812,
       "excerpt": "Чтобы картина была честной. Онкология лишилась целевых денег. 140 млрд руб. в год, которые были закреплены за онкопомощью законодательно, из бюджета исчезли — вместо них 3,9 млрд на оборудование. Замещение через ОМС — это обещание Минздрава без механизма, кото",
+      "excerptI18n": {
+        "ru": "Чтобы картина была честной. Онкология лишилась целевых денег. 140 млрд руб. в год, которые были закреплены за онкопомощью законодательно, из бюджета исчезли — вместо них 3,9 млрд на оборудование. Замещение через ОМС — это обещание Минздрава без механизма, кото",
+        "en": "To make the picture honest. Oncology has lost its earmarked funding. The 140 billion rubles a year that were legally assigned to cancer care have disappeared from the budget — replaced by 3.9 billion for equipment. Substituting funding through OMS compulsory h",
+        "de": "Damit das Bild ehrlich ist. Der Onkologie sind die zweckgebundenen Mittel entzogen worden. Die 140 Mrd. Rubel pro Jahr, die gesetzlich für die Krebsversorgung festgelegt waren, sind aus dem Haushalt verschwunden – stattdessen 3,9 Mrd. für Ausrüstung. Der Ausgl"
+      },
       "degree": 2
     },
     {
       "id": "phi-soc",
       "title": "soc",
+      "titleI18n": {
+        "ru": "soc",
+        "en": "Socialization",
+        "de": "Sozialisation"
+      },
       "path": "./wiki/zqwy/phi-soc.html",
       "section": "phi",
+      "sectionI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "category": "phi",
       "categoryLabel": "phi",
+      "categoryLabelI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "date": "2026-11-25",
       "chars": 1385,
       "excerpt": "Социализация не тождественна коммуникативности. Термин «социализация» происходит из гражданско-правового и политического процесса. Однако если пройти детский дом, детский сад, интернат, лагерь, школу, высшую школу, армию, тюрьму и так далее, этих кругов возмож",
+      "excerptI18n": {
+        "ru": "Социализация не тождественна коммуникативности. Термин «социализация» происходит из гражданско-правового и политического процесса. Однако если пройти детский дом, детский сад, интернат, лагерь, школу, высшую школу, армию, тюрьму и так далее, этих кругов возмож",
+        "en": "Socialization is not the same as communicativeness. The term \"socialization\" comes from civil-law and political process. However, if you go through an orphanage, kindergarten, boarding school, camp, school, university, army, prison and so on, you can identify ",
+        "de": "Sozialisation ist nicht dasselbe wie Kommunikationsfähigkeit. Der Begriff „Sozialisation“ stammt aus dem zivilrechtlichen und politischen Prozess. Doch wenn man Kinderheim, Kindergarten, Internat, Ferienlager, Schule, Hochschule, Armee, Gefängnis und so weiter"
+      },
       "degree": 4
     },
     {
       "id": "phi-sound-but-text",
       "title": "Звук как текст",
+      "titleI18n": {
+        "ru": "Звук как текст",
+        "en": "Sound as Text",
+        "de": "Klang als Text"
+      },
       "path": "./wiki/zqwy/phi-sound-but-text.html",
       "section": "phi",
+      "sectionI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "category": "phi",
       "categoryLabel": "phi",
+      "categoryLabelI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      },
       "date": "2026-11-25",
       "chars": 1515,
       "excerpt": "В конкретно этой фразе действительно всё так. Однако моё определение более низкоуровневое, поскольку включает в себя элементы не лингвистической, а именно звуковой — пусть будет, фонетической — части. Хотя, в самом деле, фонетика не рассматривает весь аспект з",
+      "excerptI18n": {
+        "ru": "В конкретно этой фразе действительно всё так. Однако моё определение более низкоуровневое, поскольку включает в себя элементы не лингвистической, а именно звуковой — пусть будет, фонетической — части. Хотя, в самом деле, фонетика не рассматривает весь аспект з",
+        "en": "In this particular phrase, that is indeed the case. However, my definition is more low-level, since it includes elements of the non-linguistic, specifically the sonic — let's call it phonetic — part. Although, in truth, phonetics does not consider the entire a",
+        "de": "In genau dieser Formulierung stimmt das tatsächlich. Meine Definition ist jedoch niedrigschwelliger, denn sie schließt Elemente des nicht-linguistischen, sondern des klanglichen – sagen wir: phonetischen – Anteils ein. Obwohl die Phonetik wiederum nicht den ge"
+      },
       "degree": 9
     },
     {
       "id": "rhymes-bedolapa",
       "title": "bedolapa",
+      "titleI18n": {
+        "ru": "bedolapa",
+        "en": "The Poor Fellow",
+        "de": "Der arme Kerl"
+      },
       "path": "./wiki/zqwy/rhymes-bedolapa.html",
       "section": "rhymes",
+      "sectionI18n": {
+        "ru": "rhymes",
+        "en": "Rhymes",
+        "de": "Reime"
+      },
       "category": "rhymes",
       "categoryLabel": "rhymes",
+      "categoryLabelI18n": {
+        "ru": "rhymes",
+        "en": "Rhymes",
+        "de": "Reime"
+      },
       "date": "2026-11-24",
       "chars": 111,
       "excerpt": "Не кормят бедолагу, а снизу надпись: «Стоит по воли»; Забирайте его — «Бедолапу», коли будет знать кого кусать!",
+      "excerptI18n": {
+        "ru": "Не кормят бедолагу, а снизу надпись: «Стоит по воли»; Забирайте его — «Бедолапу», коли будет знать кого кусать!",
+        "en": "Nobody feeds the poor fellow, but below it says: «He stands of his own free will»; Take him — «Poor Fellow» — if he ever learns whom to bite, he'll bite his fill!",
+        "de": "Man füttert den Armen nicht, doch unten steht: «Er steht aus eigenem Willen»; Nimm ihn mit — «den Armen» — sobald er weiß, wen er beißt, beißt er, wen er will."
+      },
       "degree": 2
     },
     {
       "id": "rhymes-whisper",
       "title": "Шёпот для Ушка",
+      "titleI18n": {
+        "ru": "Шёпот для Ушка",
+        "en": "Whisper for an Ear",
+        "de": "Flüstern für ein Ohr"
+      },
       "path": "./wiki/zqwy/rhymes-whisper.html",
       "section": "rhymes",
+      "sectionI18n": {
+        "ru": "rhymes",
+        "en": "Rhymes",
+        "de": "Reime"
+      },
       "category": "rhymes",
       "categoryLabel": "rhymes",
+      "categoryLabelI18n": {
+        "ru": "rhymes",
+        "en": "Rhymes",
+        "de": "Reime"
+      },
       "date": "2026-11-25",
       "chars": 577,
       "excerpt": "date: 2026-11-25 Короткие фразы для игры «Ушко» /game/whisper/ . Тон — добрый, тихий, без микрофона и без пользовательского текста. Тише. Ушко уже дышит спокойнее. Слушай, как шерсть слушает голос. Я рядом. Я только шепчу. Левое ухо слышит дождь, правое — шаги",
+      "excerptI18n": {
+        "ru": "date: 2026-11-25 Короткие фразы для игры «Ушко» /game/whisper/ . Тон — добрый, тихий, без микрофона и без пользовательского текста. Тише. Ушко уже дышит спокойнее. Слушай, как шерсть слушает голос. Я рядом. Я только шепчу. Левое ухо слышит дождь, правое — шаги",
+        "en": "date: 2026-11-25 Short phrases for the game «Little Ear» /game/whisper/ . The tone is gentle and quiet, with no microphone and no user-supplied text. Quieter. Little Ear is already breathing more calmly. Listen to how fur listens to a voice. I'm here. I'm only",
+        "de": "date: 2026-11-25 Kurze Sätze für das Spiel «Öhrchen» /game/whisper/ . Der Ton ist freundlich und leise, ohne Mikrofon und ohne Text von Nutzern. Leiser. Öhrchen atmet schon ruhiger. Hör zu, wie das Fell der Stimme lauscht. Ich bin da. Ich flüstere nur. Das lin"
+      },
       "degree": 3
     },
     {
       "id": "sound-design-панорамирование",
       "title": "Панорамирование",
+      "titleI18n": {
+        "ru": "Панорамирование",
+        "en": "Panning",
+        "de": "Panoramierung"
+      },
       "path": "./wiki/zqwy/sound-design-панорамирование.html",
       "section": "sound_design",
+      "sectionI18n": {
+        "ru": "sound_design",
+        "en": "Sound Design",
+        "de": "Sounddesign"
+      },
       "category": "sound_design",
       "categoryLabel": "sound_design",
+      "categoryLabelI18n": {
+        "ru": "sound_design",
+        "en": "Sound Design",
+        "de": "Sounddesign"
+      },
       "date": "2026-11-24",
       "chars": 473,
       "excerpt": "Панорамирование в музыке — это распределение звуков между левым и правым каналами стереозаписи. С его помощью инструменты можно расположить в разных точках звукового пространства: например, гитару — немного слева, клавишные — справа, а бас и ударные — ближе к ",
+      "excerptI18n": {
+        "ru": "Панорамирование в музыке — это распределение звуков между левым и правым каналами стереозаписи. С его помощью инструменты можно расположить в разных точках звукового пространства: например, гитару — немного слева, клавишные — справа, а бас и ударные — ближе к ",
+        "en": "Panning in music is the distribution of sounds between the left and right channels of a stereo recording. It lets you place instruments at different points in the sound space: for example, the guitar slightly to the left, the keyboards to the right, and the ba",
+        "de": "Panning in der Musik bedeutet die Verteilung von Klängen auf den linken und rechten Kanal einer Stereoaufnahme. Damit lassen sich Instrumente an unterschiedlichen Punkten im Klangraum platzieren: die Gitarre etwa leicht links, die Keyboards rechts, Bass und Sc"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-bass-mitsva",
       "title": "Bass Mitsva",
+      "titleI18n": {
+        "ru": "Bass Mitsva",
+        "en": "Bass Mitsva",
+        "de": "Bass Mitsva"
+      },
       "path": "./wiki/zqwy/tiddly-notes-bass-mitsva.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1010,
       "excerpt": "Пустыня. Песок. Только тишина, и больше ничего. Аксолотль лежит на спине, в небольшой луже воды. Вокруг сухой песок янтарного цвета, словно застывший свет древнего заката. В этот момент ему было уютно, хоть и выглядел так, будто бы умер. Небольшой клочок прохл",
+      "excerptI18n": {
+        "ru": "Пустыня. Песок. Только тишина, и больше ничего. Аксолотль лежит на спине, в небольшой луже воды. Вокруг сухой песок янтарного цвета, словно застывший свет древнего заката. В этот момент ему было уютно, хоть и выглядел так, будто бы умер. Небольшой клочок прохл",
+        "en": "Пустыня. Песок. Только тишина, и больше ничего. Аксолотль лежит на спине, в небольшой луже воды. Вокруг сухой песок янтарного цвета, словно застывший свет древнего заката. В этот момент ему было уютно, хоть и выглядел так, будто бы умер. Небольшой клочок прохл",
+        "de": "Пустыня. Песок. Только тишина, и больше ничего. Аксолотль лежит на спине, в небольшой луже воды. Вокруг сухой песок янтарного цвета, словно застывший свет древнего заката. В этот момент ему было уютно, хоть и выглядел так, будто бы умер. Небольшой клочок прохл"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-bertol-d-auerbah",
       "title": "Bertol'd auerbah",
+      "titleI18n": {
+        "ru": "Bertol'd auerbah",
+        "en": "Bertol'd auerbah",
+        "de": "Bertol'd auerbah"
+      },
       "path": "./wiki/zqwy/tiddly-notes-bertol-d-auerbah.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 42,
       "excerpt": "Жанр martial, warsong, neoclassical, drone",
-      "degree": 4
+      "excerptI18n": {
+        "ru": "Жанр martial, warsong, neoclassical, drone",
+        "en": "Жанр martial, warsong, neoclassical, drone",
+        "de": "Жанр martial, warsong, neoclassical, drone"
+      },
+      "degree": 3
     },
     {
       "id": "tiddly-notes-beskonechnii-kollaps",
       "title": "Beskonechnii Kollaps",
+      "titleI18n": {
+        "ru": "Beskonechnii Kollaps",
+        "en": "Beskonechnii Kollaps",
+        "de": "Beskonechnii Kollaps"
+      },
       "path": "./wiki/zqwy/tiddly-notes-beskonechnii-kollaps.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 900,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://files.mastodon.social/media_attachments/files/116/810/667/407/507/952/original/d27aaa77bd31299c.mp3\" </div Вступительный трек альбома ",
-      "degree": 9
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://files.mastodon.social/media_attachments/files/116/810/667/407/507/952/original/d27aaa77bd31299c.mp3\" </div Вступительный трек альбома ",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://files.mastodon.social/media_attachments/files/116/810/667/407/507/952/original/d27aaa77bd31299c.mp3\" </div Вступительный трек альбома ",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://files.mastodon.social/media_attachments/files/116/810/667/407/507/952/original/d27aaa77bd31299c.mp3\" </div Вступительный трек альбома "
+      },
+      "degree": 10
     },
     {
       "id": "tiddly-notes-bezumie-na-vkuse",
       "title": "Bezumie Na Vkuse",
+      "titleI18n": {
+        "ru": "Bezumie Na Vkuse",
+        "en": "Bezumie Na Vkuse",
+        "de": "Bezumie Na Vkuse"
+      },
       "path": "./wiki/zqwy/tiddly-notes-bezumie-na-vkuse.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 230,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/6_zqwy_folish_on_delish/6_zqwy_folish_on_delish.mp3\" </div </div </div",
-      "degree": 6
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/6_zqwy_folish_on_delish/6_zqwy_folish_on_delish.mp3\" </div </div </div",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/6_zqwy_folish_on_delish/6_zqwy_folish_on_delish.mp3\" </div </div </div",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/6_zqwy_folish_on_delish/6_zqwy_folish_on_delish.mp3\" </div </div </div"
+      },
+      "degree": 5
     },
     {
       "id": "tiddly-notes-biela",
       "title": "Biela",
+      "titleI18n": {
+        "ru": "Biela",
+        "en": "Biela",
+        "de": "Biela"
+      },
       "path": "./wiki/zqwy/tiddly-notes-biela.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1861,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <$player-switcher src=\"https://files.mastodon.social/media_attachments/files/116/914/846/258/051/305/original/92b4aab9f81e645c.mp3\"/ Саундтрек: загадочный, мистический, эзотерический оркес",
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <$player-switcher src=\"https://files.mastodon.social/media_attachments/files/116/914/846/258/051/305/original/92b4aab9f81e645c.mp3\"/ Саундтрек: загадочный, мистический, эзотерический оркес",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <$player-switcher src=\"https://files.mastodon.social/media_attachments/files/116/914/846/258/051/305/original/92b4aab9f81e645c.mp3\"/ Саундтрек: загадочный, мистический, эзотерический оркес",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <$player-switcher src=\"https://files.mastodon.social/media_attachments/files/116/914/846/258/051/305/original/92b4aab9f81e645c.mp3\"/ Саундтрек: загадочный, мистический, эзотерический оркес"
+      },
       "degree": 8
     },
     {
       "id": "tiddly-notes-droun-muzikal-nii-zhanr",
       "title": "Droun - Muzikal'nii ZHanr",
+      "titleI18n": {
+        "ru": "Droun - Muzikal'nii ZHanr",
+        "en": "Droun - Muzikal'nii ZHanr",
+        "de": "Droun - Muzikal'nii ZHanr"
+      },
       "path": "./wiki/zqwy/tiddly-notes-droun-muzikal-nii-zhanr.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1220,
       "excerpt": "Дроун и дребезжание от постоянства и непрерывности происходящего. Человеческий слух, как динамик и микрофон, обладает АЧХ — амплитудно-частотной характеристикой. Это означает, что каждое ухо слышит частотный диапазон неравномерно и выступает неким фильтром. А ",
+      "excerptI18n": {
+        "ru": "Дроун и дребезжание от постоянства и непрерывности происходящего. Человеческий слух, как динамик и микрофон, обладает АЧХ — амплитудно-частотной характеристикой. Это означает, что каждое ухо слышит частотный диапазон неравномерно и выступает неким фильтром. А ",
+        "en": "Дроун и дребезжание от постоянства и непрерывности происходящего. Человеческий слух, как динамик и микрофон, обладает АЧХ — амплитудно-частотной характеристикой. Это означает, что каждое ухо слышит частотный диапазон неравномерно и выступает неким фильтром. А ",
+        "de": "Дроун и дребезжание от постоянства и непрерывности происходящего. Человеческий слух, как динамик и микрофон, обладает АЧХ — амплитудно-частотной характеристикой. Это означает, что каждое ухо слышит частотный диапазон неравномерно и выступает неким фильтром. А "
+      },
       "degree": 5
     },
     {
       "id": "tiddly-notes-dzhoker",
       "title": "Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость.",
+      "titleI18n": {
+        "ru": "Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость.",
+        "en": "Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость.",
+        "de": "Ночная тревога - фонк, дарквейв и индустриальная пост‑роковая напряжённость."
+      },
       "path": "./wiki/zqwy/tiddly-notes-dzhoker.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1030,
       "excerpt": "Мрачный, наводящий ужас и жуткий трек с мощным нижним диапазоном и индустриальным сатурацией; грувовый phonk‑бит на 92 BPM делает его одновременно подпрыгивающим и драйвовым. Просторные darkwave‑пэды добавляют меланхоличную, медитативную и эфирную атмосферу, т",
+      "excerptI18n": {
+        "ru": "Мрачный, наводящий ужас и жуткий трек с мощным нижним диапазоном и индустриальным сатурацией; грувовый phonk‑бит на 92 BPM делает его одновременно подпрыгивающим и драйвовым. Просторные darkwave‑пэды добавляют меланхоличную, медитативную и эфирную атмосферу, т",
+        "en": "Мрачный, наводящий ужас и жуткий трек с мощным нижним диапазоном и индустриальным сатурацией; грувовый phonk‑бит на 92 BPM делает его одновременно подпрыгивающим и драйвовым. Просторные darkwave‑пэды добавляют меланхоличную, медитативную и эфирную атмосферу, т",
+        "de": "Мрачный, наводящий ужас и жуткий трек с мощным нижним диапазоном и индустриальным сатурацией; грувовый phonk‑бит на 92 BPM делает его одновременно подпрыгивающим и драйвовым. Просторные darkwave‑пэды добавляют меланхоличную, медитативную и эфирную атмосферу, т"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-embient-muzikal-nii-zhanr",
       "title": "Embient - Muzikal'nii ZHanr",
+      "titleI18n": {
+        "ru": "Embient - Muzikal'nii ZHanr",
+        "en": "Embient - Muzikal'nii ZHanr",
+        "de": "Embient - Muzikal'nii ZHanr"
+      },
       "path": "./wiki/zqwy/tiddly-notes-embient-muzikal-nii-zhanr.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 988,
       "excerpt": "Эмбиент это относится к созданию музыкального пространства и атмосферы однако с таким утверждением ведь что угодно создаёт пространство и атмосферу? вот это как раз и не так, так как что угодно не обязательно использует объёмное пространство и тем самым напоми",
+      "excerptI18n": {
+        "ru": "Эмбиент это относится к созданию музыкального пространства и атмосферы однако с таким утверждением ведь что угодно создаёт пространство и атмосферу? вот это как раз и не так, так как что угодно не обязательно использует объёмное пространство и тем самым напоми",
+        "en": "Эмбиент это относится к созданию музыкального пространства и атмосферы однако с таким утверждением ведь что угодно создаёт пространство и атмосферу? вот это как раз и не так, так как что угодно не обязательно использует объёмное пространство и тем самым напоми",
+        "de": "Эмбиент это относится к созданию музыкального пространства и атмосферы однако с таким утверждением ведь что угодно создаёт пространство и атмосферу? вот это как раз и не так, так как что угодно не обязательно использует объёмное пространство и тем самым напоми"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-folk-muzikal-nii-zhanr",
       "title": "Folk - Muzikal'nii ZHanr",
+      "titleI18n": {
+        "ru": "Folk - Muzikal'nii ZHanr",
+        "en": "Folk - Muzikal'nii ZHanr",
+        "de": "Folk - Muzikal'nii ZHanr"
+      },
       "path": "./wiki/zqwy/tiddly-notes-folk-muzikal-nii-zhanr.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1273,
       "excerpt": "Фолк англ. _folk_ — музыкальный жанр, его особенность в использование традиционных народных песнен, мелодий и инструментов. Жанр вызывает чувство и погружение в культуру и исторические особенности региона, используя специфические этнические, но простые гармони",
-      "degree": 7
+      "excerptI18n": {
+        "ru": "Фолк англ. _folk_ — музыкальный жанр, его особенность в использование традиционных народных песнен, мелодий и инструментов. Жанр вызывает чувство и погружение в культуру и исторические особенности региона, используя специфические этнические, но простые гармони",
+        "en": "Фолк англ. _folk_ — музыкальный жанр, его особенность в использование традиционных народных песнен, мелодий и инструментов. Жанр вызывает чувство и погружение в культуру и исторические особенности региона, используя специфические этнические, но простые гармони",
+        "de": "Фолк англ. _folk_ — музыкальный жанр, его особенность в использование традиционных народных песнен, мелодий и инструментов. Жанр вызывает чувство и погружение в культуру и исторические особенности региона, используя специфические этнические, но простые гармони"
+      },
+      "degree": 9
     },
     {
       "id": "tiddly-notes-glioma",
       "title": "Glioma",
+      "titleI18n": {
+        "ru": "Glioma",
+        "en": "Glioma",
+        "de": "Glioma"
+      },
       "path": "./wiki/zqwy/tiddly-notes-glioma.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 595,
       "excerpt": "В преддверии самозабвенного уничтожение человечества < Dystopian Future , наиболее уязвимым объектом для массовой атаки, оказался человеческий мозг. Кибер логос < Cyber Logos в ходе успешного анализа уязвимостей, сформулировал скрытый способ атаки с помощью яр",
+      "excerptI18n": {
+        "ru": "В преддверии самозабвенного уничтожение человечества < Dystopian Future , наиболее уязвимым объектом для массовой атаки, оказался человеческий мозг. Кибер логос < Cyber Logos в ходе успешного анализа уязвимостей, сформулировал скрытый способ атаки с помощью яр",
+        "en": "В преддверии самозабвенного уничтожение человечества < Dystopian Future , наиболее уязвимым объектом для массовой атаки, оказался человеческий мозг. Кибер логос < Cyber Logos в ходе успешного анализа уязвимостей, сформулировал скрытый способ атаки с помощью яр",
+        "de": "В преддверии самозабвенного уничтожение человечества < Dystopian Future , наиболее уязвимым объектом для массовой атаки, оказался человеческий мозг. Кибер логос < Cyber Logos в ходе успешного анализа уязвимостей, сформулировал скрытый способ атаки с помощью яр"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-iom-kippur",
       "title": "Iom Kippur",
+      "titleI18n": {
+        "ru": "Iom Kippur",
+        "en": "Iom Kippur",
+        "de": "Iom Kippur"
+      },
       "path": "./wiki/zqwy/tiddly-notes-iom-kippur.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 218,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/5_zqwy_yom_kippur/5_zqwy_yom_kippur.mp3\" </div </div </div",
-      "degree": 9
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/5_zqwy_yom_kippur/5_zqwy_yom_kippur.mp3\" </div </div </div",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/5_zqwy_yom_kippur/5_zqwy_yom_kippur.mp3\" </div </div </div",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/5_zqwy_yom_kippur/5_zqwy_yom_kippur.mp3\" </div </div </div"
+      },
+      "degree": 8
     },
     {
       "id": "tiddly-notes-iz-svoego",
       "title": "Iz Svoego",
+      "titleI18n": {
+        "ru": "Iz Svoego",
+        "en": "Iz Svoego",
+        "de": "Iz Svoego"
+      },
       "path": "./wiki/zqwy/tiddly-notes-iz-svoego.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 140,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Жанр: ода, эмбиент, пианино, тростниковая флейта, пайпа, </div </div",
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Жанр: ода, эмбиент, пианино, тростниковая флейта, пайпа, </div </div",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Жанр: ода, эмбиент, пианино, тростниковая флейта, пайпа, </div </div",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Жанр: ода, эмбиент, пианино, тростниковая флейта, пайпа, </div </div"
+      },
       "degree": 12
     },
     {
       "id": "tiddly-notes-kakie-suschestvuyut-os",
       "title": "Почему Windows 11, стало быть и здорово, однако печально?",
+      "titleI18n": {
+        "ru": "Почему Windows 11, стало быть и здорово, однако печально?",
+        "en": "Почему Windows 11, стало быть и здорово, однако печально?",
+        "de": "Почему Windows 11, стало быть и здорово, однако печально?"
+      },
       "path": "./wiki/zqwy/tiddly-notes-kakie-suschestvuyut-os.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
-      "date": "2026-11-24",
-      "chars": 1667,
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
+      "date": "2026-11-26",
+      "chars": 1862,
       "excerpt": "Операционная система это такой набор программных утилит, что позволяет использовать устройство со всеми его компонентами и возможностями. Существует не малое множество ОС а сколько ядер, ох это уже совсем другой вопрос , и на данный момент опишу именно те, как",
+      "excerptI18n": {
+        "ru": "Операционная система это такой набор программных утилит, что позволяет использовать устройство со всеми его компонентами и возможностями. Существует не малое множество ОС а сколько ядер, ох это уже совсем другой вопрос , и на данный момент опишу именно те, как",
+        "en": "Операционная система это такой набор программных утилит, что позволяет использовать устройство со всеми его компонентами и возможностями. Существует не малое множество ОС а сколько ядер, ох это уже совсем другой вопрос , и на данный момент опишу именно те, как",
+        "de": "Операционная система это такой набор программных утилит, что позволяет использовать устройство со всеми его компонентами и возможностями. Существует не малое множество ОС а сколько ядер, ох это уже совсем другой вопрос , и на данный момент опишу именно те, как"
+      },
       "degree": 5
     },
     {
       "id": "tiddly-notes-kiber-logos",
       "title": "Kiber logos",
+      "titleI18n": {
+        "ru": "Kiber logos",
+        "en": "Kiber logos",
+        "de": "Kiber logos"
+      },
       "path": "./wiki/zqwy/tiddly-notes-kiber-logos.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 609,
       "excerpt": "Кибер Логос состоит исключительно из данных, а не из органического или синтетического материала Изначально был создан в цифровом виде, а исход инкапсулирование до электрического уровня. Метал заражённый кибер логосом, обладает заряд с вредоносной программой. П",
+      "excerptI18n": {
+        "ru": "Кибер Логос состоит исключительно из данных, а не из органического или синтетического материала Изначально был создан в цифровом виде, а исход инкапсулирование до электрического уровня. Метал заражённый кибер логосом, обладает заряд с вредоносной программой. П",
+        "en": "Кибер Логос состоит исключительно из данных, а не из органического или синтетического материала Изначально был создан в цифровом виде, а исход инкапсулирование до электрического уровня. Метал заражённый кибер логосом, обладает заряд с вредоносной программой. П",
+        "de": "Кибер Логос состоит исключительно из данных, а не из органического или синтетического материала Изначально был создан в цифровом виде, а исход инкапсулирование до электрического уровня. Метал заражённый кибер логосом, обладает заряд с вредоносной программой. П"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "title": "Предпосылки",
+      "titleI18n": {
+        "ru": "Предпосылки",
+        "en": "Предпосылки",
+        "de": "Предпосылки"
+      },
       "path": "./wiki/zqwy/tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 3269,
       "excerpt": "Змеям и незачем отдельный отдел для определения каждого организма, чтобы соответственно реагировать отдельно на человека/змею/некто. А отдел, который хранит информацию о семье – оптимально, ведь здесь следует такое поведение: семью – не трогать привязанность в",
+      "excerptI18n": {
+        "ru": "Змеям и незачем отдельный отдел для определения каждого организма, чтобы соответственно реагировать отдельно на человека/змею/некто. А отдел, который хранит информацию о семье – оптимально, ведь здесь следует такое поведение: семью – не трогать привязанность в",
+        "en": "Змеям и незачем отдельный отдел для определения каждого организма, чтобы соответственно реагировать отдельно на человека/змею/некто. А отдел, который хранит информацию о семье – оптимально, ведь здесь следует такое поведение: семью – не трогать привязанность в",
+        "de": "Змеям и незачем отдельный отдел для определения каждого организма, чтобы соответственно реагировать отдельно на человека/змею/некто. А отдел, который хранит информацию о семье – оптимально, ведь здесь следует такое поведение: семью – не трогать привязанность в"
+      },
       "degree": 10
     },
     {
       "id": "tiddly-notes-kto-takoi-muzikant",
       "title": "Какой я музыкант?",
+      "titleI18n": {
+        "ru": "Какой я музыкант?",
+        "en": "Какой я музыкант?",
+        "de": "Какой я музыкант?"
+      },
       "path": "./wiki/zqwy/tiddly-notes-kto-takoi-muzikant.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1399,
       "excerpt": "Мой долгий путь начался с изучение основ музыкальной теории и одновременной практики синтеза звука. Изучение заключается в том, какие существуют музыкальные инструменты и как их синтезировать. Вот осциллятор и его задача создавтаь волну с определённой формой, ",
+      "excerptI18n": {
+        "ru": "Мой долгий путь начался с изучение основ музыкальной теории и одновременной практики синтеза звука. Изучение заключается в том, какие существуют музыкальные инструменты и как их синтезировать. Вот осциллятор и его задача создавтаь волну с определённой формой, ",
+        "en": "Мой долгий путь начался с изучение основ музыкальной теории и одновременной практики синтеза звука. Изучение заключается в том, какие существуют музыкальные инструменты и как их синтезировать. Вот осциллятор и его задача создавтаь волну с определённой формой, ",
+        "de": "Мой долгий путь начался с изучение основ музыкальной теории и одновременной практики синтеза звука. Изучение заключается в том, какие существуют музыкальные инструменты и как их синтезировать. Вот осциллятор и его задача создавтаь волну с определённой формой, "
+      },
       "degree": 4
     },
     {
       "id": "tiddly-notes-kuzya",
       "title": "Kuzya",
+      "titleI18n": {
+        "ru": "Kuzya",
+        "en": "Kuzya",
+        "de": "Kuzya"
+      },
       "path": "./wiki/zqwy/tiddly-notes-kuzya.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 626,
       "excerpt": "Дионисийческиаполонический гений Расслабляющий, медитотивный, как наблюдение за погодой темп музыки Увидел человека, а этот котик как анекдотик Котик не хочет вызывать эмоции, ведь это - намеренное управление сознанием человека, его сознанием! В отличие от Бис",
+      "excerptI18n": {
+        "ru": "Дионисийческиаполонический гений Расслабляющий, медитотивный, как наблюдение за погодой темп музыки Увидел человека, а этот котик как анекдотик Котик не хочет вызывать эмоции, ведь это - намеренное управление сознанием человека, его сознанием! В отличие от Бис",
+        "en": "Дионисийческиаполонический гений Расслабляющий, медитотивный, как наблюдение за погодой темп музыки Увидел человека, а этот котик как анекдотик Котик не хочет вызывать эмоции, ведь это - намеренное управление сознанием человека, его сознанием! В отличие от Бис",
+        "de": "Дионисийческиаполонический гений Расслабляющий, медитотивный, как наблюдение за погодой темп музыки Увидел человека, а этот котик как анекдотик Котик не хочет вызывать эмоции, ведь это - намеренное управление сознанием человека, его сознанием! В отличие от Бис"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-manekeni",
       "title": "Manekeni",
+      "titleI18n": {
+        "ru": "Manekeni",
+        "en": "Manekeni",
+        "de": "Manekeni"
+      },
       "path": "./wiki/zqwy/tiddly-notes-manekeni.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 448,
       "excerpt": "Изменение внешнего вида это тонкая ветка к моменту наступлению моментов на грани Неопределенность ограниченности с переходом и наступление момента гибели. Флейта рушит всякую возможность не стать последним человек Но увы... Последний человек неотвратим и казал",
+      "excerptI18n": {
+        "ru": "Изменение внешнего вида это тонкая ветка к моменту наступлению моментов на грани Неопределенность ограниченности с переходом и наступление момента гибели. Флейта рушит всякую возможность не стать последним человек Но увы... Последний человек неотвратим и казал",
+        "en": "Изменение внешнего вида это тонкая ветка к моменту наступлению моментов на грани Неопределенность ограниченности с переходом и наступление момента гибели. Флейта рушит всякую возможность не стать последним человек Но увы... Последний человек неотвратим и казал",
+        "de": "Изменение внешнего вида это тонкая ветка к моменту наступлению моментов на грани Неопределенность ограниченности с переходом и наступление момента гибели. Флейта рушит всякую возможность не стать последним человек Но увы... Последний человек неотвратим и казал"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-muzikal-nie-zhanri",
       "title": "Muzikal'nie zhanri",
+      "titleI18n": {
+        "ru": "Muzikal'nie zhanri",
+        "en": "Muzikal'nie zhanri",
+        "de": "Muzikal'nie zhanri"
+      },
       "path": "./wiki/zqwy/tiddly-notes-muzikal-nie-zhanri.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 547,
       "excerpt": "Жанр это В чём отличие от направление? Направление музыки это именно то как оно создаётся. Моё направление это электронная музыка, я редко играю на чём-то, кроме синтезатора. Я научился делать музыку в следующих жанрах: - Эмбиент < Эмбиент - Музыкальный Жанр -",
+      "excerptI18n": {
+        "ru": "Жанр это В чём отличие от направление? Направление музыки это именно то как оно создаётся. Моё направление это электронная музыка, я редко играю на чём-то, кроме синтезатора. Я научился делать музыку в следующих жанрах: - Эмбиент < Эмбиент - Музыкальный Жанр -",
+        "en": "Жанр это В чём отличие от направление? Направление музыки это именно то как оно создаётся. Моё направление это электронная музыка, я редко играю на чём-то, кроме синтезатора. Я научился делать музыку в следующих жанрах: - Эмбиент < Эмбиент - Музыкальный Жанр -",
+        "de": "Жанр это В чём отличие от направление? Направление музыки это именно то как оно создаётся. Моё направление это электронная музыка, я редко играю на чём-то, кроме синтезатора. Я научился делать музыку в следующих жанрах: - Эмбиент < Эмбиент - Музыкальный Жанр -"
+      },
       "degree": 11
     },
     {
       "id": "tiddly-notes-nekto",
       "title": "Nekto",
+      "titleI18n": {
+        "ru": "Nekto",
+        "en": "Nekto",
+        "de": "Nekto"
+      },
       "path": "./wiki/zqwy/tiddly-notes-nekto.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 702,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Немного об альбоме: Альбом как величественное эпическое полотно с душевными и печальными нотами фолк-музыки. Музыкальное приключение в мире саундтрека с невиданным миром. Эпическая музыка,",
-      "degree": 7
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Немного об альбоме: Альбом как величественное эпическое полотно с душевными и печальными нотами фолк-музыки. Музыкальное приключение в мире саундтрека с невиданным миром. Эпическая музыка,",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Немного об альбоме: Альбом как величественное эпическое полотно с душевными и печальными нотами фолк-музыки. Музыкальное приключение в мире саундтрека с невиданным миром. Эпическая музыка,",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Немного об альбоме: Альбом как величественное эпическое полотно с душевными и печальными нотами фолк-музыки. Музыкальное приключение в мире саундтрека с невиданным миром. Эпическая музыка,"
+      },
+      "degree": 8
     },
     {
       "id": "tiddly-notes-novaya-skrizhal",
       "title": "Novaya skrizhal'",
+      "titleI18n": {
+        "ru": "Novaya skrizhal'",
+        "en": "Novaya skrizhal'",
+        "de": "Novaya skrizhal'"
+      },
       "path": "./wiki/zqwy/tiddly-notes-novaya-skrizhal.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 530,
       "excerpt": "Скрижаль душ это центр лабиринта, происхождение всего, каждый синтез и их переход в междумирье, на гране. Хранит память всех путей, которые уже прошли и готовит подходящие для тех, кто ещё придёт. Души вновь и вновь возвращаются к скрижали, а по-другую сторону",
-      "degree": 4
+      "excerptI18n": {
+        "ru": "Скрижаль душ это центр лабиринта, происхождение всего, каждый синтез и их переход в междумирье, на гране. Хранит память всех путей, которые уже прошли и готовит подходящие для тех, кто ещё придёт. Души вновь и вновь возвращаются к скрижали, а по-другую сторону",
+        "en": "Скрижаль душ это центр лабиринта, происхождение всего, каждый синтез и их переход в междумирье, на гране. Хранит память всех путей, которые уже прошли и готовит подходящие для тех, кто ещё придёт. Души вновь и вновь возвращаются к скрижали, а по-другую сторону",
+        "de": "Скрижаль душ это центр лабиринта, происхождение всего, каждый синтез и их переход в междумирье, на гране. Хранит память всех путей, которые уже прошли и готовит подходящие для тех, кто ещё придёт. Души вновь и вновь возвращаются к скрижали, а по-другую сторону"
+      },
+      "degree": 3
     },
     {
       "id": "tiddly-notes-pishu-muziku",
       "title": "Мультижанр, мультикультура, мультиязык, это слияние в безобразный вид. Жанры, культура и язык сковывают! Использую все инструменты что попадаются в руки и изобретать стремлюсь😀",
+      "titleI18n": {
+        "ru": "Пишу музыку, много-много разной музыки!",
+        "en": "Мультижанр, мультикультура, мультиязык, это слияние в безобразный вид. Жанры, культура и язык сковывают! Использую все инструменты что попадаются в руки и изобретать стремлюсь😀",
+        "de": "Мультижанр, мультикультура, мультиязык, это слияние в безобразный вид. Жанры, культура и язык сковывают! Использую все инструменты что попадаются в руки и изобретать стремлюсь😀"
+      },
       "path": "./wiki/zqwy/tiddly-notes-pishu-muziku.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2025-08-19",
-      "chars": 921,
-      "excerpt": "--- title: Пишу музыку, много-много разной музыки! description: date: 2025-08-19 author: ZQWY tags: - zqwy cover: publish: \"false\" --- Фонк даёт скорость, эмоциональный надрыв, ковбелл это инструмент который интересно подчёркивает интригу, нарастрающий момент,",
-      "degree": 9
+      "chars": 786,
+      "excerpt": "Фонк даёт скорость, эмоциональный надрыв, ковбелл это инструмент который интересно подчёркивает интригу, нарастрающий момент, сочетается скрипка и тромбон... ! Void Face.png| 350 Так и какие же жанры? - Фонк - Метал - Фолк - Есть всё. Или почти всё, в любом сл",
+      "excerptI18n": {
+        "ru": "Фонк даёт скорость, эмоциональный надрыв, ковбелл это инструмент который интересно подчёркивает интригу, нарастрающий момент, сочетается скрипка и тромбон... ! Void Face.png| 350 Так и какие же жанры? - Фонк - Метал - Фолк - Есть всё. Или почти всё, в любом сл",
+        "en": "Фонк даёт скорость, эмоциональный надрыв, ковбелл это инструмент который интересно подчёркивает интригу, нарастрающий момент, сочетается скрипка и тромбон... ! Void Face.png| 350 Так и какие же жанры? - Фонк - Метал - Фолк - Есть всё. Или почти всё, в любом сл",
+        "de": "Фонк даёт скорость, эмоциональный надрыв, ковбелл это инструмент который интересно подчёркивает интригу, нарастрающий момент, сочетается скрипка и тромбон... ! Void Face.png| 350 Так и какие же жанры? - Фонк - Метал - Фолк - Есть всё. Или почти всё, в любом сл"
+      },
+      "degree": 4
     },
     {
       "id": "tiddly-notes-pochemu-net",
       "title": "Pochemu Net_",
+      "titleI18n": {
+        "ru": "Pochemu Net_",
+        "en": "Pochemu Net_",
+        "de": "Pochemu Net_"
+      },
       "path": "./wiki/zqwy/tiddly-notes-pochemu-net.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 486,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Почему нет? Некто задаётся этим вопросом Множество исходов конца, но апокалипсис не случился Бесконечное повторение, цикл жизни и смерти Души переходили из одного мира в другой и в конечно",
-      "degree": 9
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Почему нет? Некто задаётся этим вопросом Множество исходов конца, но апокалипсис не случился Бесконечное повторение, цикл жизни и смерти Души переходили из одного мира в другой и в конечно",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Почему нет? Некто задаётся этим вопросом Множество исходов конца, но апокалипсис не случился Бесконечное повторение, цикл жизни и смерти Души переходили из одного мира в другой и в конечно",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" Почему нет? Некто задаётся этим вопросом Множество исходов конца, но апокалипсис не случился Бесконечное повторение, цикл жизни и смерти Души переходили из одного мира в другой и в конечно"
+      },
+      "degree": 10
     },
     {
       "id": "tiddly-notes-postgres",
       "title": "Что эти характеристики означают?",
+      "titleI18n": {
+        "ru": "Что эти характеристики означают?",
+        "en": "Что эти характеристики означают?",
+        "de": "Что эти характеристики означают?"
+      },
       "path": "./wiki/zqwy/tiddly-notes-postgres.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1620,
       "excerpt": "Существует не малое число баз данных, а точнее это множество постоянно - увеличивается, так как напрямую связано с хранением данных в масштабе. Но сейчас необходимо провести экскурс по реаляционной субд - postgres. TRUNCATE TABLE - полная очистка таблицы; напр",
+      "excerptI18n": {
+        "ru": "Существует не малое число баз данных, а точнее это множество постоянно - увеличивается, так как напрямую связано с хранением данных в масштабе. Но сейчас необходимо провести экскурс по реаляционной субд - postgres. TRUNCATE TABLE - полная очистка таблицы; напр",
+        "en": "Существует не малое число баз данных, а точнее это множество постоянно - увеличивается, так как напрямую связано с хранением данных в масштабе. Но сейчас необходимо провести экскурс по реаляционной субд - postgres. TRUNCATE TABLE - полная очистка таблицы; напр",
+        "de": "Существует не малое число баз данных, а точнее это множество постоянно - увеличивается, так как напрямую связано с хранением данных в масштабе. Но сейчас необходимо провести экскурс по реаляционной субд - postgres. TRUNCATE TABLE - полная очистка таблицы; напр"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-retsept-blyuda",
       "title": "Retsept Blyuda",
+      "titleI18n": {
+        "ru": "Retsept Blyuda",
+        "en": "Retsept Blyuda",
+        "de": "Retsept Blyuda"
+      },
       "path": "./wiki/zqwy/tiddly-notes-retsept-blyuda.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 213,
       "excerpt": "посолили поперчили добавили томатов помешали добавили паприки помешали, замариновали и в холодильник ждём десять часов ставим в разгоретую духовку до ста восьмидесяти градусов цельсия от десяти до пятнадцати минут",
+      "excerptI18n": {
+        "ru": "посолили поперчили добавили томатов помешали добавили паприки помешали, замариновали и в холодильник ждём десять часов ставим в разгоретую духовку до ста восьмидесяти градусов цельсия от десяти до пятнадцати минут",
+        "en": "посолили поперчили добавили томатов помешали добавили паприки помешали, замариновали и в холодильник ждём десять часов ставим в разгоретую духовку до ста восьмидесяти градусов цельсия от десяти до пятнадцати минут",
+        "de": "посолили поперчили добавили томатов помешали добавили паприки помешали, замариновали и в холодильник ждём десять часов ставим в разгоретую духовку до ста восьмидесяти градусов цельсия от десяти до пятнадцати минут"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-skrizhal",
       "title": "Skrizhal'",
+      "titleI18n": {
+        "ru": "Skrizhal'",
+        "en": "Skrizhal'",
+        "de": "Skrizhal'"
+      },
       "path": "./wiki/zqwy/tiddly-notes-skrizhal.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 234,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/7_zqwy_tablet/7_zqwy_tablet.mp3\" </div скрипки, тревожный трек </div </div",
-      "degree": 13
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/7_zqwy_tablet/7_zqwy_tablet.mp3\" </div скрипки, тревожный трек </div </div",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/7_zqwy_tablet/7_zqwy_tablet.mp3\" </div скрипки, тревожный трек </div </div",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/7_zqwy_tablet/7_zqwy_tablet.mp3\" </div скрипки, тревожный трек </div </div"
+      },
+      "degree": 10
     },
     {
       "id": "tiddly-notes-utopicheskoe-buduschee",
       "title": "Utopicheskoe buduschee",
+      "titleI18n": {
+        "ru": "Utopicheskoe buduschee",
+        "en": "Utopicheskoe buduschee",
+        "de": "Utopicheskoe buduschee"
+      },
       "path": "./wiki/zqwy/tiddly-notes-utopicheskoe-buduschee.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 519,
       "excerpt": "Печальное будущее движимое сопротивлением к живому:ненавистью к человеческому, даёт ключ к глубокому размышлению о поисках возможных вариантов избежать неизбежную погибель живого. Хотя это скудное наблюдение за сгорающим в огне противоречий человеческого созна",
+      "excerptI18n": {
+        "ru": "Печальное будущее движимое сопротивлением к живому:ненавистью к человеческому, даёт ключ к глубокому размышлению о поисках возможных вариантов избежать неизбежную погибель живого. Хотя это скудное наблюдение за сгорающим в огне противоречий человеческого созна",
+        "en": "Печальное будущее движимое сопротивлением к живому:ненавистью к человеческому, даёт ключ к глубокому размышлению о поисках возможных вариантов избежать неизбежную погибель живого. Хотя это скудное наблюдение за сгорающим в огне противоречий человеческого созна",
+        "de": "Печальное будущее движимое сопротивлением к живому:ненавистью к человеческому, даёт ключ к глубокому размышлению о поисках возможных вариантов избежать неизбежную погибель живого. Хотя это скудное наблюдение за сгорающим в огне противоречий человеческого созна"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-v-lesu",
       "title": "V lesu",
+      "titleI18n": {
+        "ru": "V lesu",
+        "en": "V lesu",
+        "de": "V lesu"
+      },
       "path": "./wiki/zqwy/tiddly-notes-v-lesu.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 72,
       "excerpt": "Я не придумал пока-что описание, но трек уже лежит тут для прослушивание",
+      "excerptI18n": {
+        "ru": "Я не придумал пока-что описание, но трек уже лежит тут для прослушивание",
+        "en": "Я не придумал пока-что описание, но трек уже лежит тут для прослушивание",
+        "de": "Я не придумал пока-что описание, но трек уже лежит тут для прослушивание"
+      },
       "degree": 3
     },
     {
       "id": "tiddly-notes-aks",
       "title": "aks",
+      "titleI18n": {
+        "ru": "aks",
+        "en": "aks",
+        "de": "aks"
+      },
       "path": "./wiki/zqwy/tiddly-notes-aks.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 401,
       "excerpt": "Изображён аксолотль в стилизованной, почти наивной манере: округлая широкая голова с мягкой «улыбкой», по бокам — яркие розовые перистые наружные жабры, от нижней части туловища идут короткие конечности и тонкий плавниковый хвост. Цветовая гамма — доминируют б",
+      "excerptI18n": {
+        "ru": "Изображён аксолотль в стилизованной, почти наивной манере: округлая широкая голова с мягкой «улыбкой», по бокам — яркие розовые перистые наружные жабры, от нижней части туловища идут короткие конечности и тонкий плавниковый хвост. Цветовая гамма — доминируют б",
+        "en": "Изображён аксолотль в стилизованной, почти наивной манере: округлая широкая голова с мягкой «улыбкой», по бокам — яркие розовые перистые наружные жабры, от нижней части туловища идут короткие конечности и тонкий плавниковый хвост. Цветовая гамма — доминируют б",
+        "de": "Изображён аксолотль в стилизованной, почти наивной манере: округлая широкая голова с мягкой «улыбкой», по бокам — яркие розовые перистые наружные жабры, от нижней части туловища идут короткие конечности и тонкий плавниковый хвост. Цветовая гамма — доминируют б"
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-aksolotl",
       "title": "aksolotl",
+      "titleI18n": {
+        "ru": "aksolotl",
+        "en": "aksolotl",
+        "de": "aksolotl"
+      },
       "path": "./wiki/zqwy/tiddly-notes-aksolotl.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 214,
       "excerpt": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/8_zqwy_axolotol/8_zqwy_axolotol.mp3\" </div </div </div",
-      "degree": 9
+      "excerptI18n": {
+        "ru": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/8_zqwy_axolotol/8_zqwy_axolotol.mp3\" </div </div </div",
+        "en": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/8_zqwy_axolotol/8_zqwy_axolotol.mp3\" </div </div </div",
+        "de": "<div class=\"container\" <div class=\"bg-image\" </div <div class=\"content\" <div class=\"wavesurfer-placeholder\" data-src=\"https://archive.org/download/zqwy_someone/8_zqwy_axolotol/8_zqwy_axolotol.mp3\" </div </div </div"
+      },
+      "degree": 8
     },
     {
       "id": "tiddly-notes-akt-1-glava-2-pervaya-vstrecha",
       "title": "Аксолотль попал в лабиринт",
+      "titleI18n": {
+        "ru": "Аксолотль попал в лабиринт",
+        "en": "Аксолотль попал в лабиринт",
+        "de": "Аксолотль попал в лабиринт"
+      },
       "path": "./wiki/zqwy/tiddly-notes-akt-1-glava-2-pervaya-vstrecha.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1053,
       "excerpt": "Аксолотля окружает лабиринт. Оглядывается и всматривается в стенку, которая является поворотом ведущий вглубь лабиринта. Акс медленно разворачивается, проводит взглядом по мокрым стенам, на секунду замирает у поворота, ведущего всё глубже. Вода здесь темнее и ",
+      "excerptI18n": {
+        "ru": "Аксолотля окружает лабиринт. Оглядывается и всматривается в стенку, которая является поворотом ведущий вглубь лабиринта. Акс медленно разворачивается, проводит взглядом по мокрым стенам, на секунду замирает у поворота, ведущего всё глубже. Вода здесь темнее и ",
+        "en": "Аксолотля окружает лабиринт. Оглядывается и всматривается в стенку, которая является поворотом ведущий вглубь лабиринта. Акс медленно разворачивается, проводит взглядом по мокрым стенам, на секунду замирает у поворота, ведущего всё глубже. Вода здесь темнее и ",
+        "de": "Аксолотля окружает лабиринт. Оглядывается и всматривается в стенку, которая является поворотом ведущий вглубь лабиринта. Акс медленно разворачивается, проводит взглядом по мокрым стенам, на секунду замирает у поворота, ведущего всё глубже. Вода здесь темнее и "
+      },
       "degree": 2
     },
     {
       "id": "tiddly-notes-algiz",
       "title": "algiz",
+      "titleI18n": {
+        "ru": "algiz",
+        "en": "algiz",
+        "de": "algiz"
+      },
       "path": "./wiki/zqwy/tiddly-notes-algiz.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1352,
       "excerpt": "Как возникла руна Алгиз? Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольк",
+      "excerptI18n": {
+        "ru": "Как возникла руна Алгиз? Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольк",
+        "en": "Как возникла руна Алгиз? Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольк",
+        "de": "Как возникла руна Алгиз? Алгиз - руна защиты связи между ланями. После декомпозиции сахарной лошади, образовались две лани. Является необходимой для предтечи и связи между белой ланью и тёмной. Ведь для сотворение этой лани были использованы множество нескольк"
+      },
       "degree": 4
     },
     {
       "id": "tiddly-notes-open-source-music-instruments",
       "title": "[Cardinal](https://github.com/DISTRHO/Cardinal)",
+      "titleI18n": {
+        "ru": "[Cardinal](https://github.com/DISTRHO/Cardinal)",
+        "en": "[Cardinal](https://github.com/DISTRHO/Cardinal)",
+        "de": "[Cardinal](https://github.com/DISTRHO/Cardinal)"
+      },
       "path": "./wiki/zqwy/tiddly-notes-open-source-music-instruments.html",
       "section": "tiddly/notes",
+      "sectionI18n": {
+        "ru": "tiddly / notes",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "category": "tiddly",
       "categoryLabel": "tiddly",
+      "categoryLabelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      },
       "date": "2026-11-24",
       "chars": 1341,
       "excerpt": "Phasex: Встречает пользователя минималистичный дизайн с небольшим количеством возможностей. С первого взгялда не супер-удобный, но в целом наполнение из четырёх осциляторов, лфо, и последовательно нескольких эффектов. Этого достаточно для создание сложных звук",
+      "excerptI18n": {
+        "ru": "Phasex: Встречает пользователя минималистичный дизайн с небольшим количеством возможностей. С первого взгялда не супер-удобный, но в целом наполнение из четырёх осциляторов, лфо, и последовательно нескольких эффектов. Этого достаточно для создание сложных звук",
+        "en": "Phasex: Встречает пользователя минималистичный дизайн с небольшим количеством возможностей. С первого взгялда не супер-удобный, но в целом наполнение из четырёх осциляторов, лфо, и последовательно нескольких эффектов. Этого достаточно для создание сложных звук",
+        "de": "Phasex: Встречает пользователя минималистичный дизайн с небольшим количеством возможностей. С первого взгялда не супер-удобный, но в целом наполнение из четырёх осциляторов, лфо, и последовательно нескольких эффектов. Этого достаточно для создание сложных звук"
+      },
       "degree": 2
     },
     {
       "id": "updates-1-1",
       "title": "Обновление 1.1",
+      "titleI18n": {
+        "ru": "Обновление 1.1",
+        "en": "Update 1.1",
+        "de": "Update 1.1"
+      },
       "path": "./wiki/zqwy/updates-1-1.html",
       "section": "updates",
+      "sectionI18n": {
+        "ru": "updates",
+        "en": "Updates",
+        "de": "Aktualisierungen"
+      },
       "category": "updates",
       "categoryLabel": "updates",
+      "categoryLabelI18n": {
+        "ru": "updates",
+        "en": "Updates",
+        "de": "Aktualisierungen"
+      },
       "date": "2026-11-25",
       "chars": 1423,
       "excerpt": "Сводка изменений, собранных после патча радио и плеера. Радио - Добавлена подсказка в эфире: если воспроизведение ушло по времени, можно синхронизировать его вручную или настроить автоподстройку в настройках радио. - Добавлен блок «Настройки радио» на странице",
+      "excerptI18n": {
+        "ru": "Сводка изменений, собранных после патча радио и плеера. Радио - Добавлена подсказка в эфире: если воспроизведение ушло по времени, можно синхронизировать его вручную или настроить автоподстройку в настройках радио. - Добавлен блок «Настройки радио» на странице",
+        "en": "A summary of changes collected after the radio and player patch. Radio - Added an in-stream hint: if playback has drifted from the broadcast time, you can sync it manually or enable auto-sync in the radio settings. - Added a «Radio Settings» section on the /ra",
+        "de": "Zusammenfassung der Änderungen nach dem Patch für Radio und Player. Radio - Ein Hinweis im laufenden Stream: Wenn die Wiedergabe zeitlich abweicht, kannst du sie manuell synchronisieren oder die automatische Synchronisierung in den Radio-Einstellungen aktivier"
+      },
       "degree": 2
     },
     {
       "id": "zemic-00-ветвь-лабиринта",
       "title": "00. Ветвь Лабиринта",
+      "titleI18n": {
+        "ru": "Ветвь Лабиринта",
+        "en": "Labyrinth Branch",
+        "de": "Labyrinth-Zweig"
+      },
       "path": "./wiki/zqwy/zemic-00-ветвь-лабиринта.html",
       "section": "zemic",
+      "sectionI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      },
       "category": "zemic",
       "categoryLabel": "zemic",
+      "categoryLabelI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      },
       "date": "2026-11-24",
-      "chars": 167,
-      "excerpt": "--- kind: storyTree title: Ветвь Лабиринта intro: Одна ветвь из многих. Пройденное отмечено, доступное ждёт, закрытое ещё не случилось. roots: \"awakening\", \"death\" ---",
+      "chars": 0,
+      "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
       "degree": 2
     },
     {
       "id": "zemic-01-1-пробуждение-у-скрижали",
       "title": "01.1 Пробуждение у Скрижали",
+      "titleI18n": {
+        "ru": "У Скрижали",
+        "en": "At the Tablet",
+        "de": "An der Tafel"
+      },
       "path": "./wiki/zqwy/zemic-01-1-пробуждение-у-скрижали.html",
       "section": "zemic",
+      "sectionI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      },
       "category": "zemic",
       "categoryLabel": "zemic",
+      "categoryLabelI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      },
       "date": "2026-11-24",
-      "chars": 312,
-      "excerpt": "--- kind: storyNode id: awakening stage: \"I · Пробуждение\" title: У Скрижали parents: complete: {\"story\":\"tablet\"} finds: \"Скрижаль\" seeking: \"вспомнить, как ты здесь оказался\" children: \"tablet\" hint: \"Коснись Скрижали: подойди и нажми E.\" --- Ты приходишь в ",
-      "degree": 4
+      "chars": 67,
+      "excerpt": "Ты приходишь в себя рядом с тёплым камнем и не помнишь дороги сюда.",
+      "excerptI18n": {
+        "ru": "Ты приходишь в себя рядом с тёплым камнем и не помнишь дороги сюда.",
+        "en": "You come to your senses beside a warm stone and can't remember the way here.",
+        "de": "Du kommst neben einem warmen Stein wieder zu dir und weißt nicht mehr, wie du hierher gekommen bist."
+      },
+      "degree": 2
     },
     {
       "id": "zemic-01-2-скрижаль",
       "title": "01.2 Скрижаль",
+      "titleI18n": {
+        "ru": "Скрижаль",
+        "en": "The Tablet",
+        "de": "Die Tafel"
+      },
       "path": "./wiki/zqwy/zemic-01-2-скрижаль.html",
       "section": "zemic",
+      "sectionI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      },
       "category": "zemic",
       "categoryLabel": "zemic",
+      "categoryLabelI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      },
       "date": "2026-11-24",
-      "chars": 345,
-      "excerpt": "--- kind: storyNode id: tablet stage: \"I · Пробуждение\" title: Скрижаль parents: \"awakening\" complete: {\"story\":\"tablet\"} finds: \"инвентарь\", \"стол\", \"зал внезапной воды\" seeking: \"первый разговор со Скрижалью\" children: \"mirror\" hint: \"Скрижаль стоит в старто",
+      "chars": 67,
+      "excerpt": "Скрижаль открывает рюкзак и стол — не укрытие, а точка возвращения.",
+      "excerptI18n": {
+        "ru": "Скрижаль открывает рюкзак и стол — не укрытие, а точка возвращения.",
+        "en": "The Tablet opens the backpack and the table — not a shelter, but a point of return.",
+        "de": "Die Tafel öffnet den Rucksack und den Tisch — kein Versteck, sondern ein Ort der Rückkehr."
+      },
       "degree": 4
     }
   ],
@@ -1075,19 +2723,19 @@
       "source": "aesthics-folk",
       "target": "phi-sound-but-text",
       "kind": "similar",
-      "weight": 0.194
+      "weight": 0.193
     },
     {
       "source": "aesthics-folk",
       "target": "rhymes-whisper",
       "kind": "similar",
-      "weight": 0.176
+      "weight": 0.177
     },
     {
       "source": "aesthics-folk",
       "target": "phi-soc",
       "kind": "similar",
-      "weight": 0.159
+      "weight": 0.16
     },
     {
       "source": "bio-job-00-профиль-и-персона",
@@ -1097,33 +2745,33 @@
     },
     {
       "source": "bio-job-00-профиль-и-персона",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.189
+    },
+    {
+      "source": "bio-job-00-профиль-и-персона",
+      "target": "bio-job-summary-summary",
+      "kind": "similar",
+      "weight": 0.184
+    },
+    {
+      "source": "bio-job-00-профиль-и-персона",
       "target": "bio-job-03-каналы-поиска-и-география",
       "kind": "similar",
-      "weight": 0.185
-    },
-    {
-      "source": "bio-job-00-профиль-и-персона",
-      "target": "bio-job-10-единая-формула",
-      "kind": "similar",
-      "weight": 0.168
-    },
-    {
-      "source": "bio-job-00-профиль-и-персона",
-      "target": "bio-job-05-ответы-и-новый-план",
-      "kind": "similar",
-      "weight": 0.165
+      "weight": 0.183
     },
     {
       "source": "bio-job-01-позиционирование-и-роли",
       "target": "bio-job-03-каналы-поиска-и-география",
       "kind": "similar",
-      "weight": 0.332
+      "weight": 0.334
     },
     {
       "source": "bio-job-01-позиционирование-и-роли",
       "target": "bio-job-04-что-прислать-на-следующем-этапе",
       "kind": "similar",
-      "weight": 0.263
+      "weight": 0.264
     },
     {
       "source": "bio-job-01-позиционирование-и-роли",
@@ -1133,9 +2781,15 @@
     },
     {
       "source": "bio-job-01-позиционирование-и-роли",
-      "target": "bio-job-11-вторая-волна-ответов",
+      "target": "bio-job-08-расширенный-список-крупных-стран",
       "kind": "similar",
-      "weight": 0.201
+      "weight": 0.2
+    },
+    {
+      "source": "bio-job-02-портфолио-и-резюме",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.2
     },
     {
       "source": "bio-job-02-портфолио-и-резюме",
@@ -1147,17 +2801,11 @@
       "source": "bio-job-02-портфолио-и-резюме",
       "target": "bio-job-11-вторая-волна-ответов",
       "kind": "similar",
-      "weight": 0.186
+      "weight": 0.185
     },
     {
       "source": "bio-job-02-портфолио-и-резюме",
       "target": "bio-job-09-визы-как-юридическая-операция",
-      "kind": "similar",
-      "weight": 0.181
-    },
-    {
-      "source": "bio-job-02-портфолио-и-резюме",
-      "target": "bio-job-10-единая-формула",
       "kind": "similar",
       "weight": 0.18
     },
@@ -1165,7 +2813,7 @@
       "source": "bio-job-03-каналы-поиска-и-география",
       "target": "bio-job-05-ответы-и-новый-план",
       "kind": "similar",
-      "weight": 0.245
+      "weight": 0.246
     },
     {
       "source": "bio-job-03-каналы-поиска-и-география",
@@ -1177,25 +2825,31 @@
       "source": "bio-job-03-каналы-поиска-и-география",
       "target": "bio-job-11-вторая-волна-ответов",
       "kind": "similar",
-      "weight": 0.179
+      "weight": 0.18
     },
     {
       "source": "bio-job-03-каналы-поиска-и-география",
-      "target": "bio-job-10-единая-формула",
+      "target": "bio-job-summary-resume",
       "kind": "similar",
-      "weight": 0.167
+      "weight": 0.172
+    },
+    {
+      "source": "bio-job-04-что-прислать-на-следующем-этапе",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.214
     },
     {
       "source": "bio-job-04-что-прислать-на-следующем-этапе",
       "target": "bio-job-08-расширенный-список-крупных-стран",
       "kind": "similar",
-      "weight": 0.192
+      "weight": 0.193
     },
     {
       "source": "bio-job-04-что-прислать-на-следующем-этапе",
       "target": "bio-job-07-масштаб-страны-дом-и-ферма",
       "kind": "similar",
-      "weight": 0.189
+      "weight": 0.19
     },
     {
       "source": "bio-job-04-что-прислать-на-следующем-этапе",
@@ -1204,22 +2858,16 @@
       "weight": 0.177
     },
     {
-      "source": "bio-job-04-что-прислать-на-следующем-этапе",
-      "target": "bio-job-06-uk-и-канада-комфорт-масштаб-культура",
-      "kind": "similar",
-      "weight": 0.169
-    },
-    {
       "source": "bio-job-05-ответы-и-новый-план",
       "target": "bio-job-08-расширенный-список-крупных-стран",
       "kind": "similar",
-      "weight": 0.245
+      "weight": 0.246
     },
     {
       "source": "bio-job-05-ответы-и-новый-план",
       "target": "bio-job-11-вторая-волна-ответов",
       "kind": "similar",
-      "weight": 0.219
+      "weight": 0.216
     },
     {
       "source": "bio-job-05-ответы-и-новый-план",
@@ -1261,7 +2909,7 @@
       "source": "bio-job-07-масштаб-страны-дом-и-ферма",
       "target": "bio-job-10-единая-формула",
       "kind": "similar",
-      "weight": 0.19
+      "weight": 0.189
     },
     {
       "source": "bio-job-07-масштаб-страны-дом-и-ферма",
@@ -1283,27 +2931,27 @@
     },
     {
       "source": "bio-job-08-расширенный-список-крупных-стран",
-      "target": "bio-job-01-позиционирование-и-роли",
-      "kind": "similar",
-      "weight": 0.2
-    },
-    {
-      "source": "bio-job-08-расширенный-список-крупных-стран",
       "target": "bio-job-11-вторая-волна-ответов",
       "kind": "similar",
-      "weight": 0.188
+      "weight": 0.187
     },
     {
       "source": "bio-job-08-расширенный-список-крупных-стран",
       "target": "bio-job-10-единая-формула",
       "kind": "similar",
-      "weight": 0.178
+      "weight": 0.177
+    },
+    {
+      "source": "bio-job-08-расширенный-список-крупных-стран",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.161
     },
     {
       "source": "bio-job-09-визы-как-юридическая-операция",
       "target": "bio-job-11-вторая-волна-ответов",
       "kind": "similar",
-      "weight": 0.194
+      "weight": 0.193
     },
     {
       "source": "bio-job-09-визы-как-юридическая-операция",
@@ -1315,7 +2963,49 @@
       "source": "bio-job-09-визы-как-юридическая-операция",
       "target": "bio-job-00-профиль-и-персона",
       "kind": "similar",
-      "weight": 0.162
+      "weight": 0.161
+    },
+    {
+      "source": "bio-job-09-визы-как-юридическая-операция",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.16
+    },
+    {
+      "source": "bio-job-10-единая-формула",
+      "target": "bio-job-02-портфолио-и-резюме",
+      "kind": "similar",
+      "weight": 0.179
+    },
+    {
+      "source": "bio-job-10-единая-формула",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.178
+    },
+    {
+      "source": "bio-job-10-единая-формула",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.174
+    },
+    {
+      "source": "bio-job-10-единая-формула",
+      "target": "bio-job-03-каналы-поиска-и-география",
+      "kind": "similar",
+      "weight": 0.168
+    },
+    {
+      "source": "bio-job-11-вторая-волна-ответов",
+      "target": "bio-job-01-позиционирование-и-роли",
+      "kind": "similar",
+      "weight": 0.2
+    },
+    {
+      "source": "bio-job-11-вторая-волна-ответов",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.183
     },
     {
       "source": "bio-job-11-вторая-волна-ответов",
@@ -1330,28 +3020,112 @@
       "weight": 0.162
     },
     {
+      "source": "bio-job-summary-domix",
+      "target": "bio-job-summary-domix-resume",
+      "kind": "similar",
+      "weight": 0.31
+    },
+    {
+      "source": "bio-job-summary-domix",
+      "target": "tiddly-notes-kakie-suschestvuyut-os",
+      "kind": "similar",
+      "weight": 0.184
+    },
+    {
+      "source": "bio-job-summary-domix",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.18
+    },
+    {
+      "source": "bio-job-summary-domix",
+      "target": "phi-sound-but-text",
+      "kind": "similar",
+      "weight": 0.172
+    },
+    {
+      "source": "bio-job-summary-domix-resume",
+      "target": "bio-job-summary-resume",
+      "kind": "similar",
+      "weight": 0.221
+    },
+    {
+      "source": "bio-job-summary-domix-resume",
+      "target": "bio-job-summary-summary",
+      "kind": "similar",
+      "weight": 0.177
+    },
+    {
+      "source": "bio-job-summary-resume",
+      "target": "bio-job-summary-summary",
+      "kind": "similar",
+      "weight": 0.379
+    },
+    {
+      "source": "bio-job-summary-resume",
+      "target": "bio-job-01-позиционирование-и-роли",
+      "kind": "similar",
+      "weight": 0.196
+    },
+    {
+      "source": "bio-job-summary-resume",
+      "target": "bio-job-05-ответы-и-новый-план",
+      "kind": "similar",
+      "weight": 0.171
+    },
+    {
+      "source": "bio-job-summary-resume",
+      "target": "bio-job-07-масштаб-страны-дом-и-ферма",
+      "kind": "similar",
+      "weight": 0.159
+    },
+    {
+      "source": "bio-job-summary-summary",
+      "target": "bio-job-01-позиционирование-и-роли",
+      "kind": "similar",
+      "weight": 0.163
+    },
+    {
+      "source": "bio-job-summary-summary",
+      "target": "bio-job-04-что-прислать-на-следующем-этапе",
+      "kind": "similar",
+      "weight": 0.16
+    },
+    {
+      "source": "bio-job-summary-summary",
+      "target": "bio-job-10-единая-формула",
+      "kind": "similar",
+      "weight": 0.159
+    },
+    {
+      "source": "bio-job-summary-summary",
+      "target": "bio-job-02-портфолио-и-резюме",
+      "kind": "similar",
+      "weight": 0.159
+    },
+    {
       "source": "bio-whoami",
       "target": "bio-job-03-каналы-поиска-и-география",
       "kind": "similar",
-      "weight": 0.166
+      "weight": 0.161
     },
     {
       "source": "linux-ubuntu-studio",
       "target": "tiddly-notes-kakie-suschestvuyut-os",
       "kind": "similar",
-      "weight": 0.168
+      "weight": 0.163
     },
     {
       "source": "music-effects",
       "target": "sound-design-панорамирование",
       "kind": "similar",
-      "weight": 0.188
+      "weight": 0.187
     },
     {
       "source": "music-effects",
       "target": "phi-sound-but-text",
       "kind": "similar",
-      "weight": 0.172
+      "weight": 0.17
     },
     {
       "source": "music-effects",
@@ -1360,34 +3134,40 @@
       "weight": 0.162
     },
     {
-      "source": "music-albums-why-not",
-      "target": "tiddly-notes-pochemu-net",
+      "source": "music-effects",
+      "target": "updates-1-1",
       "kind": "similar",
-      "weight": 0.348
+      "weight": 0.159
     },
     {
       "source": "music-albums-why-not",
-      "target": "tiddly-notes-bertol-d-auerbah",
+      "target": "tiddly-notes-pochemu-net",
       "kind": "similar",
-      "weight": 0.17
+      "weight": 0.361
     },
     {
       "source": "phi-author",
       "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "kind": "similar",
-      "weight": 0.168
+      "weight": 0.167
     },
     {
       "source": "phi-author",
       "target": "phi-sound-but-text",
       "kind": "similar",
-      "weight": 0.161
+      "weight": 0.16
+    },
+    {
+      "source": "phi-author",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.159
     },
     {
       "source": "phi-soc",
       "target": "phi-sound-but-text",
       "kind": "similar",
-      "weight": 0.166
+      "weight": 0.165
     },
     {
       "source": "phi-sound-but-text",
@@ -1403,27 +3183,27 @@
     },
     {
       "source": "phi-sound-but-text",
-      "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
+      "target": "rhymes-whisper",
       "kind": "similar",
       "weight": 0.175
     },
     {
       "source": "phi-sound-but-text",
-      "target": "rhymes-whisper",
+      "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "kind": "similar",
-      "weight": 0.175
+      "weight": 0.174
     },
     {
       "source": "rhymes-bedolapa",
       "target": "rhymes-whisper",
       "kind": "similar",
-      "weight": 0.258
+      "weight": 0.26
     },
     {
       "source": "tiddly-notes-bass-mitsva",
       "target": "tiddly-notes-akt-1-glava-2-pervaya-vstrecha",
       "kind": "similar",
-      "weight": 0.201
+      "weight": 0.199
     },
     {
       "source": "tiddly-notes-bass-mitsva",
@@ -1441,7 +3221,7 @@
       "source": "tiddly-notes-bertol-d-auerbah",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.194
+      "weight": 0.193
     },
     {
       "source": "tiddly-notes-bertol-d-auerbah",
@@ -1453,25 +3233,25 @@
       "source": "tiddly-notes-beskonechnii-kollaps",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.269
+      "weight": 0.265
     },
     {
       "source": "tiddly-notes-beskonechnii-kollaps",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.256
+      "weight": 0.258
     },
     {
       "source": "tiddly-notes-beskonechnii-kollaps",
       "target": "tiddly-notes-biela",
       "kind": "similar",
-      "weight": 0.25
+      "weight": 0.252
     },
     {
       "source": "tiddly-notes-beskonechnii-kollaps",
       "target": "tiddly-notes-iom-kippur",
       "kind": "similar",
-      "weight": 0.25
+      "weight": 0.251
     },
     {
       "source": "tiddly-notes-bezumie-na-vkuse",
@@ -1489,43 +3269,43 @@
       "source": "tiddly-notes-bezumie-na-vkuse",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.55
+      "weight": 0.54
     },
     {
       "source": "tiddly-notes-bezumie-na-vkuse",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.335
+      "weight": 0.336
     },
     {
       "source": "tiddly-notes-biela",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.239
+      "weight": 0.241
     },
     {
       "source": "tiddly-notes-biela",
       "target": "tiddly-notes-iom-kippur",
       "kind": "similar",
-      "weight": 0.216
+      "weight": 0.217
     },
     {
       "source": "tiddly-notes-biela",
       "target": "tiddly-notes-aksolotl",
       "kind": "similar",
-      "weight": 0.216
+      "weight": 0.217
     },
     {
       "source": "tiddly-notes-biela",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.21
+      "weight": 0.208
     },
     {
       "source": "tiddly-notes-droun-muzikal-nii-zhanr",
       "target": "tiddly-notes-muzikal-nie-zhanri",
       "kind": "similar",
-      "weight": 0.166
+      "weight": 0.167
     },
     {
       "source": "tiddly-notes-droun-muzikal-nii-zhanr",
@@ -1541,13 +3321,13 @@
     },
     {
       "source": "tiddly-notes-dzhoker",
-      "target": "tiddly-notes-beskonechnii-kollaps",
+      "target": "tiddly-notes-v-lesu",
       "kind": "similar",
       "weight": 0.167
     },
     {
       "source": "tiddly-notes-dzhoker",
-      "target": "tiddly-notes-v-lesu",
+      "target": "tiddly-notes-beskonechnii-kollaps",
       "kind": "similar",
       "weight": 0.167
     },
@@ -1561,31 +3341,31 @@
       "source": "tiddly-notes-embient-muzikal-nii-zhanr",
       "target": "tiddly-notes-muzikal-nie-zhanri",
       "kind": "similar",
-      "weight": 0.175
+      "weight": 0.176
     },
     {
       "source": "tiddly-notes-folk-muzikal-nii-zhanr",
       "target": "tiddly-notes-muzikal-nie-zhanri",
       "kind": "similar",
-      "weight": 0.214
+      "weight": 0.216
     },
     {
       "source": "tiddly-notes-folk-muzikal-nii-zhanr",
       "target": "tiddly-notes-beskonechnii-kollaps",
       "kind": "similar",
-      "weight": 0.191
+      "weight": 0.192
     },
     {
       "source": "tiddly-notes-folk-muzikal-nii-zhanr",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.187
+      "weight": 0.188
     },
     {
       "source": "tiddly-notes-folk-muzikal-nii-zhanr",
       "target": "tiddly-notes-pishu-muziku",
       "kind": "similar",
-      "weight": 0.175
+      "weight": 0.173
     },
     {
       "source": "tiddly-notes-glioma",
@@ -1615,97 +3395,85 @@
       "source": "tiddly-notes-iom-kippur",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.361
+      "weight": 0.362
     },
     {
       "source": "tiddly-notes-iom-kippur",
       "target": "tiddly-notes-pochemu-net",
       "kind": "similar",
-      "weight": 0.245
+      "weight": 0.246
     },
     {
       "source": "tiddly-notes-iz-svoego",
       "target": "tiddly-notes-aksolotl",
       "kind": "similar",
-      "weight": 0.361
+      "weight": 0.362
     },
     {
       "source": "tiddly-notes-iz-svoego",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.346
+      "weight": 0.338
     },
     {
       "source": "tiddly-notes-iz-svoego",
       "target": "tiddly-notes-pochemu-net",
       "kind": "similar",
-      "weight": 0.26
+      "weight": 0.262
     },
     {
       "source": "tiddly-notes-iz-svoego",
       "target": "tiddly-notes-muzikal-nie-zhanri",
       "kind": "similar",
-      "weight": 0.227
+      "weight": 0.228
     },
     {
       "source": "tiddly-notes-kakie-suschestvuyut-os",
       "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "kind": "similar",
-      "weight": 0.161
+      "weight": 0.159
     },
     {
       "source": "tiddly-notes-kiber-logos",
       "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "kind": "similar",
-      "weight": 0.16
+      "weight": 0.159
     },
     {
       "source": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "target": "tiddly-notes-pochemu-net",
       "kind": "similar",
-      "weight": 0.17
+      "weight": 0.171
     },
     {
       "source": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "target": "tiddly-notes-pishu-muziku",
       "kind": "similar",
-      "weight": 0.159
-    },
-    {
-      "source": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
-      "target": "tiddly-notes-kuzya",
-      "kind": "similar",
-      "weight": 0.159
-    },
-    {
-      "source": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
-      "target": "tiddly-notes-manekeni",
-      "kind": "similar",
-      "weight": 0.159
+      "weight": 0.16
     },
     {
       "source": "tiddly-notes-kto-takoi-muzikant",
       "target": "tiddly-notes-muzikal-nie-zhanri",
       "kind": "similar",
-      "weight": 0.168
+      "weight": 0.167
     },
     {
       "source": "tiddly-notes-kto-takoi-muzikant",
       "target": "tiddly-notes-folk-muzikal-nii-zhanr",
       "kind": "similar",
-      "weight": 0.164
+      "weight": 0.161
     },
     {
       "source": "tiddly-notes-kuzya",
       "target": "tiddly-notes-manekeni",
       "kind": "similar",
-      "weight": 0.169
+      "weight": 0.168
     },
     {
       "source": "tiddly-notes-muzikal-nie-zhanri",
       "target": "tiddly-notes-pishu-muziku",
       "kind": "similar",
-      "weight": 0.182
+      "weight": 0.172
     },
     {
       "source": "tiddly-notes-muzikal-nie-zhanri",
@@ -1729,97 +3497,73 @@
       "source": "tiddly-notes-nekto",
       "target": "tiddly-notes-iz-svoego",
       "kind": "similar",
-      "weight": 0.22
+      "weight": 0.221
     },
     {
       "source": "tiddly-notes-nekto",
       "target": "tiddly-notes-iom-kippur",
       "kind": "similar",
-      "weight": 0.209
+      "weight": 0.21
     },
     {
       "source": "tiddly-notes-nekto",
       "target": "tiddly-notes-aksolotl",
       "kind": "similar",
-      "weight": 0.209
+      "weight": 0.21
     },
     {
       "source": "tiddly-notes-nekto",
-      "target": "tiddly-notes-skrizhal",
+      "target": "tiddly-notes-pochemu-net",
       "kind": "similar",
-      "weight": 0.204
-    },
-    {
-      "source": "tiddly-notes-novaya-skrizhal",
-      "target": "zemic-01-1-пробуждение-у-скрижали",
-      "kind": "similar",
-      "weight": 0.173
-    },
-    {
-      "source": "tiddly-notes-novaya-skrizhal",
-      "target": "tiddly-notes-algiz",
-      "kind": "similar",
-      "weight": 0.169
+      "weight": 0.203
     },
     {
       "source": "tiddly-notes-novaya-skrizhal",
       "target": "zemic-01-2-скрижаль",
       "kind": "similar",
-      "weight": 0.169
+      "weight": 0.178
+    },
+    {
+      "source": "tiddly-notes-novaya-skrizhal",
+      "target": "tiddly-notes-algiz",
+      "kind": "similar",
+      "weight": 0.17
     },
     {
       "source": "tiddly-notes-novaya-skrizhal",
       "target": "tiddly-notes-nekto",
       "kind": "similar",
-      "weight": 0.161
-    },
-    {
-      "source": "tiddly-notes-pishu-muziku",
-      "target": "tiddly-notes-iom-kippur",
-      "kind": "similar",
-      "weight": 0.169
-    },
-    {
-      "source": "tiddly-notes-pishu-muziku",
-      "target": "tiddly-notes-aksolotl",
-      "kind": "similar",
-      "weight": 0.169
-    },
-    {
-      "source": "tiddly-notes-pishu-muziku",
-      "target": "tiddly-notes-skrizhal",
-      "kind": "similar",
-      "weight": 0.167
-    },
-    {
-      "source": "tiddly-notes-pishu-muziku",
-      "target": "tiddly-notes-bezumie-na-vkuse",
-      "kind": "similar",
-      "weight": 0.165
+      "weight": 0.166
     },
     {
       "source": "tiddly-notes-pochemu-net",
       "target": "tiddly-notes-aksolotl",
       "kind": "similar",
-      "weight": 0.245
+      "weight": 0.246
     },
     {
       "source": "tiddly-notes-pochemu-net",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.238
+      "weight": 0.235
     },
     {
       "source": "tiddly-notes-pochemu-net",
       "target": "tiddly-notes-bezumie-na-vkuse",
       "kind": "similar",
-      "weight": 0.232
+      "weight": 0.234
     },
     {
       "source": "tiddly-notes-pochemu-net",
-      "target": "tiddly-notes-nekto",
+      "target": "tiddly-notes-beskonechnii-kollaps",
       "kind": "similar",
-      "weight": 0.202
+      "weight": 0.179
+    },
+    {
+      "source": "tiddly-notes-postgres",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.16
     },
     {
       "source": "tiddly-notes-skrizhal",
@@ -1829,39 +3573,33 @@
     },
     {
       "source": "tiddly-notes-skrizhal",
-      "target": "zemic-01-1-пробуждение-у-скрижали",
+      "target": "tiddly-notes-nekto",
       "kind": "similar",
-      "weight": 0.196
-    },
-    {
-      "source": "tiddly-notes-skrizhal",
-      "target": "zemic-01-2-скрижаль",
-      "kind": "similar",
-      "weight": 0.191
+      "weight": 0.202
     },
     {
       "source": "tiddly-notes-skrizhal",
       "target": "tiddly-notes-v-lesu",
       "kind": "similar",
-      "weight": 0.186
+      "weight": 0.184
     },
     {
       "source": "tiddly-notes-v-lesu",
       "target": "tiddly-notes-beskonechnii-kollaps",
       "kind": "similar",
-      "weight": 0.18
+      "weight": 0.181
     },
     {
       "source": "tiddly-notes-aksolotl",
       "target": "tiddly-notes-beskonechnii-kollaps",
       "kind": "similar",
-      "weight": 0.25
+      "weight": 0.251
     },
     {
       "source": "tiddly-notes-algiz",
       "target": "tiddly-notes-biela",
       "kind": "similar",
-      "weight": 0.186
+      "weight": 0.187
     },
     {
       "source": "tiddly-notes-algiz",
@@ -1870,10 +3608,10 @@
       "weight": 0.165
     },
     {
-      "source": "zemic-00-ветвь-лабиринта",
-      "target": "zemic-01-2-скрижаль",
+      "source": "zemic-01-2-скрижаль",
+      "target": "tiddly-notes-nekto",
       "kind": "similar",
-      "weight": 0.192
+      "weight": 0.16
     },
     {
       "source": "dev-cline",
@@ -1895,21 +3633,21 @@
     },
     {
       "source": "linux-ubuntu-studio",
-      "target": "bio-job-06-uk-и-канада-комфорт-масштаб-культура",
+      "target": "bio-job-summary-domix",
       "kind": "similar",
-      "weight": 0.151
+      "weight": 0.158
+    },
+    {
+      "source": "messangers-deltachat",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.158
     },
     {
       "source": "messangers-deltachat",
       "target": "tiddly-notes-kakie-suschestvuyut-os",
       "kind": "similar",
-      "weight": 0.157
-    },
-    {
-      "source": "messangers-deltachat",
-      "target": "bio-job-04-что-прислать-на-следующем-этапе",
-      "kind": "similar",
-      "weight": 0.151
+      "weight": 0.153
     },
     {
       "source": "messangers-discord",
@@ -2014,6 +3752,12 @@
       "weight": 0.127
     },
     {
+      "source": "music-albums-why-not",
+      "target": "tiddly-notes-folk-muzikal-nii-zhanr",
+      "kind": "similar",
+      "weight": 0.143
+    },
+    {
       "source": "music-albums-death-to-capital",
       "target": "music-albums-why-not",
       "kind": "similar",
@@ -2029,19 +3773,19 @@
       "source": "phi-factory",
       "target": "phi-soc",
       "kind": "similar",
-      "weight": 0.151
+      "weight": 0.15
+    },
+    {
+      "source": "phi-oncology-in-russia",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.147
     },
     {
       "source": "phi-oncology-in-russia",
       "target": "phi-author",
       "kind": "similar",
       "weight": 0.147
-    },
-    {
-      "source": "phi-oncology-in-russia",
-      "target": "phi-sound-but-text",
-      "kind": "similar",
-      "weight": 0.143
     },
     {
       "source": "rhymes-bedolapa",
@@ -2053,37 +3797,43 @@
       "source": "sound-design-панорамирование",
       "target": "tiddly-notes-kto-takoi-muzikant",
       "kind": "similar",
-      "weight": 0.156
+      "weight": 0.154
     },
     {
-      "source": "tiddly-notes-postgres",
-      "target": "tiddly-notes-kakie-suschestvuyut-os",
+      "source": "tiddly-notes-kuzya",
+      "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "kind": "similar",
-      "weight": 0.153
+      "weight": 0.157
+    },
+    {
+      "source": "tiddly-notes-manekeni",
+      "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
+      "kind": "similar",
+      "weight": 0.157
     },
     {
       "source": "tiddly-notes-retsept-blyuda",
-      "target": "linux-ubuntu-studio",
+      "target": "bio-job-summary-summary",
       "kind": "similar",
-      "weight": 0.127
+      "weight": 0.13
     },
     {
       "source": "tiddly-notes-retsept-blyuda",
-      "target": "bio-job-07-масштаб-страны-дом-и-ферма",
+      "target": "bio-job-summary-resume",
       "kind": "similar",
-      "weight": 0.126
+      "weight": 0.129
     },
     {
       "source": "tiddly-notes-utopicheskoe-buduschee",
       "target": "tiddly-notes-droun-muzikal-nii-zhanr",
       "kind": "similar",
-      "weight": 0.155
+      "weight": 0.154
     },
     {
       "source": "tiddly-notes-utopicheskoe-buduschee",
       "target": "tiddly-notes-algiz",
       "kind": "similar",
-      "weight": 0.152
+      "weight": 0.15
     },
     {
       "source": "tiddly-notes-aks",
@@ -2093,86 +3843,156 @@
     },
     {
       "source": "tiddly-notes-open-source-music-instruments",
-      "target": "tiddly-notes-pishu-muziku",
+      "target": "tiddly-notes-folk-muzikal-nii-zhanr",
       "kind": "similar",
-      "weight": 0.158
-    },
-    {
-      "source": "updates-1-1",
-      "target": "music-effects",
-      "kind": "similar",
-      "weight": 0.158
+      "weight": 0.154
     },
     {
       "source": "updates-1-1",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
       "weight": 0.153
+    },
+    {
+      "source": "zemic-00-ветвь-лабиринта",
+      "target": "zemic-01-2-скрижаль",
+      "kind": "similar",
+      "weight": 0.127
     }
   ],
   "categories": [
     {
       "id": "aesthics",
-      "label": "aesthics"
+      "label": "aesthics",
+      "labelI18n": {
+        "ru": "aesthics",
+        "en": "Aesthetics",
+        "de": "Ästhetik"
+      }
     },
     {
       "id": "bio",
-      "label": "bio"
+      "label": "bio",
+      "labelI18n": {
+        "ru": "bio",
+        "en": "Work",
+        "de": "Arbeit"
+      }
     },
     {
       "id": "dev",
-      "label": "dev"
+      "label": "dev",
+      "labelI18n": {
+        "ru": "dev",
+        "en": "Dev",
+        "de": "Entwicklung"
+      }
     },
     {
       "id": "genres",
-      "label": "genres"
+      "label": "genres",
+      "labelI18n": {
+        "ru": "genres",
+        "en": "Genres",
+        "de": "Genres"
+      }
     },
     {
       "id": "linux",
-      "label": "linux"
+      "label": "linux",
+      "labelI18n": {
+        "ru": "linux",
+        "en": "Linux",
+        "de": "Linux"
+      }
     },
     {
       "id": "messangers",
-      "label": "messangers"
+      "label": "messangers",
+      "labelI18n": {
+        "ru": "messangers",
+        "en": "Messengers",
+        "de": "Messenger"
+      }
     },
     {
       "id": "music",
-      "label": "music"
+      "label": "music",
+      "labelI18n": {
+        "ru": "music",
+        "en": "Music",
+        "de": "Musik"
+      }
     },
     {
       "id": "music_albums",
-      "label": "music_albums"
+      "label": "music_albums",
+      "labelI18n": {
+        "ru": "music_albums",
+        "en": "Music Albums",
+        "de": "Musikalben"
+      }
     },
     {
       "id": "phi",
-      "label": "phi"
+      "label": "phi",
+      "labelI18n": {
+        "ru": "phi",
+        "en": "Philosophy",
+        "de": "Philosophie"
+      }
     },
     {
       "id": "rhymes",
-      "label": "rhymes"
+      "label": "rhymes",
+      "labelI18n": {
+        "ru": "rhymes",
+        "en": "Rhymes",
+        "de": "Reime"
+      }
     },
     {
       "id": "sound_design",
-      "label": "sound_design"
+      "label": "sound_design",
+      "labelI18n": {
+        "ru": "sound_design",
+        "en": "Sound Design",
+        "de": "Sounddesign"
+      }
     },
     {
       "id": "tiddly",
-      "label": "tiddly"
+      "label": "tiddly",
+      "labelI18n": {
+        "ru": "tiddly",
+        "en": "tiddly / notes",
+        "de": "tiddly / notes"
+      }
     },
     {
       "id": "updates",
-      "label": "updates"
+      "label": "updates",
+      "labelI18n": {
+        "ru": "updates",
+        "en": "Updates",
+        "de": "Aktualisierungen"
+      }
     },
     {
       "id": "zemic",
-      "label": "zemic"
+      "label": "zemic",
+      "labelI18n": {
+        "ru": "zemic",
+        "en": "Zemic",
+        "de": "Zemic"
+      }
     }
   ],
   "stats": {
-    "nodes": 76,
-    "links": 199,
+    "nodes": 80,
+    "links": 216,
     "reference": 20,
     "series": 6,
-    "similar": 173
+    "similar": 190
   }
 }

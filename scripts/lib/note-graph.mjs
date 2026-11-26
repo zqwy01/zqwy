@@ -237,16 +237,36 @@ export function buildNoteGraph(notes, options = {}) {
   const categoryIds = [...new Set(list.map(categoryOf).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
   const nodes = list.map((note) => {
     const category = categoryOf(note);
+    const categoryLabel = category.split("/").join(" / ") || "Общие";
+    const sectionLabel = note.sectionI18n?.ru || note.section || "";
+    const excerpt = String(note.text || "").slice(0, 260);
+    const localized = (lang, field, fallback) => note.variants?.[lang]?.[field] || fallback;
     return {
       id: note.slug,
       title: note.title,
+      titleI18n: Object.fromEntries(["ru", "en", "de"].map((lang) => [
+        lang,
+        localized(lang, "title", note.title),
+      ])),
       path: `./wiki/zqwy/${note.slug}.html`,
       section: note.section || "",
+      sectionI18n: Object.fromEntries(["ru", "en", "de"].map((lang) => [
+        lang,
+        lang === "ru" ? sectionLabel : (note.sectionI18n?.[lang] || sectionLabel),
+      ])),
       category,
-      categoryLabel: category.split("/").join(" / ") || "Общие",
+      categoryLabel,
+      categoryLabelI18n: Object.fromEntries(["ru", "en", "de"].map((lang) => [
+        lang,
+        lang === "ru" ? categoryLabel : (note.sectionI18n?.[lang] || categoryLabel),
+      ])),
       date: note.date || "",
       chars: String(note.text || "").length,
-      excerpt: String(note.text || "").slice(0, 260),
+      excerpt,
+      excerptI18n: Object.fromEntries(["ru", "en", "de"].map((lang) => [
+        lang,
+        localized(lang, "text", String(note.text || "")).slice(0, 260),
+      ])),
       degree: finalDegree.get(note.slug) || 0,
     };
   });
@@ -255,7 +275,18 @@ export function buildNoteGraph(notes, options = {}) {
     generatedAt: new Date().toISOString(),
     nodes,
     links,
-    categories: categoryIds.map((id) => ({ id, label: id.split("/").join(" / ") })),
+    categories: categoryIds.map((id) => {
+      const label = id.split("/").join(" / ");
+      const sample = list.find((note) => categoryOf(note) === id);
+      return {
+        id,
+        label,
+        labelI18n: Object.fromEntries(["ru", "en", "de"].map((lang) => [
+          lang,
+          lang === "ru" ? label : (sample?.sectionI18n?.[lang] || label),
+        ])),
+      };
+    }),
     stats: {
       nodes: nodes.length,
       links: links.length,

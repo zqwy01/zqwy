@@ -1,0 +1,5 @@
+To make the picture honest.
+
+Oncology has lost its earmarked funding. The 140 billion rubles a year that were legally assigned to cancer care have disappeared from the budget — replaced by 3.9 billion for equipment. Substituting funding through OMS (compulsory health insurance) is a promise by the Ministry of Health with no mechanism that would guarantee the money actually reaches cancer patients. A dedicated budget line provided such a guarantee; the general pot does not.
+Filtering got an increase. Spending on ASBI (automated blocking systems) and shutdowns has doubled: from ~32 billion for 2027–2029 to ~60 billion, plus 2.27 billion for an AI traffic-filtering system and 10.2 billion for new TSPU (systems for countering information threats) in 2026. That is a direct increase.
+These processes are taking place simultaneously within the same budget. Cutting the oncology program by 141 billion and increasing filtering by 28 billion could only have been a conscious choice of priorities — the budget process does not do that on its own.

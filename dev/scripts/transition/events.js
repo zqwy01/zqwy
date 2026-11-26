@@ -37,12 +37,9 @@ export function bindEvents(P) {
 
   P.ensureLoader();
   window.addEventListener("load", P.hideLoader, { once: true });
-  if (document.readyState !== "complete") {
-    P.initialLoaderTimer = window.setTimeout(() => {
-      if (document.readyState !== "complete") P.showLoader();
-      P.initialLoaderTimer = 0;
-    }, P.loaderDelay);
-  }
+  // No initial loading cover: module graphs keep `load` pending for seconds on
+  // a cold cache, which looked like a hung page. The loader is only for SPA
+  // navigation (see navigation.js).
 
   // Public helper used by the search form on pages without a results area.
   window.zqwyNavigate = (href) => P.navigate(href, { push: true });

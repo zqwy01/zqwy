@@ -110,11 +110,22 @@ function requireText(relative, needle, label) {
   }
 }
 
+function forbidText(relative, needle, label) {
+  const file = path.join(base, relative);
+  if (!fs.existsSync(file)) return;
+  if (fs.readFileSync(file, "utf8").includes(needle)) {
+    problems.push(`${label} в ${target}/${relative}`);
+  }
+}
+
 requireText("wiki/graph/index.html", 'id="graphEngines"', "списка движков");
 requireText("wiki/graph/index.html", 'class="graph-engine-select-trigger"', "кнопки выбора движка");
 requireText("wiki/graph/index.html", 'class="graph-stage-actions"', "иконок управления на сцене");
+requireText("wiki/graph/index.html", "data-graph-bootstrap", "раннего списка движков");
 requireText("scripts/graph/ui.js", "graph-engine-option", "опций с иконками движков");
 requireText("scripts/graph/core.js", "engineDisabled", "автоотключения движков");
+requireText("scripts/graph/core.js", "__zqwyGraphPendingEngine", "раннего выбора движка");
+forbidText("scripts/transition/events.js", "P.initialLoaderTimer = window.setTimeout", "лоадер первой загрузки");
 
 const homePage = path.join(base, "index.html");
 if (fs.existsSync(homePage)) {

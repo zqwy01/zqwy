@@ -57,6 +57,8 @@ export function install(P) {
   function bindEngineSelect() {
     const root = P.els.engines;
     if (!root || root.dataset.bound === "1") return;
+    // Stop the inline cold-start handlers; the full listbox takes over.
+    window.__zqwyGraphBootstrap?.abort?.();
     root.dataset.bound = "1";
 
     root.addEventListener("click", (event) => {

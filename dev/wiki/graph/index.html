@@ -62,6 +62,133 @@
               </button>
               <div class="graph-engine-select-menu" id="graphEngineOptions" role="listbox" aria-label="Движок" hidden></div>
             </div>
+            <script data-graph-bootstrap>
+              /* The ES-module entry is deferred until every import has loaded.
+               * Paint the picker from plain script right here so a cold cache
+               * never shows an empty, apparently frozen page. The real module
+               * takes over as soon as it runs (see ui.js). */
+              (function () {
+                var root = document.getElementById("graphEngines");
+                if (!root || root.dataset.bootstrap === "1") return;
+                root.dataset.bootstrap = "1";
+
+                var controller = new AbortController();
+                var signal = controller.signal;
+                var ids = ["canvas", "d3", "cytoscape", "orbit", "sigma", "vis", "joint", "force-graph", "springy", "force3d"];
+                var icons = {
+                  canvas: '<path d="M6.5 7.5 9.7 10.4M17.5 7.8 14.5 10.4M8 16.9l2.3-2.2M16 17.2l-2.2-2.4"/><circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6.5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18.5" cy="19" r="2.2"/>',
+                  d3: '<path d="M12 7.5v3.2M10.2 14.1 6.5 16.2M13.8 14.1l3.7 2.1"/><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><circle cx="12" cy="13" r="2.2"/>',
+                  cytoscape: '<path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z"/><path d="M12 2.8v6.9M20 7.4l-5.4 2.8M20 16.6l-5.4-2.9M12 21.2v-6.8M4 16.6l5.4-2.9M4 7.4l5.4 2.8"/><circle cx="12" cy="12" r="2.6"/>',
+                  orbit: '<ellipse cx="12" cy="12" rx="9" ry="4.4" transform="rotate(-28 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4.4" transform="rotate(62 12 12)"/><circle cx="12" cy="12" r="2.1"/><circle cx="4.1" cy="15.5" r="1.7"/><circle cx="19.4" cy="8.2" r="1.7"/>',
+                  sigma: '<path d="M6 3.5h12L10.5 12 18 20.5H6l7.5-8.5z"/><circle cx="6" cy="20.5" r="1.6" fill="currentColor" stroke="none"/>',
+                  vis: '<circle cx="5" cy="6" r="2.1"/><circle cx="19" cy="7" r="2.1"/><circle cx="8" cy="19" r="2.1"/><circle cx="18" cy="17.5" r="2.1"/><path d="M6.8 6.7 17.2 6.9M6.1 7.7 7.6 17.2M10 18.4l6.2-1M17.1 9v6.6"/>',
+                  joint: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/><path d="M10.5 7h4a2 2 0 0 1 2 2v4.5"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r="1.4" fill="currentColor" stroke="none"/>',
+                  "force-graph": '<circle cx="12" cy="12" r="2.8"/><circle cx="5" cy="5.5" r="2"/><circle cx="19.5" cy="6.5" r="2"/><circle cx="6.5" cy="19.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/><path d="M6.6 6.9 10 10M14 10l3.7-2.4M10 14l-2.4 3.7M14 14l2.8 2.8"/>',
+                  springy: '<path d="M3 13c2.2-6 4.4 6 6.6 0s4.4 6 6.6 0 3.4 2.6 4.8 0"/><circle cx="3" cy="13" r="1.4" fill="currentColor" stroke="none"/><circle cx="21" cy="13" r="1.4" fill="currentColor" stroke="none"/>',
+                  force3d: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="9.5" ry="4.2" transform="rotate(-24 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="4.2" transform="rotate(62 12 12)"/><circle cx="4.3" cy="15.6" r="1.5" fill="currentColor" stroke="none"/><circle cx="19.2" cy="7.8" r="1.5" fill="currentColor" stroke="none"/>'
+                };
+                var labels = {
+                  ru: { canvas: "Canvas · физика", d3: "D3 · force", cytoscape: "Cytoscape", orbit: "Орбиты", sigma: "Sigma.js", vis: "vis.js · Network", joint: "JointJS", "force-graph": "force-graph", springy: "Springy", force3d: "3d-force-graph" },
+                  en: { canvas: "Canvas · physics", d3: "D3 · force", cytoscape: "Cytoscape", orbit: "Orbits", sigma: "Sigma.js", vis: "vis.js · Network", joint: "JointJS", "force-graph": "force-graph", springy: "Springy", force3d: "3d-force-graph" }
+                };
+                var en = document.documentElement.lang === "en";
+                var text = en ? labels.en : labels.ru;
+                var trigger = root.querySelector(".graph-engine-select-trigger");
+                var menu = root.querySelector(".graph-engine-select-menu");
+                var host = root.querySelector(".graph-engine-select-icon");
+                var value = root.querySelector(".graph-engine-select-value");
+                if (!trigger || !menu || !host || !value) return;
+
+                function read(key, fallback) {
+                  try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
+                  catch (e) { return fallback; }
+                }
+                var site = read("zqwy.site.settings.v1", {});
+                var disabled = site.graphEngines && typeof site.graphEngines === "object" ? site.graphEngines : {};
+                var available = ids.filter(function (id) { return id === "canvas" || disabled[id] !== false; });
+                var saved = read("zqwy.note-graph.settings.v1", {});
+                var urlEngine = new URLSearchParams(window.location.search).get("engine");
+                var active = urlEngine || saved.engine || "d3";
+                if (available.indexOf(active) < 0) active = available.indexOf("d3") >= 0 ? "d3" : "canvas";
+
+                function svg(id) {
+                  return '<svg class="graph-engine-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icons[id] + "</svg>";
+                }
+                function paint(id) {
+                  host.innerHTML = svg(id);
+                  value.textContent = text[id];
+                  trigger.setAttribute("aria-label", (en ? "Engine" : "Движок") + ": " + text[id]);
+                  root.dataset.engine = id;
+                  menu.querySelectorAll(".graph-engine-option").forEach(function (option) {
+                    var selected = option.dataset.engine === id;
+                    option.setAttribute("aria-selected", String(selected));
+                    var check = option.querySelector(".graph-engine-option-check");
+                    if (selected && !check) {
+                      check = document.createElement("span");
+                      check.className = "graph-engine-option-check";
+                      check.setAttribute("aria-hidden", "true");
+                      check.textContent = "✓";
+                      option.append(check);
+                    } else if (!selected && check) {
+                      check.remove();
+                    }
+                  });
+                }
+                function close() {
+                  menu.hidden = true;
+                  trigger.setAttribute("aria-expanded", "false");
+                }
+                function choose(id) {
+                  window.__zqwyGraphPendingEngine = id;
+                  paint(id);
+                  close();
+                  trigger.focus();
+                }
+                function toggle() {
+                  var open = menu.hidden;
+                  menu.hidden = !open;
+                  trigger.setAttribute("aria-expanded", String(open));
+                  if (open) (menu.querySelector('[aria-selected="true"]') || menu.firstElementChild)?.focus();
+                }
+                function outside(event) {
+                  if (!root.contains(event.target)) close();
+                }
+                function keys(event) {
+                  if (event.key === "Escape") { close(); trigger.focus(); return; }
+                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    if (menu.hidden) { toggle(); return; }
+                    var options = Array.from(menu.querySelectorAll(".graph-engine-option"));
+                    var current = options.indexOf(document.activeElement);
+                    var step = event.key === "ArrowDown" ? 1 : -1;
+                    options[Math.max(0, Math.min(options.length - 1, current + step))]?.focus();
+                  }
+                }
+
+                menu.replaceChildren();
+                available.forEach(function (id) {
+                  var option = document.createElement("div");
+                  option.className = "graph-engine-option";
+                  option.setAttribute("role", "option");
+                  option.dataset.engine = id;
+                  option.tabIndex = -1;
+                  option.innerHTML = svg(id) + '<span class="graph-engine-option-label"></span>';
+                  option.querySelector(".graph-engine-option-label").textContent = text[id];
+                  option.addEventListener("click", function () { choose(id); }, { signal: signal });
+                  menu.append(option);
+                });
+                paint(active);
+                trigger.addEventListener("click", toggle, { signal: signal });
+                root.addEventListener("keydown", keys, { signal: signal });
+                document.addEventListener("click", outside, { signal: signal });
+                window.__zqwyGraphBootstrap = {
+                  abort: function () {
+                    controller.abort();
+                    delete window.__zqwyGraphBootstrap;
+                  }
+                };
+              })();
+            </script>
           </fieldset>
         </div>
         <div class="graph-toolbar-row graph-toolbar-row-search">

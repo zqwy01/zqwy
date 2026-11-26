@@ -103,13 +103,29 @@
   top: calc(100% + 6px);
   right: 0;
   left: 0;
-  max-height: min(60vh, 430px);
+  max-height: min(48vh, 320px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: var(--focus-border) transparent;
   padding: 5px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg-elevated-2);
   box-shadow: 0 14px 34px rgba(0, 0, 0, .4);
+  animation: graph-menu-in .16s ease both;
+}
+.graph-engine-select-menu::-webkit-scrollbar { width: 8px; }
+.graph-engine-select-menu::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+  background-color: var(--focus-border);
+}
+@keyframes graph-menu-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .graph-engine-option {
   display: flex;
@@ -195,14 +211,16 @@
 .graph-host canvas,
 .graph-host svg { display: block; width: 100%; height: 100%; }
 
-/* Icon-only controls sit on the scene so they remain reachable in fullscreen. */
+/* Icon-only controls sit in the bottom-right corner of the scene, so they are
+ * reachable with one hand and stay visible in fullscreen. */
 .graph-stage-actions {
   position: absolute;
   z-index: 5;
-  top: 12px;
-  left: 12px;
+  right: 12px;
+  bottom: 12px;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
   max-width: calc(100% - 24px);
 }
@@ -218,13 +236,22 @@
   background: var(--bg-elevated-2);
   color: var(--muted);
   cursor: pointer;
-  transition: border-color .18s ease, background-color .18s ease, color .18s ease;
+  animation: graph-control-in .34s cubic-bezier(.2, .8, .2, 1) both;
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1), border-color .18s ease,
+    background-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
+.graph-stage-actions button:nth-child(2) { animation-delay: .04s; }
+.graph-stage-actions button:nth-child(3) { animation-delay: .08s; }
+.graph-stage-actions button:nth-child(4) { animation-delay: .12s; }
+.graph-stage-actions button:nth-child(5) { animation-delay: .16s; }
 .graph-stage-actions button:hover,
 .graph-stage-actions button:focus-visible {
   border-color: var(--focus-border);
   color: var(--text);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .3);
 }
+.graph-stage-actions button:active { transform: scale(.94); }
 .graph-stage-actions button[data-active="true"] {
   border-color: var(--focus-border);
   background: var(--bg);
@@ -232,6 +259,10 @@
   box-shadow: inset 0 0 0 1px var(--focus-border);
 }
 .graph-action-icon { flex: 0 0 auto; width: 20px; height: 20px; color: inherit; }
+@keyframes graph-control-in {
+  from { opacity: 0; transform: translateY(10px) scale(.88); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .graph-tooltip {
   position: absolute;
@@ -513,10 +544,14 @@
   .graph-details { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .graph-details { animation: none; }
+  .graph-details,
+  .graph-engine-select-menu,
+  .graph-stage-actions button { animation: none; }
   .graph-svg .ng-node.is-walking .ng-halo { animation: none; }
   .graph-engine-select-trigger,
   .graph-engine-select-chevron,
   .graph-stage-actions button,
   .graph-kind { transition: none; }
+  .graph-stage-actions button:hover,
+  .graph-stage-actions button:active { transform: none; }
 }

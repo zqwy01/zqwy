@@ -91,6 +91,15 @@ export function install(P) {
     if (P.els.search) P.els.search.value = query;
   }
 
+  // The inline bootstrap paints the picker before ES modules execute. If the
+  // visitor picked an engine during that window, honour it now.
+  function applyPendingEngine() {
+    const pending = window.__zqwyGraphPendingEngine;
+    window.__zqwyGraphPendingEngine = null;
+    if (!pending) return;
+    if (availableEngines().some((engine) => engine.id === pending)) P.settings.engine = pending;
+  }
+
   function setParam(url, key, value) {
     if (value) url.searchParams.set(key, value);
     else url.searchParams.delete(key);
@@ -518,6 +527,7 @@ export function install(P) {
     bindGlobalEvents();
     loadSettings();
     applyUrl();
+    applyPendingEngine();
     // The dropdown must exist before any network or module work: with a cold
     // cache the data request used to delay the engine choice until reload.
     P.renderEngines?.();

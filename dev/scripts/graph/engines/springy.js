@@ -14,13 +14,13 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     callbacks.onLoadProgress?.(progress);
   });
   const Springy = window.Springy;
-  if (!Springy?.Layout?.ForceDirected) throw new Error("Springy не загрузился");
+  if (!Springy?.Layout?.ForceDirected) throw new Error("Springy failed to load");
 
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-hidden", "true");
   host.appendChild(canvas);
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas 2D недоступен");
+  if (!ctx) throw new Error("Canvas 2D is unavailable");
 
   const colors = categoryColors(categories, palette);
   let theme = palette;

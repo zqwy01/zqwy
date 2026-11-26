@@ -104,6 +104,18 @@ export function bindEvents(P) {
   });
 
   P.init();
+  // Catalog rows, counts and track buttons are built in JS, so data-i18n
+  // markup alone cannot translate them. Rebuild them on a site language change.
+  window.addEventListener("zqwy:languagechange", () => {
+    P.refresh();
+    if (!P.state.catalog) return;
+    P.renderAlbums();
+    P.renderAlbum();
+    P.applyFullscreen(P.state.fullscreen);
+    P.applyCollapsed(P.state.collapsed);
+    P.applyDurations();
+  });
+
   window.addEventListener("zqwy:pagechange", () => { P.closeCover(); P.init(); });
   window.addEventListener("resize", () => P.fitSidebarToTitles());
   document.fonts?.ready.then(() => P.fitSidebarToTitles());}

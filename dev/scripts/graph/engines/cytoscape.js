@@ -8,7 +8,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     callbacks.onLoadProgress?.(progress);
   });
   const cytoscape = window.cytoscape;
-  if (!cytoscape) throw new Error("Cytoscape.js не загрузился");
+  if (!cytoscape) throw new Error("Cytoscape.js failed to load");
 
   const container = document.createElement("div");
   container.className = "graph-cytoscape";

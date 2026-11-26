@@ -8,7 +8,7 @@ import {
 export function createEngine({ host, palette, categories, reducedMotion, callbacks }) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas 2D недоступен");
+  if (!ctx) throw new Error("Canvas 2D is unavailable");
   canvas.setAttribute("aria-hidden", "true");
   host.appendChild(canvas);
 

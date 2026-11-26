@@ -12,7 +12,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     callbacks.onLoadProgress?.(progress);
   });
   const Sigma = window.sigma;
-  if (typeof Sigma !== "function") throw new Error("Sigma.js не загрузился");
+  if (typeof Sigma !== "function") throw new Error("Sigma.js failed to load");
 
   const container = document.createElement("div");
   container.className = "graph-sigma";

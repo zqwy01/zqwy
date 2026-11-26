@@ -14,11 +14,11 @@ export function loadVendorScript(href) {
     script.src = href;
     script.async = false;
     script.onload = () => finish(resolve);
-    script.onerror = () => finish(reject, new Error(`Не удалось загрузить ${href}`));
+    script.onerror = () => finish(reject, new Error(`Failed to load ${href}`));
     // A request that never settles fires neither onload nor onerror. Without a
     // deadline the loading overlay would stay up forever.
     timer = window.setTimeout(() => {
-      const error = new Error(`Таймаут загрузки ${href}`);
+      const error = new Error(`Loading timed out: ${href}`);
       error.name = "TimeoutError";
       error.transient = true;
       script.remove();

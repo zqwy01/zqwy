@@ -61,6 +61,19 @@ export function install(P) {
       if (push) window.history.pushState({ zqwy: true, url: url.href }, "", url.href);
 
       document.title = doc.title || document.title;
+      // The head stays in place during SPA navigation. Copy translation keys
+      // from the incoming document so menu.js can re-translate the new title
+      // and description after zqwy:pagechange.
+      const incomingTitle = doc.querySelector("title");
+      const currentTitle = document.querySelector("title");
+      if (incomingTitle && currentTitle && incomingTitle.dataset.i18n) {
+        currentTitle.setAttribute("data-i18n", incomingTitle.dataset.i18n);
+      }
+      const incomingMeta = doc.querySelector('meta[name="description"]');
+      const currentMeta = document.querySelector('meta[name="description"]');
+      if (incomingMeta && currentMeta && incomingMeta.dataset.i18nContent) {
+        currentMeta.setAttribute("data-i18n-content", incomingMeta.dataset.i18nContent);
+      }
       current.replaceWith(next);
       P.renderedUrl = url.href;
       P.root.classList.remove("page-leaving");

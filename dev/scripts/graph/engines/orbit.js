@@ -7,7 +7,7 @@ import {
 } from "../shared.js";
 
 export function createEngine({ host, palette, categories, reducedMotion, callbacks }) {
-  const svg = svgEl("svg", { class: "graph-svg", role: "img", "aria-label": "Граф заметок (орбиты)" });
+  const svg = svgEl("svg", { class: "graph-svg", role: "img", "aria-label": `${window.zqwyT ? window.zqwyT("graphAria") : "Notes graph"} (orbits)` });
   const viewport = svgEl("g", { class: "graph-viewport" });
   const linkLayer = svgEl("g", { class: "graph-links" });
   const nodeLayer = svgEl("g", { class: "graph-nodes" });

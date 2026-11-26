@@ -583,7 +583,7 @@ export function install(P) {
     title.textContent = node.title;
     const meta = document.createElement("p");
     meta.className = "graph-detail-meta";
-    meta.textContent = `${node.categoryLabel || "Общие"} · ${node.date || "—"} · ${node.degree} ${P.t("links")}`;
+    meta.textContent = `${node.categoryLabel || P.t("general")} · ${node.date || "—"} · ${node.degree} ${P.t("links")}`;
     const excerpt = document.createElement("p");
     excerpt.className = "graph-detail-excerpt";
     excerpt.textContent = node.excerpt || "";

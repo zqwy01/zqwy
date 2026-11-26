@@ -13,7 +13,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   ], (progress) => callbacks.onLoadProgress?.(progress));
   const joint = window.joint;
   if (!joint?.dia?.Graph || !joint?.shapes?.standard?.Circle) {
-    throw new Error("JointJS не загрузился");
+    throw new Error("JointJS failed to load");
   }
 
   const container = document.createElement("div");

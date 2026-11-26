@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>zqwy — музыка · плеер</title>
-  <meta name="description" content="Музыка zqwy: релизы и универсальный плеер">
+  <title data-i18n="pageTitleMusic">zqwy — музыка · плеер</title>
+  <meta name="description" data-i18n-content="metaDescMusic" content="Музыка zqwy: релизы и универсальный плеер">
   <link rel="icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="shortcut icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="../styles/menu/menu.css">
@@ -23,6 +23,8 @@
           theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
         }
         document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        var language = s && s.language ? s.language : "ru";
+        document.documentElement.lang = ["ru", "en", "de"].indexOf(language) >= 0 ? language : "ru";
       } catch (e) {
         document.documentElement.dataset.theme = "dark";
       }
@@ -37,12 +39,12 @@
            link; the catalog menu lives on the home page only. -->
       <div class="container menu-button-container" id="menuButtonContainer">
         <div class="menu-trigger-row">
-          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-back>
+          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-i18n-aria-label="back" data-back>
             <img class="menu-open-image" src="../assets/icons/favicon.ico" alt="" aria-hidden="true">
           </a>
-          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск">
-            <label class="visually-hidden" for="siteSearchInput">Общий поиск сайта</label>
-            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)">
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск" data-i18n-aria-label="siteSearch">
+            <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
           </form>
         </div>
       </div>
@@ -53,28 +55,28 @@
       </header>
 
       <div class="music-layout">
-        <aside class="music-sidebar" aria-label="Релизы">
-          <label class="visually-hidden" for="albumFilter">Фильтр релизов</label>
-          <input class="music-filter" id="albumFilter" type="search" placeholder="Фильтр релизов" autocomplete="off">
+        <aside class="music-sidebar" aria-label="Релизы" data-i18n-aria-label="musicReleases">
+          <label class="visually-hidden" for="albumFilter" data-i18n="musicFilter">Фильтр релизов</label>
+          <input class="music-filter" id="albumFilter" type="search" placeholder="Фильтр релизов" autocomplete="off" data-i18n-placeholder="musicFilter">
           <div class="music-tools-row">
             <div class="album-tools-group">
-              <div class="album-mode-group" role="group" aria-label="Отображение релизов">
-                <button class="album-fullscreen-btn" id="releasesFullscreen" type="button" aria-pressed="false" aria-label="Релизы на весь экран" title="Релизы на весь экран">
+              <div class="album-mode-group" role="group" aria-label="Отображение релизов" data-i18n-aria-label="musicReleaseDisplay">
+                <button class="album-fullscreen-btn" id="releasesFullscreen" type="button" aria-pressed="false" aria-label="Релизы на весь экран" title="Релизы на весь экран" data-i18n-aria-label="musicReleasesFullscreen" data-i18n-title="musicReleasesFullscreen">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4z"/></svg>
                 </button>
-                <button class="album-fullscreen-btn album-expand-btn" id="tracksExpand" type="button" aria-pressed="false" aria-label="Свернуть список релизов" title="Свернуть список релизов — треки на весь экран">
+                <button class="album-fullscreen-btn album-expand-btn" id="tracksExpand" type="button" aria-pressed="false" aria-label="Свернуть список релизов" title="Свернуть список релизов — треки на весь экран" data-i18n-aria-label="musicCollapseReleases" data-i18n-title="musicExpandTracks">
                   <svg class="icon-collapse" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h9v2H3V5zm0 6h7v2H3v-2zm0 6h9v2H3v-2zm11-9.2 4.6 4.2-4.6 4.2V7.8z"/></svg>
                   <svg class="icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h9v2H3V5zm0 6h7v2H3v-2zm0 6h9v2H3v-2zm15.6-6-4.6-4.2v8.4L18.6 11z"/></svg>
                 </button>
               </div>
-              <div class="album-view-toggle" role="group" aria-label="Вид релизов">
-                <button class="album-view-btn" type="button" data-album-view="list" aria-pressed="true" aria-label="Релизы списком" title="Список">
+              <div class="album-view-toggle" role="group" aria-label="Вид релизов" data-i18n-aria-label="musicViewMode">
+                <button class="album-view-btn" type="button" data-album-view="list" aria-pressed="true" aria-label="Релизы списком" title="Список" data-i18n-aria-label="musicViewList" data-i18n-title="musicViewListShort">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h3v3H4zm0 5h3v3H4zm0 5h3v3H4zm6-10h10v3H10zm0 5h10v3H10zm0 5h10v3H10z"/></svg>
                 </button>
-                <button class="album-view-btn" type="button" data-album-view="cards" aria-pressed="false" aria-label="Релизы карточками" title="Карточки">
+                <button class="album-view-btn" type="button" data-album-view="cards" aria-pressed="false" aria-label="Релизы карточками" title="Карточки" data-i18n-aria-label="musicViewCards" data-i18n-title="musicViewCardsShort">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>
                 </button>
-                <button class="album-view-btn" type="button" data-album-view="large" aria-pressed="false" aria-label="Релизы крупными контейнерами" title="Крупно">
+                <button class="album-view-btn" type="button" data-album-view="large" aria-pressed="false" aria-label="Релизы крупными контейнерами" title="Крупно" data-i18n-aria-label="musicViewLarge" data-i18n-title="musicViewLargeShort">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v8H3zm0 10h8v8H3zm10 0h8v8h-8z"/></svg>
                 </button>
               </div>
@@ -88,19 +90,19 @@
           </details>
         </aside>
 
-        <section class="music-main" id="albumPanel" aria-label="Треки релиза">
+        <section class="music-main" id="albumPanel" aria-label="Треки релиза" data-i18n-aria-label="musicTrackSection">
           <header class="album-head">
-            <div class="album-cover" id="albumCover" role="button" tabindex="0" data-cover-open aria-label="Открыть обложку на весь экран" title="Открыть обложку на весь экран">
+            <div class="album-cover" id="albumCover" role="button" tabindex="0" data-cover-open aria-label="Открыть обложку на весь экран" title="Открыть обложку на весь экран" data-i18n-aria-label="musicOpenCover" data-i18n-title="musicOpenCover">
               <span class="album-cover-letter" id="albumCoverLetter" aria-hidden="true">♪</span>
               <img id="albumCoverImg" alt="" hidden>
             </div>
             <div class="album-meta">
-              <h2 class="album-title" id="albumTitle">Загрузка…</h2>
+              <h2 class="album-title" id="albumTitle" data-i18n="musicLoading">Загрузка…</h2>
               <p class="album-subtitle" id="albumSubtitle"></p>
             </div>
           </header>
 
-          <p class="music-empty" id="albumEmpty" hidden>Каталог не загрузился.</p>
+          <p class="music-empty" id="albumEmpty" hidden data-i18n="musicCatalogUnavailable">Каталог не загрузился.</p>
           <ol class="music-track-list" id="trackList"></ol>
         </section>
       </div>

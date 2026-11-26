@@ -37,7 +37,7 @@ export function install(P) {
   }
 
   function previewLanguageChoice(next) {
-    if (!["ru", "en"].includes(next)) return;
+    if (!P.LANGUAGES.includes(next)) return;
     P.previewLanguage = next;
     P.applyLanguage(next, true);
     P.setSavedMessage(P.t("languagePreview"), 0);

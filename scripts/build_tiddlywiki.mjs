@@ -169,7 +169,7 @@ export function buildTiddlyWiki() {
 
   writeTiddler("$__DefaultTiddlers.tid", { title: "$:/DefaultTiddlers" }, `[[${INDEX_TITLE}]]`);
   writeTiddler("$__SiteTitle.tid", { title: "$:/SiteTitle" }, "ZQWY wiki");
-  writeTiddler("$__SiteSubtitle.tid", { title: "$:/SiteSubtitle" }, `Заметки из Markdown · TiddlyWiki ${version}`);
+  writeTiddler("$__SiteSubtitle.tid", { title: "$:/SiteSubtitle" }, `Markdown notes · TiddlyWiki ${version}`);
 
   // Тёмная палитра по умолчанию — та же логика, что и у остального сайта.
   // Без завершающего перевода строки: имя палитры используется как точный
@@ -183,8 +183,8 @@ export function buildTiddlyWiki() {
     type: "text/vnd.tiddlywiki",
     tags: "$:/tags/PageControls",
     caption: "← ZQWY",
-    description: "Вернуться на главную ZQWY",
-  }, '<a class="tc-btn-invisible zqwy-back-to-site" href="../../" title="Вернуться на главную ZQWY" aria-label="Вернуться на главную ZQWY">← ZQWY</a>');
+    description: "Back to ZQWY",
+  }, '<a class="tc-btn-invisible zqwy-back-to-site" href="../../" title="Back to ZQWY" aria-label="Back to ZQWY">← ZQWY</a>');
 
   writeTiddler("$__zqwy_Styles.tid", {
     title: "$:/zqwy/Styles",

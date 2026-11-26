@@ -28,12 +28,12 @@ export function install(P) {
       lightboxCaption: document.getElementById("coverLightboxCaption"),
     };
     if (P.ui.expandBtn) {
-      const label = P.state.collapsed ? "Показать список релизов" : "Свернуть список релизов";
+      const label = P.state.collapsed ? P.t("musicShowReleases") : P.t("musicHideReleases");
       P.ui.expandBtn.setAttribute("aria-pressed", String(P.state.collapsed));
       P.ui.expandBtn.setAttribute("aria-label", label);
       P.ui.expandBtn.setAttribute("title", P.state.collapsed
-        ? "Показать список релизов"
-        : "Свернуть список релизов — треки на весь экран");
+        ? P.t("musicShowReleasesTip")
+        : P.t("musicHideReleasesTip"));
     }
   }
 
@@ -78,10 +78,10 @@ export function install(P) {
     P.ui.musicLayout?.classList.toggle("is-fullscreen", P.state.fullscreen);
     P.ui.fullscreenBtn?.setAttribute("aria-pressed", String(P.state.fullscreen));
     if (P.ui.fullscreenLabel) {
-      P.ui.fullscreenLabel.textContent = P.state.fullscreen ? "Свернуть релизы" : "Релизы на весь экран";
+      P.ui.fullscreenLabel.textContent = P.state.fullscreen ? P.t("musicHideReleases") : P.t("musicReleasesFullscreen");
     }
     if (P.ui.fullscreenBtn) {
-      const label = P.state.fullscreen ? "Свернуть релизы" : "Релизы на весь экран";
+      const label = P.state.fullscreen ? P.t("musicHideReleases") : P.t("musicReleasesFullscreen");
       P.ui.fullscreenBtn.setAttribute("aria-label", label);
       P.ui.fullscreenBtn.setAttribute("title", label);
     }
@@ -95,15 +95,13 @@ export function install(P) {
     P.state.collapsed = !!on;
     document.body.classList.toggle("music-releases-collapsed", P.state.collapsed);
     if (P.state.collapsed && P.state.fullscreen) P.applyFullscreen(false);
-    const label = P.state.collapsed
-      ? "Показать список релизов"
-      : "Свернуть список релизов";
+    const label = P.state.collapsed ? P.t("musicShowReleases") : P.t("musicHideReleases");
     if (P.ui.expandBtn) {
       P.ui.expandBtn.setAttribute("aria-pressed", String(P.state.collapsed));
       P.ui.expandBtn.setAttribute("aria-label", label);
       P.ui.expandBtn.setAttribute("title", P.state.collapsed
-        ? "Показать список релизов"
-        : "Свернуть список релизов — треки на весь экран");
+        ? P.t("musicShowReleasesTip")
+        : P.t("musicHideReleasesTip"));
     }
     if (!P.state.collapsed) P.fitSidebarToTitles();
   }

@@ -70,6 +70,28 @@ export function initContext(P) {
         { title: "Prime time", description: "The main air, chosen by the same fixed program." },
       ],
     },
+    de: {
+      service: "Radio", heading: "Rund-um-die-Uhr-Sendung",
+      hint: "Ein durchgehendes Programm läuft ab dem festen Zeitpunkt 2020-01-01 UTC. Die Titel folgen streng aufeinander; ein Neuladen der Website setzt die Sendung nicht zurück.",
+      play: "Sendung starten", pause: "Sendung pausieren",
+      onAir: "Live", paused: "Sendung pausiert", off: "Sendung aus",
+      schedule: "Tagesprogramm", now: "Jetzt", next: "Als Nächstes",
+      prevBlock: "← Früher", nowBlock: "Zum Livestream", nextBlock: "Später →",
+      day: "Ganzer Tag", block: "Block",
+      empty: "Keine Titel verfügbar", unavailable: "Katalog nicht verfügbar",
+      locked: "Player an die Sendung gebunden", trackNumber: "Titel",
+      syncDone: "Zeit synchronisiert", syncDrift: "Abweichung",
+      syncNoTrack: "Kein aktueller Titel zum Synchronisieren", syncUnavailable: "Katalog nicht verfügbar",
+      syncAhead: "Voraus", syncBehind: "Verzögerung",
+      blocks: [
+        { title: "Nachtsendung", description: "Der ruhige Teil des Programms: entspannte Aufnahmen für die Nacht." },
+        { title: "Morgensendung", description: "Ein sanfter Start in den Tag ohne harte Übergänge zwischen Titeln." },
+        { title: "Tagesstrom", description: "Ein durchgehender Soundtrack für die Arbeitsstunden." },
+        { title: "Nachmittag", description: "Eine dichtere Auswahl aus dem gesamten Archiv." },
+        { title: "Abendsendung", description: "Ein langsameres Ende des Tages mit längeren Stücken." },
+        { title: "Hauptsendezeit", description: "Die Hauptsendung nach demselben festen Programm." },
+      ],
+    },
   };
 
   P.state = {

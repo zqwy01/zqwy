@@ -13,9 +13,9 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     "d3-dispatch.min.js", "d3-quadtree.min.js", "d3-timer.min.js", "d3-force.min.js",
   ], (progress) => callbacks.onLoadProgress?.(progress));
   const d3 = window.d3;
-  if (!d3?.forceSimulation) throw new Error("D3 force не загрузился");
+  if (!d3?.forceSimulation) throw new Error("D3 force failed to load");
 
-  const svg = svgEl("svg", { class: "graph-svg", role: "img", "aria-label": "Граф заметок (D3)" });
+  const svg = svgEl("svg", { class: "graph-svg", role: "img", "aria-label": `${window.zqwyT ? window.zqwyT("graphAria") : "Notes graph"} (D3)` });
   const viewport = svgEl("g", { class: "graph-viewport" });
   const linkLayer = svgEl("g", { class: "graph-links" });
   const nodeLayer = svgEl("g", { class: "graph-nodes" });

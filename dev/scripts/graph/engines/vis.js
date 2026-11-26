@@ -11,7 +11,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     callbacks.onLoadProgress?.(progress);
   });
   const vis = window.vis;
-  if (!vis?.Network || !vis.DataSet) throw new Error("vis-network не загрузился");
+  if (!vis?.Network || !vis.DataSet) throw new Error("vis-network failed to load");
 
   const container = document.createElement("div");
   container.className = "graph-vis";

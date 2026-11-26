@@ -1,6 +1,6 @@
 /* music/utils.js — модуль скрипта music.js. */
 export function install(P) {
-  Object.assign(P, { player, assetUrl, formatTime, plural });
+  Object.assign(P, { player, assetUrl, formatTime, plural, trackWord });
 
 
   function player() {
@@ -29,4 +29,10 @@ export function install(P) {
     if (mod10 === 1 && mod100 !== 11) return one;
     if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
     return many;
+  }
+
+  // Russian keeps three forms; EN/DE use the site dictionary's singular/plural.
+  function trackWord(count) {
+    if (document.documentElement.lang === "ru") return plural(count, "трек", "трека", "треков");
+    return P.t(count === 1 ? "musicTrackOne" : "musicTrackMany");
   }}

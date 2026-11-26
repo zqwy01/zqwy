@@ -17,7 +17,8 @@ export function install(P) {
     P.loader.innerHTML =
       '<div class="zqwy-page-loader-card">' +
       '<span class="zqwy-page-loader-spinner" aria-hidden="true"></span>' +
-      '<span class="zqwy-page-loader-text">Загрузка…</span>' +
+      '<span class="zqwy-page-loader-text" data-i18n="loading">' +
+      (window.zqwyT ? window.zqwyT("loading") : "Загрузка…") + "</span>" +
       "</div>";
     document.body.appendChild(P.loader);
     return P.loader;

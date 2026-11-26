@@ -137,7 +137,7 @@ export function install(P) {
         inputStyle.fontStyle, inputStyle.fontVariant, inputStyle.fontWeight,
         inputStyle.fontSize, inputStyle.fontFamily,
       ].join(" ");
-      const sample = P.els.input.value || P.els.input.placeholder || "Поиск";
+      const sample = P.els.input.value || P.els.input.placeholder || P.t("search");
       wanted = ctx.measureText(sample).width + 34;
     }
     wanted = Math.max(120, wanted);

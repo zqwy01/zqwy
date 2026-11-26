@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>zqwy — радио</title>
-  <meta name="description" content="Круглосуточный эфир zqwy с фиксированной программой">
+  <title data-i18n="pageTitleRadio">zqwy — радио</title>
+  <meta name="description" data-i18n-content="metaDescRadio" content="Круглосуточный эфир zqwy с фиксированной программой">
   <link rel="icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="shortcut icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="../styles/menu/menu.css">
@@ -23,6 +23,8 @@
           theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
         }
         document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
+        var language = s && s.language ? s.language : "ru";
+        document.documentElement.lang = ["ru", "en", "de"].indexOf(language) >= 0 ? language : "ru";
       } catch (e) {
         document.documentElement.dataset.theme = "dark";
       }
@@ -35,12 +37,12 @@
 
       <div class="container menu-button-container" id="menuButtonContainer">
         <div class="menu-trigger-row">
-          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-back>
+          <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-i18n-aria-label="back" data-back>
             <img class="menu-open-image" src="../assets/icons/favicon.ico" alt="" aria-hidden="true">
           </a>
-          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск">
-            <label class="visually-hidden" for="siteSearchInput">Общий поиск сайта</label>
-            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)">
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск" data-i18n-aria-label="siteSearch">
+            <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
+            <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
           </form>
         </div>
       </div>
@@ -58,7 +60,7 @@
             <p class="radio-hint" data-i18n="radioHint">Непрерывная программа идёт от фиксированной точки 2020-01-01 UTC. Треки следуют строго один за другим; загрузка сайта не сбрасывает эфир.</p>
           </div>
           <div class="radio-actions">
-            <button class="radio-btn radio-btn-play" id="radioPlay" type="button" aria-pressed="false" aria-label="Включить эфир">
+            <button class="radio-btn radio-btn-play" id="radioPlay" type="button" aria-pressed="false" aria-label="Включить эфир" data-i18n-aria-label="radioPlay">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path class="radio-icon-play" d="M8 5v14l11-7z"/><path class="radio-icon-pause" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
               <span id="radioPlayLabel" data-i18n="radioPlay">Включить эфир</span>
             </button>
@@ -67,7 +69,7 @@
 
         <div class="radio-onair">
           <div class="radio-onair-top">
-            <span class="radio-state" id="radioStatus">Эфир выключен</span>
+            <span class="radio-state" id="radioStatus" data-i18n="radioOffAir">Эфир выключен</span>
             <span class="radio-clock" id="radioBlockTime"></span>
           </div>
           <p class="radio-lock" id="radioLock" hidden data-i18n="radioLocked">Плеер закреплён за эфиром</p>
@@ -107,12 +109,12 @@
           <label class="radio-setting-row">
             <span data-i18n="radioSyncThreshold">Порог отставания</span>
             <input type="range" id="radioSyncThreshold" data-radio-setting="thresholdSec" min="5" max="120" step="5" value="20">
-            <span class="radio-setting-value" id="radioSyncThresholdValue">20 с</span>
+            <span class="radio-setting-value" id="radioSyncThresholdValue" data-i18n="radioSyncThresholdValue">20 с</span>
           </label>
           <label class="radio-setting-row">
             <span data-i18n="radioSyncInterval">Минимальный интервал</span>
             <input type="range" id="radioSyncInterval" data-radio-setting="intervalSec" min="10" max="180" step="10" value="30">
-            <span class="radio-setting-value" id="radioSyncIntervalValue">30 с</span>
+            <span class="radio-setting-value" id="radioSyncIntervalValue" data-i18n="radioSyncIntervalValue">30 с</span>
           </label>
         </details>
       </section>

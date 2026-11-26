@@ -594,7 +594,7 @@ export function install(P) {
       // A page hit needs its text snippet: several hits can share one heading.
       link.textContent = item._onPage
         ? `${item.title} — ${item.text.length > 80 ? `${item.text.slice(0, 80)}…` : item.text}`
-        : (item.title || item.path || "Без названия");
+        : (item.title || item.path || P.t("untitled"));
 
       const icon = document.createElement("span");
       icon.className = "search-result-icon";

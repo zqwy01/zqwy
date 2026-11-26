@@ -32,7 +32,7 @@ export function install(P) {
   function syncSettingsUi() {
     if (P.ui.autoSync) P.ui.autoSync.checked = P.state.autoSync;
     if (P.ui.syncThreshold) P.ui.syncThreshold.value = String(Math.round(P.state.resyncMs / 1000));
-    const sec = P.lang() === "en" ? "s" : "с";
+    const sec = P.lang() === "ru" ? "с" : "s";
     if (P.ui.syncThresholdValue) P.ui.syncThresholdValue.textContent = `${Math.round(P.state.resyncMs / 1000)} ${sec}`;
     if (P.ui.syncInterval) P.ui.syncInterval.value = String(Math.round(P.state.resyncIntervalMs / 1000));
     if (P.ui.syncIntervalValue) P.ui.syncIntervalValue.textContent = `${Math.round(P.state.resyncIntervalMs / 1000)} ${sec}`;
@@ -44,7 +44,7 @@ export function install(P) {
     let message = copy[key] || "";
     if (Number.isFinite(driftSec)) {
       const direction = driftSec >= 0 ? copy.syncBehind : copy.syncAhead;
-      const sec = P.lang() === "en" ? "s" : "с";
+      const sec = P.lang() === "ru" ? "с" : "s";
       message += ` · ${copy.syncDrift} ${direction} ${Math.abs(driftSec).toFixed(1)} ${sec}`;
     }
     P.ui.syncMessage.textContent = message;
@@ -140,7 +140,7 @@ export function install(P) {
       : null;
     if (P.ui.lock) {
       P.ui.lock.hidden = !P.state.active;
-      const sec = P.lang() === "en" ? "s" : "с";
+      const sec = P.lang() === "ru" ? "с" : "s";
       P.ui.lock.textContent = driftSec != null && Math.abs(driftSec) > 1
         ? `${copy.locked} · ${copy.syncDrift} ${driftSec >= 0 ? copy.syncBehind : copy.syncAhead} ${Math.abs(driftSec).toFixed(1)} ${sec}`
         : copy.locked;

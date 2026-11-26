@@ -215,7 +215,7 @@ function collectLinks() {
     while ((card = cardRe.exec(sectionBody))) {
       const href = decodeAttr(card[1]);
       const body = card[2];
-      const nameMatch = body.match(/<span class="link-name">([\s\S]*?)<\/span>/);
+      const nameMatch = body.match(/<span class="link-name"[^>]*>([\s\S]*?)<\/span>/);
       const name = stripTags(nameMatch ? nameMatch[1] : href);
       const host = (() => {
         try { return new URL(href).hostname; } catch { return ""; }
@@ -257,8 +257,8 @@ function collectGames() {
         ? href
         : `./game/${href.replace(/^\.\//, "")}`;
       const body = card[2];
-      const titleMatch = body.match(/<span class="game-card-title">([\s\S]*?)<\/span>/);
-      const descMatch = body.match(/<span class="game-card-desc">([\s\S]*?)<\/span>/);
+      const titleMatch = body.match(/<span class="game-card-title"[^>]*>([\s\S]*?)<\/span>/);
+      const descMatch = body.match(/<span class="game-card-desc"[^>]*>([\s\S]*?)<\/span>/);
       const title = stripTags(titleMatch ? titleMatch[1] : href);
       const description = stripTags(descMatch ? descMatch[1] : "");
       items.push({

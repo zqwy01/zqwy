@@ -72,7 +72,7 @@ export function install(P) {
     cover.className = "album-card-cover";
     cover.setAttribute("data-cover-open", "1");
     cover.dataset.coverTitle = album.title;
-    cover.setAttribute("title", "Открыть обложку на весь экран");
+    cover.setAttribute("title", P.t("musicOpenCover"));
     const image = document.createElement("img");
     image.alt = "";
     const letter = document.createElement("span");
@@ -88,7 +88,7 @@ export function install(P) {
     title.textContent = album.title;
     const count = document.createElement("span");
     count.className = "album-card-count";
-    count.textContent = `${album.tracks.length} ${P.plural(album.tracks.length, "трек", "трека", "треков")}`;
+    count.textContent = `${album.tracks.length} ${P.trackWord(album.tracks.length)}`;
     body.append(title, count);
 
     const open = document.createElement("span");
@@ -130,15 +130,15 @@ export function install(P) {
 
     if (P.ui.musicCount) {
       P.ui.musicCount.textContent = query
-        ? `Найдено: ${albums.length}`
-        : `${P.state.catalog.albumCount} релизов · ${P.state.catalog.trackCount} треков`;
+        ? P.t("musicFound", { count: albums.length })
+        : P.t("musicReleaseCount", { count: P.state.catalog.albumCount, tracks: P.state.catalog.trackCount });
     }
   }
 
   function renderAlbum(options = {}) {
     if (!P.ui.trackList) return;
     if (!P.state.album) {
-      if (P.ui.albumTitle) P.ui.albumTitle.textContent = "Нет релиза";
+      if (P.ui.albumTitle) P.ui.albumTitle.textContent = P.t("musicNoRelease");
       if (P.ui.albumSubtitle) P.ui.albumSubtitle.textContent = "";
       P.ui.trackList.replaceChildren();
       return;
@@ -146,7 +146,7 @@ export function install(P) {
     const album = P.state.album;
     if (P.ui.albumTitle) P.ui.albumTitle.textContent = album.title;
     if (P.ui.albumSubtitle) {
-      P.ui.albumSubtitle.textContent = `${album.tracks.length} ${P.plural(album.tracks.length, "трек", "трека", "треков")} · Opus`;
+      P.ui.albumSubtitle.textContent = `${album.tracks.length} ${P.trackWord(album.tracks.length)} · Opus`;
     }
     P.coverNode(album, P.ui.albumCoverImg, P.ui.albumCoverLetter);
 
@@ -170,7 +170,7 @@ export function install(P) {
       play.type = "button";
       play.className = "music-track-button";
       play.dataset.index = String(index);
-      play.setAttribute("aria-label", `Играть: ${track.title}`);
+      play.setAttribute("aria-label", P.t("musicPlayTrack", { title: track.title }));
 
       // The number cell doubles as a play/pause control for the active track.
       // Both icons live inside a real button so the state can be announced and
@@ -196,8 +196,8 @@ export function install(P) {
       add.type = "button";
       add.className = "music-track-queue";
       add.dataset.index = String(index);
-      add.setAttribute("aria-label", `Добавить в очередь: ${track.title}`);
-      add.setAttribute("title", "Добавить в очередь");
+      add.setAttribute("aria-label", P.t("musicQueueTrack", { title: track.title }));
+      add.setAttribute("title", P.t("musicAddToQueue"));
       add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h11v2H4zM4 11h11v2H4zM4 16h7v2H4zM18 9h2v3h3v2h-3v3h-2v-3h-3v-2h3z"/></svg>';
 
       controls.append(play, add);
@@ -208,7 +208,7 @@ export function install(P) {
       info.type = "button";
       info.className = "music-track-info";
       info.dataset.index = String(index);
-      info.setAttribute("aria-label", `Играть: ${track.title}`);
+      info.setAttribute("aria-label", P.t("musicPlayTrack", { title: track.title }));
 
       const title = document.createElement("span");
       title.className = "music-track-title";
@@ -252,7 +252,7 @@ export function install(P) {
       item.classList.toggle("is-active", active);
       item.classList.toggle("is-playing", isPlaying);
       item.classList.toggle("is-queued", isQueued);
-      const label = `${isPlaying ? "Пауза" : "Играть"}: ${P.state.album?.tracks[index]?.title || ""}`;
+      const label = `${isPlaying ? P.t("musicPause") : P.t("musicPlay")}: ${P.state.album?.tracks[index]?.title || ""}`;
       [".music-track-button", ".music-track-info"].forEach((selector) => {
         const el = item.querySelector(selector);
         if (!el) return;
@@ -261,7 +261,7 @@ export function install(P) {
       });
       const addButton = item.querySelector(".music-track-queue");
       if (addButton) {
-        addButton.setAttribute("title", isQueued ? "Уже в очереди" : "Добавить в очередь");
+        addButton.setAttribute("title", isQueued ? P.t("musicAlreadyQueued") : P.t("musicAddToQueue"));
         addButton.setAttribute("aria-pressed", String(isQueued));
       }
     });

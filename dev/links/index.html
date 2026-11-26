@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>zqwy — ссылки</title>
-  <meta name="description" content="Все ссылки zqwy: музыка, социальные сети и стоки">
+  <title data-i18n="pageTitleLinks">zqwy — ссылки</title>
+  <meta name="description" data-i18n-content="metaDescLinks" content="Все ссылки zqwy: музыка, социальные сети и стоки">
   <link rel="icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="shortcut icon" href="../assets/icons/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="../styles/menu/menu.css">
@@ -23,7 +23,8 @@
           theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
         }
         document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
-        document.documentElement.lang = s && s.language === "en" ? "en" : "ru";
+        var language = s && s.language ? s.language : "ru";
+        document.documentElement.lang = ["ru", "en", "de"].indexOf(language) >= 0 ? language : "ru";
       } catch (e) {
         document.documentElement.dataset.theme = "dark";
       }
@@ -42,7 +43,7 @@
           <a class="menu-open-button" id="menuOpenButton" href="../" aria-label="Назад" data-i18n-aria-label="back" data-back>
             <img class="menu-open-image" src="../assets/icons/favicon.ico" alt="" aria-hidden="true">
           </a>
-          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск">
+          <form class="site-search" id="siteSearch" role="search" aria-label="Поиск" data-i18n-aria-label="siteSearch">
             <label class="visually-hidden" for="siteSearchInput" data-i18n="siteSearchLabel">Общий поиск сайта</label>
             <input class="menu-search-input" id="siteSearchInput" name="search" type="search" placeholder="Поиск" autocomplete="off" enterkeyhint="search" aria-keyshortcuts="Control+F Meta+F" title="Общий поиск сайта (Ctrl+F)" data-i18n-placeholder="searchPlaceholder" data-i18n-title="searchTitle">
           </form>

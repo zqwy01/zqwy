@@ -33,7 +33,8 @@ export function install(P) {
     if (!element.childNodes.length) element.textContent = label || P.t("buildUnavailable");
     const when = info.builtAt ? new Date(info.builtAt) : null;
     if (when && !Number.isNaN(when.getTime())) {
-      element.title = `${label} · ${when.toLocaleString(P.language === "en" ? "en-GB" : "ru-RU", {
+      const locale = { ru: "ru-RU", en: "en-GB", de: "de-DE" }[P.language] || "ru-RU";
+      element.title = `${label} · ${when.toLocaleString(locale, {
         dateStyle: "short", timeStyle: "short",
       })}`;
     } else if (info.commit) {

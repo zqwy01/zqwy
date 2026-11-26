@@ -18,6 +18,10 @@ export function initContext(P) {
     collapsed: false, // releases hidden so the selected album's tracks fill the page
   };
 
+  // Site UI strings come from menu.js; the catalog rows are built in JS, so
+  // they use this bridge instead of data-i18n attributes.
+  P.t = (key, vars) => (typeof window.zqwyT === "function" ? window.zqwyT(key, vars) : key);
+
   P.ui = {};
   P.measureCanvas = document.createElement("canvas");
   P.measureCtx = P.measureCanvas.getContext ? P.measureCanvas.getContext("2d") : null;

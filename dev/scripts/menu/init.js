@@ -7,6 +7,9 @@ export function install(P) {
 
   function initPage() {
     P.refresh();
+    // transition.js replaces document.title and <meta> come from the fetched
+    // document; re-apply the data-i18n keys copied onto them before pagechange.
+    P.translateStatic();
     P.loadSettings();
     P.loadBuildInfo();
 

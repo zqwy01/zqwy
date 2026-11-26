@@ -22,7 +22,7 @@ export function install(P) {
 
     if (P.ui.albumEmpty) {
       P.ui.albumEmpty.hidden = false;
-      P.ui.albumEmpty.textContent = "Загрузка каталога…";
+      P.ui.albumEmpty.textContent = P.t("musicCatalogLoading");
     }
     try {
       const response = await fetch("../data/music-catalog.json", { cache: "no-store" });
@@ -31,11 +31,11 @@ export function install(P) {
       if (!P.state.catalog || !Array.isArray(P.state.catalog.albums)) throw new Error("bad catalog");
       P.seedDurations();
     } catch {
-      if (P.ui.albumTitle) P.ui.albumTitle.textContent = "Каталог недоступен";
+      if (P.ui.albumTitle) P.ui.albumTitle.textContent = P.t("musicCatalogUnavailable");
       if (P.ui.albumSubtitle) P.ui.albumSubtitle.textContent = "";
       if (P.ui.albumEmpty) {
         P.ui.albumEmpty.hidden = false;
-        P.ui.albumEmpty.textContent = "Не удалось прочитать data/music-catalog.json. Запустите npm run build.";
+        P.ui.albumEmpty.textContent = P.t("musicCatalogError");
       }
       return;
     }

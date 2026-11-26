@@ -15,7 +15,7 @@ export function install(P) {
   // menu.js owns the site-wide RU/EN switch and announces it with this event.
   // The player is injected outside [data-i18n] markup, so it translates itself.
   function setPlayerLanguage(language) {
-    const next = language === "en" ? "en" : "ru";
+    const next = ["ru", "en", "de"].includes(language) ? language : "ru";
     if (next !== P.playerLanguage) P.playerLanguage = next;
     P.applyPlayerLanguage();
   }

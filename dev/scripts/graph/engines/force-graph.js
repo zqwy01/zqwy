@@ -11,7 +11,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     callbacks.onLoadProgress?.(progress);
   });
   const factory = window.ForceGraph;
-  if (typeof factory !== "function") throw new Error("ForceGraph не загрузился");
+  if (typeof factory !== "function") throw new Error("ForceGraph failed to load");
 
   const container = document.createElement("div");
   container.className = "graph-forcegraph";

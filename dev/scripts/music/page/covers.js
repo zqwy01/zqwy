@@ -6,13 +6,13 @@ export function install(P) {
   function ensureLightbox() {
     if (document.getElementById("coverLightbox") || !document.body) return;
     document.body.insertAdjacentHTML("beforeend", `
-<div class="cover-lightbox" id="coverLightbox" hidden role="dialog" aria-modal="true" aria-label="Обложка релиза">
-  <button class="cover-lightbox-backdrop" type="button" data-cover-close aria-label="Закрыть обложку"></button>
+<div class="cover-lightbox" id="coverLightbox" hidden role="dialog" aria-modal="true" aria-label="${P.t("musicCoverAlt")}" data-i18n-aria-label="musicCoverAlt">
+  <button class="cover-lightbox-backdrop" type="button" data-cover-close aria-label="${P.t("musicCloseCover")}" data-i18n-aria-label="musicCloseCover"></button>
   <div class="cover-lightbox-frame">
     <img id="coverLightboxImg" alt="" hidden>
     <span class="cover-lightbox-letter" id="coverLightboxLetter" aria-hidden="true">♪</span>
     <p class="cover-lightbox-caption" id="coverLightboxCaption"></p>
-    <button class="cover-lightbox-close" id="coverLightboxClose" type="button" data-cover-close aria-label="Закрыть обложку">×</button>
+    <button class="cover-lightbox-close" id="coverLightboxClose" type="button" data-cover-close aria-label="${P.t("musicCloseCover")}" data-i18n-aria-label="musicCloseCover">×</button>
   </div>
 </div>`);
   }

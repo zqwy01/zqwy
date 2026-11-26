@@ -214,7 +214,7 @@ export function install(P) {
   function warmEngine(id) {
     const meta = availableEngines().find((engine) => engine.id === id);
     if (!meta) return Promise.resolve();
-    return withTimeout(Promise.resolve().then(() => meta.load()), 15000, `Таймаут движка ${meta.id}`)
+    return withTimeout(Promise.resolve().then(() => meta.load()), 15000, `Engine load timed out: ${meta.id}`)
       .catch((error) => { disableEngine(meta.id, error); });
   }
 
@@ -252,7 +252,7 @@ export function install(P) {
 
     try {
       const meta = P.ENGINES.find((engine) => engine.id === id);
-      const module = await withTimeout(Promise.resolve().then(() => meta.load()), 15000, `Таймаут движка ${id}`);
+      const module = await withTimeout(Promise.resolve().then(() => meta.load()), 15000, `Engine load timed out: ${id}`);
       if (sequence !== P.engineSeq || !P.state.owner) return false;
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || false;
       const engine = await withTimeout(Promise.resolve().then(() => module.createEngine({
@@ -277,7 +277,7 @@ export function install(P) {
           },
         },
         vendorBase: P.VENDOR_BASE,
-      })), 15000, `Таймаут инициализации ${id}`);
+      })), 15000, `Engine initialization timed out: ${id}`);
       if (sequence !== P.engineSeq || !P.state.owner) { engine.destroy?.(); return false; }
       P.state.engine = engine;
       P.settings.engine = id;

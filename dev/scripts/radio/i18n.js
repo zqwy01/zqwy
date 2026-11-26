@@ -4,7 +4,8 @@ export function install(P) {
 
 
   function lang() {
-    return document.documentElement.lang === "en" ? "en" : "ru";
+    const value = document.documentElement.lang;
+    return ["ru", "en", "de"].includes(value) ? value : "ru";
   }
 
   function text() {
@@ -13,7 +14,8 @@ export function install(P) {
 
   function clock(ms) {
     try {
-      return new Date(ms).toLocaleTimeString(P.lang() === "en" ? "en-GB" : "ru-RU", {
+      const locale = { ru: "ru-RU", en: "en-GB", de: "de-DE" }[P.lang()] || "ru-RU";
+      return new Date(ms).toLocaleTimeString(locale, {
         hour: "2-digit", minute: "2-digit",
       });
     } catch {

@@ -65,7 +65,8 @@ function shell({ title, description, body, depth, isIndex = false }) {
           theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
         }
         document.documentElement.dataset.theme = theme === "light" ? "light" : "dark";
-        document.documentElement.lang = s && s.language === "en" ? "en" : "ru";
+        var language = s && s.language ? s.language : "ru";
+        document.documentElement.lang = ["ru", "en", "de"].indexOf(language) >= 0 ? language : "ru";
       } catch (e) { document.documentElement.dataset.theme = "dark"; }
     })();
   </script>

@@ -245,8 +245,8 @@ ${body}
       </article>
     </div>
   </main>
-  <script src="${base}scripts/transition.js" defer></script>
-  <script src="${base}scripts/menu.js" defer></script>
+  <script src="${base}scripts/transition.js" type="module"></script>
+  <script src="${base}scripts/menu.js" type="module"></script>
   <script src="${base}scripts/player.js" type="module"></script>
 </body>
 </html>

@@ -1,0 +1,1 @@
+import{P,initContext}from"./context.js";import{install as install_0}from"./accents.js";import{bindEvents}from"./events.js";install_0(P),initContext(P),bindEvents(P);

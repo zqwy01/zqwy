@@ -195,11 +195,11 @@ HTML/CSS/JS (`terser`, `clean-css-cli`, `html-minifier-terser`).
   выполняет его.
 - Для подключения на новой странице нужны те же `#siteSearch` /
   `#siteSearchInput`, `#menuButtonContainer`, `scripts/menu.js` и
-  `scripts/transition.js`, плюс стили `menu.css`, `menu_logo.css`,
-  `base.css` и `player.css`. Подключение `scripts/player.js` с
-  `type="module"` и `styles/player.css` обязательно: только так плеер останется
-  постоянным на всех разделах сайта. Файл `scripts/player.js` — тонкая точка
-  входа, сама реализация лежит в `scripts/music/player/`.
+  `scripts/transition.js` (все — с `type="module"`), плюс стили `menu.css`,
+  `menu_logo.css`, `base.css` и `player.css`. Подключение `scripts/player.js`
+  с `type="module"` и `styles/player.css` обязательно: только так плеер останется
+  постоянным на всех разделах сайта. Каждый `scripts/*.js` — тонкая точка входа,
+  реализация лежит в одноимённой папке (`scripts/music/player/` и т.д.).
 
 ## Поиск
 
@@ -779,18 +779,21 @@ lossless без сглаживания; остальные — lossy WebP qualit
   анимации; загружается последней и переопределяет скопированные стили.
 - `styles/menu/menu.css`, `styles/menu/menu_logo.css` — скопированные
   стили переключателя и меню.
-- `scripts/menu.js` — переключатель меню, рост поиска, раскрывающиеся
-  панели, настройки сайта, поиск по индексу, синонимам и фразам внутри
-  предложения, **Ctrl/Cmd+F**.
-- `scripts/transition.js` — SPA-переходы, анимация страниц,
-  загрузка страничных скриптов, `data-back`, `zqwy:pagechange`.
-- `scripts/hover-glow.js` — акцентные цвета карточек, подсветка за курсором
-  на страницах `links` и `game` и на строках `.music-track`.
+- `scripts/menu.js` + `scripts/menu/` — переключатель меню, рост поиска,
+  раскрывающиеся панели, настройки сайта, поиск по индексу, синонимам и фразам
+  внутри предложения, **Ctrl/Cmd+F**.
+- `scripts/transition.js` + `scripts/transition/` — SPA-переходы, анимация
+  страниц, загрузка страничных скриптов (с сохранением `type="module"`),
+  `data-back`, `zqwy:pagechange`.
+- `scripts/hover-glow.js` + `scripts/hover-glow/` — акцентные цвета карточек,
+  подсветка за курсором на страницах `links` и `game` и на строках
+  `.music-track`.
 - `scripts/player.js` + `scripts/music/player/` — глобальный постоянный плеер
   на ES-модулях: девять движков (HTML5, WaveSurfer, Peaks, Howler, Waviz,
   MediaElement.js, AmplitudeJS, APlayer, jPlayer), видимый «Интерфейс движка»,
   компактный `<select>`, переключение форматов, настройки, Media Session, API
-  `window.zqwyPlayer`. `transition.js` сохраняет `type="module"` при SPA-загрузке.
+  `window.zqwyPlayer`. Остальные страничные скрипты тоже разбиты на ES-модули;
+  `transition.js` сохраняет `type="module"` при SPA-загрузке.
 - `links/index.html` — страница со всеми ссылками; эмодзи заменены на
   `<svg><use href="../assets/icons/links.svg#…"></use></svg>`.
 - `styles/links.css` — стили страницы ссылок, встроенные SVG-иконки
@@ -821,15 +824,15 @@ lossless без сглаживания; остальные — lossy WebP qualit
   по курсору.
 - `radio/index.html` — отдельная страница круглосуточного радио с вещанием,
   статусом эфира, текущим/следующим треком и программой дня.
-- `scripts/radio.js` — детерминированная непрерывная программа на сутки от
-  фиксированной epoch, привязка к глобальному плееру, синхронизация по времени
-  и блокировка ручного переключения треков на время эфира.
+- `scripts/radio.js` + `scripts/radio/` — детерминированная непрерывная программа
+  на сутки от фиксированной epoch, привязка к глобальному плееру, синхронизация
+  по времени и блокировка ручного переключения треков на время эфира.
 - `styles/radio.css` — стили отдельной страницы радио: состояние эфира,
   прогресс, программа и `.is-active`-строка текущего трека.
 - `styles/player.css` — стили плеера, анимация выполнения снизу, поповер
   настроек и панель очереди с раскрытием вниз, компактный `select`, панель
   «Интерфейс движка», форма волны.
-- `scripts/music.js` — каталог релизов/треков, три режима просмотра,
+- `scripts/music.js` + `scripts/music/page/` — каталог релизов/треков, три режима просмотра,
   полноэкранный режим релизов с сохранением выбранного вида, FLIP-анимация
   изменения размеров, измерение ширины колонки по самому длинному названию,
   deep-link `?album=&track=`, кнопка play/pause в номере активного трека,

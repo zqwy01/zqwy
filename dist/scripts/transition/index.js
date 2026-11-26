@@ -1,0 +1,1 @@
+import{P,initContext}from"./context.js";import{bindEvents}from"./events.js";import{install as install_1}from"./loader.js";import{install as install_2}from"./motion.js";import{install as install_3}from"./navigation.js";import{install as install_4}from"./preload.js";install_1(P),install_2(P),install_3(P),install_4(P),initContext(P),bindEvents(P);

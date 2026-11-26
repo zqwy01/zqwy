@@ -1,0 +1,1 @@
+export function install(n){Object.assign(n,{lang:function(){return"en"===document.documentElement.lang?"en":"ru"},text:function(){return n.TEXT[n.lang()]},clock:function(t){try{return new Date(t).toLocaleTimeString("en"===n.lang()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"})}catch{return""}}})}

@@ -1,0 +1,1 @@
+export function install(t){Object.assign(t,{playPageEnter:function(t){if(!t)return;t.offsetWidth,t.classList.add("page-entering")}})}

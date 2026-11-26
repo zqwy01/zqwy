@@ -1,0 +1,63 @@
+/* Общий контекст hover-glow.js: бывшие верхнеуровневые
+ * переменные. Инициализируется до обработчиков событий. */
+export const P = {};
+
+export function initContext(P) {
+
+  "use strict";
+
+  P.DEFAULT = "255, 255, 255";
+
+  // Order matters: more specific patterns must come before broader ones.
+  P.ACCENTS = [
+    // games
+    [/to[-_ ]?east|godot/i, "73, 160, 220"],
+    [/rhythm[-_ ]?catalog/i, "255, 100, 60"],
+    [/labyrinth|zemic|games\/zqwy/i, "160, 110, 255"],
+    [/nemeton|umbrella/i, "90, 200, 130"],
+    [/ клетчат|adventure/i, "235, 190, 80"],
+    [/drill|курган/i, "190, 150, 100"],
+    [/remaining|оставш/i, "220, 80, 100"],
+    [/nine[-_ ]?sleeps|kern|девять/i, "120, 150, 255"],
+    [/game[-_ ]?designer/i, "200, 200, 200"],
+    [/east/i, "255, 190, 60"],
+
+    // links / platforms
+    [/spotify/i, "30, 215, 96"],
+    [/youtube/i, "255, 0, 0"],
+    [/tiktok|my toks/i, "254, 36, 92"],
+    [/telegram|t\.me/i, "42, 171, 238"],
+    [/pinterest/i, "230, 0, 0"],
+    [/matrix/i, "0, 176, 144"],
+    [/linktr\.ee/i, "165, 48, 255"],
+    [/instagram/i, "225, 48, 108"],
+    [/facebook/i, "59, 89, 152"],
+    [/mastodon/i, "99, 100, 255"],
+    [/bluesky|bsky/i, "0, 119, 255"],
+    [/vk\.com/i, "75, 119, 190"],
+    [/substack/i, "255, 103, 31"],
+    [/reddit/i, "255, 87, 18"],
+    [/itch\.io/i, "255, 70, 110"],
+    [/duolingo/i, "88, 188, 67"],
+    [/pond5/i, "0, 180, 220"],
+    [/audiomack/i, "255, 160, 0"],
+    [/apple[_ -]?music/i, "250, 75, 95"],
+    [/amazon[_ -]?music/i, "255, 153, 0"],
+    // sumbit_hub is a deliberately purple icon/name, not a red one.
+    [/submit[_ -]?hub|sumbit/i, "165, 48, 255"],
+    [/soundclick/i, "255, 130, 0"],
+    [/soundcloud/i, "255, 85, 0"],
+    [/rapchat/i, "140, 90, 255"],
+    [/yandex[_ -]?music/i, "255, 215, 0"],
+    [/mts[_ -]?music/i, "255, 0, 0"],
+    [/sber[_ -]?zvuk/i, "30, 190, 90"],
+    [/shazam/i, "0, 170, 255"],
+    [/deezer/i, "160, 55, 255"],
+    [/bandcamp/i, "30, 170, 190"],
+    [/pandora/i, "60, 120, 255"],
+    [/qobuz/i, "255, 200, 0"],
+    [/ok\.ru/i, "255, 170, 0"],
+    [/audius/i, "60, 200, 255"],
+    [/flo/i, "145, 80, 255"],
+    [/mailto:|email/i, "120, 180, 255"],
+  ];}

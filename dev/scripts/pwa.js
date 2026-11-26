@@ -96,6 +96,25 @@ async function registerServiceWorker() {
       notifyUpdate(registration.waiting);
     }
 
+    // Полный офлайн-кэш (~26 МБ) догружаем уже после активации: если качать
+    // его внутри install, Chrome Android не показывает кнопку «Установить»,
+    // пока SW не станет активным (на GitHub Pages это ~25 секунд).
+    let prefetchRequested = false;
+    const requestPrefetch = () => {
+      if (prefetchRequested) return;
+      const worker = navigator.serviceWorker.controller || registration.active;
+      if (!worker) return;
+      prefetchRequested = true;
+      const send = () => worker.postMessage({ type: "PREFETCH" });
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(send, { timeout: 3000 });
+      } else {
+        setTimeout(send, 1000);
+      }
+    };
+    requestPrefetch();
+    navigator.serviceWorker.addEventListener("controllerchange", requestPrefetch);
+
     let reloaded = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (reloaded) return;

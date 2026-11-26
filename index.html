@@ -6,6 +6,12 @@
   <title>zqwy</title>
   <meta http-equiv="refresh" content="0; url=./dist/">
   <link rel="canonical" href="./dist/">
+  <!-- PWA-теги и на корневой странице: Chrome Android должен видеть манифест
+       и SW ещё до редиректа, иначе «Установить» не появляется. -->
+  <link rel="manifest" href="./dist/manifest.webmanifest">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="./dist/assets/icons/apple-touch-icon.png">
+  <script type="module" src="./dist/scripts/pwa.js"></script>
   <script>location.replace("./dist/" + location.search + location.hash);</script>
 </head>
 <body>

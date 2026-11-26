@@ -1,8 +1,11 @@
 /* Сгенерировано scripts/build_pwa.mjs — не редактировать вручную. */
-const VERSION = "1.1.0.66.ae108b6";
+const VERSION = "1.1.0.66.93a7f47";
 const CACHE_PREFIX = "zqwy-";
 const SHELL_CACHE = CACHE_PREFIX + "shell-" + VERSION;
 const RUNTIME_CACHE = CACHE_PREFIX + "runtime-" + VERSION;
+// Только минимум для мгновенной активации (иначе Chrome не считает сайт
+// устанавливаемым, пока не скачаются все 26 МБ).
+const CRITICAL = ["./index.html","./manifest.webmanifest","./assets/icons/icon-192.png","./assets/icons/icon-512.png","./assets/icons/icon-maskable-512.png","./assets/icons/apple-touch-icon.png"];
 const PRECACHE = [
   "./assets/icons/apple-touch-icon.png",
   "./assets/icons/favicon.ico",
@@ -731,10 +734,7 @@ const MEDIA_RE = /\.(opus|mp3|wav|ogg|oga|m4a|aac|flac)$/i;
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
-    await Promise.all(PRECACHE.map(async (url) => {
-      // Один отсутствующий файл не должен срывать установку всего SW.
-      try { await cache.add(url); } catch (error) {}
-    }));
+    await Promise.all(CRITICAL.map((url) => cache.add(url).catch(() => {})));
     await self.skipWaiting();
   })());
 });
@@ -749,8 +749,32 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
+// Догружаем оболочку уже после активации: страница управляется SW сразу,
+// а 720 файлов качаются фоновыми запросами с ограниченной параллельностью.
+let prefetching = false;
+async function prefetch() {
+  if (prefetching) return;
+  prefetching = true;
+  const cache = await caches.open(SHELL_CACHE);
+  const existing = new Set((await cache.keys()).map((request) => request.url));
+  const pending = PRECACHE.filter(
+    (url) => !existing.has(new URL(url, self.location.href).href),
+  );
+  let cursor = 0;
+  const workers = Array.from({ length: 8 }, async () => {
+    while (cursor < pending.length) {
+      const url = pending[cursor++];
+      try { await cache.add(url); } catch (error) {}
+    }
+  });
+  await Promise.all(workers);
+  prefetching = false;
+}
+
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  if (!event.data) return;
+  if (event.data.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data.type === "PREFETCH") event.waitUntil(prefetch());
 });
 
 function cleanRequest(request) {

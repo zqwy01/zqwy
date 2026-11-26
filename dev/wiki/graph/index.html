@@ -54,16 +54,13 @@
         <div class="graph-toolbar-row graph-toolbar-row-buttons">
           <fieldset class="graph-group graph-engines-group">
             <legend data-i18n="graphEngines">Движок</legend>
-            <div class="graph-engine-list" id="graphEngines"><span class="graph-muted">…</span></div>
-          </fieldset>
-          <fieldset class="graph-group graph-actions-group">
-            <legend data-i18n="graphActions">Действия</legend>
-            <div class="graph-action-list" id="graphActions">
-              <button type="button" data-action="fit" data-i18n="graphFit">Вписать</button>
-              <button type="button" data-action="motion" data-i18n="graphPause">Пауза</button>
-              <button type="button" data-action="walk" data-i18n="graphWalk">Прогулка</button>
-              <button type="button" data-action="reset" data-i18n="graphReset">Сброс</button>
-              <button type="button" data-action="fullscreen" data-i18n="graphFullscreen" data-i18n-title="graphFullscreen" title="Полный экран">Полный экран</button>
+            <div class="graph-engine-select" id="graphEngines">
+              <button type="button" class="graph-engine-select-trigger" aria-haspopup="listbox" aria-controls="graphEngineOptions" aria-expanded="false" aria-label="Движок: D3 · force">
+                <span class="graph-engine-select-icon" aria-hidden="true"></span>
+                <span class="graph-engine-select-value">D3 · force</span>
+                <span class="graph-engine-select-chevron" aria-hidden="true">⌄</span>
+              </button>
+              <div class="graph-engine-select-menu" id="graphEngineOptions" role="listbox" aria-label="Движок" hidden></div>
             </div>
           </fieldset>
         </div>
@@ -92,6 +89,13 @@
       <section class="graph-workspace">
         <div class="graph-stage" id="graphStage">
           <div class="graph-host" id="graphHost" role="application" aria-label="Граф заметок"></div>
+          <div class="graph-stage-actions" id="graphActions" role="group" aria-label="Действия" data-i18n-aria-label="graphActions">
+            <button type="button" data-action="fit" title="Вписать" aria-label="Вписать"></button>
+            <button type="button" data-action="motion" title="Пауза" aria-label="Пауза"></button>
+            <button type="button" data-action="walk" title="Прогулка" aria-label="Прогулка"></button>
+            <button type="button" data-action="reset" title="Сброс" aria-label="Сброс"></button>
+            <button type="button" data-action="fullscreen" title="Полный экран" aria-label="Полный экран"></button>
+          </div>
           <button type="button" class="graph-stage-exit" id="graphStageExit" title="Свернуть" aria-label="Свернуть">×</button>
           <div class="graph-loading" id="graphLoading" role="status" aria-live="polite">
             <div class="graph-loading-card">

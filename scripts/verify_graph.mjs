@@ -102,6 +102,28 @@ for (const relative of [
   requireFile(relative);
 }
 
+function requireText(relative, needle, label) {
+  const file = path.join(base, relative);
+  if (!fs.existsSync(file)) return;
+  if (!fs.readFileSync(file, "utf8").includes(needle)) {
+    problems.push(`нет ${label} в ${target}/${relative}`);
+  }
+}
+
+requireText("wiki/graph/index.html", 'id="graphEngines"', "списка движков");
+requireText("wiki/graph/index.html", 'class="graph-engine-select-trigger"', "кнопки выбора движка");
+requireText("wiki/graph/index.html", 'class="graph-stage-actions"', "иконок управления на сцене");
+requireText("scripts/graph/ui.js", "graph-engine-option", "опций с иконками движков");
+requireText("scripts/graph/core.js", "engineDisabled", "автоотключения движков");
+
+const homePage = path.join(base, "index.html");
+if (fs.existsSync(homePage)) {
+  const form = fs.readFileSync(homePage, "utf8")
+    .match(/<form id="site-settings-form"[\s\S]*?<\/form>/)?.[0] || "";
+  const firstGroup = form.match(/<fieldset class="settings-group[^"]*">[\s\S]*?<\/fieldset>/)?.[0] || "";
+  if (!firstGroup.includes('name="language"')) problems.push("язык не является первой настройкой сайта");
+}
+
 if (target === "dist") {
   const index = readJson("data/search-index.json");
   const items = Array.isArray(index?.items) ? index.items : [];

@@ -8,6 +8,7 @@ const KIND_IDS = ["reference", "series", "similar"];
 
 export function install(P) {
   const prefetched = new Set();
+  const runtimeDisabled = new Set();
 
   Object.assign(P, {
     init, destroy, retry, selectEngine, setSelection, applyFilters, stopWalk, syncUrl,
@@ -27,17 +28,47 @@ export function install(P) {
     } catch { /* broken site settings: keep every engine available */ }
     // Canvas stays available as the permanent fallback even if all others
     // (including the preferred d3 engine) are removed in site settings.
-    return P.ENGINES.filter((engine) => engine.id === FALLBACK_ENGINE || disabled[engine.id] !== false);
+    return P.ENGINES.filter((engine) => engine.id === FALLBACK_ENGINE
+      || (disabled[engine.id] !== false && !runtimeDisabled.has(engine.id)));
+  }
+
+  function readSiteSettings() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(SITE_SETTINGS_KEY) || "null");
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch { return {}; }
+  }
+
+  function preferredEngine() {
+    return availableEngines().some((engine) => engine.id === DEFAULT_ENGINE)
+      ? DEFAULT_ENGINE : FALLBACK_ENGINE;
+  }
+
+  // A broken engine must not be retried on every visit. Reuse the existing
+  // site-settings flag: the user can re-check the box to give it another try.
+  function disableEngine(id, error) {
+    if (!id || id === FALLBACK_ENGINE) return;
+    runtimeDisabled.add(id);
+    const site = readSiteSettings();
+    const previous = site.graphEngines && typeof site.graphEngines === "object" ? site.graphEngines : {};
+    if (previous[id] === false) return;
+    try {
+      localStorage.setItem(SITE_SETTINGS_KEY, JSON.stringify({
+        ...site, graphEngines: { ...previous, [id]: false },
+      }));
+    } catch { /* private mode: disable for this session only */ }
+    console.warn(`Graph engine "${id}" disabled after a failure:`, error);
+    P.state.notice = P.t("engineDisabled", { engine: P.t(`engine.${id}`) });
+    P.renderEngines?.();
+    P.updateStatus?.();
   }
 
   function loadSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(P.SETTINGS_KEY) || "null") || {};
       const available = availableEngines();
-      const preferred = available.some((engine) => engine.id === DEFAULT_ENGINE)
-        ? DEFAULT_ENGINE : FALLBACK_ENGINE;
       P.settings.engine = available.some((engine) => engine.id === saved.engine)
-        ? saved.engine : preferred;
+        ? saved.engine : preferredEngine();
       P.settings.section = typeof saved.section === "string" ? saved.section : "";
       P.settings.paused = Boolean(saved.paused);
       for (const kind of KIND_IDS) {
@@ -152,7 +183,7 @@ export function install(P) {
     if (!meta) return Promise.resolve();
     return Promise.resolve()
       .then(() => meta.load())
-      .catch((error) => { console.warn("Graph engine preload failed:", error); });
+      .catch((error) => { disableEngine(meta.id, error); });
   }
 
   // The graph is interactive already: bring in the remaining engine modules
@@ -238,6 +269,7 @@ export function install(P) {
       return true;
     } catch (error) {
       console.error("Graph engine error:", error);
+      disableEngine(id, error);
       // Try d3 first, then the canvas fallback; never retry the failed engine.
       const fallback = [DEFAULT_ENGINE, FALLBACK_ENGINE].find((candidate) =>
         candidate !== id && availableEngines().some((engine) => engine.id === candidate));
@@ -486,6 +518,9 @@ export function install(P) {
     bindGlobalEvents();
     loadSettings();
     applyUrl();
+    // The dropdown must exist before any network or module work: with a cold
+    // cache the data request used to delay the engine choice until reload.
+    P.renderEngines?.();
     if (P.els.empty) P.els.empty.hidden = true;
     // Bind controls before loading: the retry button must work even when the
     // very first data request fails.
@@ -497,6 +532,10 @@ export function install(P) {
       if (!P.state.graph) jobs.push(fetchData());
       jobs.push(warmEngine(P.settings.engine));
       await Promise.all(jobs);
+      // A preload may have disabled the selected engine while data arrived.
+      if (!availableEngines().some((engine) => engine.id === P.settings.engine)) {
+        P.settings.engine = preferredEngine();
+      }
       P.setLoading?.(P.t("preparing"), P.t(`engine.${P.settings.engine}`), 46);
       P.renderEngines();
       P.renderSections();

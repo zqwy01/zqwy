@@ -2,8 +2,9 @@
 import { svgEl } from "./shared.js";
 
 export function install(P) {
+  let engineDocBound = false;
   Object.assign(P, {
-    bindGraphElements, renderEngines, renderSections, renderDetails,
+    bindGraphElements, bindEngineSelect, renderEngines, renderSections, renderDetails,
     showTooltip, updateStatus, updateActions, decorateActions,
     setLoading, hideLoading, showLoadingError,
   });
@@ -21,55 +22,152 @@ export function install(P) {
     };
     const els = {};
     for (const [key, id] of Object.entries(ids)) els[key] = document.getElementById(id);
-    if (!els.host || !els.engines || !els.status) return false;
+    if (!els.host || !els.engines || !els.status || !els.actions) return false;
     P.els = els;
+    bindEngineSelect();
     return true;
   }
 
-  function renderEngines() {
-    if (!P.els.engines) return;
-    P.els.engines.replaceChildren();
-    for (const meta of (P.availableEngines?.() || P.ENGINES)) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.engine = meta.id;
-      button.dataset.active = String(P.settings.engine === meta.id);
-      button.title = P.t(`engine.${meta.id}`);
-      const icon = svgEl("svg", {
-        class: "graph-engine-icon",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        "stroke-width": 1.7,
-        "stroke-linecap": "round",
-        "stroke-linejoin": "round",
-        "aria-hidden": "true",
-      });
-      for (const [tag, attrs] of (P.ENGINE_ICONS?.[meta.id] || [])) {
-        icon.append(svgEl(tag, attrs));
+  function engineIcon(id) {
+    const icon = svgEl("svg", {
+      class: "graph-engine-icon",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": 1.7,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "aria-hidden": "true",
+    });
+    for (const [tag, attrs] of (P.ENGINE_ICONS?.[id] || [])) icon.append(svgEl(tag, attrs));
+    return icon;
+  }
+
+  function closeEngineMenu() {
+    const root = P.els.engines;
+    const trigger = root?.querySelector(".graph-engine-select-trigger");
+    const menu = root?.querySelector(".graph-engine-select-menu");
+    if (!trigger || !menu) return;
+    menu.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  // Native <select> options cannot render SVG, so this is a small listbox with
+  // the same icon set and full keyboard support.
+  function bindEngineSelect() {
+    const root = P.els.engines;
+    if (!root || root.dataset.bound === "1") return;
+    root.dataset.bound = "1";
+
+    root.addEventListener("click", (event) => {
+      if (!event.target.closest(".graph-engine-select-trigger")) return;
+      const menu = root.querySelector(".graph-engine-select-menu");
+      const trigger = root.querySelector(".graph-engine-select-trigger");
+      if (!menu || !trigger) return;
+      const open = menu.hidden;
+      menu.hidden = !open;
+      trigger.setAttribute("aria-expanded", String(open));
+      if (open) {
+        (menu.querySelector('[aria-selected="true"]') || menu.querySelector(".graph-engine-option"))?.focus();
       }
-      const label = document.createElement("span");
-      label.className = "graph-engine-label";
-      label.textContent = P.t(`engine.${meta.id}`);
-      button.append(icon, label);
-      button.addEventListener("click", () => P.selectEngine?.(meta.id));
-      P.els.engines.append(button);
+    });
+
+    root.addEventListener("keydown", (event) => {
+      const menu = root.querySelector(".graph-engine-select-menu");
+      const trigger = root.querySelector(".graph-engine-select-trigger");
+      if (!menu || !trigger) return;
+      const options = [...menu.querySelectorAll(".graph-engine-option")];
+      const selected = () => options.find((option) => option.getAttribute("aria-selected") === "true") || options[0];
+
+      if (event.key === "Escape") {
+        if (!menu.hidden) { closeEngineMenu(); trigger.focus(); }
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        if (menu.hidden) {
+          menu.hidden = false;
+          trigger.setAttribute("aria-expanded", "true");
+          selected()?.focus();
+          return;
+        }
+        const current = options.indexOf(document.activeElement);
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        options[Math.max(0, Math.min(options.length - 1, current + step))]?.focus();
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        if (!menu.hidden && document.activeElement?.classList.contains("graph-engine-option")) {
+          event.preventDefault();
+          document.activeElement.click();
+        } else if (document.activeElement === trigger) {
+          event.preventDefault();
+          menu.hidden = false;
+          trigger.setAttribute("aria-expanded", "true");
+          selected()?.focus();
+        }
+      }
+    });
+
+    // One document listener for the lifetime of the page; it always checks the
+    // current elements, so SPA navigation does not leave stale listeners.
+    if (!engineDocBound) {
+      engineDocBound = true;
+      document.addEventListener("click", (event) => {
+        if (P.els.engines && !P.els.engines.contains(event.target)) closeEngineMenu();
+      });
     }
   }
 
-  function actionLabel(button) {
-    let label = button.querySelector(".graph-action-label");
-    if (!label) {
-      const text = button.textContent.trim();
-      const icon = button.querySelector(".graph-action-icon");
-      button.replaceChildren();
-      label = document.createElement("span");
-      label.className = "graph-action-label";
-      label.textContent = text;
-      if (icon) button.append(icon);
-      button.append(label);
+  function renderEngines() {
+    const root = P.els.engines;
+    if (!root) return;
+    const trigger = root.querySelector(".graph-engine-select-trigger");
+    const menu = root.querySelector(".graph-engine-select-menu");
+    if (!trigger || !menu) return;
+    const engines = P.availableEngines?.() || P.ENGINES;
+    const active = engines.find((meta) => meta.id === P.settings.engine) || engines[0];
+    const label = active ? P.t(`engine.${active.id}`) : P.t("noEngines");
+    const iconHost = trigger.querySelector(".graph-engine-select-icon");
+    if (iconHost) {
+      iconHost.replaceChildren();
+      if (active) iconHost.append(engineIcon(active.id));
     }
-    return label;
+    const value = trigger.querySelector(".graph-engine-select-value");
+    if (value) value.textContent = label;
+    trigger.setAttribute("aria-label", `${P.t("graphEngines")}: ${label}`);
+    root.dataset.engine = active?.id || "";
+
+    menu.replaceChildren();
+    for (const meta of engines) {
+      const option = document.createElement("div");
+      option.className = "graph-engine-option";
+      option.setAttribute("role", "option");
+      option.dataset.engine = meta.id;
+      option.setAttribute("aria-selected", String(meta.id === P.settings.engine));
+      option.tabIndex = -1;
+      option.append(engineIcon(meta.id));
+      const text = document.createElement("span");
+      text.className = "graph-engine-option-label";
+      text.textContent = P.t(`engine.${meta.id}`);
+      option.append(text);
+      if (meta.id === P.settings.engine) {
+        const check = document.createElement("span");
+        check.className = "graph-engine-option-check";
+        check.setAttribute("aria-hidden", "true");
+        check.textContent = "✓";
+        option.append(check);
+      }
+      option.addEventListener("click", () => {
+        closeEngineMenu();
+        // A deliberate choice clears a previous auto-disable notice; a new
+        // failure puts it straight back via disableEngine().
+        P.state.notice = "";
+        P.selectEngine?.(meta.id);
+      });
+      menu.append(option);
+    }
+    closeEngineMenu();
   }
 
   function actionIcon(button, key) {
@@ -93,15 +191,10 @@ export function install(P) {
     }
   }
 
-  // Static HTML may be translated by menu/i18n.js, which replaces textContent
-  // and would drop the icons. Re-wrap the labels once after the page is bound;
-  // updateActions() restores them after every language switch.
+  // Buttons are icon-only; updateActions() supplies icons and translated
+  // title/aria-label text after every state or language change.
   function decorateActions() {
-    if (!P.els.actions) return;
-    for (const button of P.els.actions.querySelectorAll("[data-action]")) {
-      actionLabel(button);
-    }
-    P.updateActions();
+    P.updateActions?.();
   }
 
   function renderSections() {
@@ -247,6 +340,7 @@ export function install(P) {
     if (P.state.walking) pieces.push(P.t("walking"));
     const selected = P.state.nodeById.get(P.state.selected);
     if (selected) pieces.push(`${P.t("selected")}: ${selected.title}`);
+    if (P.state.notice) pieces.push(P.state.notice);
     P.els.status.textContent = pieces.join(" · ");
   }
 
@@ -278,10 +372,11 @@ export function install(P) {
     for (const button of P.els.actions.querySelectorAll("[data-action]")) {
       const action = button.dataset.action;
       if (!(action in labels)) continue;
-      actionLabel(button).textContent = labels[action];
       actionIcon(button, icons[action]);
       button.title = labels[action];
+      button.setAttribute("aria-label", labels[action]);
       button.dataset.active = String(Boolean(active[action]));
+      if (action in active) button.setAttribute("aria-pressed", String(Boolean(active[action])));
     }
   }
 }

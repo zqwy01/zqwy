@@ -118,6 +118,8 @@ export function initContext(P) {
       "engine.force-graph": "force-graph",
       "engine.springy": "Springy",
       "engine.force3d": "3d-force-graph",
+      graphEngines: "Движок", noEngines: "нет доступных движков",
+      engineDisabled: "Движок {engine} отключён после ошибки загрузки",
       allSections: "— все разделы —",
       loading: "Загрузка данных графа…",
       loadingEngine: "Загрузка движка…",
@@ -148,6 +150,8 @@ export function initContext(P) {
       "engine.force-graph": "force-graph",
       "engine.springy": "Springy",
       "engine.force3d": "3d-force-graph",
+      graphEngines: "Engine", noEngines: "no engines available",
+      engineDisabled: "Engine {engine} disabled after a load error",
       allSections: "— all sections —",
       loading: "Loading graph data…",
       loadingEngine: "Loading engine…",
@@ -180,7 +184,7 @@ export function initContext(P) {
   };
 
   P.settings = {
-    engine: "canvas",
+    engine: "d3",
     section: "",
     kinds: { reference: true, series: true, similar: true },
     paused: false,
@@ -198,6 +202,7 @@ export function initContext(P) {
     walking: null,
     engine: null,
     engineId: "",
+    notice: "",
     signature: "",
     owner: false,
     starting: false,

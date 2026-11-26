@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T16:58:33.405Z",
+  "generatedAt": "2026-11-26T17:38:52.730Z",
   "nodes": [
     {
       "id": "aesthics-folk",
@@ -63,7 +63,7 @@
         "en": "date: 2026-11-24 Working summary compiled on 24 November 2026 from the zqwy repository. Sources are project files only; formal education, age, employer and exact city are not specified in the repository. Self-description - src/notes/tiddly/notes/Kto ya_ Ili zh",
         "de": "date: 2026-11-24 Arbeitsstand vom 24. November 2026, erstellt aus dem Repository zqwy . Quellen sind ausschließlich Projektdateien; formale Ausbildung, Alter, Arbeitgeber und genaue Stadt sind im Repository nicht vermerkt. Selbstbeschreibung - src/notes/tiddly"
       },
-      "degree": 13
+      "degree": 14
     },
     {
       "id": "bio-job-01-позиционирование-и-роли",
@@ -95,7 +95,7 @@
         "en": "date: 2026-11-24 Geographic update: the \"house, land, farm, animals, country-wide scale\" project changes the priority of directions — see 07. Масштаб страны, дом и ферма.md . The \"Geographic update\" section below reflects an earlier stage. The key decision Don",
         "de": "date: 2026-11-24 Geografische Korrektur: Das Projekt „Haus, Land, Hof, Tiere und Maßstab des ganzen Landes\" verschiebt die Priorität der Richtungen — siehe 07. Масштаб страны, дом и ферма.md . Der Abschnitt „Geografische Korrektur\" unten spiegelt eine frühere "
       },
-      "degree": 12
+      "degree": 13
     },
     {
       "id": "bio-job-02-портфолио-и-резюме",
@@ -450,14 +450,14 @@
       "degree": 11
     },
     {
-      "id": "bio-job-summary-domix-resume",
-      "title": "domix_resume",
+      "id": "bio-job-summary-experience-domix",
+      "title": "experience_domix",
       "titleI18n": {
-        "ru": "domix_resume",
-        "en": "Domix — Résumé",
-        "de": "Domix — Lebenslauf"
+        "ru": "experience_domix",
+        "en": "experience_domix",
+        "de": "experience_domix"
       },
-      "path": "./wiki/zqwy/bio-job-summary-domix-resume.html",
+      "path": "./wiki/zqwy/bio-job-summary-experience-domix.html",
       "section": "bio/job/summary",
       "sectionI18n": {
         "ru": "bio / job / summary",
@@ -472,14 +472,46 @@
         "de": "Zusammenfassung"
       },
       "date": "2026-11-26",
-      "chars": 6097,
-      "excerpt": "ариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/ф",
+      "chars": 5733,
+      "excerpt": "Вариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/",
       "excerptI18n": {
-        "ru": "ариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/ф",
-        "en": "Option A. Résumé block short Domix LLC — System Administrator, separate subdivision Lyubertsy April 2023 – August 2024 Responsibilities: Administering 3 servers Supermicro, Dell; bare metal, Hyper-V and a Linux server on Debian: DNS, DHCP, SMB/file shares. Mai",
-        "de": "Variante A. Block für den Lebenslauf kurz Domix LLC — Systemadministrator, separate Niederlassung Ljuberzy April 2023 – August 2024 Aufgaben: Administration von 3 Servern Supermicro, Dell; Bare Metal, Hyper-V und eines Linux-Servers mit Debian: DNS, DHCP, SMB/"
+        "ru": "Вариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/",
+        "en": "Вариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/",
+        "de": "Вариант А. Блок для резюме кратко ООО «Домикс» — системный администратор, обособленное подразделение г. Люберцы апрель 2023 — август 2024 Обязанности: Администрирование 3 серверов Supermicro, Dell; bare-metal, Hyper-V и Linux-сервера на Debian: DNS, DHCP, SMB/"
       },
       "degree": 3
+    },
+    {
+      "id": "bio-job-summary-experience-sberbank",
+      "title": "experience_sberbank",
+      "titleI18n": {
+        "ru": "experience_sberbank",
+        "en": "experience_sberbank",
+        "de": "experience_sberbank"
+      },
+      "path": "./wiki/zqwy/bio-job-summary-experience-sberbank.html",
+      "section": "bio/job/summary",
+      "sectionI18n": {
+        "ru": "bio / job / summary",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "category": "bio",
+      "categoryLabel": "bio",
+      "categoryLabelI18n": {
+        "ru": "bio",
+        "en": "Summary",
+        "de": "Zusammenfassung"
+      },
+      "date": "2026-11-26",
+      "chars": 0,
+      "excerpt": "",
+      "excerptI18n": {
+        "ru": "",
+        "en": "",
+        "de": ""
+      },
+      "degree": 2
     },
     {
       "id": "bio-job-summary-resume",
@@ -3021,9 +3053,9 @@
     },
     {
       "source": "bio-job-summary-domix",
-      "target": "bio-job-summary-domix-resume",
+      "target": "bio-job-summary-experience-domix",
       "kind": "similar",
-      "weight": 0.31
+      "weight": 0.315
     },
     {
       "source": "bio-job-summary-domix",
@@ -3044,16 +3076,16 @@
       "weight": 0.172
     },
     {
-      "source": "bio-job-summary-domix-resume",
+      "source": "bio-job-summary-experience-domix",
       "target": "bio-job-summary-resume",
       "kind": "similar",
-      "weight": 0.221
+      "weight": 0.218
     },
     {
-      "source": "bio-job-summary-domix-resume",
+      "source": "bio-job-summary-experience-domix",
       "target": "bio-job-summary-summary",
       "kind": "similar",
-      "weight": 0.177
+      "weight": 0.174
     },
     {
       "source": "bio-job-summary-resume",
@@ -3114,6 +3146,18 @@
       "target": "tiddly-notes-kakie-suschestvuyut-os",
       "kind": "similar",
       "weight": 0.163
+    },
+    {
+      "source": "linux-ubuntu-studio",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.159
+    },
+    {
+      "source": "messangers-deltachat",
+      "target": "bio-job-summary-domix",
+      "kind": "similar",
+      "weight": 0.159
     },
     {
       "source": "music-effects",
@@ -3185,13 +3229,13 @@
       "source": "phi-sound-but-text",
       "target": "rhymes-whisper",
       "kind": "similar",
-      "weight": 0.175
+      "weight": 0.176
     },
     {
       "source": "phi-sound-but-text",
       "target": "tiddly-notes-koadaptatsiya-zmei-predposilki-k-gipoteze",
       "kind": "similar",
-      "weight": 0.174
+      "weight": 0.175
     },
     {
       "source": "rhymes-bedolapa",
@@ -3269,7 +3313,7 @@
       "source": "tiddly-notes-bezumie-na-vkuse",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.54
+      "weight": 0.541
     },
     {
       "source": "tiddly-notes-bezumie-na-vkuse",
@@ -3299,7 +3343,7 @@
       "source": "tiddly-notes-biela",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.208
+      "weight": 0.209
     },
     {
       "source": "tiddly-notes-droun-muzikal-nii-zhanr",
@@ -3401,7 +3445,7 @@
       "source": "tiddly-notes-iom-kippur",
       "target": "tiddly-notes-pochemu-net",
       "kind": "similar",
-      "weight": 0.246
+      "weight": 0.247
     },
     {
       "source": "tiddly-notes-iz-svoego",
@@ -3413,7 +3457,7 @@
       "source": "tiddly-notes-iz-svoego",
       "target": "tiddly-notes-skrizhal",
       "kind": "similar",
-      "weight": 0.338
+      "weight": 0.339
     },
     {
       "source": "tiddly-notes-iz-svoego",
@@ -3539,7 +3583,7 @@
       "source": "tiddly-notes-pochemu-net",
       "target": "tiddly-notes-aksolotl",
       "kind": "similar",
-      "weight": 0.246
+      "weight": 0.247
     },
     {
       "source": "tiddly-notes-pochemu-net",
@@ -3614,6 +3658,18 @@
       "weight": 0.16
     },
     {
+      "source": "bio-job-summary-experience-sberbank",
+      "target": "bio-job-00-профиль-и-персона",
+      "kind": "similar",
+      "weight": 0.127
+    },
+    {
+      "source": "bio-job-summary-experience-sberbank",
+      "target": "bio-job-01-позиционирование-и-роли",
+      "kind": "similar",
+      "weight": 0.127
+    },
+    {
       "source": "dev-cline",
       "target": "dev-opencode",
       "kind": "similar",
@@ -3630,18 +3686,6 @@
       "target": "bio-job-00-профиль-и-персона",
       "kind": "similar",
       "weight": 0.127
-    },
-    {
-      "source": "linux-ubuntu-studio",
-      "target": "bio-job-summary-domix",
-      "kind": "similar",
-      "weight": 0.158
-    },
-    {
-      "source": "messangers-deltachat",
-      "target": "bio-job-summary-domix",
-      "kind": "similar",
-      "weight": 0.158
     },
     {
       "source": "messangers-deltachat",
@@ -3989,10 +4033,10 @@
     }
   ],
   "stats": {
-    "nodes": 80,
-    "links": 216,
+    "nodes": 81,
+    "links": 218,
     "reference": 20,
     "series": 6,
-    "similar": 190
+    "similar": 192
   }
 }

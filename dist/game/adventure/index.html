@@ -17,7 +17,12 @@
     window.__kletchatyyErrors.push('promise: ' + String((e && e.reason) || e));
   });
 </script>
-</head>
+  <!-- data-zqwy-pwa -->
+  <link rel="manifest" href="../../manifest.webmanifest" data-zqwy-pwa>
+  <meta name="theme-color" content="#000000" data-zqwy-pwa>
+  <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png" data-zqwy-pwa>
+  <script type="module" src="../../scripts/pwa.js" data-zqwy-pwa></script>
+  </head>
 <body>
 <main id="app">
   <canvas id="stage" aria-label="Клетчатый лист: поле из клеток, по которому идёт нарисованная девочка"></canvas>

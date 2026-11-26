@@ -350,6 +350,14 @@ for file in "${files[@]}"; do
         "$reduced_lines"
 done
 
+# PWA-слой создаётся после минификации: service worker со списком precache
+# и registration-теги в HTML (иначе минификатор может изменить разметку).
+if [[ -f "$PROJECT_DIR/scripts/build_pwa.mjs" ]]; then
+    echo
+    echo "Генерация PWA-слоя..."
+    node "$PROJECT_DIR/scripts/build_pwa.mjs"
+fi
+
 echo
 echo "Сборка завершена успешно."
 echo

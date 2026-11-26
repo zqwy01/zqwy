@@ -9,6 +9,8 @@
     "covers": "python3 scripts/build_covers.py",
     "catalog": "node scripts/build_music_catalog.mjs",
     "index": "node scripts/build_search_index.mjs",
+    "icons": "python3 scripts/build_pwa_icons.py",
+    "pwa": "node scripts/build_pwa.mjs",
     "version-info": "node scripts/build_version.mjs",
     "notes": "node scripts/build_wiki_notes.mjs",
     "fetch:tiddlywiki": "node scripts/fetch_tiddlywiki.mjs",

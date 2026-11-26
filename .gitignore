@@ -34,6 +34,21 @@ dev/game/*
 # Локальные заметки bio/job и их копия в сборке
 src/notes/bio/job/
 dist/src/notes/bio/job/
+
+# Источники PWA: манифест, registration-модуль и иконки.
+!dev/manifest.webmanifest
+!dev/scripts/pwa.js
+!dev/assets/
+dev/assets/*
+!dev/assets/icons/
+dev/assets/icons/*
+!dev/assets/icons/favicon.ico
+!dev/assets/icons/links.svg
+!dev/assets/icons/icon-192.png
+!dev/assets/icons/icon-512.png
+!dev/assets/icons/icon-maskable-512.png
+!dev/assets/icons/apple-touch-icon.png
+
 *.log
 .env
 .env.*

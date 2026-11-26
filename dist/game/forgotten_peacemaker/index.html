@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f12">
+  <meta name="description" content="Ветер гложет скелет забытого миротворца — атмосферный симулятор: управляй ветром, сдувай пыль с костей и собирай память человека, который остановил войну.">
+  <title>Ветер гложет скелет забытого миротворца · zqwy</title>
+  <link rel="icon" href="../../assets/icons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main class="app">
+    <header class="topbar">
+      <a class="back" href="../">← каталог игр</a>
+      <div class="brand">zqwy <span>/ забытый миротворец</span> <span class="state-chip" id="stageState">тихо</span></div>
+    </header>
+
+    <section class="wasteland" id="wasteland" aria-label="Пустошь, где ветер гложет скелет забытого миротворца">
+      <canvas id="dust" aria-hidden="true"></canvas>
+      <div class="sky-halo" aria-hidden="true"></div>
+      <div class="dunes dunes-far" aria-hidden="true"></div>
+      <div class="dunes dunes-near" aria-hidden="true"></div>
+      <div class="ruins" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="shelter-cloth" id="shelterCloth" aria-hidden="true"></div>
+
+      <svg class="skeleton" id="skeleton" viewBox="0 0 440 440" aria-hidden="true">
+        <defs>
+          <radialGradient id="haloGrad" cx="50%" cy="45%" r="55%">
+            <stop offset="0%" stop-color="#d8c7a0" stop-opacity=".24"/>
+            <stop offset="55%" stop-color="#b9a27c" stop-opacity=".07"/>
+            <stop offset="100%" stop-color="#b9a27c" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="boneGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f0e4cc"/>
+            <stop offset="100%" stop-color="#b4a689"/>
+          </linearGradient>
+        </defs>
+
+        <ellipse class="ghost-halo" cx="220" cy="184" rx="122" ry="142" fill="url(#haloGrad)"/>
+        <ellipse class="ground-shadow" cx="235" cy="389" rx="122" ry="13"/>
+
+        <!-- сломанное древко и флаг, который никто не поднял -->
+        <g class="relic">
+          <path class="staff" d="M105 388 L120 163"/>
+          <path class="flag" d="M120 163 L168 173 L160 194 L187 206 L141 209 L120 197 Z"/>
+          <path class="flag-fold" d="M141 209 L151 184"/>
+        </g>
+
+        <g class="bones">
+          <!-- ноги -->
+          <path class="bone" d="M237 301 C259 326 287 342 320 345"/>
+          <path class="bone" d="M320 345 L347 370"/>
+          <path class="bone" d="M211 302 C196 332 172 349 146 352"/>
+          <path class="bone" d="M146 352 L123 379"/>
+          <circle class="joint" cx="320" cy="345" r="5"/>
+          <circle class="joint" cx="146" cy="352" r="5"/>
+
+          <!-- таз и позвоночник -->
+          <path class="bone bone-fill" d="M204 286 Q232 273 260 287 Q268 304 252 313 Q231 304 210 313 Q197 304 204 286 Z"/>
+          <path class="bone spine" d="M232 287 C226 250 228 220 220 190"/>
+          <g class="vertebrae">
+            <ellipse cx="227" cy="274" rx="5" ry="3"/>
+            <ellipse cx="224" cy="260" rx="5" ry="3"/>
+            <ellipse cx="224" cy="246" rx="5" ry="3"/>
+            <ellipse cx="223" cy="232" rx="5" ry="3"/>
+            <ellipse cx="222" cy="218" rx="5" ry="3"/>
+            <ellipse cx="221" cy="204" rx="4.5" ry="3"/>
+          </g>
+
+          <!-- рёбра -->
+          <path class="bone rib" d="M224 219 C190 211 171 227 175 251 C184 269 206 266 220 252"/>
+          <path class="bone rib" d="M226 235 C194 229 181 244 186 263 C196 277 214 273 226 258"/>
+          <path class="bone rib" d="M227 217 C259 209 277 225 273 248 C265 265 244 262 230 250"/>
+          <path class="bone rib" d="M229 233 C259 228 271 242 267 260 C258 274 240 270 228 256"/>
+
+          <!-- руки, одной он всё ещё держится за древко -->
+          <path class="bone" d="M218 216 C196 238 180 265 167 291"/>
+          <path class="bone" d="M167 291 L149 317"/>
+          <path class="bone" d="M233 216 C254 239 264 268 272 294"/>
+          <path class="bone" d="M272 294 L292 318"/>
+          <circle class="joint" cx="167" cy="291" r="4"/>
+          <circle class="joint" cx="272" cy="294" r="4"/>
+
+          <!-- шея и череп -->
+          <path class="bone" d="M220 191 L216 168"/>
+          <path class="bone skull-cap" d="M180 166 C176 130 194 108 220 106 C248 104 264 126 260 160 C258 177 246 189 222 190 C198 190 184 179 180 166 Z"/>
+          <path class="bone jaw" d="M194 178 Q220 196 246 178 L245 193 Q220 209 196 193 Z"/>
+          <ellipse class="socket" cx="203" cy="152" rx="10" ry="13"/>
+          <ellipse class="socket" cx="238" cy="152" rx="10" ry="13"/>
+          <path class="nose" d="M220 161 L214 175 L226 175 Z"/>
+          <path class="bone teeth" d="M204 187 H238"/>
+          <path class="bone helmet" d="M178 146 Q220 92 262 144"/>
+          <path class="bone crack" d="M237 110 L246 132 L238 146"/>
+        </g>
+
+        <g class="bone-dust" aria-hidden="true">
+          <circle cx="198" cy="306" r="1.8"/><circle cx="246" cy="330" r="1.4"/>
+          <circle cx="214" cy="356" r="1.6"/><circle cx="282" cy="288" r="1.3"/>
+          <circle cx="174" cy="276" r="1.5"/><circle cx="252" cy="196" r="1.2"/>
+        </g>
+      </svg>
+
+      <div class="motes" id="motes"></div>
+      <div class="whisper" id="whisper" role="status" aria-live="polite"></div>
+      <p class="stage-caption" id="stageCaption">Пустошь. Кость, флаг, ветер.</p>
+      <p class="stage-tip">Тяни пальцем или мышкой по пустоши — ветер последует за движением.</p>
+    </section>
+
+    <section class="panel" aria-label="Управление ветром">
+      <div class="panel-main">
+        <div class="meters">
+          <div class="meter-row">
+            <span class="meter-label">ПАМЯТЬ</span>
+            <span class="meter"><i class="meter-fill memory-fill" id="memoryFill"></i></span>
+            <b class="meter-value" id="memoryValue">0/8</b>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">КОСТЬ</span>
+            <span class="meter"><i class="meter-fill bone-fill-bar" id="integrityFill"></i></span>
+            <b class="meter-value" id="integrityValue">100%</b>
+          </div>
+          <div class="meter-row">
+            <span class="meter-label">ВЕТЕР</span>
+            <span class="meter"><i class="meter-fill wind-fill" id="windFill"></i></span>
+            <b class="meter-value" id="windValue">38%</b>
+          </div>
+        </div>
+        <p class="mood" id="moodText">Ветер ещё не набрал силу.</p>
+        <p class="hint" id="hint">Направь ветер на кость: пыль слетеет, и в ней появятся светящиеся обрывки памяти. Нажимай на них, чтобы вспомнить.</p>
+        <div class="counters">
+          <span title="Собранные обрывки">✧ <b id="memoryCount">0</b></span>
+          <span title="Порывы ветра">≈ <b id="gustCount">0</b></span>
+          <span title="Секунды укрытия">⌂ <b id="shelterCount">0</b></span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="wind-controls">
+          <div class="compass" id="compass" aria-hidden="true">
+            <span class="compass-n">С</span><span class="compass-e">В</span>
+            <span class="compass-s">Ю</span><span class="compass-w">З</span>
+            <span class="compass-arrow" id="compassArrow">↑</span>
+          </div>
+          <div class="sliders">
+            <label for="dirInput">НАПРАВЛЕНИЕ <output id="dirValue" for="dirInput">0°</output></label>
+            <input id="dirInput" type="range" min="0" max="359" value="0" aria-label="Направление ветра">
+            <label for="strengthInput">СИЛА <output id="strengthValue" for="strengthInput">38%</output></label>
+            <input id="strengthInput" type="range" min="0" max="100" value="38" aria-label="Сила ветра">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="ctrl" id="gustBtn" type="button"><span class="ctrl-icon" aria-hidden="true">≈</span><span class="ctrl-text"><b>ПОРЫВ</b><small>пробел</small></span></button>
+          <button class="ctrl" id="listenBtn" type="button"><span class="ctrl-icon" aria-hidden="true">◌</span><span class="ctrl-text"><b>ПРИСЛУШАТЬСЯ</b><small>клавиша E</small></span></button>
+          <button class="ctrl" id="shelterBtn" type="button" aria-pressed="false"><span class="ctrl-icon" aria-hidden="true">⌂</span><span class="ctrl-text"><b id="shelterLabel">УКРЫТЬ</b><small>клавиша H</small></span></button>
+          <button class="ctrl" id="soundBtn" type="button" aria-pressed="true"><span class="ctrl-icon" aria-hidden="true">♪</span><span class="ctrl-text"><b id="soundLabel">ЗВУК ВКЛ</b><small>ветер и колокольчик</small></span></button>
+          <button class="ctrl small-ctrl" id="resetBtn" type="button"><span class="ctrl-icon" aria-hidden="true">↺</span><span class="ctrl-text"><b>ЗАНОВО</b><small>клавиша R</small></span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="journal" id="journal" aria-labelledby="journal-title">
+      <header class="journal-head">
+        <h2 id="journal-title">Дневник миротворца</h2>
+        <p id="journalProgress">0 из 8 обрывков</p>
+      </header>
+      <ol class="journal-list" id="journalList"></ol>
+      <div class="ending" id="ending" hidden>
+        <p class="ending-mark" aria-hidden="true">✧</p>
+        <p>Имя прочитано. Ветер не смог стереть его — теперь его повторяют.</p>
+      </div>
+    </section>
+
+    <p class="footnote">Пробел — порыв · E — прислушаться · H — укрыть/открыть · R — заново · стрелки — направление и сила · перетаскивание по пустоши — ветер рукой. Проигрыша нет: можно укрыть кость и начать слушать снова.</p>
+  </main>
+
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

@@ -24,6 +24,11 @@ dev/vendor/*
 !dev/vendor/joint.min.js
 !dev/vendor/underscore-min.js
 !dev/vendor/backbone-min.js
+# Исходники новой игры: dev/ игнорируется целиком, поэтому каталог игры
+# включаем явно; остальные подпапки dev/game/ остаются проигнорированными.
+!dev/game/
+dev/game/*
+!dev/game/forgotten_peacemaker/
 # Локальные заметки bio/job и их копия в сборке
 src/notes/bio/job/
 dist/src/notes/bio/job/

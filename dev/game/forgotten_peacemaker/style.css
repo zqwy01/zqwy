@@ -1,0 +1,487 @@
+/* Ветер гложет скелет забытого миротворца — атмосферный симулятор.
+   Отдельное статическое приложение: сборка не минифицирует dist/game/.
+   Визуальный ряд: выжженная пустошь, сидячий скелет с обрывком флага,
+   пыль на canvas и светящиеся обрывки памяти вместо «очков». */
+:root {
+  --ink: #e7ddc8;
+  --muted: #9a9487;
+  --paper: #131a1d;
+  --line: #30383a;
+  --bone: #e8ddc3;
+  --dust: #c8b894;
+  --ember: #d9a25f;
+  --glow: #e9d29c;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  background:
+    radial-gradient(90% 55% at 50% -12%, #1d2a2c 0%, transparent 72%),
+    linear-gradient(180deg, #0b0f12 0%, #101517 60%, #0b0e10 100%);
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: .19;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+.app {
+  position: relative;
+  width: min(1060px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 20px 0 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.back {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(154, 148, 135, .34);
+  padding-bottom: 2px;
+  transition: color .2s, border-color .2s;
+}
+.back:hover, .back:focus-visible { color: var(--ink); border-color: var(--ink); }
+
+.brand { color: var(--dust); letter-spacing: .11em; white-space: nowrap; }
+.brand span { color: var(--muted); letter-spacing: .04em; }
+.state-chip {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(231, 221, 200, .04);
+  color: var(--dust);
+  font-size: .72rem;
+  letter-spacing: .04em;
+}
+
+/* ── пустошь ────────────────────────────────────────────────────── */
+
+.wasteland {
+  position: relative;
+  width: 100%;
+  height: clamp(400px, 60vh, 590px);
+  border: 1px solid #2b3233;
+  border-radius: 24px;
+  overflow: hidden;
+  isolation: isolate;
+  touch-action: none;
+  cursor: crosshair;
+  background:
+    linear-gradient(180deg, #121c20 0%, #29302c 46%, #4a4132 72%, #2a251f 100%);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, .45), inset 0 1px rgba(255, 255, 255, .06);
+}
+
+#dust { position: absolute; inset: 0; z-index: 6; width: 100%; height: 100%; pointer-events: none; }
+
+.sky-halo {
+  position: absolute;
+  top: -24%; right: -10%;
+  width: 58%; aspect-ratio: 1;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(226, 178, 111, .2) 0%, rgba(226, 178, 111, .06) 42%, transparent 70%);
+  filter: blur(2px);
+}
+
+.dunes {
+  position: absolute;
+  left: -10%; right: -10%;
+  z-index: 1;
+  pointer-events: none;
+}
+.dunes-far {
+  bottom: 16%;
+  height: 34%;
+  background:
+    radial-gradient(ellipse 52% 100% at 18% 100%, #454739 0 68%, transparent 70%),
+    radial-gradient(ellipse 62% 90% at 72% 100%, #3b4038 0 68%, transparent 70%),
+    radial-gradient(ellipse 80% 70% at 48% 100%, #50503d 0 70%, transparent 72%);
+  opacity: .75;
+}
+.dunes-near {
+  bottom: -30%;
+  height: 62%;
+  background:
+    radial-gradient(ellipse 56% 100% at 24% 100%, #6a5840 0 68%, transparent 70%),
+    radial-gradient(ellipse 62% 90% at 78% 100%, #5b4d38 0 68%, transparent 70%),
+    radial-gradient(ellipse 92% 70% at 50% 100%, #776243 0 72%, transparent 74%);
+}
+
+.ruins { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: .5; }
+.ruins i {
+  position: absolute;
+  display: block;
+  bottom: 21%;
+  width: 12px;
+  height: 74px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, #3a3a31, #595343 60%, #33332c);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .2);
+}
+.ruins i:nth-child(1) { left: 8%; height: 52px; transform: rotate(-5deg); }
+.ruins i:nth-child(2) { left: 13%; height: 92px; transform: rotate(2deg); }
+.ruins i:nth-child(3) { right: 11%; height: 64px; transform: rotate(6deg); }
+.ruins i:nth-child(4) { right: 17%; height: 38px; transform: rotate(-4deg); }
+
+.skeleton {
+  position: absolute;
+  left: 54%;
+  bottom: 4%;
+  z-index: 4;
+  width: clamp(270px, 43vw, 430px);
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .42));
+  transition: opacity .6s ease, filter .6s ease, transform .6s ease;
+  pointer-events: none;
+}
+.wasteland.is-fragile .skeleton {
+  opacity: .58;
+  filter: drop-shadow(0 12px 12px rgba(0, 0, 0, .3)) blur(.35px);
+  transform: translateX(-50%) translateY(2px);
+}
+.ghost-halo { animation: halo-breathe 6.5s ease-in-out infinite; transform-origin: 220px 184px; }
+.ground-shadow { fill: rgba(0, 0, 0, .32); }
+.relic .staff { fill: none; stroke: #8b7a5c; stroke-width: 6; stroke-linecap: round; }
+.relic .flag { fill: rgba(217, 208, 184, .62); stroke: rgba(240, 228, 200, .45); stroke-width: 1.5; }
+.relic .flag-fold { fill: none; stroke: rgba(90, 80, 62, .55); stroke-width: 1.6; }
+.bone {
+  fill: none;
+  stroke: url(#boneGrad);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bone-fill { fill: rgba(232, 221, 195, .18); stroke-width: 5; }
+.spine { stroke-width: 5.5; }
+.rib { stroke-width: 5; }
+.joint { fill: var(--bone); opacity: .75; }
+.vertebrae ellipse { fill: var(--bone); opacity: .68; }
+.skull-cap { fill: rgba(232, 221, 195, .17); stroke-width: 6; }
+.jaw { fill: rgba(232, 221, 195, .1); stroke-width: 5; }
+.socket { fill: #161d1d; opacity: .92; }
+.nose { fill: #161d1d; opacity: .9; }
+.teeth { stroke-width: 2.2; }
+.helmet { stroke-width: 3.4; stroke: rgba(217, 162, 95, .72); }
+.crack { stroke-width: 2; stroke: rgba(24, 30, 30, .75); }
+.bone-dust circle { fill: var(--dust); opacity: .5; }
+
+/* Укрытие — ткань, которую игрок набрасывает на кость. */
+.shelter-cloth {
+  position: absolute;
+  left: 54%;
+  bottom: 1%;
+  z-index: 5;
+  width: clamp(260px, 40vw, 400px);
+  height: clamp(250px, 36vw, 360px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .4s ease;
+  background:
+    linear-gradient(115deg, transparent 0 24%, rgba(96, 87, 70, .93) 25% 78%, transparent 79%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .08) 0 3px, transparent 3px 9px);
+  clip-path: polygon(8% 78%, 24% 22%, 62% 8%, 92% 34%, 100% 88%, 72% 100%, 34% 96%);
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, .45));
+}
+.wasteland.is-sheltered .shelter-cloth { opacity: 1; }
+.wasteland.is-sheltered .skeleton { filter: brightness(.62) saturate(.7); }
+
+.motes { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.mote {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(233, 210, 156, .6);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(233, 210, 156, .25), rgba(233, 210, 156, .03) 68%, transparent);
+  color: #f3e4bb;
+  font: 700 1.25rem/38px var(--font);
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: mote-float 4.2s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  filter: drop-shadow(0 0 10px rgba(233, 210, 156, .5));
+  transition: transform .2s ease, background .2s ease;
+}
+.mote:hover, .mote:focus-visible {
+  transform: scale(1.22);
+  background: radial-gradient(circle, rgba(233, 210, 156, .42), rgba(233, 210, 156, .06) 68%, transparent);
+}
+.mote::after {
+  content: 'вспомнить';
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(12, 16, 17, .86);
+  color: var(--dust);
+  font: 600 .62rem/1.5 var(--font);
+  letter-spacing: .06em;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.mote:hover::after, .mote:focus-visible::after { opacity: 1; }
+
+.whisper {
+  position: absolute;
+  left: 50%;
+  top: 7%;
+  z-index: 9;
+  width: min(78%, 640px);
+  padding: 14px 22px;
+  border: 1px solid rgba(233, 210, 156, .34);
+  border-radius: 14px;
+  background: rgba(12, 17, 18, .82);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .4);
+  color: #f1e3c1;
+  font-size: clamp(.88rem, 2vw, 1.06rem);
+  line-height: 1.5;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, -10px);
+  transition: opacity .35s ease, transform .35s ease;
+  pointer-events: none;
+}
+.whisper.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+.stage-caption, .stage-tip {
+  position: absolute;
+  left: 22px;
+  z-index: 7;
+  margin: 0;
+  color: rgba(231, 221, 200, .72);
+  font-size: .78rem;
+  letter-spacing: .05em;
+  pointer-events: none;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, .7);
+}
+.stage-caption { bottom: 20px; font-size: .92rem; color: var(--ink); }
+.stage-tip { bottom: 4px; font-size: .68rem; color: rgba(231, 221, 200, .48); }
+
+.wasteland.is-gusting { box-shadow: 0 26px 70px rgba(0, 0, 0, .45), inset 0 0 80px rgba(217, 162, 95, .18); }
+
+/* ── панель ─────────────────────────────────────────────────────── */
+
+.panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(19, 26, 29, .86);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .22);
+}
+.panel-main { min-width: 0; }
+.meters { display: grid; gap: 9px; }
+.meter-row { display: grid; grid-template-columns: 82px minmax(80px, 1fr) 44px; align-items: center; gap: 10px; }
+.meter-label { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .12em; }
+.meter {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: #252d2e;
+  overflow: hidden;
+}
+.meter-fill { display: block; width: 0; height: 100%; border-radius: inherit; transition: width .3s ease; }
+.memory-fill { background: linear-gradient(90deg, #8e7c56, #e9d29c); }
+.bone-fill-bar { width: 100%; background: linear-gradient(90deg, #8e8879, #e8ddc3); }
+.wind-fill { background: linear-gradient(90deg, #5c6b68, #a8c0b7); }
+.meter-value { color: var(--dust); font-size: .78rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+.mood { margin: 10px 0 0; color: var(--glow); font-size: .78rem; font-weight: 600; }
+.hint { margin: 7px 0 10px; color: var(--muted); font-size: .82rem; }
+.counters { display: flex; flex-wrap: wrap; gap: 18px; color: var(--dust); font-size: .86rem; }
+.counters b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.controls { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; }
+.wind-controls { display: flex; align-items: center; gap: 12px; }
+.compass {
+  position: relative;
+  flex: none;
+  width: 84px;
+  height: 84px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(217, 162, 95, .06), transparent 70%);
+  color: var(--muted);
+  font-size: .62rem;
+}
+.compass span { position: absolute; }
+.compass-n { top: 3px; left: 50%; transform: translateX(-50%); }
+.compass-s { bottom: 3px; left: 50%; transform: translateX(-50%); }
+.compass-w { left: 5px; top: 50%; transform: translateY(-50%); }
+.compass-e { right: 5px; top: 50%; transform: translateY(-50%); }
+.compass-arrow {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--glow);
+  font: 700 1.6rem/1 var(--font);
+  transform: rotate(var(--dir, 0deg));
+  transition: transform .18s ease;
+}
+.sliders { display: grid; gap: 4px; width: clamp(130px, 16vw, 180px); }
+.sliders label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .62rem; font-weight: 700; letter-spacing: .08em; }
+.sliders output { color: var(--dust); font-variant-numeric: tabular-nums; }
+.sliders input[type="range"] { width: 100%; margin: 0 0 7px; accent-color: var(--ember); cursor: pointer; }
+
+.actions { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 8px; }
+.ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #182023;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .2s, background .2s, transform .2s;
+}
+.ctrl:hover, .ctrl:focus-visible { border-color: #8d7c58; background: #1e292b; transform: translateY(-1px); }
+.ctrl-icon { display: grid; place-items: center; width: 22px; color: var(--glow); font-size: 1.15rem; }
+.ctrl-text { display: grid; min-width: 0; }
+.ctrl-text b { font-size: .66rem; letter-spacing: .07em; white-space: nowrap; }
+.ctrl-text small { color: var(--muted); font-size: .62rem; white-space: nowrap; }
+.small-ctrl { grid-column: span 2; }
+.ctrl[aria-pressed="true"] { border-color: #a58d61; background: #29302a; }
+#soundBtn[aria-pressed="false"] { opacity: .6; }
+
+/* ── дневник ────────────────────────────────────────────────────── */
+
+.journal {
+  margin-top: 16px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(19, 26, 29, .76);
+}
+.journal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.journal-head h2 { margin: 0; font-size: 1.02rem; letter-spacing: .04em; }
+.journal-head p { margin: 0; color: var(--muted); font-size: .76rem; }
+.journal-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: memory;
+}
+.journal-list li {
+  counter-increment: memory;
+  padding: 9px 12px 9px 34px;
+  border: 1px solid #2b3334;
+  border-radius: 12px;
+  background: rgba(10, 14, 15, .35);
+  color: var(--muted);
+  font-size: .8rem;
+  position: relative;
+}
+.journal-list li::before {
+  content: counter(memory, decimal-leading-zero);
+  position: absolute;
+  left: 11px;
+  top: 10px;
+  color: #6f736b;
+  font-size: .66rem;
+  font-variant-numeric: tabular-nums;
+}
+.journal-list li.is-found { border-color: rgba(233, 210, 156, .36); color: var(--ink); background: rgba(233, 210, 156, .05); }
+.journal-list li.is-found::before { color: var(--glow); }
+.journal-list b { display: block; margin-bottom: 3px; color: var(--dust); font-size: .76rem; letter-spacing: .04em; }
+.journal-list p { margin: 0; line-height: 1.45; }
+.ending {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px solid rgba(233, 210, 156, .4);
+  border-radius: 13px;
+  background: rgba(233, 210, 156, .07);
+  color: #f1e3c1;
+  font-size: .9rem;
+}
+.ending-mark { margin: 0; color: var(--glow); font-size: 1.5rem; }
+
+.footnote { margin: 14px 2px 0; color: var(--muted); font-size: .74rem; text-align: center; }
+
+/* ── анимации ───────────────────────────────────────────────────── */
+
+@keyframes halo-breathe {
+  0%, 100% { opacity: .72; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes mote-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-9px) scale(1.06); }
+}
+
+@media (max-width: 900px) {
+  .panel { grid-template-columns: 1fr; gap: 16px; }
+  .controls { grid-template-columns: 1fr; }
+  .wind-controls { justify-content: flex-start; }
+  .sliders { width: min(100%, 320px); }
+  .actions { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
+  .small-ctrl { grid-column: auto; }
+}
+
+@media (max-width: 620px) {
+  .app { width: min(100% - 20px, 1060px); padding-top: 14px; }
+  .topbar { font-size: 12px; }
+  .brand span:first-of-type { display: none; }
+  .wasteland { height: 430px; border-radius: 18px; }
+  .skeleton { left: 57%; width: 290px; }
+  .shelter-cloth { left: 57%; width: 280px; height: 270px; }
+  .journal-list { grid-template-columns: 1fr; }
+  .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stage-tip { display: none; }
+  .mote { width: 34px; height: 34px; line-height: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

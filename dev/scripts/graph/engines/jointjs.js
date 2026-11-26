@@ -4,7 +4,7 @@
 import { loadVendorScripts } from "../vendor.js";
 import {
   categoryColors, nodeColor, nodeRadius, edgeWidth, shorten,
-  withAlpha, seedPositions, separateNodes, observeResize,
+  withAlpha, seedPositions, separateNodes, observeResize, tweenView,
 } from "../shared.js";
 
 export async function createEngine({ host, palette, categories, reducedMotion, callbacks, vendorBase }) {
@@ -27,12 +27,25 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   let graph; let paper;
   const cells = new Map(); const linkCells = [];
   let width = 1; let height = 1;
-  let energy = 1; let paused = false; let raf = 0;
+  let energy = 1; let paused = false; let raf = 0; let cancelFocus = null;
   let selected = null; let hovered = null; let walking = null; let matched = new Set();
   let disconnected = null;
 
   function wake() { if (!raf) raf = requestAnimationFrame(frame); }
   function invalidate() { wake(); }
+  function stopFocus() {
+    if (!cancelFocus) return;
+    cancelFocus();
+    cancelFocus = null;
+  }
+  function paperView() {
+    const translation = paper.translate();
+    return { x: translation.tx, y: translation.ty, k: paper.scale().sx };
+  }
+  function setPaperView(next) {
+    paper.scale(next.k);
+    paper.translate(next.x, next.y);
+  }
 
   function resize() {
     width = Math.max(1, host.clientWidth); height = Math.max(1, host.clientHeight);
@@ -95,15 +108,20 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
       const dx = b.x - a.x; const dy = b.y - a.y;
       const distance = Math.sqrt(dx * dx + dy * dy) || 1;
       const target = link.kind === "similar" ? 170 : link.kind === "series" ? 100 : 125;
+      // Use the unit vector. Multiplying by dx as well makes far-apart nodes
+      // accelerate without bound and sends JointJS non-finite coordinates.
       const force = energy * 0.016 * (distance - target) * (0.55 + Number(link.weight || 0));
-      a.ax += dx * force; a.ay += dy * force;
-      b.ax -= dx * force; b.ay -= dy * force;
+      const nx = dx / distance; const ny = dy / distance;
+      a.ax += nx * force; a.ay += ny * force;
+      b.ax -= nx * force; b.ay -= ny * force;
     }
     for (const node of nodes) {
       node.ax += (width / 2 - node.x) * energy * 0.0015;
       node.ay += (height / 2 - node.y) * energy * 0.0015;
       node.vx = ((node.vx || 0) + node.ax) * 0.84;
       node.vy = ((node.vy || 0) + node.ay) * 0.84;
+      const speed = Math.hypot(node.vx, node.vy);
+      if (speed > 12) { node.vx *= 12 / speed; node.vy *= 12 / speed; }
       node.x += node.vx; node.y += node.vy;
     }
     separateNodes(nodes, 6, 2);
@@ -158,6 +176,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
 
   function fit(duration = 0) {
     if (!nodes.length) return;
+    stopFocus();
     let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
     for (const node of nodes) {
       minX = Math.min(minX, node.x); maxX = Math.max(maxX, node.x);
@@ -232,6 +251,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     }
   });
   paper.on("blank:pointerdown", (event) => {
+    stopFocus();
     const start = localPointer(event);
     const startTranslate = paper.translate();
     const move = (moveEvent) => {
@@ -247,6 +267,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   });
   container.addEventListener("wheel", (event) => {
     event.preventDefault();
+    stopFocus();
     const scale = paper.scale().sx * (event.deltaY > 0 ? 0.92 : 1.08);
     if (scale >= 0.2 && scale <= 3) paper.scale(scale);
   }, { passive: false });
@@ -257,6 +278,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   return {
     id: "joint",
     setData(payload) {
+      stopFocus();
       nodes = (payload.nodes || []).map((node) => ({ ...node }));
       links = (payload.links || []).map((link) => ({ ...link }));
       byId = new Map(nodes.map((node) => [node.id, node]));
@@ -277,9 +299,14 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     focus(id) {
       const node = byId.get(id);
       if (!node) return;
+      stopFocus();
       const scale = Math.max(paper.scale().sx, 1.2);
-      paper.scale(scale);
-      paper.translate(width / 2 - node.x * scale, height / 2 - node.y * scale);
+      cancelFocus = tweenView(
+        paperView,
+        () => ({ x: width / 2 - node.x * scale, y: height / 2 - node.y * scale, k: scale }),
+        setPaperView,
+        { duration: 460, reducedMotion },
+      );
     },
     fit() { fit(reducedMotion ? 0 : 360); },
     reheat() {
@@ -294,6 +321,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
       applyHighlight();
     },
     destroy() {
+      stopFocus();
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       disconnected?.();

@@ -3,7 +3,7 @@
  * grouped by folder. Nice for screenshots, low-power devices and calm mode. */
 import {
   svgEl, observeResize, categoryColors, nodeColor, nodeRadius,
-  edgeWidth, shorten, separateNodes,
+  edgeWidth, shorten, separateNodes, tweenView,
 } from "../shared.js";
 
 export function createEngine({ host, palette, categories, reducedMotion, callbacks }) {
@@ -22,11 +22,21 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
   const nodeEls = new Map(); const linkEls = new Map();
   const positions = new Map();
   let view = { x: 0, y: 0, k: 1 };
+  let cancelFocus = null;
   let selected = null; let hovered = null; let walking = null; let matched = new Set();
   let disconnected = null;
 
   function applyView() {
     viewport.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
+  }
+  function stopFocus() {
+    if (!cancelFocus) return;
+    cancelFocus();
+    cancelFocus = null;
+  }
+  function setView(next) {
+    Object.assign(view, next);
+    applyView();
   }
   function localPoint(event) {
     const rect = host.getBoundingClientRect();
@@ -171,6 +181,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
 
   function fit() {
     if (!nodes.length) return;
+    stopFocus();
     let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
     for (const node of nodes) {
       const point = positions.get(node.id);
@@ -188,6 +199,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
 
   function onBackgroundDown(event) {
     if (event.target !== svg && event.target !== viewport && event.target !== linkLayer) return;
+    stopFocus();
     const point = localPoint(event);
     const start = { ...view };
     svg.setPointerCapture?.(event.pointerId);
@@ -208,6 +220,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
   }
   function onWheel(event) {
     event.preventDefault();
+    stopFocus();
     const point = localPoint(event);
     const next = Math.max(0.2, Math.min(3.5, view.k * Math.exp(-event.deltaY * 0.0014)));
     view.x = point.x - ((point.x - view.x) / view.k) * next;
@@ -223,6 +236,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
   return {
     id: "orbit",
     setData(payload) {
+      stopFocus();
       nodes = payload.nodes || [];
       links = payload.links || [];
       layout(payload.allNodes || nodes);
@@ -239,10 +253,14 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
     focus(id) {
       const point = positions.get(id);
       if (!point) return;
-      view.k = Math.max(view.k, 1.15);
-      view.x = width / 2 - point.x * view.k;
-      view.y = height / 2 - point.y * view.k;
-      applyView();
+      stopFocus();
+      const scale = Math.max(view.k, 1.15);
+      cancelFocus = tweenView(
+        () => view,
+        () => ({ x: width / 2 - point.x * scale, y: height / 2 - point.y * scale, k: scale }),
+        setView,
+        { duration: 460, reducedMotion },
+      );
     },
     fit,
     reheat() { fit(); },
@@ -258,6 +276,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
       }
     },
     destroy() {
+      stopFocus();
       svg.removeEventListener("pointerdown", onBackgroundDown);
       svg.removeEventListener("wheel", onWheel);
       disconnected?.();

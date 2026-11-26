@@ -133,6 +133,9 @@ requireText("scripts/graph/ui.js", "graph-section-option", "списка раз�
 requireText("scripts/graph/ui.js", "dataset.tip", "описаний кнопок при наведении");
 requireText("scripts/graph/ui.js", "is-upward", "ограничения списка разделов");
 requireText("scripts/graph/ui.js", "is-closing", "анимации закрытия карточки");
+requireText("scripts/graph/ui.js", "is-switching", "плавной смены карточки при прогулке");
+requireText("scripts/graph/shared.js", "tweenView", "плавного движения камеры между заметками");
+requireText("scripts/graph/core.js", "switching", "анимации автоматических переходов");
 requireText("scripts/graph/core.js", "engineDisabled", "автоотключения движков");
 requireText("scripts/graph/core.js", "__zqwyGraphPendingEngine", "раннего выбора движка");
 requireText("scripts/graph/core.js", "window.__zqwyGraphDataPromise", "переиспользования данных первой загрузки");
@@ -141,6 +144,8 @@ requireText("styles/graph.css", "graph-control-press", "анимации наж�
 requireText("styles/graph.css", "graph-details-in", "анимации открытия карточки заметки");
 requireText("styles/graph.css", "graph-details-out", "анимации закрытия карточки заметки");
 requireText("styles/graph.css", "graph-section-select-menu.is-upward", "списка разделов внутри панели");
+requireText("styles/graph.css", ".graph-section-options", "прокручиваемого списка разделов");
+requireText("styles/graph.css", "graph-detail-switch-in", "анимации смены карточки при прогулке");
 forbidText("scripts/transition/events.js", "P.initialLoaderTimer = window.setTimeout", "лоадер первой загрузки");
 
 const homePage = path.join(base, "index.html");

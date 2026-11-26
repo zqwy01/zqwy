@@ -98,8 +98,7 @@
   transition: transform .18s ease;
 }
 .graph-engine-select-trigger[aria-expanded="true"] .graph-engine-select-chevron { transform: rotate(180deg); }
-.graph-engine-select-menu,
-.graph-section-select-menu {
+.graph-engine-select-menu {
   position: absolute;
   z-index: 12;
   top: calc(100% + 6px);
@@ -118,17 +117,34 @@
   box-shadow: 0 14px 34px rgba(0, 0, 0, .4);
   animation: graph-menu-in .16s ease both;
 }
-/* The section filter sits directly above the scene: open it upwards so the
- * list never spills over (or past) the graph. The JS caps its height to the
- * free space and scrolls the options inside the menu. */
-.graph-section-select-menu.is-upward {
-  top: auto;
-  bottom: calc(100% + 6px);
+/* The section menu is pinned above its trigger by JS. Only the option list
+ * scrolls: the search field stays visible and the popup never covers the
+ * graph scene, no matter how long the list or where the page is scrolled. */
+.graph-section-select-menu {
+  position: absolute;
+  z-index: 12;
+  right: 0;
+  left: 0;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated-2);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .4);
+  animation: graph-menu-in .16s ease both;
+}
+.graph-section-select-menu.is-upward { animation-name: graph-menu-in-up; }
+.graph-section-options {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: var(--focus-border) transparent;
 }
 .graph-engine-select-menu::-webkit-scrollbar,
-.graph-section-select-menu::-webkit-scrollbar { width: 8px; }
+.graph-section-options::-webkit-scrollbar { width: 8px; }
 .graph-engine-select-menu::-webkit-scrollbar-thumb,
-.graph-section-select-menu::-webkit-scrollbar-thumb {
+.graph-section-options::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 8px;
   background-clip: padding-box;
@@ -136,6 +152,10 @@
 }
 @keyframes graph-menu-in {
   from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes graph-menu-in-up {
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .graph-engine-option {
@@ -567,6 +587,20 @@
   from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(14px); opacity: 0; }
 }
+/* Automatic walks keep the card open and swap its contents in place: the old
+ * note fades up and out, the next one settles in from below. */
+.graph-details.is-switching .graph-details-body { transition: opacity .13s ease, transform .13s ease; }
+.graph-details.is-switching.is-switch-out .graph-details-body {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.graph-details.is-switching.is-switch-in .graph-details-body {
+  animation: graph-detail-switch-in .26s cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes graph-detail-switch-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .graph-details-close {
   position: absolute;
   top: 8px;
@@ -670,6 +704,7 @@
   stroke-width: 1.5;
   opacity: 0;
   pointer-events: none;
+  transition: opacity .18s ease;
 }
 .graph-svg .ng-node.is-selected .ng-halo,
 .graph-svg .ng-node.is-match .ng-halo,
@@ -741,6 +776,8 @@
   .graph-details.is-closing,
   .graph-details.is-opening .graph-details-body > *,
   .graph-details.is-closing .graph-details-body > *,
+  .graph-details.is-switching .graph-details-body,
+  .graph-details.is-switching.is-switch-in .graph-details-body,
   .graph-engine-select-menu,
   .graph-section-select-menu,
   .graph-stage-actions button { animation: none; }

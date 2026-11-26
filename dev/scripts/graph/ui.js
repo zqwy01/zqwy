@@ -6,6 +6,8 @@ export function install(P) {
   let sectionDocBound = false;
   let controlTipBound = false;
   let detailsCloseTimer = 0;
+  let detailsSwitchTimer = 0;
+  let renderedDetailsId = null;
   Object.assign(P, {
     bindGraphElements, bindEngineSelect, renderEngines, renderSections, renderDetails,
     hideDetails, showTooltip, updateStatus, updateActions, decorateActions,
@@ -139,39 +141,69 @@ export function install(P) {
     if (!menu || !trigger) return;
     menu.hidden = true;
     menu.classList.remove("is-upward");
-    menu.style.maxHeight = "";
+    menu.style.removeProperty("left");
+    menu.style.removeProperty("width");
+    menu.style.removeProperty("bottom");
+    menu.style.removeProperty("top");
+    menu.style.removeProperty("max-height");
+    menu.style.removeProperty("position");
+    delete menu.dataset.nudged;
+    if (P.els.sectionOptions) P.els.sectionOptions.style.removeProperty("max-height");
     trigger.setAttribute("aria-expanded", "false");
     if (P.els.sectionFilter) P.els.sectionFilter.value = "";
     if (P.els.sectionEmpty) P.els.sectionEmpty.hidden = true;
     menu.querySelectorAll(".graph-section-option").forEach((option) => { option.hidden = false; });
   }
 
-  // Keep the section popup inside the toolbar/viewport. It prefers opening
-  // upwards so a long list never spills over the graph scene below; when there
-  // is no room above, the menu scrolls inside the available space instead.
+  // Keep the section popup above the trigger and inside the viewport. Only the
+  // option list scrolls, so the search field never disappears mid-scroll and
+  // the menu can never spill over the graph scene below.
   function positionSectionMenu() {
     const menu = P.els.sectionMenu;
     const trigger = P.els.sectionTrigger;
-    if (!menu || !trigger || menu.hidden) return;
-    menu.classList.remove("is-upward");
-    menu.style.maxHeight = "";
+    const options = P.els.sectionOptions;
+    if (!menu || !trigger || !options || menu.hidden) return;
 
-    const triggerRect = trigger.getBoundingClientRect();
+    menu.classList.remove("is-upward");
+    menu.style.removeProperty("left");
+    menu.style.removeProperty("width");
+    menu.style.removeProperty("bottom");
+    menu.style.removeProperty("top");
+    menu.style.removeProperty("max-height");
+    menu.style.removeProperty("position");
+    options.style.removeProperty("max-height");
+
+    let rect = trigger.getBoundingClientRect();
+    const viewRoom = Math.max(0, rect.top - 14);
+    // If the toolbar is nearly off-screen, bring the trigger into view once so
+    // the popup has useful height instead of a one-line sliver.
+    if (viewRoom < 150 && !menu.dataset.nudged) {
+      menu.dataset.nudged = "1";
+      trigger.scrollIntoView({ block: "center", behavior: "auto" });
+      positionSectionMenu();
+      return;
+    }
+
     const toolbar = P.els.sectionSelect?.closest(".graph-toolbar");
     const toolbarTop = toolbar ? toolbar.getBoundingClientRect().top : 0;
     const stageTop = P.els.stage?.getBoundingClientRect().top ?? Infinity;
-    const above = Math.max(0, triggerRect.top - Math.max(toolbarTop, 0) - 8);
-    const belowStage = Math.max(0, stageTop - triggerRect.bottom - 8);
-    const belowView = Math.max(0, window.innerHeight - triggerRect.bottom - 8);
-    const wanted = Math.min(320, menu.scrollHeight + 2);
+    rect = trigger.getBoundingClientRect();
+    const toolbarRoom = Math.max(0, rect.top - Math.max(toolbarTop, 8) - 6);
+    const room = toolbarRoom >= 150 && stageTop >= rect.bottom ? toolbarRoom : viewRoom;
 
-    if (above >= Math.min(wanted, 160)) {
-      menu.classList.add("is-upward");
-      menu.style.maxHeight = `${Math.min(320, above)}px`;
-      return;
-    }
-    const available = belowStage >= 160 ? belowStage : belowView;
-    menu.style.maxHeight = `${Math.min(320, Math.max(160, available))}px`;
+    // Measure the fixed chrome (search field, padding and border) and give all
+    // remaining space to the scrollable option list.
+    const chrome = Math.max(0, menu.offsetHeight - options.offsetHeight);
+    const listMax = Math.max(64, Math.min(320 - chrome, room - chrome));
+    options.style.maxHeight = `${Math.round(listMax)}px`;
+
+    menu.style.position = "fixed";
+    menu.style.top = "auto";
+    menu.style.left = `${Math.round(rect.left)}px`;
+    menu.style.width = `${Math.round(rect.width)}px`;
+    menu.style.bottom = `${Math.round(window.innerHeight - rect.top + 6)}px`;
+    menu.style.maxHeight = "none";
+    menu.classList.add("is-upward");
   }
 
   function visibleSectionOptions() {
@@ -213,6 +245,7 @@ export function install(P) {
       trigger.setAttribute("aria-expanded", String(open));
       if (open) {
         filterSectionOptions();
+        if (P.els.sectionOptions) P.els.sectionOptions.scrollTop = 0;
         positionSectionMenu();
         P.els.sectionFilter?.focus();
       }
@@ -224,6 +257,7 @@ export function install(P) {
         menu.hidden = false;
         trigger.setAttribute("aria-expanded", "true");
         filterSectionOptions();
+        if (P.els.sectionOptions) P.els.sectionOptions.scrollTop = 0;
         positionSectionMenu();
         P.els.sectionFilter?.focus();
       } else if (event.key === "Escape") {
@@ -233,6 +267,7 @@ export function install(P) {
 
     P.els.sectionFilter?.addEventListener("input", () => {
       filterSectionOptions();
+      if (P.els.sectionOptions) P.els.sectionOptions.scrollTop = 0;
       positionSectionMenu();
     });
     P.els.sectionFilter?.addEventListener("keydown", (event) => {
@@ -270,7 +305,13 @@ export function install(P) {
         if (P.els.sectionSelect && !P.els.sectionSelect.contains(event.target)) closeSectionMenu();
       });
       window.addEventListener("resize", () => positionSectionMenu(), { passive: true });
-      window.addEventListener("scroll", () => positionSectionMenu(), { passive: true, capture: true });
+      // Scrolling the option list must not reposition (and thus resize) the
+      // list mid-gesture; only page/viewport scrolling needs a refresh.
+      window.addEventListener("scroll", (event) => {
+        if (P.els.sectionMenu && (event.target === P.els.sectionMenu
+          || P.els.sectionMenu.contains(event.target))) return;
+        positionSectionMenu();
+      }, { passive: true, capture: true });
     }
   }
 
@@ -497,10 +538,12 @@ export function install(P) {
     const panel = P.els.details;
     if (!panel || panel.hidden || panel.classList.contains("is-closing")) return;
     window.clearTimeout(detailsCloseTimer);
-    panel.classList.remove("is-opening");
+    window.clearTimeout(detailsSwitchTimer);
+    panel.classList.remove("is-opening", "is-switching", "is-switch-out", "is-switch-in");
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       panel.hidden = true;
       P.els.detailsBody?.replaceChildren();
+      renderedDetailsId = null;
       P.updateActions?.();
       return;
     }
@@ -509,24 +552,15 @@ export function install(P) {
       panel.hidden = true;
       panel.classList.remove("is-closing");
       if (P.els.detailsBody && !P.state.selected) P.els.detailsBody.replaceChildren();
+      if (!P.state.selected) renderedDetailsId = null;
       P.updateActions?.();
     }, 220);
   }
 
-  function renderDetails() {
-    const panel = P.els.details;
+  function fillDetails(node) {
     const body = P.els.detailsBody;
-    if (!panel || !body) return;
-    const node = P.state.nodeById.get(P.state.selected);
-    if (!node) { hideDetails(); return; }
-    // Cancel a pending close and re-trigger the entrance animation even when
-    // switching between notes while the panel is already open.
-    window.clearTimeout(detailsCloseTimer);
-    panel.classList.remove("is-closing");
-    panel.hidden = false;
-    panel.classList.remove("is-opening");
-    void panel.offsetWidth;
-    panel.classList.add("is-opening");
+    const panel = P.els.details;
+    if (!panel || !body || !node) return;
     panel.scrollTop = 0;
     panel.setAttribute("aria-label", node.title);
     body.replaceChildren();
@@ -574,6 +608,43 @@ export function install(P) {
       list.append(item);
     }
     body.append(title, meta, excerpt, open, heading, list);
+    renderedDetailsId = node.id;
+  }
+
+  function renderDetails(options = {}) {
+    const panel = P.els.details;
+    const body = P.els.detailsBody;
+    if (!panel || !body) return;
+    const node = P.state.nodeById.get(P.state.selected);
+    if (!node) { hideDetails(); return; }
+
+    window.clearTimeout(detailsCloseTimer);
+    window.clearTimeout(detailsSwitchTimer);
+    panel.classList.remove("is-closing");
+    const alreadyOpen = !panel.hidden && renderedDetailsId;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // During a walk the card is already on screen: cross-fade its contents
+    // instead of replaying the whole entrance animation on every note.
+    if (alreadyOpen && renderedDetailsId !== node.id && options.switching !== false && !reduced) {
+      panel.classList.remove("is-opening", "is-switch-in");
+      panel.classList.add("is-switching", "is-switch-out");
+      detailsSwitchTimer = window.setTimeout(() => {
+        panel.classList.remove("is-switch-out");
+        fillDetails(node);
+        panel.classList.add("is-switch-in");
+        P.updateActions?.();
+        detailsSwitchTimer = window.setTimeout(() => {
+          panel.classList.remove("is-switching", "is-switch-in");
+        }, 260);
+      }, 130);
+      return;
+    }
+
+    panel.hidden = false;
+    panel.classList.remove("is-switching", "is-switch-out", "is-switch-in", "is-opening");
+    fillDetails(node);
+    void panel.offsetWidth;
+    panel.classList.add("is-opening");
     P.updateActions?.();
   }
 

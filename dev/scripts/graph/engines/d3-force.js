@@ -3,7 +3,7 @@
 import { loadVendorScripts } from "../vendor.js";
 import {
   svgEl, observeResize, categoryColors, nodeColor, nodeRadius,
-  edgeWidth, shorten, hash01,
+  edgeWidth, shorten, hash01, tweenView,
 } from "../shared.js";
 
 const idOf = (value) => (typeof value === "object" ? value?.id : value);
@@ -30,6 +30,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   let simulation = null;
   const nodeEls = new Map(); const linkEls = new Map();
   let view = { x: 0, y: 0, k: 1 };
+  let cancelFocus = null;
   let selected = null; let hovered = null; let walking = null;
   let matched = new Set(); let paused = false;
   const drag = { node: null, pointerId: null };
@@ -43,6 +44,15 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   }
   function applyView() {
     viewport.setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
+  }
+  function stopFocus() {
+    if (!cancelFocus) return;
+    cancelFocus();
+    cancelFocus = null;
+  }
+  function setView(next) {
+    Object.assign(view, next);
+    applyView();
   }
   function localPoint(event) {
     const rect = host.getBoundingClientRect();
@@ -154,6 +164,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
 
       group.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
+        stopFocus();
         drag.node = node; drag.pointerId = event.pointerId;
         if (simulation) simulation.alphaTarget(0.25).restart();
         node.fx = node.x; node.fy = node.y;
@@ -218,6 +229,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
 
   function fit() {
     if (!nodes.length) return;
+    stopFocus();
     let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
     for (const node of nodes) {
       minX = Math.min(minX, node.x); maxX = Math.max(maxX, node.x);
@@ -232,6 +244,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
 
   function onBackgroundDown(event) {
     if (event.target !== svg && event.target !== viewport && event.target !== linkLayer) return;
+    stopFocus();
     const point = localPoint(event);
     const start = { ...view };
     svg.setPointerCapture?.(event.pointerId);
@@ -252,6 +265,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   }
   function onWheel(event) {
     event.preventDefault();
+    stopFocus();
     const point = localPoint(event);
     const next = Math.max(0.2, Math.min(3.5, view.k * Math.exp(-event.deltaY * 0.0014)));
     view.x = point.x - ((point.x - view.x) / view.k) * next;
@@ -267,6 +281,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   return {
     id: "d3",
     setData(payload) {
+      stopFocus();
       nodes = payload.nodes || [];
       links = (payload.links || []).map((link) => ({ ...link }));
       nodes.forEach(seed);
@@ -283,10 +298,14 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     focus(id) {
       const node = nodes.find((item) => item.id === id);
       if (!node) return;
-      view.k = Math.max(view.k, 1.15);
-      view.x = width / 2 - node.x * view.k;
-      view.y = height / 2 - node.y * view.k;
-      applyView();
+      stopFocus();
+      const scale = Math.max(view.k, 1.15);
+      cancelFocus = tweenView(
+        () => view,
+        () => ({ x: width / 2 - node.x * scale, y: height / 2 - node.y * scale, k: scale }),
+        setView,
+        { duration: 460, reducedMotion },
+      );
     },
     fit,
     reheat() {
@@ -304,6 +323,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
       theme = next; paintStyles();
     },
     destroy() {
+      stopFocus();
       simulation?.stop();
       svg.removeEventListener("pointerdown", onBackgroundDown);
       svg.removeEventListener("wheel", onWheel);

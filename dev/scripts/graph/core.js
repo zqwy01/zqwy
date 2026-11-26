@@ -337,9 +337,11 @@ export function install(P) {
       : state.nodes[Math.floor(Math.random() * state.nodes.length)].id;
     state.walking = next;
     state.selected = next;
+    // focus() now glides the camera; the card cross-fades its contents so a
+    // stroll reads as one continuous movement rather than a series of jumps.
     state.engine?.focus?.(next);
     highlight();
-    P.renderDetails();
+    P.renderDetails({ switching: true });
     P.updateStatus();
     P.updateActions();
     syncUrl();
@@ -358,7 +360,9 @@ export function install(P) {
     P.renderDetails();
     P.updateStatus();
     P.updateActions();
-    P.timers.walk = window.setInterval(walkStep, 1900);
+    // Give the camera glide and the card cross-fade time to settle before the
+    // next neighbour takes over.
+    P.timers.walk = window.setInterval(walkStep, 2200);
   }
 
   function reset() {

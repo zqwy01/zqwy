@@ -2,7 +2,7 @@
  * Fast, glowy, with hard collision separation. Nodes can be dragged and pinned. */
 import {
   observeResize, withAlpha, categoryColors, nodeColor, nodeRadius,
-  edgeWidth, shorten, hash01, separateNodes,
+  edgeWidth, shorten, hash01, separateNodes, tweenView,
 } from "../shared.js";
 
 export function createEngine({ host, palette, categories, reducedMotion, callbacks }) {
@@ -17,6 +17,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
   let width = 1; let height = 1; let dpr = 1;
   let nodes = []; let links = []; let byId = new Map();
   let view = { x: 0, y: 0, k: 1 };
+  let cancelFocus = null;
   let alpha = 1; let paused = false; let raf = 0; let dirty = true;
   let selected = null; let hovered = null; let walking = null;
   let matched = new Set(); let litNodes = new Set(); let focusAt = 0;
@@ -54,6 +55,15 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
   function localPoint(event) {
     const rect = host.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+  function stopFocus() {
+    if (!cancelFocus) return;
+    cancelFocus();
+    cancelFocus = null;
+  }
+  function setView(next) {
+    Object.assign(view, next);
+    invalidate();
   }
 
   function seed(node, index) {
@@ -259,6 +269,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
 
   function onPointerDown(event) {
     if (event.button !== 0 && event.pointerType === "mouse") return;
+    stopFocus();
     const point = localPoint(event);
     const node = hitTest(point.x, point.y);
     pointer.down = true; pointer.moved = false; pointer.x = point.x; pointer.y = point.y;
@@ -311,6 +322,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
 
   function onWheel(event) {
     event.preventDefault();
+    stopFocus();
     const point = localPoint(event);
     const factor = Math.exp(-event.deltaY * 0.0014);
     const next = Math.max(0.2, Math.min(3.5, view.k * factor));
@@ -323,6 +335,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
 
   function fit() {
     if (!nodes.length) return;
+    stopFocus();
     let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
     for (const node of nodes) {
       minX = Math.min(minX, node.x); maxX = Math.max(maxX, node.x);
@@ -347,6 +360,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
   return {
     id: "canvas",
     setData(payload) {
+      stopFocus();
       nodes = payload.nodes || [];
       links = payload.links || [];
       byId = new Map(nodes.map((node) => [node.id, node]));
@@ -371,11 +385,15 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
     focus(id) {
       const node = byId.get(id);
       if (!node) return;
-      view.k = Math.max(view.k, 1.15);
-      view.x = width / 2 - node.x * view.k;
-      view.y = height / 2 - node.y * view.k;
+      stopFocus();
       focusAt = performance.now();
-      invalidate();
+      const scale = Math.max(view.k, 1.15);
+      cancelFocus = tweenView(
+        () => view,
+        () => ({ x: width / 2 - node.x * scale, y: height / 2 - node.y * scale, k: scale }),
+        setView,
+        { duration: 460, reducedMotion },
+      );
     },
     fit,
     reheat() {
@@ -389,6 +407,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
     },
     refreshTheme(next) { theme = next; invalidate(); },
     destroy() {
+      stopFocus();
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       canvas.removeEventListener("pointerdown", onPointerDown);

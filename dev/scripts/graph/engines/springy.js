@@ -4,7 +4,7 @@
 import { loadVendorScripts } from "../vendor.js";
 import {
   categoryColors, nodeColor, nodeRadius, edgeWidth, shorten,
-  withAlpha, seedPositions, separateNodes, observeResize,
+  withAlpha, seedPositions, separateNodes, observeResize, tweenView,
 } from "../shared.js";
 
 const SCALE = 100;
@@ -28,6 +28,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   let graph; let layout; let byId = new Map();
   let width = 1; let height = 1; let dpr = 1;
   let view = { x: 0, y: 0, k: 1 };
+  let cancelFocus = null;
   let energy = 1; let paused = false; let raf = 0;
   let selected = null; let hovered = null; let walking = null; let matched = new Set();
   const pointer = { down: false, mode: "", node: null, x: 0, y: 0, moved: false };
@@ -53,6 +54,15 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   function localPoint(event) {
     const rect = host.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+  function stopFocus() {
+    if (!cancelFocus) return;
+    cancelFocus();
+    cancelFocus = null;
+  }
+  function setView(next) {
+    Object.assign(view, next);
+    wake();
   }
 
   function collide() {
@@ -181,6 +191,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
 
   function onPointerDown(event) {
     if (event.button !== 0 && event.pointerType === "mouse") return;
+    stopFocus();
     const point = localPoint(event);
     const node = hitTest(point);
     pointer.down = true; pointer.moved = false; pointer.x = point.x; pointer.y = point.y;
@@ -226,6 +237,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   }
   function onWheel(event) {
     event.preventDefault();
+    stopFocus();
     const point = localPoint(event);
     const next = Math.max(0.25, Math.min(3, view.k * (event.deltaY > 0 ? 0.9 : 1.1)));
     view.x = point.x - ((point.x - view.x) / view.k) * next;
@@ -236,6 +248,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
 
   function fit() {
     if (!layout || !nodes.length) return;
+    stopFocus();
     let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
     for (const node of nodes) {
       const p = world(node);
@@ -265,6 +278,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
   return {
     id: "springy",
     setData(payload) {
+      stopFocus();
       nodes = (payload.nodes || []).map((node) => ({ ...node }));
       links = (payload.links || []).map((link) => ({ ...link }));
       byId = new Map(nodes.map((node) => [node.id, node]));
@@ -305,12 +319,23 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     },
     focus(id) {
       const node = byId.get(id);
-      const point = node && world(node);
-      if (!point) return;
-      view.k = Math.max(view.k, 1.2);
-      view.x = width / 2 - point.x * SCALE * view.k;
-      view.y = height / 2 - point.y * SCALE * view.k;
-      invalidate();
+      if (!node || !world(node)) return;
+      stopFocus();
+      const scale = Math.max(view.k, 1.2);
+      cancelFocus = tweenView(
+        () => view,
+        () => {
+          const point = world(node);
+          if (!point) return { ...view };
+          return {
+            x: width / 2 - point.x * SCALE * scale,
+            y: height / 2 - point.y * SCALE * scale,
+            k: scale,
+          };
+        },
+        setView,
+        { duration: 460, reducedMotion },
+      );
     },
     fit,
     reheat() {
@@ -320,6 +345,7 @@ export async function createEngine({ host, palette, categories, reducedMotion, c
     setPaused(value) { paused = Boolean(value); if (!paused) { energy = Math.max(energy, 0.3); invalidate(); } },
     refreshTheme(next) { theme = next; invalidate(); },
     destroy() {
+      stopFocus();
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
       canvas.removeEventListener("pointerdown", onPointerDown);

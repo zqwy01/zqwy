@@ -167,6 +167,45 @@ export function observeResize(host, callback) {
   return () => observer.disconnect();
 }
 
+/** Smooth camera interpolation for the hand-rolled SVG/Canvas engines.
+ *  `target` may be a function so a moving node stays centred while the camera
+ *  glides towards it. The returned callback cancels an in-flight transition. */
+export function tweenView(read, target, apply, { duration = 460, reducedMotion = false } = {}) {
+  const from = { ...read() };
+  const resolve = () => (typeof target === "function" ? target() : target);
+  const paint = (value) => apply(value);
+
+  if (reducedMotion || duration <= 0) {
+    paint({ ...from, ...resolve() });
+    return () => {};
+  }
+
+  let frame = 0;
+  let cancelled = false;
+  const start = performance.now();
+  const step = (now) => {
+    if (cancelled) return;
+    const t = Math.min(1, (now - start) / duration);
+    // Cubic in/out: slow at both ends, confident in the middle. This keeps a
+    // walk from feeling like a hard camera cut between neighbouring notes.
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
+    const to = resolve();
+    paint({
+      x: from.x + (to.x - from.x) * eased,
+      y: from.y + (to.y - from.y) * eased,
+      k: from.k + (to.k - from.k) * eased,
+    });
+    if (t < 1) frame = requestAnimationFrame(step);
+    else frame = 0;
+  };
+  frame = requestAnimationFrame(step);
+  return () => {
+    cancelled = true;
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+  };
+}
+
 /** Deterministic pseudo-random jitter so each rebuild looks the same. */
 export function hash01(value) {
   let hash = 2166136261;

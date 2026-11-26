@@ -1,0 +1,1 @@
+import{P,initContext}from"./context.js";import{install as installUi}from"./ui.js";import{install as installCore}from"./core.js";initContext(P),installUi(P),installCore(P),"loading"===document.readyState?document.addEventListener("DOMContentLoaded",()=>P.init(),{once:!0}):P.init();

@@ -18,6 +18,23 @@
 }
 .notes-back:hover,
 .notes-back:focus-visible { border-color: var(--focus-border); background: var(--bg-elevated-2); transform: translateX(-2px); }
+.notes-graph-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 12px 8px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+}
+.notes-graph-link:hover,
+.notes-graph-link:focus-visible { border-color: var(--focus-border); background: var(--bg-elevated-2); transform: translateY(-2px); }
+.notes-graph-link span[aria-hidden] { color: var(--muted); }
 .notes-head .blog-hint { margin-top: 4px; }
 .notes-head .blog-hint.dim { color: var(--muted); font-size: var(--fs-sm); }
 .notes-tree { display: flex; flex-direction: column; gap: 8px; margin: 0 0 22px; }

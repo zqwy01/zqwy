@@ -1,23 +1,46 @@
 # syntax=docker/dockerfile:1
 
-## Build static site (dev -> dist) automatically, then serve the generated dist.
-## docker-compose.yaml may still bind-mount ./dist over /app/dist for local dev.
-FROM node:24-bookworm-slim AS build
+# Пайплайн: зависимости -> тесты -> полная сборка dist (включая граф заметок)
+# -> проверка артефактов -> runtime. dist, собранный в образе, отдаётся по
+# умолчанию; bind-mount ./dist в docker-compose.yaml можно включить, если
+# нужна хостовая сборка.
+
+FROM node:24-bookworm-slim AS deps
 
 WORKDIR /src
 
+# .dockerignore исключает node_modules, dist и .git, поэтому в контекст попадают
+# только исходники. npm ci даёт воспроизводимый набор инструментов минификации.
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY dev ./dev
+
+FROM deps AS test
+
+# Тесты чистого слоя данных графа (извлечение ссылок, series, TF-IDF).
+# Падают -> сборка образа останавливается до генерации страниц.
 COPY scripts ./scripts
-# The full src/ tree is needed: src/notes is the source for wiki/zqwy, and
-# src/tracks provides the audio referenced by the music catalog. With src/
-# present the build rescans both on every Docker build instead of shipping a
-# stale catalog with missing files.
+RUN npm test
+
+
+FROM test AS build
+
+# Исходники сайта. src/ нужен целиком: src/notes — источник заметок и графа,
+# src/tracks — каталог музыки. Новые файлы графа не игнорируются .gitignore.
+COPY dev ./dev
 COPY src ./src
 
-RUN bash scripts/build_dist.sh
+# BUILD_NUMBER можно передать снаружи, чтобы не менять счётчик в образе:
+#   docker compose build --build-arg BUILD_NUMBER=42
+ARG BUILD_NUMBER=1
+ENV BUILD_NUMBER=${BUILD_NUMBER}
+
+# npm run build -> scripts/build_dist.sh:
+#   каталог музыки -> заметки + dev/data/note-graph.json -> версия ->
+#   поисковый индекс -> копирование dev/ в dist/ -> минификация.
+# build_dist.sh сам проверяет данные графа; здесь проверяем готовый dist.
+RUN npm run build \
+ && node scripts/verify_graph.mjs dist
 
 
 FROM node:24-bookworm-slim AS runtime

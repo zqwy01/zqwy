@@ -127,6 +127,14 @@ if [[ -f "$PROJECT_DIR/scripts/build_wiki_notes.mjs" ]]; then
     echo
 fi
 
+# Граф заметок строится тем же генератором (dev/data/note-graph.json).
+# Проверяем сразу, чтобы сборка не продолжалась с пустыми/битыми данными.
+if [[ -f "$PROJECT_DIR/scripts/verify_graph.mjs" ]]; then
+    echo "Проверка данных графа заметок..."
+    node "$PROJECT_DIR/scripts/verify_graph.mjs" dev "$PROJECT_DIR"
+    echo
+fi
+
 # Версия сборки показывается в панели настроек. Генерируем её до копирования
 # исходников, чтобы dist/data/build-info.json всегда соответствовал сборке.
 if [[ -f "$PROJECT_DIR/scripts/build_version.mjs" ]]; then

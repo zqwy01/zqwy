@@ -1,5 +1,21 @@
 node_modules/
-dev/
+# dev/ пересоздаётся сборкой (npm run build). Исключения ниже — источники
+# графа заметок: они нужны в свежем checkout для CI/Docker и не генерируются.
+dev/*
+!dev/wiki/
+dev/wiki/*
+!dev/wiki/graph/
+!dev/scripts/
+dev/scripts/*
+!dev/scripts/graph.js
+!dev/scripts/graph/
+!dev/styles/
+dev/styles/*
+!dev/styles/graph.css
+!dev/vendor/
+dev/vendor/*
+!dev/vendor/d3-*.min.js
+!dev/vendor/cytoscape.min.js
 # Локальные заметки bio/job и их копия в сборке
 src/notes/bio/job/
 dist/src/notes/bio/job/

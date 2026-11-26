@@ -1,8 +1,9 @@
 # Vendor libraries
 
 All files here are local, pinned copies used by the player engines in
-`scripts/player.js`. They are loaded lazily only when the corresponding engine
-is selected; the site never depends on a CDN at runtime.
+`scripts/player.js` and by the graph engines in `scripts/graph.js`. They are
+loaded lazily only when the corresponding engine is selected; the site never
+depends on a CDN at runtime.
 
 | File | Library | Version | License |
 | --- | --- | --- | --- |
@@ -19,6 +20,11 @@ is selected; the site never depends on a CDN at runtime.
 | `mediaelementplayer.min.css` | MediaElement.js stylesheet (visible engine UI) | 7.1.0 | MIT |
 | `jplayer.blue.monday.min.css` | jPlayer blue.monday skin (visible engine UI) | 2.9.2 | MIT GPLv2 (skin images) |
 | `image/jplayer.blue.monday.*` | background images for the jPlayer skin | 2.9.2 | MIT GPLv2 (skin images) |
+| `d3-dispatch.min.js` | D3 dispatch (d3-force dependency) | 3.0.1 | ISC |
+| `d3-quadtree.min.js` | D3 quadtree (d3-force dependency) | 3.0.1 | ISC |
+| `d3-timer.min.js` | D3 timer (d3-force dependency) | 3.0.1 | ISC |
+| `d3-force.min.js` | D3 force layout for the graph engine | 3.0.0 | ISC |
+| `cytoscape.min.js` | Cytoscape.js graph engine | 3.30.4 | MIT |
 
 The three stylesheets above are loaded lazily together with their libraries:
 they make APlayer, MediaElement.js and jPlayer render their own recognizable

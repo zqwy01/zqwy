@@ -1,8 +1,10 @@
 /* DOM rendering for the graph page. Engines never touch these controls. */
-import { svgEl } from "./shared.js";
+import { svgEl, categoryColors, readPalette } from "./shared.js";
 
 export function install(P) {
   let engineDocBound = false;
+  let sectionDocBound = false;
+  let controlTipBound = false;
   Object.assign(P, {
     bindGraphElements, bindEngineSelect, renderEngines, renderSections, renderDetails,
     showTooltip, updateStatus, updateActions, decorateActions,
@@ -16,6 +18,11 @@ export function install(P) {
       stage: "graphStage", stageExit: "graphStageExit", tooltip: "graphTooltip", empty: "graphEmpty",
       details: "graphDetails", detailsBody: "graphDetailsBody",
       detailsClose: "graphDetailsClose", status: "graphStatus",
+      controlTip: "graphControlTip",
+      sectionSelect: "graphSectionSelect", sectionTrigger: "graphSectionTrigger",
+      sectionMenu: "graphSectionMenu", sectionFilter: "graphSectionFilter",
+      sectionOptions: "graphSectionOptions", sectionEmpty: "graphSectionEmpty",
+      sectionValue: "graphSectionValue",
       loading: "graphLoading", loadingTitle: "graphLoadingTitle",
       loadingDetail: "graphLoadingDetail", loadingFill: "graphLoadingFill",
       loadingRetry: "graphLoadingRetry",
@@ -25,6 +32,7 @@ export function install(P) {
     if (!els.host || !els.engines || !els.status || !els.actions) return false;
     P.els = els;
     bindEngineSelect();
+    bindSectionSelect();
     return true;
   }
 
@@ -121,6 +129,129 @@ export function install(P) {
     }
   }
 
+  // The section filter is a styled listbox too: it can search inside the
+  // sections and shows how many notes each one contains. The hidden <select>
+  // stays the source of truth, so the page controller needs no changes.
+  function closeSectionMenu() {
+    const menu = P.els.sectionMenu;
+    const trigger = P.els.sectionTrigger;
+    if (!menu || !trigger) return;
+    menu.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    if (P.els.sectionFilter) P.els.sectionFilter.value = "";
+    if (P.els.sectionEmpty) P.els.sectionEmpty.hidden = true;
+    menu.querySelectorAll(".graph-section-option").forEach((option) => { option.hidden = false; });
+  }
+
+  function visibleSectionOptions() {
+    return [...(P.els.sectionOptions?.querySelectorAll(".graph-section-option") || [])]
+      .filter((option) => !option.hidden);
+  }
+
+  function filterSectionOptions() {
+    const query = (P.els.sectionFilter?.value || "").trim().toLowerCase();
+    const options = [...(P.els.sectionOptions?.querySelectorAll(".graph-section-option") || [])];
+    let visible = 0;
+    for (const option of options) {
+      const label = String(option.dataset.label || option.textContent || "").toLowerCase();
+      option.hidden = Boolean(query) && !label.includes(query);
+      if (!option.hidden) visible += 1;
+    }
+    if (P.els.sectionEmpty) P.els.sectionEmpty.hidden = visible > 0;
+  }
+
+  function chooseSection(value) {
+    const select = P.els.section;
+    if (!select) return;
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    updateSectionValue();
+    closeSectionMenu();
+    P.els.sectionTrigger?.focus();
+  }
+
+  function bindSectionSelect() {
+    const trigger = P.els.sectionTrigger;
+    const menu = P.els.sectionMenu;
+    if (!trigger || !menu || trigger.dataset.bound === "1") return;
+    trigger.dataset.bound = "1";
+
+    trigger.addEventListener("click", () => {
+      const open = menu.hidden;
+      menu.hidden = !open;
+      trigger.setAttribute("aria-expanded", String(open));
+      if (open) {
+        filterSectionOptions();
+        P.els.sectionFilter?.focus();
+      }
+    });
+
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        menu.hidden = false;
+        trigger.setAttribute("aria-expanded", "true");
+        filterSectionOptions();
+        P.els.sectionFilter?.focus();
+      } else if (event.key === "Escape") {
+        closeSectionMenu();
+      }
+    });
+
+    P.els.sectionFilter?.addEventListener("input", filterSectionOptions);
+    P.els.sectionFilter?.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        visibleSectionOptions()[0]?.focus();
+      } else if (event.key === "Enter") {
+        const first = visibleSectionOptions()[0];
+        if (first) { event.preventDefault(); chooseSection(first.dataset.value); }
+      } else if (event.key === "Escape") {
+        closeSectionMenu();
+        trigger.focus();
+      }
+    });
+
+    P.els.sectionOptions?.addEventListener("keydown", (event) => {
+      const options = visibleSectionOptions();
+      const current = options.indexOf(document.activeElement);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        options[Math.max(0, Math.min(options.length - 1, current + step))]?.focus();
+      } else if (event.key === "Enter" || event.key === " ") {
+        const option = event.target.closest?.(".graph-section-option");
+        if (option) { event.preventDefault(); chooseSection(option.dataset.value); }
+      } else if (event.key === "Escape") {
+        closeSectionMenu();
+        trigger.focus();
+      }
+    });
+
+    if (!sectionDocBound) {
+      sectionDocBound = true;
+      document.addEventListener("click", (event) => {
+        if (P.els.sectionSelect && !P.els.sectionSelect.contains(event.target)) closeSectionMenu();
+      });
+    }
+  }
+
+  function updateSectionValue() {
+    const select = P.els.section;
+    const value = P.els.sectionValue;
+    if (!select || !value) return;
+    const option = [...select.options].find((item) => item.value === select.value);
+    const label = option?.textContent || P.t("allSections");
+    value.textContent = label;
+    P.els.sectionTrigger?.setAttribute("aria-label", `${P.t("graphFilter")}: ${label}`);
+    const dot = P.els.sectionSelect?.querySelector(".graph-section-select-dot");
+    if (dot) {
+      const selected = [...(P.els.sectionOptions?.querySelectorAll(".graph-section-option") || [])]
+        .find((item) => item.dataset.value === select.value);
+      dot.style.setProperty("--kind-color", selected?.style.getPropertyValue("--kind-color") || "var(--muted)");
+    }
+  }
+
   function renderEngines() {
     const root = P.els.engines;
     if (!root) return;
@@ -193,9 +324,63 @@ export function install(P) {
     }
   }
 
+  // Icon-only buttons get a short native title plus a richer custom hint that
+  // explains the action. The hint follows the button, including in fullscreen.
+  function hideControlTip() {
+    const tip = P.els.controlTip;
+    if (!tip) return;
+    tip.classList.remove("is-visible");
+    tip.hidden = true;
+  }
+
+  function showControlTip(button) {
+    const tip = P.els.controlTip;
+    const stage = P.els.stage;
+    if (!tip || !stage) return;
+    const text = button.dataset.tip || button.title || button.getAttribute("aria-label") || "";
+    if (!text) return;
+    tip.textContent = text;
+    tip.hidden = false;
+    tip.classList.add("is-visible");
+    const bounds = button.getBoundingClientRect();
+    const scene = stage.getBoundingClientRect();
+    const width = tip.offsetWidth || 200;
+    const center = bounds.left + bounds.width / 2 - scene.left;
+    tip.style.left = `${Math.max(width / 2 + 8, Math.min(scene.width - width / 2 - 8, center))}px`;
+    tip.style.top = `${Math.max(44, bounds.top - scene.top - 10)}px`;
+  }
+
+  function bindControlTips() {
+    const stage = P.els.stage;
+    if (!stage || !P.els.controlTip || stage.dataset.tipBound === "1") return;
+    stage.dataset.tipBound = "1";
+    const owner = (node) => (node instanceof Element ? node.closest("[data-tip]") : null);
+    stage.addEventListener("pointerover", (event) => {
+      const button = owner(event.target);
+      if (button) showControlTip(button);
+    });
+    stage.addEventListener("pointerout", (event) => {
+      const button = owner(event.target);
+      if (button && !button.contains(event.relatedTarget)) hideControlTip();
+    });
+    stage.addEventListener("focusin", (event) => {
+      const button = owner(event.target);
+      if (button) showControlTip(button);
+    });
+    stage.addEventListener("focusout", (event) => {
+      if (owner(event.target)) hideControlTip();
+    });
+    stage.addEventListener("pointerdown", (event) => {
+      if (owner(event.target)) hideControlTip();
+    });
+  }
+
   // Buttons are icon-only; updateActions() supplies icons and translated
   // title/aria-label text after every state or language change.
   function decorateActions() {
+    if (P.els.stageExit) P.els.stageExit.dataset.tip = P.t("tip.exitFullscreen");
+    if (P.els.detailsClose) P.els.detailsClose.dataset.tip = P.t("tip.closeDetails");
+    bindControlTips();
     P.updateActions?.();
   }
 
@@ -210,6 +395,11 @@ export function install(P) {
     select.append(all);
     const categories = [...(P.state.graph?.categories || [])]
       .sort((a, b) => a.label.localeCompare(b.label, "ru"));
+    const counts = new Map();
+    for (const node of P.state.allNodes) {
+      counts.set(node.category, (counts.get(node.category) || 0) + 1);
+    }
+    const colors = categoryColors(categories, readPalette());
     for (const category of categories) {
       const option = document.createElement("option");
       option.value = category.id;
@@ -218,6 +408,49 @@ export function install(P) {
     }
     select.value = categories.some((category) => category.id === current) ? current : "";
     P.settings.section = select.value;
+
+    renderSectionMenu(categories, counts, colors);
+  }
+
+  function renderSectionMenu(categories, counts, colors) {
+    const box = P.els.sectionOptions;
+    if (!box) return;
+    const entries = [
+      { id: "", label: P.t("allSections"), color: "", count: P.state.allNodes.length },
+      ...categories.map((category) => ({
+        id: category.id,
+        label: category.label,
+        color: colors.get(category.id) || "",
+        count: counts.get(category.id) || 0,
+      })),
+    ];
+    box.replaceChildren();
+    for (const entry of entries) {
+      const option = document.createElement("div");
+      option.className = "graph-section-option";
+      option.setAttribute("role", "option");
+      option.dataset.value = entry.id;
+      option.dataset.label = entry.label;
+      option.tabIndex = -1;
+      option.setAttribute("aria-selected", String(entry.id === P.settings.section));
+      const dot = document.createElement("span");
+      dot.className = "graph-section-option-dot";
+      dot.setAttribute("aria-hidden", "true");
+      if (entry.color) dot.style.setProperty("--kind-color", entry.color);
+      const label = document.createElement("span");
+      label.className = "graph-section-option-label";
+      label.textContent = entry.label;
+      const count = document.createElement("span");
+      count.className = "graph-section-option-count";
+      count.textContent = String(entry.count);
+      option.append(dot, label, count);
+      option.addEventListener("click", () => chooseSection(entry.id));
+      box.append(option);
+    }
+    if (P.els.sectionFilter) P.els.sectionFilter.placeholder = P.t("sectionFilterPlaceholder");
+    if (P.els.sectionEmpty) P.els.sectionEmpty.textContent = P.t("sectionFilterEmpty");
+    closeSectionMenu();
+    updateSectionValue();
   }
 
   function renderDetails() {
@@ -226,7 +459,14 @@ export function install(P) {
     if (!panel || !body) return;
     const node = P.state.nodeById.get(P.state.selected);
     if (!node) { panel.hidden = true; body.replaceChildren(); return; }
+    // Re-trigger the entrance animation even when switching between notes
+    // while the panel is already open.
     panel.hidden = false;
+    panel.classList.remove("is-opening");
+    void panel.offsetWidth;
+    panel.classList.add("is-opening");
+    panel.scrollTop = 0;
+    panel.setAttribute("aria-label", node.title);
     body.replaceChildren();
 
     const title = document.createElement("h2");
@@ -353,7 +593,9 @@ export function install(P) {
     if (P.els.stageExit) {
       P.els.stageExit.title = P.t("exitFullscreen");
       P.els.stageExit.setAttribute("aria-label", P.t("exitFullscreen"));
+      P.els.stageExit.dataset.tip = P.t("tip.exitFullscreen");
     }
+    if (P.els.detailsClose) P.els.detailsClose.dataset.tip = P.t("tip.closeDetails");
     const paused = Boolean(P.settings.paused);
     const walking = Boolean(P.state.walking);
     const labels = {
@@ -371,12 +613,20 @@ export function install(P) {
       fullscreen: fullscreen ? "exitFullscreen" : "fullscreen",
     };
     const active = { motion: paused, walk: walking, fullscreen };
+    const tips = {
+      fit: P.t("tip.fit"),
+      motion: P.t(paused ? "tip.motion" : "tip.pause"),
+      walk: P.t(walking ? "tip.stopWalk" : "tip.walk"),
+      reset: P.t("tip.reset"),
+      fullscreen: P.t(fullscreen ? "tip.exitFullscreen" : "tip.fullscreen"),
+    };
     for (const button of P.els.actions.querySelectorAll("[data-action]")) {
       const action = button.dataset.action;
       if (!(action in labels)) continue;
       actionIcon(button, icons[action]);
       button.title = labels[action];
       button.setAttribute("aria-label", labels[action]);
+      button.dataset.tip = tips[action];
       button.dataset.active = String(Boolean(active[action]));
       if (action in active) button.setAttribute("aria-pressed", String(Boolean(active[action])));
     }

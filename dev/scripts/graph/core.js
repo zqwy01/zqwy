@@ -118,10 +118,11 @@ export function install(P) {
   async function fetchData() {
     P.els.status.textContent = P.t("loading");
     P.setLoading?.(P.t("loading"), "", 12);
-    // The JSON is generated at build time. `no-cache` still revalidates it, but
-    // lets the browser reuse a fresh copy — unlike `no-store`, it can also
-    // reuse the <link rel=preload> started from the page <head>.
-    const response = await fetch(P.DATA_URL, { cache: "no-cache" });
+    // The page <head> starts this request before the module graph is parsed;
+    // reusing it removes a second round trip on the first, cold load.
+    const early = window.__zqwyGraphDataPromise;
+    window.__zqwyGraphDataPromise = null;
+    const response = early ? await early : await fetch(P.DATA_URL, { cache: "no-cache" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (!Array.isArray(data.nodes) || !Array.isArray(data.links)) throw new Error("bad graph data");

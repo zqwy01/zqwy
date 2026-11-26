@@ -1,5 +1,5 @@
 /* Engine 1: dependency-free force layout on Canvas 2D.
- * Fast, glowy, and the default. Nodes can be dragged and pinned. */
+ * Fast, glowy, with hard collision separation. Nodes can be dragged and pinned. */
 import {
   observeResize, withAlpha, categoryColors, nodeColor, nodeRadius,
   edgeWidth, shorten, hash01, separateNodes,
@@ -61,7 +61,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
     const group = Math.max(0, (categories || []).findIndex((c) => c.id === node.category));
     const total = Math.max(1, (categories || []).length);
     const angle = (group / total) * Math.PI * 2 - Math.PI / 2 + (hash01(node.id) - 0.5) * 0.5;
-    const radius = 170 + (group % 3) * 70 + hash01(`${node.id}x`) * 60;
+    const radius = 120 + (group % 3) * 40 + hash01(`${node.id}x`) * 40;
     node.x = width / 2 + Math.cos(angle) * radius + index * 0.4;
     node.y = height / 2 + Math.sin(angle) * radius + index * 0.4;
     node.vx = 0; node.vy = 0;
@@ -77,7 +77,7 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
         const a = nodes[i]; const b = nodes[j];
         const dx = b.x - a.x; const dy = b.y - a.y;
         const distanceSq = dx * dx + dy * dy + 36;
-        const force = (boost * 520) / distanceSq;
+        const force = (boost * 30) / distanceSq;
         a.ax -= dx * force; a.ay -= dy * force;
         b.ax += dx * force; b.ay += dy * force;
       }
@@ -88,10 +88,12 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
       if (!a || !b) continue;
       const dx = b.x - a.x; const dy = b.y - a.y;
       const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-      const target = link.kind === "series" ? 95 : link.kind === "similar" ? 165 : 120;
-      const force = boost * 0.018 * (distance - target) * (0.55 + Number(link.weight || 0));
-      a.ax += dx * force; a.ay += dy * force;
-      b.ax -= dx * force; b.ay -= dy * force;
+      const target = link.kind === "series" ? 60 : link.kind === "similar" ? 100 : 75;
+      // Use the unit vector: multiplying by dx as well makes the layout explode.
+      const force = boost * 0.15 * (distance - target) * (0.55 + Number(link.weight || 0));
+      const nx = dx / distance; const ny = dy / distance;
+      a.ax += nx * force; a.ay += ny * force;
+      b.ax -= nx * force; b.ay -= ny * force;
     }
 
     // Gentle category gravity makes clusters visible without hard containers.
@@ -106,8 +108,8 @@ export function createEngine({ host, palette, categories, reducedMotion, callbac
       const group = groups.get(node.category);
       node.ax += (group.x - node.x) * boost * 0.0025;
       node.ay += (group.y - node.y) * boost * 0.0025;
-      node.ax += (width / 2 - node.x) * boost * 0.0012;
-      node.ay += (height / 2 - node.y) * boost * 0.0012;
+      node.ax += (width / 2 - node.x) * boost * 0.01;
+      node.ay += (height / 2 - node.y) * boost * 0.01;
     }
 
     for (const node of nodes) {

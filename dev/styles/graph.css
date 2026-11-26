@@ -26,11 +26,11 @@
   align-items: flex-end;
   gap: 14px;
 }
-/* Row 1: engine buttons form one column, action buttons the next one.
- * Row 2: search. Row 3: filters. */
+/* Row 1: engine buttons wrap into horizontal rows, action buttons occupy
+ * the next column and wrap the same way. Row 2: search. Row 3: filters. */
 .graph-toolbar-row-buttons {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, max-content));
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
   align-items: start;
   gap: 18px;
 }
@@ -59,15 +59,10 @@
 }
 .graph-engine-list,
 .graph-action-list {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-}
-/* Ten engines are a tall column; keep the toolbar usable on short screens. */
-.graph-engine-list {
-  max-height: min(62vh, 560px);
-  overflow-y: auto;
-  padding-right: 2px;
 }
 .graph-kind-list {
   display: flex;

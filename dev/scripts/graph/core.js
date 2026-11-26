@@ -1,7 +1,8 @@
 /* Page controller: data, filters, selection, engine lifecycle. */
 import { readPalette } from "./shared.js";
 
-const DEFAULT_ENGINE = "canvas";
+const DEFAULT_ENGINE = "d3";
+const FALLBACK_ENGINE = "canvas";
 const SITE_SETTINGS_KEY = "zqwy.site.settings.v1";
 const KIND_IDS = ["reference", "series", "similar"];
 
@@ -24,15 +25,19 @@ export function install(P) {
       const site = JSON.parse(localStorage.getItem(SITE_SETTINGS_KEY) || "null") || {};
       if (site.graphEngines && typeof site.graphEngines === "object") disabled = site.graphEngines;
     } catch { /* broken site settings: keep every engine available */ }
-    // Canvas is the permanent fallback and cannot be removed from the list.
-    return P.ENGINES.filter((engine) => engine.id === DEFAULT_ENGINE || disabled[engine.id] !== false);
+    // Canvas stays available as the permanent fallback even if all others
+    // (including the preferred d3 engine) are removed in site settings.
+    return P.ENGINES.filter((engine) => engine.id === FALLBACK_ENGINE || disabled[engine.id] !== false);
   }
 
   function loadSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(P.SETTINGS_KEY) || "null") || {};
-      P.settings.engine = availableEngines().some((engine) => engine.id === saved.engine)
-        ? saved.engine : DEFAULT_ENGINE;
+      const available = availableEngines();
+      const preferred = available.some((engine) => engine.id === DEFAULT_ENGINE)
+        ? DEFAULT_ENGINE : FALLBACK_ENGINE;
+      P.settings.engine = available.some((engine) => engine.id === saved.engine)
+        ? saved.engine : preferred;
       P.settings.section = typeof saved.section === "string" ? saved.section : "";
       P.settings.paused = Boolean(saved.paused);
       for (const kind of KIND_IDS) {
@@ -233,9 +238,12 @@ export function install(P) {
       return true;
     } catch (error) {
       console.error("Graph engine error:", error);
-      if (id !== DEFAULT_ENGINE && P.state.owner) {
-        P.settings.engine = DEFAULT_ENGINE;
-        return selectEngine(DEFAULT_ENGINE);
+      // Try d3 first, then the canvas fallback; never retry the failed engine.
+      const fallback = [DEFAULT_ENGINE, FALLBACK_ENGINE].find((candidate) =>
+        candidate !== id && availableEngines().some((engine) => engine.id === candidate));
+      if (fallback && P.state.owner) {
+        P.settings.engine = fallback;
+        return selectEngine(fallback);
       }
       P.els.status.textContent = P.t("error");
       P.showLoadingError?.(error.message);
